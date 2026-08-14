@@ -1,0 +1,81 @@
+// DolphinDB 异步复制脚本
+// 包含主从复制状态监控
+
+// @description 异步复制状态总览：自动判断节点角色（master/slave）+ 任务统计 + 完整任务列表
+// @collect async-replication
+// @permission readonly
+def checkReplication() {
+    d = dict(STRING, ANY)
+    configDict = getConfig()
+    role = "none"
+    if(configDict["clusterReplicationMasterCtl"] is not null) { role = "slave" }
+    else if(configDict["clusterReplicationSlaveNum"] > 0)     { role = "master" }
+    d["role"] = role
+
+    if(role == "master") {
+        masterStatus = select * from getMasterReplicationStatus() where submitTime > temporalAdd(now(),-1,'m')
+        d["total_tasks"]     = exec count(*) from masterStatus
+        d["truncated_tasks"] = exec count(*) from masterStatus where isTruncated = true
+        d["tasks"]           = masterStatus
+        // 控制节点上完整 master 状态（不限时间窗）
+        try { d["master_status_full"] = rpc(getControllerAlias(), getMasterReplicationStatus) }
+        catch(ex) { d["master_status_full"] = "error: " + concat(string(ex), ": ") }
+    }
+    else if(role == "slave") {
+        slaveStatus = select * from getSlaveReplicationStatus() where createTime > temporalAdd(now(),-1,'m')
+        d["total_tasks"]     = exec count(*) from slaveStatus
+        d["completed_tasks"] = exec count(*) from slaveStatus where state = "FINISH"
+        d["failed_tasks"]    = exec count(*) from slaveStatus where state = "FAILED"
+        d["waiting_tasks"]   = exec count(*) from slaveStatus where state = "WAITING"
+        d["executing_tasks"] = exec count(*) from slaveStatus where state = "EXECUTING"
+        d["tasks"]           = slaveStatus
+        // 完整 slave 状态
+        try { d["slave_status_full"] = getSlaveReplicationStatus() }
+        catch(ex) { d["slave_status_full"] = "error: " + concat(string(ex), ": ") }
+    }
+    else {
+        d["note"] = "node is not part of any replication topology"
+    }
+
+    return d
+}
+
+// @description 跳过卡住的异步复制任务
+// @params taskId:int:required
+// @permission danger
+def skipReplicationTask(taskId) {
+    if (taskId < 0) {
+        throw "taskId must be non-negative"
+    }
+    try {
+        rpc(getControllerAlias(), skipClusterReplicationTask{taskId})
+        return "skipClusterReplicationTask done: taskId=" + string(taskId)
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 启动/重启异步复制
+// @permission danger
+def startClusterReplication1() {
+    try {
+        rpc(getControllerAlias(), startClusterReplication)
+        return "startClusterReplication done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 停止异步复制
+// @permission danger
+def stopClusterReplication1() {
+    try {
+        rpc(getControllerAlias(), stopClusterReplication)
+        return "stopClusterReplication done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 强制汇报所有复制任务状态（用于迁移前收尾，2.00.15+ 版本）
+// @permission danger
+def reportReplicationTasks() {
+    try {
+        rpc(getControllerAlias(), reportClusterReplicationTasks)
+        return "reportClusterReplicationTasks done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}

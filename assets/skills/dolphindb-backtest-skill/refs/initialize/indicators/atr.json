@@ -1,0 +1,40 @@
+{
+    "name": "atr",
+    "desc": "基于最高价、最低价和收盘价序列，计算 ATR 及其平滑结果，返回多个结果向量。",
+    "syntax": "mytt::ATR(high, low, close, window, smoothWindow)",
+    "parameters": {
+        "high": {
+            "type": "VECTOR",
+            "desc": "最高价序列"
+        },
+        "low": {
+            "type": "VECTOR",
+            "desc": "最低价序列"
+        },
+        "close": {
+            "type": "VECTOR",
+            "desc": "收盘价序列"
+        },
+        "window": {
+            "type": "INT",
+            "desc": "ATR 的窗口长度"
+        },
+        "smoothWindow": {
+            "type": "INT",
+            "desc": "对 ATR 结果进一步平滑的窗口长度"
+        }
+    },
+    "results": {
+        "atr": {
+            "type": "VECTOR",
+            "desc": "ATR 主结果序列"
+        },
+        "smoothedAtr": {
+            "type": "VECTOR",
+            "desc": "ATR 平滑结果序列"
+        }
+    },
+    "example": [
+        "mytt::ATR(high, low, close, 14, 10)"
+    ]
+}

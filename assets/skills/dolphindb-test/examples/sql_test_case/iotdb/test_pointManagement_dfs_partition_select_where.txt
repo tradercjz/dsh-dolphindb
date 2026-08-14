@@ -1,0 +1,1096 @@
+login("admin","123456")
+
+def createValueDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	t=table(take(1..10, 10) as id, take(2019.04.23..2019.04.25,10) as date,[21:00:00.000, 22:00:00.000, 23:00:00.000, 01:00:00.000, 05:00:00.000, 07:00:00.000, 08:00:00.000, 09:00:00.000, 10:00:00.000, 11:00:00.000] as time)
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, VALUE, 2019.04.23..2019.04.25)
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\"pt\""+"(id INT, date DATE, time TIME)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt=loadTable(dbName, `pt).append!(t)
+}
+
+def createRangeDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	t=table(take(1..10, 10) as id, take(2019.04.23..2019.04.25,10) as date,[21:00:00.000, 22:00:00.000, 23:00:00.000, 01:00:00.000, 05:00:00.000, 07:00:00.000, 08:00:00.000, 09:00:00.000, 10:00:00.000, 11:00:00.000] as time)
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, RANGE, 2019.04.23 2019.04.24 2019.04.25 2019.04.26)
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\"pt\""+"(id INT, date DATE, time TIME)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt=loadTable(dbName, `pt).append!(t)
+}
+
+def createHashDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	t=table(take(1..10, 10) as id, take(2019.04.23..2019.04.25,10) as date,[21:00:00.000, 22:00:00.000, 23:00:00.000, 01:00:00.000, 05:00:00.000, 07:00:00.000, 08:00:00.000, 09:00:00.000, 10:00:00.000, 11:00:00.000] as time)
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, HASH, [DATE,2])
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\"pt\""+"(id INT, date DATE, time TIME)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt=loadTable(dbName, `pt).append!(t)
+}
+
+def createListDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	t=table(take(1..10, 10) as id, take(2019.04.23..2019.04.25,10) as date,[21:00:00.000, 22:00:00.000, 23:00:00.000, 01:00:00.000, 05:00:00.000, 07:00:00.000, 08:00:00.000, 09:00:00.000, 10:00:00.000, 11:00:00.000] as time)
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, LIST, [2019.04.23 2019.04.24, 2019.04.25])
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\"pt\""+"(id INT, date DATE, time TIME)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt=loadTable(dbName, `pt).append!(t)
+}
+
+@testing:case="test_dfs_value_partition_select_where"
+dbName="dfs://test_partition_where_valuedb"
+createValueDB(dbName)
+pt=loadTable(dbName, `pt)
+re=select * from pt where date=2019.04.23
+assert 1, re.size()==4
+
+re=select * from pt where date>2019.04.23
+assert 2, re.size()==6
+
+re=select * from pt where date in 2019.04.25..2019.04.27
+assert 3, re.size()==3
+
+re=select * from pt where date=2019.04.23 and time>=21:00:00.000
+assert 4, re.size()==1
+
+re=select * from pt where date in 2019.04.23..2019.04.25 and time>=21:00:00.000
+assert 5, re.size()==3
+
+re=select * from pt where date=2019.04.23 or time>=21:00:00.000
+assert 6, re.size()==6
+
+re=select * from pt where (date=2019.04.23 and time>=21:00:00.000) or (date=2019.04.24 and time<=15:00:00.000)
+assert 7, re.size()==3
+
+@testing:case="test_dfs_range_partition_select_where"
+dbName="dfs://test_partition_where_rangedb"
+createRangeDB(dbName)
+pt=loadTable(dbName, `pt)
+re=select * from pt where date=2019.04.23
+assert 1, re.size()==4
+
+re=select * from pt where date>2019.04.23
+assert 2, re.size()==6
+
+re=select * from pt where date in 2019.04.25..2019.04.27
+assert 3, re.size()==3
+
+re=select * from pt where date=2019.04.23 and time>=21:00:00.000
+assert 4, re.size()==1
+
+re=select * from pt where date in 2019.04.23..2019.04.25 and time>=21:00:00.000
+assert 5, re.size()==3
+
+re=select * from pt where date=2019.04.23 or time>=21:00:00.000
+assert 6, re.size()==6
+
+re=select * from pt where (date=2019.04.23 and time>=21:00:00.000) or (date=2019.04.24 and time<=15:00:00.000)
+assert 7, re.size()==3
+
+@testing:case="test_dfs_hash_partition_select_where"
+dbName="dfs://test_partition_where_hashdb"
+createHashDB(dbName)
+pt=loadTable(dbName, `pt)
+re=select * from pt where date=2019.04.23
+assert 1, re.size()==4
+
+re=select * from pt where date>2019.04.23
+assert 2, re.size()==6
+
+re=select * from pt where date in 2019.04.25..2019.04.27
+assert 3, re.size()==3
+
+re=select * from pt where date=2019.04.23 and time>=21:00:00.000
+assert 4, re.size()==1
+
+re=select * from pt where date in 2019.04.23..2019.04.25 and time>=21:00:00.000
+assert 5, re.size()==3
+
+re=select * from pt where date=2019.04.23 or time>=21:00:00.000
+assert 6, re.size()==6
+
+re=select * from pt where (date=2019.04.23 and time>=21:00:00.000) or (date=2019.04.24 and time<=15:00:00.000)
+assert 7, re.size()==3
+
+@testing:case="test_dfs_list_partition_select_where"
+dbName="dfs://test_partition_where_listdb"
+createListDB(dbName)
+pt=loadTable(dbName, `pt)
+re=select * from pt where date=2019.04.23
+assert 1, re.size()==4
+
+re=select * from pt where date>2019.04.23
+assert 2, re.size()==6
+
+re=select * from pt where date in 2019.04.25..2019.04.27
+assert 3, re.size()==3
+
+re=select * from pt where date=2019.04.23 and time>=21:00:00.000
+assert 4, re.size()==1
+
+re=select * from pt where date in 2019.04.23..2019.04.25 and time>=21:00:00.000
+assert 5, re.size()==3
+
+re=select * from pt where date=2019.04.23 or time>=21:00:00.000
+assert 6, re.size()==6
+
+re=select * from pt where (date=2019.04.23 and time>=21:00:00.000) or (date=2019.04.24 and time<=15:00:00.000)
+assert 7, re.size()==3
+
+@testing:case="test_dfs_where_order_sensitive_function",exception=1
+dbName="dfs://test_partition_where_valuedb"
+createValueDB(dbName)
+pt=loadTable(dbName, `pt)
+
+select * from pt where isDuplicated([date])==false
+
+
+/* * * * *  The type of partitionScheme is different from that of partitionColumn* * * *  */
+
+def createValueDB(dbName,tbName,partitionDateType,t,n){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, VALUE, partitionDateType(1..10))
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\""+tbName+"\""+"(id INT, date DATETIME, val INT)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt = loadTable(dbName, tbName).append!(t)
+}
+
+def createRangeDB(dbName,tbName,partitionDateType,t,n){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, RANGE, partitionDateType(2022.01.01..2022.01.11))
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\""+tbName+"\""+"(id INT, date DATETIME, val INT)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt = loadTable(dbName, tbName).append!(t)
+}
+
+def createHashDB(dbName,tbName,partitionDateType,t,n){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1 = database(, VALUE, 1..10)
+	db2 = database(, HASH, [partitionDateType,2])
+	db=database(dbName, COMPO, [db1, db2], , "IOTDB")
+	runScript("create table \""+dbName+"\".\""+tbName+"\""+"(id INT, date DATETIME, val INT)\n partitioned by id, date,\n sortColumns=`id`date, \n latestKeyCache = true \n go")
+	pt = loadTable(dbName, tbName).append!(t)
+}
+
+def createCOMPODB(dbName,tbName,partitionDateType,t,n, dtype = "DATETIME"){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1=database(, VALUE, partitionDateType(1..10))
+	db2=database(, HASH, [INT,2])
+	db=database(dbName, COMPO, [db2, db1], , "IOTDB")
+	runScript("create table \""+dbName+"\".\""+tbName+"\""+"(id INT, date "+dtype+", val INT)\n partitioned by val, date,\n sortColumns=`val`date, \n latestKeyCache = true \n go")
+	pt = loadTable(dbName, tbName).append!(t)
+}
+
+@testing:case="test_dfs_Value_where_partitionScheme_partitionColumn_diff"
+dbName="dfs://test_dfs_Value_where"
+tbName=`pt
+n=860400
+
+partitionDateType=date
+t=table(take(1..10, n) as id, take(2000.01.01T01:00:00..2000.01.10T23:59:59 +(1..n)*10, n)  as date,1..n as val) 
+createValueDB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where month(date)>=2000.01M && month(date) <2020.04M order by val
+res=select * from loadTable(dbName,tbName) where month(date)>=2000.01M&& month(date) <2020.04M order by val
+assert 1,eqObj(data.values(),res.values())
+
+@testing:case="test_dfs_RANGE_where_partitionScheme_partitionColumn_diff"
+dbName="dfs://test_dfs_RANGE_where"
+tbName=`pt
+n=860400
+partitionDateType=datehour
+t=table(take(1..10, n) as id, 2022.01.01T01:00:00..2022.01.10T23:59:59 as date,1..n as val) 
+createRangeDB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where date >=2022.01.01 && date < 2022.01.09 order by val
+res=select * from loadTable(dbName,tbName) where date >=2022.01.01 && date < 2022.01.09 order by val
+assert 1,eqObj(data.values(),res.values())
+
+@testing:case="test_dfs_HASH_where_partitionScheme_partitionColumn_diff"
+dbName="dfs://test_dfs_HASH_where"
+tbName=`pt
+n=860400
+partitionDateType=datehour
+t=table(take(1..10, n) as id, 2022.01.01T01:00:00..2022.01.10T23:59:59 as date,1..n as val) 
+createRangeDB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where date >=2022.01.01 && date < 2022.01.07 order by val
+res=select * from loadTable(dbName,tbName) where date >=2022.01.01 && date < 2022.01.07 order by val
+assert 1,eqObj(data.values(),res.values())
+
+@testing:case="test_dfs_COMPO_where_partitionScheme_partitionColumn_diff"
+dbName="dfs://test_dfs_COMPO_where"
+tbName=`pt
+n=3283202
+partitionDateType=datehour
+//datetime
+t=table(take(1..10, n) as id,  2000.01.31T23:59:59..2000.03.10T00:00:00 as date,1..n as val)
+createCOMPODB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where month(date)>=2000.01M && month(date) <2000.03M order by val
+res=select * from loadTable(dbName,tbName) where month(date)>=2000.01M&& month(date) <2000.03M order by val
+assert 1,eqObj(data.values(),res.values())
+//timestamp
+t=table(take(1..10, n) as id, take(2022.01.01T01:00:00.001+(1..n)*10, n) as date,1..n as val) 
+createCOMPODB(dbName,tbName,partitionDateType,t,n, `TIMESTAMP)
+data=select *from t where isDuplicated([date,val], LAST)=false , date in 2022.01.01 ..2022.01.07 order by val, date
+res=select * from loadTable(dbName,tbName) where date in 2022.01.01 ..2022.01.07 order by val, date
+assert 2,eqObj(data.values(),res.values())
+ 
+//nanotimestamp
+t=table(take(1..10, n) as id, 2022.01.30T01:00:00.000000001+(1..n)*2148000000 as date,1..n as val) 
+createCOMPODB(dbName,tbName,partitionDateType,t,n, `NANOTIMESTAMP)
+data=select *from t where date >=2022.01.30 && date < 2022.02.07 order by val, date
+res=select * from loadTable(dbName,tbName) where date >=2022.01.30 && date < 2022.02.07 order by val, date
+assert 3,eqObj(data.values(),res.values())
+
+/*partitionDateType=date*/
+n=800000
+partitionDateType=date
+
+t=table(take(1..10, n) as id, 2022.01.30T01:00:00+(1..n)*10 as date,1..n as val) 
+createCOMPODB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where month(date)>=2022.01M && month(date) <2022.03M order by val
+res=select * from loadTable(dbName,tbName) where month(date)>=2022.01M && month(date) <2022.03M order by val
+assert 4,eqObj(data.values(),res.values())
+
+
+/*partitionDateType=month*/
+n=7092004
+partitionDateType=month
+
+t=table(take(1..10, n) as id, 2022.12.30T23:59:59..2023.02.10T01:00:00  join 2024.12.30T23:59:59..2025.02.10T01:00:00  as date,1..n as val) 
+createCOMPODB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where year(date)>=2020&& year(date) <2024 order by val
+res=select * from loadTable(dbName,tbName) where year(date)>=2020&& year(date) <2024 order by val
+assert 5,eqObj(data.values(),res.values())
+
+
+/* * * * *  The type of partitionScheme is different from that of partitionColumn keepDuplicates=LAST* * * *  */
+
+def createCOMPODB(dbName,tbName,partitionDateType,t,n){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1=database(, VALUE, partitionDateType(1..10))
+	db2=database(, HASH, [INT,2])
+	db=database(dbName, COMPO, [db2,db1], , "IOTDB")
+	runScript("create table \""+dbName+"\".\""+tbName+"\""+"(id INT, date DATETIME, val INT)\n partitioned by val, date,\n sortColumns=`val`date, \n keepDuplicates=LAST, \n latestKeyCache = true \n go")
+	pt=loadTable(dbName, `pt).append!(t)
+}
+
+@testing:case="test_dfs_COMPO_where_partitionScheme_partitionColumn_diff_keepDuplicates"
+dbName="dfs://test_dfs_COMPO_where"
+tbName=`pt
+n=3283202
+partitionDateType=datehour
+
+t=table(take(1..10, n) as id, take(2022.01.01T01:00:00..2022.01.11T01:00:00,n) as date,rand(1..1000,n) as val)
+createCOMPODB(dbName,tbName,partitionDateType,t,n)
+data=select *from t where isDuplicated([date,val], LAST)=false , date >=2022.01.01 && date < 2022.01.07 order by val,date
+res=select * from loadTable(dbName,tbName) where date >=2022.01.01 && date < 2022.01.07 order by val,date
+assert 1,eqObj(data.values(),res.values())
+
+
+@testing:case = "test_dfs_table_nanotimestamp_where_timestamp"
+n = 5000000
+id = take(1..10, n)
+datetimes = nanotimestamp(2021.11.30 13:30:10) + rand(n,n)*n*n*n
+nanotimes = 13:30:10.008000000 + rand(300,n)
+ids = rand(1..1000, n)
+t = table(id as id1, datetimes as dt, nanotimes as nt, ids as id)
+
+dbPath = "dfs://NanotimestampValueDB"
+if(existsDatabase(dbPath))
+dropDatabase(dbPath)
+db1 = database(, VALUE, 1..10)
+db2 = database(, VALUE, datehour(2021.11.30T01:00:00)..datehour(2021.12.02T01:00:00))
+db = database(dbPath, COMPO, [db1, db2], , "IOTDB")
+create table "dfs://NanotimestampValueDB"."trades"(
+	id1 INT, dt NANOTIMESTAMP, nt NANOTIME, id INT
+)
+partitioned by id, dt, 
+sortColumns=[`id, `dt],
+keepDuplicates = ALL,
+latestKeyCache = true
+go
+
+trades = loadTable(dbPath, `trades)
+trades.append!(t)
+re=select * from trades where dt> 2021.11.30T13:30:07 and dt< 2021.11.30T13:30:08 order by nt,dt,id
+assert 1,re.size()>0
+data=select * from t where dt> 2021.11.30T13:30:07 and dt< 2021.11.30T13:30:08 order by nt,dt,id
+assert 2,eqObj(data.values(),re.values())
+//keepDuplicates
+if(existsDatabase(dbPath))
+dropDatabase(dbPath)
+db1 = database(, VALUE, 1..10)
+db2 = database(, VALUE, datehour(2021.11.30T01:00:00)..datehour(2021.12.02T01:00:00))
+db = database(dbPath, COMPO, [db1, db2], , "IOTDB")
+create table "dfs://NanotimestampValueDB"."trades"(
+	id1 INT, dt NANOTIMESTAMP, nt NANOTIME, id INT
+)
+partitioned by id, dt, 
+sortColumns=[`id, `dt],
+keepDuplicates = LAST,
+latestKeyCache = true
+go
+trades = loadTable(dbPath, `trades)
+trades.append!(t)
+re=select * from trades where dt> 2021.11.30T13:30:07 and dt< 2021.11.30T13:30:08,nt!=NULL order by nt,dt,id
+assert 3,re.size()>0
+data=select * from  t where isDuplicated([dt,id], LAST)=false, dt> 2021.11.30T13:30:07 and dt< 2021.11.30T13:30:08,nt!=NULL order by nt,dt,id
+assert 4,eqObj(data.values(),re.values())
+
+@testing:case = "test_dfs_table_bug"
+for(i in 0:10){
+dbName="dfs://test_tsdb_bug"
+tableName="pt"
+dates=2012.01.01..2012.01.01
+if(existsDatabase(dbName)){
+    dropDatabase(dbName)
+}
+db1 = database(, VALUE, 1..10)
+db2 = database(, VALUE, dates)
+db=database(dbName, COMPO, [db1, db2],,"IOTDB")
+create table "dfs://test_tsdb_bug"."pt"(
+	intv INT, datetime DATETIME, sym STRING, p INT, price INT, val DOUBLE
+)
+partitioned by intv, datetime,
+sortColumns=["sym", "p","price", "datetime"]
+latestKeyCache = true
+go
+pt=loadTable(dbName, tableName)
+
+batch=1
+id=10000;
+d=2012.01.01;
+tmp=table(batch:batch, `intv`datetime`sym`p`price`val, [INT, DATETIME, STRING, INT,INT, DOUBLE])
+tmp[`intv]=take(1..10, batch)
+tmp[`datetime]=take(concatDateTime(d, second(0)), batch)
+tmp[`sym]=rand("A"+string(1..((rand(1000,1))[0])), batch)
+tmp[`p]=rand(1000, batch)
+tmp[`val]=rand(100.0,batch)
+tmp[`price]=[74]
+pt.append!(tmp)
+tmp[`price]=[75]
+pt.append!(tmp)
+tmp[`price]=[76]
+pt.append!(tmp)
+flushIotCache()
+tmp[`price]=[80]
+pt.append!(tmp)
+res=select * from pt  where price >=76
+assert 1,res[`price]==76 80
+}
+
+//https://dolphindb1.atlassian.net/browse/D20-6169
+@testing:case="test_dfs_partition_tsdb_where_1==1"
+login("admin", "123456")
+dbName = "dfs://test_partition_where1"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+
+db1 = database(, VALUE, 1..10)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database(dbName, COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_partition_where1"."pt"(
+	par INT, id SYMBOL, date DATE, val INT
+)
+partitioned by par, date,
+sortColumns=`id`date
+latestKeyCache = true
+go
+
+n = 1000000
+t = table(take(1..10, n) as par, symbol(rand("A"+string(1..1000), n)) as id, rand(2012.01.01..2012.01.10, n) as date, rand(100, n) as val)
+pt = loadTable(dbName, `pt).append!(t)
+
+dbName = "dfs://test_partition_where2"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+
+db1 = database(, VALUE, 1..10)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database(dbName, COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_partition_where2"."pt"(
+	par INT, id SYMBOL, date DATE, val INT
+)
+partitioned by par, date,
+sortColumns=`id`date
+latestKeyCache = true
+go
+
+n = 1000000
+t = table(take(1..10, n) as par, symbol(rand("A"+string(1..1000), n)) as id, rand(2012.01.01..2012.01.10, n) as date, rand(100, n) as val)
+pt = loadTable(dbName, `pt).append!(t)
+
+
+def f1(dbName, tableName){
+	for(tid in 1..100){
+		for(d in 2012.01.01..2012.01.10){
+			s = "A"+string(tid)
+			select * from loadTable(dbName, tableName) where 1==1, id==s
+		}
+	}
+}
+
+jobs = array(STRING, 0, 10)
+for(i in 1..4){
+	job = submitJob("test_"+string(i), "", f1, "dfs://test_partition_where1", "pt")
+	jobs.append!(job)
+	sleep(100)
+}
+
+for(i in 1..4){
+	job = submitJob("test_"+string(i), "", f1, "dfs://test_partition_where2", "pt")
+	jobs.append!(job)
+	sleep(100)
+}
+
+for(job in jobs){
+	getJobReturn(job, true)
+}
+
+re = select * from getRecentJobs() where jobId in jobs
+assert 1, isNull(re[`errorMsg])==true
+
+//https://dolphindb1.atlassian.net/browse/D20-8474
+@testing:case="test_dfs_COMPO_where_for_single_partition"
+login("admin", "123456")
+
+n=100
+datetime=rand(2019.01.01T00:00:00.000 + 1..10000000,n)
+sym = take(`C`MS`MS`MS`IBM`IBM`IBM`C`C$SYMBOL,n)
+price= take(49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29,n)
+qty = take(2200 1900 2100 3200 6800 5400 1300 2500 8800,n)
+t=table(datetime, sym, price, qty)
+
+if(existsDatabase("dfs://stock")){
+	dropDatabase("dfs://stock")
+}
+
+db1=database("",VALUE,2019.01.01..2019.01.03)
+db2=database("",VALUE,`C`MS`IBM)
+db=database("dfs://stock",COMPO,[db2, db1], engine = "IOTDB")
+create table "dfs://stock"."trades"(
+	datetime TIMESTAMP, sym SYMBOL, price DOUBLE, qty INT
+)
+partitioned by sym, datetime,
+sortColumns=`sym`datetime
+latestKeyCache = true
+go
+
+trades=loadTable("dfs://stock", "trades").append!(t)
+
+trades =  db.loadTable(`trades)
+res = select * from trades where datetime = 2019.01.01, sym=`C //无结果
+ex = select * from t where date(datetime) = 2019.01.01, sym=`C
+res = select * from res order by datetime, sym, qty, price
+ex = select * from ex order by datetime, sym, qty, price
+assert 1,each(eqObj,res.values(),ex.values())
+
+
+@testing:case="test_dfs_where_Higher-order_adverbs", exception = 1
+login("admin","123456")
+syms="A"+string(1..30)
+datetimes=2019.01.01T00:00:00..2019.01.31T23:59:59
+n=200
+if(existsDatabase("dfs://stock")) {
+dropDatabase("dfs://stock")
+}
+db1 = database(, RANGE, cutPoints(syms,3))
+db2 = database(, RANGE, 2019.01.01 2019.01.16 2019.10.01)
+db=database("dfs://stock", COMPO, [db1, db2], engine="IOTDB");
+create table "dfs://stock"."trades"(
+	trade_time DATETIME, sym STRING, bid DOUBLE[]
+)
+partitioned by sym, trade_time,
+sortColumns=`sym`trade_time
+latestKeyCache = true
+go
+
+t=table(take(datetimes,n) as trade_time, take(syms,n) as sym,take(500+rand(10.0,n), n) as bid1, take(500+rand(20.0,n),n) as bid2)
+t1=select trade_time, sym, fixedLengthArrayVector(bid1,bid2) as bid from t
+quotes=loadTable("dfs://stock", `trades).append!(t1)
+assert 1,size(select * from quotes where 2 != (count :E bid) )==0
+
+//https://dolphindb1.atlassian.net/browse/D20-15260
+@testing:case = "test_dfs_where_char_double_quotes_=="
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(, VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take('a'..'s' join NULL, 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char","pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from t where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 300
+
+re = select * from pt where chr = "s" order by id,ts
+ex = select * from t where chr = "s" order by id,ts
+assert 3,each(eqObj,re.values(),ex.values())
+assert 4,size(re) == 300
+
+re = select * from pt where chr = NULL order by id,ts
+ex = select * from t where chr = NULL order by id,ts
+assert 5,each(eqObj,re.values(),ex.values())
+assert 6,size(re) == 300
+
+@testing:case = "test_dfs_where_char_double_quotes_==_keepDuplicates_LAST"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(, VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+keepDuplicates=LAST,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take('a'..'s' join NULL, 6000) as chr, take(1..150,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char","pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from t where isDuplicated([id,ts],LAST)==false and chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = select * from pt where chr = "s" order by id,ts
+ex = select * from t where isDuplicated([id,ts],LAST)==false and chr = "s" order by id,ts
+assert 2,each(eqObj,re.values(),ex.values())
+
+re = select * from pt where chr = NULL order by id,ts
+ex = select * from t where isDuplicated([id,ts],LAST)==false and chr = NULL order by id,ts
+assert 3,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_==_sortKeyMappingFunction"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(, VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+sortKeyMappingFunction=[hashBucket{,5}, hashBucket{,3}],
+latestKeyCache = true
+compressHashSortKey =true
+go 
+t = table(take(1..150,6000) as id, take('a'..'s' join NULL, 6000) as chr, take(1..150,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char","pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from t where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 300
+
+re = select * from pt where chr = "s" order by id,ts
+ex = select * from t where chr = "s" order by id,ts
+assert 3,each(eqObj,re.values(),ex.values())
+assert 4,size(re) == 300
+
+re = select * from pt where chr = NULL order by id,ts
+ex = select * from t where chr = NULL order by id,ts
+assert 5,each(eqObj,re.values(),ex.values())
+assert 6,size(re) == 300
+
+@testing:case = "test_dfs_where_char_single_quotes"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  HASH, [INT, 20])
+db2 = database(, VALUE, 2012.01.01..2012.01.03)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(1..10 as id, take(['a','b'], 10) as chr, 1..10 as ts, take(2012.01.01..2012.01.03, 10) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+re = select count(*) from pt where chr = 'a'
+ex = select count(*) from t where chr = 'a'
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = 'a'
+ex = exec count(*) from t where chr = 'a'
+assert 2,each(eqObj,re,ex)
+assert 3,re == 5
+
+@testing:case = "test_dfs_where_char_double_quotes_unflush"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  HASH, [INT, 20])
+db2 = database(, VALUE, 2012.01.01..2012.01.03)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(1..10 as id, take(['a','b'], 10) as chr, 1..10 as ts, take(2012.01.01..2012.01.03, 10) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+re = select count(*) from pt where chr = "a"
+ex = select count(*) from t where chr = "a"
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "a"
+ex = exec count(*) from t where chr = "a"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 5
+
+@testing:case = "test_dfs_where_char_double_quotes_has_null"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  HASH, [INT, 20])
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(1..10 as id, take(['a','b','c',''], 10) as chr, 1..10 as ts, take(2012.01.01..2012.01.03, 10) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+re = select count(*) from pt where chr = "a"
+ex = select count(*) from t where chr = "a"
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "c"
+ex = exec count(*) from t where chr = "c"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 2
+
+re = select count(*) from pt where chr = ''
+ex = select count(*) from t where chr = ''
+assert 4,each(eqObj,re.values(),ex.values())
+assert 5,re[0].values()[0] == 2
+
+@testing:case = "test_dfs_where_char_double_quotes_multiple_partition"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..1500)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..1500,6000) as id, take(['a','b','c',''], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from t where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "c"
+ex = exec count(*) from t where chr = "c"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 1500
+
+re = select * from pt where chr = "" order by id,ts
+ex = select * from t where chr = "" order by id,ts
+assert 4,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_char_sortKey"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from t where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "b"
+ex = exec count(*) from t where chr = "b"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 1500
+
+re = select * from pt where chr = "" order by id,ts
+ex = select * from t where chr = "" order by id,ts
+assert 4,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_multiple_level"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,2000) as id, take(['a','b','',NULL], 2000) as chr, rand(100,2000) as ts, take(2012.01.01..2012.01.10, 2000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+flushTSDBCache()
+tmp = t
+tmp.append!(t)
+tmp.append!(t)
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from tmp where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "b"
+ex = exec count(*) from tmp where chr = "b"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 1500
+
+re = select * from pt where chr = "" order by id,ts
+ex = select * from tmp where chr = "" order by id,ts
+assert 4,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_multiple_level_file"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,2000) as id, take(['a','b','',NULL], 2000) as chr, rand(100,2000) as ts, take(2012.01.01..2012.01.10, 2000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+flushTSDBCache()
+tmp = t
+tmp.append!(t)
+tmp.append!(t)
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from tmp where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "b"
+ex = exec count(*) from tmp where chr = "b"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 1500
+
+re = select * from pt where chr = "" order by id,ts
+ex = select * from tmp where chr = "" order by id,ts
+assert 4,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_memory_and_disk"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,2000) as id, take(['a','b','',NULL], 2000) as chr, rand(100,2000) as ts, take(2012.01.01..2012.01.10, 2000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+flushTSDBCache()
+pt.append!(t)
+tmp = t
+tmp.append!(t)
+tmp.append!(t)
+
+re = select * from pt where chr = "a" order by id,ts
+ex = select * from tmp where chr = "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+
+re = exec count(*) from pt where chr = "b"
+ex = exec count(*) from tmp where chr = "b"
+assert 2,each(eqObj,re,ex)
+assert 3,re == 1500
+
+re = select * from pt where chr = "" order by id,ts
+ex = select * from tmp where chr = "" order by id,ts
+assert 4,each(eqObj,re.values(),ex.values())
+
+@testing:case = "test_dfs_where_char_double_quotes_>"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr > "a" order by id,ts
+ex = select * from t where chr > "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 1500
+
+@testing:case = "test_dfs_where_char_double_quotes_>="
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr >= "a" order by id,ts
+ex = select * from t where chr >= "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 3000
+
+@testing:case = "test_dfs_where_char_double_quotes_<"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`chr`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr < "a" order by id,ts
+ex = select * from t where chr < "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 3000
+
+@testing:case = "test_dfs_where_char_double_quotes_<="
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr <= "a" order by id,ts
+ex = select * from t where chr <= "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 4500
+
+@testing:case = "test_dfs_where_char_double_quotes_!="
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr != "a" order by id,ts
+ex = select * from t where chr != "a" order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 4500
+
+@testing:case = "test_dfs_where_char_double_quotes_between"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(char(['a','b','c',NULL]), 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr between 'a' and 'c' order by id,ts
+ex = select * from t where chr between 'a' and 'c' order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 4500
+
+@testing:case = "test_dfs_where_char_double_quotes_in"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.10)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr CHAR, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','c',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr in ['a','c'] order by id,ts
+ex = select * from t where chr in ['a','c'] order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 3000
+
+@testing:case = "test_dfs_where_char_double_quotes_==_with_other_filter"
+login("admin", "123456")
+dbName = "dfs://test_dfs_where_char"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db1 = database(,  VALUE, 1..150)
+db2 = database(, VALUE, 2012.01.01..2012.01.03)
+db = database("dfs://test_dfs_where_char", COMPO, [db1, db2], engine="IOTDB")
+create table "dfs://test_dfs_where_char"."pt"(
+	id INT, chr STRING, ts INT, datev DATE
+)
+partitioned by id, datev,
+sortColumns=`id`ts`datev,
+latestKeyCache = true
+go 
+t = table(take(1..150,6000) as id, take(['a','b','',NULL], 6000) as chr, rand(100,6000) as ts, take(2012.01.01..2012.01.10, 6000) as datev)
+pt = loadTable("dfs://test_dfs_where_char", "pt")
+pt.append!(t)
+flushTSDBCache()
+
+re = select * from pt where chr = "a" and id = 11 order by id,ts
+ex = select * from t where chr = "a" and id = 11 order by id,ts
+assert 1,each(eqObj,re.values(),ex.values())
+assert 2,size(re) == 20
+
+
+

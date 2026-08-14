@@ -1,0 +1,34 @@
+module easy_datayes::tbSchema::dfsSchema::tradeSchema
+
+/*
+ * @FunctionName: tradeSchemaTb
+ * @Brief: Defines the schema for the trade data table (merged Shanghai and Shenzhen markets).
+ * @Return: A table schema defining the structure of the trade data table.
+ */
+def tradeSchemaTb(){
+	name = `code`exchange`trade_date`trade_time`channel_no`appl_seq`trade_price`trade_qty`trade_amt`buy_no`sell_no`side`trade_type`trade_no`update_time
+	type = `SYMBOL`SYMBOL`DATE`TIME`INT`LONG`DOUBLE`DOUBLE`DOUBLE`LONG`LONG`SYMBOL`SYMBOL`LONG`TIMESTAMP
+	return table(1:0, name, type)
+}
+
+// 定义 trade 表的注释字典
+
+def tradeComments(){
+    comments_trade = dict(STRING, STRING)
+	comments_trade["code"] = "证券代码"
+	comments_trade["exchange"] = "交易所代码"
+	comments_trade["trade_date"] = "交易日期"
+	comments_trade["trade_time"] = "成交时间"
+	comments_trade["channel_no"] = "频道代码"
+	comments_trade["appl_seq"] = "消息记录号"
+	comments_trade["trade_price"] = "成交价格"
+	comments_trade["trade_qty"] = "成交数量"
+	comments_trade["trade_amt"] = "成交金额"
+	comments_trade["buy_no"] = "买方订单号"
+	comments_trade["sell_no"] = "卖方订单号"
+	comments_trade["side"] = "买卖方向"
+	comments_trade["trade_type"] = "成交类型"
+	comments_trade["trade_no"] = "成交序号"
+	comments_trade["update_time"] = "数据写入数据库时间"
+    return comments_trade 
+} 

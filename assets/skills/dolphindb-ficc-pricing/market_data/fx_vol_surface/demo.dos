@@ -1,0 +1,44 @@
+// ============================================================
+// FxVolatilitySurface — parseMktData 构建示例
+// 构建外汇隐含波动率曲面
+// ============================================================
+// 金融含义：
+//   FxVolatilitySurface 存储不同到期日(termDates)、不同执行价(strikes)
+//   下的隐含波动率。波动率不是直接可观测的——它是从期权市场价格通过
+//   Garman-Kohlhagen 公式反推得出（隐含波动率）。
+//   - Smile：同一期限下，深度虚值/实值期权的 vol > 平值 vol
+//   - Skew：同一期限下 Put vol > Call vol（或反之）
+//   - Term structure：长期限的 vol 通常高于短期限
+//   注意：FX 期权专用 FxVolatilitySurface，商品/权益用 VolatilitySurface。
+// ============================================================
+
+volDict = dict(STRING, ANY)
+volDict["mktDataType"]    = "Surface"                // 曲面类市场数据
+volDict["surfaceType"]    = "FxVolatilitySurface"     // FX 专用波动率曲面
+volDict["referenceDate"]  = 2026.03.20
+volDict["currencyPair"]   = "USDCNY"                 // 货币对
+volDict["surfaceName"]    = "USDCNY"
+volDict["smileMethod"]    = "Linear"                  // smile 插值方法
+
+// --- 期限维度 ---
+volDict["termDates"]      = [2026.06.20, 2026.09.20, 2027.03.20]
+
+// --- 每个期限的 smile（strikes + vols）---
+// 3M smile
+smile1 = dict(STRING, ANY)
+smile1["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]       // 5 个执行价
+smile1["vols"]     = [0.065, 0.060, 0.058, 0.060, 0.065]   // 对应隐含波动率（U型 smile）
+
+// 6M smile
+smile2 = dict(STRING, ANY)
+smile2["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]
+smile2["vols"]     = [0.070, 0.065, 0.062, 0.065, 0.070]   // 期限越长 vol 越高
+
+// 1Y smile
+smile3 = dict(STRING, ANY)
+smile3["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]
+smile3["vols"]     = [0.075, 0.070, 0.067, 0.070, 0.075]
+
+volDict["volSmiles"] = [smile1, smile2, smile3]             // volSmiles 数组与 termDates 一一对应
+
+volSurf = parseMktData(volDict)

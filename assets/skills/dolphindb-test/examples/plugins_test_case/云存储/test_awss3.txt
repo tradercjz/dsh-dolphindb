@@ -1,0 +1,2323 @@
+// FIXME: need aws s3 to test for execution
+#include "setup/settings.txt"
+login("admin","123456")
+try{
+loadPlugin(PLUGIN_DIR+"/aws/PluginAWS.txt")
+}catch(ex){print ex}
+
+@testing:case="test_awss3_prapare"
+account=dict(string,string)
+account['id']="id"
+account['key']="key"
+account['region']="cn-north-1"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_plugin_awss3_listS3Object_account_scalar",exception=1
+aws::listS3Object("a","ddb-test1","ticks(1).csv");
+
+@testing:case="test_plugin_awss3_listS3Object_account_vector",exception=1
+aws::listS3Object(["a"],"ddb-test1","ticks(1).csv");
+
+@testing:case="test_plugin_awss3_listS3Object_bucket_not_exist",exception=1
+aws::listS3Object(account,"not_exist","ticks(1).csv")
+
+@testing:case="test_plugin_awss3_listS3Object_bucket_not_string",exception=1
+aws::listS3Object(account,1,"ticks(1).csv")
+
+@testing:case="test_plugin_awss3_listS3Object_bucket_vector",exception=1
+aws::listS3Object(account,["ddb-test1","ddb-test2"],"dup.csv")
+
+@testing:case="test_plugin_awss3_listS3Object_prefix_not_string",exception=1
+aws::listS3Object(account,"ddb-test1",1)
+
+@testing:case="test_plugin_awss3_getS3Object_account_string",exception=1
+aws::getS3Object("a","b","c");
+
+@testing:case="test_plugin_awss3_getS3Object_account_vector",exception=1
+aws::getS3Object(["a","b"],"ddb-test1","ticks(1).csv")
+
+@testing:case="test_plugin_awss3_getObject_bucket_not_exist",exception=1
+aws::getS3Object(account,"not_exist","ticks(1).csv")
+
+@testing:case="test_plugin_awss3_readS3Object_account_scalar",exception=1
+aws::readS3Object("a","ddb-test1","dup.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_account_vector",exception=1
+aws::readS3Object(["a","b"],"ddb-test1","dup.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_bucket_not_string",exception=1
+aws::readS3Object(account,1,"dup.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_bucket_not_exist",exception=1
+aws::readS3Object(account,"not-exist","dup.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_bucket_vector",exception=1
+aws::readS3Object(account,["ddb-test1","ddb-test2"],"dup.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_key_not_exist",exception=1
+aws::readS3Object(account,"ddb-test1","not-exist.csv",0,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_offset_negative",exception=1
+aws::readS3Object(account,"ddb-test1","dup.csv",-10,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_offset_double",exception=1
+aws::readS3Object(account,"ddb-test1","dup.csv",1.25,15000)
+
+@testing:case="test_plugin_awss3_readS3Object_length_negative",exception=1
+aws::readS3Object(account,"ddb-test1","dup.csv",10,-10)
+
+@testing:case="test_plugin_awss3_readS3Object_length_zero",exception=1
+aws::readS3Object(account,"ddb-test1","dup.csv",10,0)
+
+@testing:case="test_plugin_awss3_deleteS3Object_bucket_not_exist",exception=1
+aws::deleteS3Object(account,"not_exist","dup.csv")
+
+@testing:case="test_plugin_awss3_deleteS3Object_bucket_vector",exception=1
+aws::deleteS3Object(account,["ddb-test1","ddb_test2"],"dup.csv")
+
+@testing:case="test_plugin_awss3_deleteS3Object_key_not_exist"
+aws::deleteS3Object(account,"ddb-test1","not_exist.csv")
+
+@testing:case="test_plugin_awss3_uploadS3Object_bucket_not_exist",exception=1
+t=table(1..10 as id,11..20 as val)
+saveText(t,WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"not_exist","test1.txt",WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_awss3_listS3Bucket_account_invalid",exception=1
+aws::listS3Bucket("a")
+
+@testing:case="test_plugin_awss3_deleteS3Bucket_bucker_not_exist",exception=1
+aws::deleteS3Bucket(account,"not_exist")
+
+@testing:case="test_plugin_awss3_createS3Bucket_bucker_already_exist",exception=1
+aws::createS3Bucket(account,"ddb-test1")
+/* test on local server
+ * 
+@testing:case="test_plugin_awss3_listS3Object"
+//filename
+re=aws::listS3Object(account,"ddb-test1","dup.csv")
+assert 1,re.cols()==7
+assert 2,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 3,re.size()==1
+assert 4,re["bucket name"]==["ddb-test1"]
+assert 5,re["key name"]==["dup.csv"]
+
+//frefix
+re=aws::listS3Object(account,"ddb-test1","dup")
+assert 6,re.cols()==7
+assert 7,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 8,re.size()==1
+assert 9,re["bucket name"]==["ddb-test1"]
+assert 10,re["key name"]==["dup.csv"]
+
+//folder prefix
+re=aws::listS3Object(account,"ddb-test1","fold")
+assert 11,re.cols()==7
+assert 12,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 13,re.size()==2
+assert 14,re["bucket name"]==["ddb-test1","ddb-test1"]
+assert 15,re["key name"]==["folder1/","folder1/dup.csv"]
+
+//folder filename
+re=aws::listS3Object(account,"ddb-test1","folder1/dup.csv")
+assert 11,re.cols()==7
+assert 12,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 13,re.size()==1
+assert 14,re["bucket name"]==["ddb-test1"]
+assert 15,re["key name"]==["folder1/dup.csv"]
+
+@testing:case="test_plugin_awss3_getS3Object"
+re=aws::getS3Object(account,"ddb-test1","dup.csv")
+assert 1,re=="dup.csv"
+
+re=aws::getS3Object(account,"ddb-test1","dup.csv","test_dup.csv")
+assert 2,re=="test_dup.csv"
+
+re=aws::getS3Object(account,"ddb-test1","folder1/dup.csv")
+assert 3,re=="folder1/dup.csv"
+
+@testing:case="test_plugin_awss3_readObject"
+re=aws::readS3Object(account,"ddb-test1","dup.csv",0,100)
+assert 1,re.size()==100
+assert 2,re[0]=='t'
+assert 3,re[1]=='s'
+
+re=aws::readS3Object(account,"ddb-test1","dup.csv",3,100)
+assert 4,re.size()==100
+assert 5,re[0]=='c'
+assert 6,re[1]=='o'
+
+re=aws::readS3Object(account,"ddb-test1","folder1/dup.csv",0,100)
+assert 7,re.size()==100
+assert 8,re[0]=='t'
+assert 9,re[1]=='s'
+
+re=aws::readS3Object(account,"ddb-test1","folder1/dup.csv",3,100)
+assert 10,re.size()==100
+assert 11,re[0]=='c'
+assert 12,re[1]=='o'
+
+@testing:case="test_plugin_awss3_uploadS3Object_deleteS3Object"
+data=table(1..10 as id,11..20 as val)
+saveText(data,WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"ddb-test1","test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"ddb-test1","test1.txt")
+assert 1,re.size()==1
+
+aws::deleteS3Object(account,"ddb-test1","test1.txt")
+re=aws::listS3Object(account,"ddb-test1","test1.txt")
+assert 2,re.size()==0
+
+aws::uploadS3Object(account,"ddb-test1","folder1/test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"ddb-test1","folder1/test1.txt")
+assert 3,re.size()==1
+
+aws::deleteS3Object(account,"ddb-test1","folder1/test1.txt")
+re=aws::listS3Object(account,"ddb-test1","folder1/test1.txt")
+assert 4,re.size()==0
+
+@testing:case="test_plugin_awss3_listS3Bucket"
+re=aws::listS3Bucket(account)
+assert 1,re.size()==2
+assert 2,re.colNames()==["index","bucket name","creation date"]
+assert 2,re["bucket name"]==["ddb-test1","ddb-test2"]
+
+@testing:case="test_plugin_awss3_createS3Bucket_deleteS3Bucket"
+aws::createS3Bucket(account,"ddb-test3")
+re=aws::listS3Bucket(account)
+assert 1,in("ddb-test3",re["bucket name"])
+data=table(1..10 as id,11..20 as val)
+saveText(data,WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"ddb-test3","test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"ddb-test3","test1.txt")
+assert 2,re.size()==1
+
+aws::deleteS3Object(account,"ddb-test3","test1.txt")
+aws::deleteS3Bucket(account,"ddb-test3")
+re=aws::listS3Bucket(account)
+assert 3,in("ddb-test3",re["bucket name"])==false
+*/
+
+// new case
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account['region']="cn-north-1"
+bucketData = aws::listS3Bucket(account)
+
+
+@testing:case="test_plugin_awss3_listS3Object"
+//filename
+re=aws::listS3Object(account,"dolphindbload","dup.csv")
+assert 1,re.cols()==7
+assert 2,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 3,re.size()==1
+assert 4,re["bucket name"]==["dolphindbload"]
+assert 5,re["key name"]==["dup.csv"]
+
+//frefix
+re=aws::listS3Object(account,"dolphindbload","dup")
+assert 6,re.cols()==7
+assert 7,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 8,re.size()==1
+assert 9,re["bucket name"]==["dolphindbload"]
+assert 10,re["key name"]==["dup.csv"]
+
+//folder prefix
+re=aws::listS3Object(account,"dolphindbload","fold")
+assert 11,re.cols()==7
+assert 12,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 13,re.size()==2
+assert 14,re["bucket name"]==["dolphindbload","dolphindbload"]
+assert 15,re["key name"]==["folder1/","folder1/dup.csv"]
+
+//folder filename
+re=aws::listS3Object(account,"dolphindbload","folder1/dup.csv")
+assert 16,re.cols()==7
+assert 17,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+assert 18,re.size()==1
+assert 19,re["bucket name"]==["dolphindbload"]
+assert 20,re["key name"]==["folder1/dup.csv"]
+
+@testing:case="test_plugin_awss3_getS3Object"
+re=aws::getS3Object(account,"dolphindbload","dup.csv")
+assert 1,re=="dup.csv"
+
+re=aws::getS3Object(account,"dolphindbload","dup.csv","test_dup.csv")
+assert 2,re=="test_dup.csv"
+
+re=aws::getS3Object(account,"dolphindbload","folder1/dup.csv")
+assert 3,re=="folder1/dup.csv"
+
+@testing:case="test_plugin_awss3_readObject"
+re=aws::readS3Object(account,"dolphindbload","dup.csv",0,100)
+assert 1,re.size()==100
+assert 2,re[0]=='t'
+assert 3,re[1]=='s'
+
+re=aws::readS3Object(account,"dolphindbload","dup.csv",3,100)
+assert 4,re.size()==100
+assert 5,re[0]=='c'
+assert 6,re[1]=='o'
+
+re=aws::readS3Object(account,"dolphindbload","folder1/dup.csv",0,100)
+assert 7,re.size()==100
+assert 8,re[0]=='t'
+assert 9,re[1]=='s'
+
+re=aws::readS3Object(account,"dolphindbload","folder1/dup.csv",3,100)
+assert 10,re.size()==100
+assert 11,re[0]=='c'
+assert 12,re[1]=='o'
+
+@testing:case="test_plugin_awss3_uploadS3Object_deleteS3Object"
+data=table(1..10 as id,11..20 as val)
+saveText(data,WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"dolphindbload","test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"dolphindbload","test1.txt")
+assert 1,re.size()==1
+
+aws::deleteS3Object(account,"dolphindbload","test1.txt")
+re=aws::listS3Object(account,"dolphindbload","test1.txt")
+assert 2,re.size()==0
+
+aws::uploadS3Object(account,"dolphindbload","folder1/test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"dolphindbload","folder1/test1.txt")
+assert 3,re.size()==1
+
+aws::deleteS3Object(account,"dolphindbload","folder1/test1.txt")
+re=aws::listS3Object(account,"dolphindbload","folder1/test1.txt")
+assert 4,re.size()==0
+
+@testing:case="test_plugin_awss3_listS3Bucket"
+re=aws::listS3Bucket(account)
+assert 1, re.size()>=2
+assert 2, re.colNames()==["index","bucket name","creation date"]
+//assert 3, re["bucket name"]==["dolphindb","dolphindbload"]
+
+@testing:case="test_plugin_awss3_createS3Bucket_deleteS3Bucket"
+aws::createS3Bucket(account,"ddb-test3")
+re=aws::listS3Bucket(account)
+assert 1,in("ddb-test3",re["bucket name"])
+data=table(1..10 as id,11..20 as val)
+saveText(data,WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"ddb-test3","test1.txt",WORK_DIR+"/test1.txt")
+re=aws::listS3Object(account,"ddb-test3","test1.txt")
+assert 2,re.size()==1
+
+aws::deleteS3Object(account,"ddb-test3","test1.txt")
+aws::deleteS3Bucket(account,"ddb-test3")
+re=aws::listS3Bucket(account)
+assert 3,in("ddb-test3",re["bucket name"])==false
+
+@testing:case="test_awss3_create_data"
+aws_dir = WORK_DIR+"/aws"
+try{
+	rmdir(aws_dir,true)	
+}catch(ex){
+	print(ex)	
+}
+mkdir(aws_dir)
+//create Data
+t1 = table(bool(rand(2,200000)) as bool, take(char(1..10),200000) as char, take(short(1..100),200000) as short ,take(1..100, 200000) as int, long(1..200000) as long, date(1..200000) as date, month(2000.01.24+rand(1..10000,200000)) as month, second(1..200000) as second, datetime(1..200000) as datetime, timestamp(1..200000) as timestamp, float(1..200000) as float, double(1..200000) as double, symbol("A"+string(rand(1..100,200000))) as symbol, string(1..200000) as string, take(uuid("0f0e0d0c-0b0a-0908-0706-050403020100"), 200000) as uuid, take(ipaddr('192.169.1.100'),200000) as ipaddr, take(int128("0f0e0d0c0b0a09080706050403020100"),200000) as int128)
+saveText(t1,aws_dir+"/tmp1.txt")
+saveText(t1,aws_dir+"/tmp2.csv")
+saveText(t1,aws_dir+"/tmp3.txt")
+saveText(t1,aws_dir+"/tmp4.csv")
+shell("cd "+aws_dir + " && zip -r tmp.zip .")
+
+//upload data to aws
+aws::uploadS3Object(account,"dolphindb" , 'tmp.zip', aws_dir+'/tmp.zip')
+aws::uploadS3Object(account,"dolphindb" , 'tmp1.txt', aws_dir+'/tmp1.txt')
+aws::uploadS3Object(account,"dolphindb" , 'tmp2.csv', aws_dir+'/tmp2.csv')
+
+//create tsdb database
+dbName = "dfs://createtest"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+create database "dfs://createtest" partitioned by HASH([SYMBOL,20]),VALUE(1..120);
+create table "dfs://createtest".table1(
+	`bool BOOL ,
+	`char CHAR,
+	`short SHORT,
+	`int INT [comment="primary key"],
+	`long LONG,
+	`date DATE,
+	`month MONTH,
+	`second SECOND,
+	`datetime DATETIME,
+	`timestamp TIMESTAMP,
+	`float FLOAT,
+	`double DOUBLE,
+	`symbol SYMBOL,
+	`string STRING,
+	`uuid UUID,
+	`ipaddr IPADDR,
+	`int128 INT128,
+)
+partitioned by symbol,int
+
+@testing:case="test_function_loadS3Object_file_not_exists"
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp5.txt', 5, db,tableName,[`symbol,`int])
+assert 1, res[`errorCode][0] == 3
+assert 2, like(res[`errorInfo][0], "%getS3Object cannot get object:%") == true
+
+@testing:case="test_functin_loadS3Object_account_error"
+db = database(dbName)
+tableName = `table1
+account2=dict(string,string)
+account2[`id]="<AWS_ACCESS_KEY_ID_REDACTED>"
+account2[`key]="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account2[`region]="us-east-2"
+res = aws::loadS3Object(account2, "dolphindb", 'tmp1.txt', 5, db,tableName,[`symbol,`int])
+assert 1, res[`errorCode][0] == 3
+assert 2, like(res[`errorInfo][0], "%getS3Object cannot get object:%") == true
+
+@testing:case="test_functin_loadS3Object_bucket_error"
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "bucket name", 'tmp1.txt', 5, db,tableName,[`symbol,`int])
+assert 1, res[`errorCode][0] == 3
+assert 2, like(res[`errorInfo][0], "%getS3Object cannot get object:%") == true
+
+@testing:case="test_function_loadS3Object_threadCount_negative", exception=1
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt', -5, db,tableName,[`symbol,`int])
+
+@testing:case="test_function_loadS3Object_threadCount_zero", exception=1
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',0, db,tableName,[`symbol,`int])
+
+@testing:case="test_function_loadS3Object_dbHandle_error"
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, database(`dbName),tableName,[`symbol,`int])
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%The domain of the database can't be empty%") == true
+
+@testing:case="test_function_loadS3Object_table_not_exist"
+db = database(dbName)
+tableName = `table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,`tableName,[`symbol,`int])
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName, `tableName) 
+assert 2, re.size() == 200000
+
+@testing:case="test_function_loadS3Object_table_schema_Error"
+create table "dfs://createtest".table2(
+	`int INT [comment="primary key"],
+	`long LONG,
+	`date DATE,
+	`float FLOAT,
+	`double DOUBLE,
+	`symbol SYMBOL,
+	`string STRING,
+)
+partitioned by symbol,int
+db = database(dbName)
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,`table2,[`symbol,`int])
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%The number of columns of the current table must match that of the target table%") == true
+dropTable(db, `table2)
+
+@testing:case="test_function_loadS3Object_partitionColumns_NULL"
+db = database(dbName)
+tableName=`table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,,,,1)
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%Non-seq partition must specify partition columns.%") == true
+
+@testing:case="test_function_loadS3Object_with_schema_Error"
+db = database(dbName)
+tableName=`table1
+sch = select name , typeString from schema(loadTable(dbName, tableName)).colDefs
+update sch set typeString=`INT`INT where name in`uuid`ipaddr
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,[`symbol,`int],,sch,1)
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%The column [uuid] expects type of UUID, but the actual type is INT.%") == true
+
+@testing:case="test_function_loadS3Object_skipRows_smaller_than_0"
+db = database(dbName)
+tableName=`table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,[`symbol,`int],,,-4)
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%skipRows must be an integer between 0 and 1024.%") == true
+
+@testing:case="test_function_loadS3Object_skipRows_bigger_than_0"
+db = database(dbName)
+tableName=`table1
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,[`symbol,`int],,,1032)
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%skipRows must be an integer between 0 and 1024.%") == true
+
+@testing:case="test_function_loadS3Object_transform_Error"
+db = database(dbName)
+tableName=`table1
+def f1(a,b){
+	return a+b
+}
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,[`symbol,`int],,,,f1)
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo][0], "%transform must be a unary function.%") == true
+
+@testing:case="test_function_loadS3Object_with_delimiter"
+symbol = take("A"+string(1..1000), 100000)
+ints = take(1..100,100000)
+dates = 2001.01.01+ rand(100000, 100000)
+val1 = rand(1.0, 100000)
+delimiterTable = table(symbol as symbol, ints as int, dates as date,val1 as val)
+
+saveText(obj=delimiterTable,filename=aws_dir+"/test_delimiter.csv",delimiter='|')
+aws::uploadS3Object(account,"dolphindb" , 'test_delimiter.csv', aws_dir+"/test_delimiter.csv")
+db = database(dbName)
+pt = db.createPartitionedTable(delimiterTable, `table3, `symbol`int)
+
+res = aws::loadS3Object(account, "dolphindb", 'test_delimiter.csv',6, db,`table3,[`symbol,`int],'|')
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName, `table3) order by symbol, int
+expected = select * from delimiterTable order by symbol, int
+assert 2, each(eqObj, re.values(), expected.values())
+dropTable(db, `table3)
+
+@testing:case="test_function_loadS3Object_multi-level_directory"
+symbol = take("A"+string(1..1000), 100000)
+ints = take(1..100,100000)
+dates = 2001.01.01+ rand(100000, 100000)
+val1 = rand(1.0, 100000)
+directoryTable = table(symbol as symbol, ints as int, dates as date,val1 as val)
+
+saveText(obj=directoryTable ,filename=aws_dir+"/test_directory.csv")
+aws::uploadS3Object(account,"dolphindb" , 'floder1/test_directory.csv', aws_dir+"/test_directory.csv")
+db = database(dbName)
+pt = db.createPartitionedTable(directoryTable , `table3, `symbol`int)
+
+res = aws::loadS3Object(account, "dolphindb", 'floder1/test_directory.csv' ,6, db,`table3,[`symbol,`int])
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName, `table3) order by symbol, int
+expected = select * from directoryTable order by symbol, int
+assert 2, each(eqObj, re.values(), expected.values())
+dropTable(db, `table3)
+
+@testing:case="test_function_loadS3Object_multi-level_directory_2"
+multi_level = aws_dir+"/level"
+try{
+	rmdir(multi_level)	
+}catch(ex){print(ex)}
+mkdir(multi_level)
+symbol = take("A"+string(1..1000), 100000)
+ints = take(1..100,100000)
+dates = 2001.01.01+ rand(100000, 100000)
+val1 = rand(1.0, 100000)
+directoryTable = table(symbol as symbol, ints as int, dates as date,val1 as val)
+
+saveText(obj=directoryTable ,filename=multi_level+"/test_directory1.csv")
+saveText(obj=directoryTable ,filename=multi_level+"/test_directory2.csv")
+saveText(obj=directoryTable ,filename=multi_level+"/test_directory3.txt")
+shell("cd "+multi_level +" && cd ../ && zip -r level.zip level")
+
+aws::uploadS3Object(account,"dolphindb" , 'level.zip', aws_dir+"/level.zip")
+db = database(dbName)
+pt = db.createPartitionedTable(directoryTable , `table3, `symbol`int)
+
+
+res = aws::loadS3Object(account, "dolphindb", 'level.zip' ,6, db,`table3,[`symbol,`int])
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName, `table3) order by symbol, int
+expected = select * from directoryTable order by symbol, int
+expected.append!(directoryTable)
+expected.append!(directoryTable)
+expected.sortBy!(`symbol`int)
+assert 2, each(eqObj, re.values(), expected.values())
+
+//clear
+shell("cd "+multi_level +" && rm -rf * ")
+shell("cd "+aws_dir+" && rm  level.zip")
+try{
+	rmdir(multi_level)	
+}catch(ex){print(ex)}
+dropTable(db, `table3)
+
+@testing:case="test_function_loadS3Object_temporal_format"
+symbol = `A`B`D
+int = 1..3
+date1=["20120612","20120613","20120614"]
+date2=["12/06/2012","13/06/2012","14/06/2012"]
+date3=["06/12/2012","06/13/2012","06/14/2012"]
+date4=["2012-06-12","2012-06-13","2012-06-14"]
+date5=["2012/06/12","2012/06/13","2012/06/14"]
+date6=["12-Jun-2012","13-Jun-2012","14-Jun-2012"]
+date7=["06/12/12","06/13/12","06/14/12"]
+time1=[16:22:30,16:22:31,16:22:32]
+time2=["04:22:30 PM","04:22:31 PM","04:22:32 PM"]
+time3=["16:22","16:22","16:22"]
+datetime1=["20120612 16:22:30","20120613 16:22:30","20120614 16:22:30"]
+datetime2=["06/12/2012T04:22:30 PM","06/13/2012T04:22:30 PM","06/14/2012T04:22:30 PM"]
+t=table(symbol, int,date1,date2,date3,date4,date5,date6,date7,time1,time2,time3,datetime1,datetime2)
+
+saveText(t,aws_dir+"/test_temporalFormat.csv")
+aws::uploadS3Object(account,"dolphindb" , 'test_temporalFormat.csv', aws_dir+'/test_temporalFormat.csv')
+
+mySchema = table(`symbol`int`date1`date2`date3`date4`date5`date6`date7`time1`time2`time3`datetime1`datetime2 as name,`SYMBOL`INT`DATE`DATE`DATE`DATE`DATE`DATE`DATE`SECOND`SECOND`MINUTE`DATETIME`DATETIME  as type,[NULL,NULL,"yyyyMMdd","dd/MM/yyyy","MM/dd/yyyy","yyyy-MM-dd","yyyy/MM/dd","dd-MMM-yyyy","MM/dd/yy","HH:mm:ss","hh:mm:ss aa","HH:mm","yyyyMMdd HH:mm:ss","MM/dd/yyyyThh:mm:ss aa"] as format)
+db = database(dbName)
+pt = db.createPartitionedTable(table(1:0, mySchema[`name],mySchema[`type]), `table3, `symbol`int)
+res = aws::loadS3Object(account, "dolphindb", 'test_temporalFormat.csv',6, db,`table3,[`symbol,`int],,mySchema)
+re = select * from loadTable(dbName, `table3) order by int
+assert 1,re[`date1]==[2012.06.12,2012.06.13,2012.06.14]
+assert 2,re[`date2]==[2012.06.12,2012.06.13,2012.06.14]
+assert 3,re[`date3]==[2012.06.12,2012.06.13,2012.06.14]
+assert 4,re[`date4]==[2012.06.12,2012.06.13,2012.06.14]
+assert 5,re[`date5]==[2012.06.12,2012.06.13,2012.06.14]
+assert 6,re[`date6]==[2012.06.12,2012.06.13,2012.06.14]
+assert 7,re[`date7]==[2012.06.12,2012.06.13,2012.06.14]
+assert 8,re[`time1]==[16:22:30,16:22:31,16:22:32]
+assert 9,re[`time2]==[16:22:30,16:22:31,16:22:32]
+assert 10,re[`time3]==[16:22m,16:22m,16:22m]
+assert 11,re[`datetime1]==[2012.06.12T16:22:30,2012.06.13T16:22:30,2012.06.14T16:22:30]
+assert 12,re[`datetime2]==[2012.06.12T16:22:30,2012.06.13T16:22:30,2012.06.14T16:22:30]
+dropTable(db, `table3)
+
+@testing:case="test_function_loadS3Object_table"
+db=database(dbName)
+tableName=`table1
+def f1(mutable t1){
+	t1.replaceColumn!(`bool, bool(t1.bool))
+	//t1.replaceColumn!(`char, char(t1.char))
+	return t1
+}
+sch = select name , typeString from schema(loadTable(dbName, tableName)).colDefs
+update sch set typeString=`INT where name=`char
+//txt
+res = aws::loadS3Object(account,  "dolphindb", 'tmp1.txt', 5, db,tableName,[`symbol,`int],,sch,,f1)
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName,tableName) order by symbol,int
+excepted = select * from t1 order by symbol, int
+assert 2, each(eqObj,re.values(),excepted.values())
+delete from loadTable(dbName,tableName)
+
+//csv
+res = aws::loadS3Object(account,  "dolphindb", 'tmp2.csv', 5, db,tableName,[`symbol,`int],,sch,,f1)
+assert 3, res[`errorCode][0] == 0
+re = select * from loadTable(dbName,tableName) order by symbol,int
+excepted = select * from t1 order by symbol, int
+assert 4, each(eqObj,re.values(),excepted.values())
+delete from loadTable(dbName,tableName)
+
+//zip file
+res = aws::loadS3Object(account,  "dolphindb", 'tmp.zip', 5, db,tableName,[`symbol,`int],,sch,,f1)
+assert 5, res[`errorCode] == [0,0,0,0]
+re = select * from loadTable(dbName,tableName) order by symbol,int
+assert 6, re.size() == 800000
+t1.append!(t1)
+t1.append!(t1)
+excepted = select * from t1 order by symbol, int
+assert 7, each(eqObj,re.values(),excepted.values())
+delete from loadTable(dbName,tableName)
+
+@testing:case="test_function_loadS3Object_clear_1"
+aws::deleteS3Object(account,"dolphindb" , 'tmp.zip')
+aws::deleteS3Object(account,"dolphindb" , 'tmp1.txt')
+aws::deleteS3Object(account,"dolphindb" , 'tmp2.csv')
+shell("cd "+aws_dir + " && rm -rf *")
+
+@testing:case="test_function_loadS3Object_with_tsdb"
+dbName = "dfs://createtest"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+create database "dfs://createtest" partitioned by HASH([SYMBOL,2]),VALUE(1..120), engine=TSDB;
+create table "dfs://createtest".table1(
+	"id" INT,
+	"name" SYMBOL,
+	"receivedTime" DATETIME,
+	"cbool" BOOL[],
+	"cshort" SHORT[],
+	"cint" INT[],
+	"clong" LONG[],
+	"cdate" DATE[],
+	"cdatetime" DATETIME[],
+	"cmonth" MONTH[],
+	"ctime" TIME[],
+	"cminute" MINUTE[],
+	"csecond" SECOND[],
+	"ctimestamp" TIMESTAMP[],
+	"cnanotime" NANOTIME[],
+	"cnanotimestamp" NANOTIMESTAMP[],
+	"cfloat" FLOAT[],
+	"cdouble" DOUBLE[]
+)
+partitioned by name,id,
+sortColumns=(`id`name`receivedTime);
+testRow = 4250
+index = take(2 3 5 7, 1000).cumsum().int()
+id = take(1..100, 1000)
+name = take(`A`B`C, 1000)
+receivedTime = take(2019.04.01T00:00:00+1..200,1000)
+cbooldata  = arrayVector(index,take([true, false, NULL], testRow))
+cshortdata = arrayVector(index, take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).short())
+cintdata = arrayVector(index, take(1..100, testRow))
+clongdata = arrayVector(index, take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).long())
+cdatedata = arrayVector(index, take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).date())
+cdatetimedata = arrayVector(index,take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).datetime())
+cmonthdata = arrayVector(index, take(rand(100, 100).join([pow(2,7)-1, NULL, 0]), testRow).month())
+ctimedata = arrayVector(index,take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).time() )
+cminutedata = arrayVector(index, take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).minute())
+cseconddata = arrayVector(index, take((rand(100, 100) - 50).join([pow(2,7)-1, NULL, 0]), testRow).second() )
+ctimestampdata = arrayVector(index, take((rand(100, 100) - 50).long().join([pow(2,7)-1, NULL, 0]), testRow).timestamp())
+cnanotimedata = arrayVector(index, take((rand(100, 100) - 50).long().join([pow(2,7)-1, NULL, 0]), testRow).nanotime())
+cnanotimestampdata = arrayVector(index, take((rand(100, 100) - 50).long().join([pow(2,7)-1, NULL, 0]), testRow).nanotimestamp())
+cfloatdata = arrayVector(index, take(rand(10000000.0, 100).float().join(NULL), testRow))
+cdoubledata = arrayVector(index,take(rand(10000000.0, 100).join(NULL), testRow))
+t1 = table(id,name,receivedTime,cbooldata,cshortdata,cintdata,clongdata,cdatedata,cdatetimedata,cmonthdata,ctimedata,cminutedata,cseconddata,ctimestampdata,cnanotimedata,cnanotimestampdata,cfloatdata,cdoubledata)
+
+//save file
+saveText(t1,aws_dir+"/array1.txt")
+saveText(t1,aws_dir+"/array2.csv")
+saveText(t1,aws_dir+"/array3.txt")
+saveText(t1,aws_dir+"/array4.csv")
+shell("cd "+aws_dir + " && zip -r array.zip .")
+
+//upload to s3
+aws::uploadS3Object(account,"dolphindb" , 'array.zip', aws_dir+'/array.zip')
+aws::uploadS3Object(account,"dolphindb" , 'array1.txt', aws_dir+'/array1.txt')
+aws::uploadS3Object(account,"dolphindb" , 'array2.csv', aws_dir+'/array2.csv')
+
+//loadS3Object
+//txt
+sch = select name, typeString from schema(loadTable(dbName, `table1)).colDefs
+res = aws::loadS3Object(account,  "dolphindb", 'array1.txt', 5, db,tableName,[`name,`id],,sch,,,`id`name`receivedTime)
+assert 1, res[`errorCode][0] == 0
+re = select * from loadTable(dbName,`table1) order by id,name,receivedTime
+expected = select * from t1 order by id,name,receivedTime
+update re set cdouble= cdouble/1e6, cfloat = cfloat/1e6
+update expected  set cdoubledata= cdoubledata/1e6, cfloatdata = cfloatdata/1e6
+assert 2, each(eqObj, re.values(), expected.values(), 6)
+delete from loadTable(dbName , `table1)
+
+//csv
+sch = select name, typeString from schema(loadTable(dbName, `table1)).colDefs
+res = aws::loadS3Object(account,  "dolphindb", 'array2.csv', 5, db,tableName,[`name,`id],,sch,,,`id`name`receivedTime)
+assert 3, res[`errorCode][0] == 0
+re = select * from loadTable(dbName,`table1) order by id,name,receivedTime
+expected = select * from t1 order by id,name,receivedTime
+update re set cdouble= cdouble/1e6, cfloat = cfloat/1e6
+update expected  set cdoubledata= cdoubledata/1e6, cfloatdata = cfloatdata/1e6
+assert 4, each(eqObj, re.values(), expected.values(), 6)
+delete from loadTable(dbName , `table1)
+
+//zip
+t1.append!(t1)
+t1.append!(t1)
+res = aws::loadS3Object(account,  "dolphindb", 'array.zip', 5, db,tableName,[`name,`id],,sch,,,`id`name`receivedTime)
+assert 5, res[`errorCode] == [0,0,0,0]
+re = select * from loadTable(dbName,tableName) order by id,name,receivedTime
+assert 6, re.size() == 4000
+expected = select * from t1 order by id,name,receivedTime
+update re set cdouble= cdouble/1e6, cfloat = cfloat/1e6
+update expected  set cdoubledata= cdoubledata/1e6, cfloatdata = cfloatdata/1e6
+assert 7, each(eqObj,re.values(),expected.values(),6)
+delete from loadTable(dbName,tableName)
+
+@testing:case="test_function_loadS3Object_clear_2"
+aws::deleteS3Object(account,"dolphindb" , 'array.zip')
+aws::deleteS3Object(account,"dolphindb" , 'array1.txt')
+aws::deleteS3Object(account,"dolphindb" , 'array2.csv')
+shell("cd "+aws_dir + " && rm -rf *")
+
+@testing:case="test_awss3_prapare_2"
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+
+@testing:case="test_function_listS3Object_without_prefix",syntaxError=1
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+bucket = aws::listS3Object(account,"ddb-test1")
+
+@testing:case="test_function_listS3Object_with_prefix_NULL",exception=1
+bucket = aws::listS3Object(account,"ddb-test1",NULL)
+
+@testing:case="test_function_listS3Object_with_prefix_NULL_2"
+bucket = aws::listS3Object(account,"dolphindbload",string())
+assert 1, bucket.size() >0
+
+@testing:case="test_function_listS3Object_with_prefix_"""
+bucket = aws::listS3Object(account,"dolphindbload","")
+bucket2 = aws::listS3Object(account,"dolphindbload",string())
+assert 1, bucket.size() > 0
+assert 2, eqObj(bucket.values(), bucket2.values())
+
+@testing:case="test_function_listS3Object_without_account",exception=1
+bucket = aws::listS3Object(,"ddb-test1","dup.csv")
+
+@testing:case="test_function_listS3Object_without_bucket",exception=1
+bucket = aws::listS3Object(account,,"dup")
+
+@testing:case="test_function_listS3Object_with_marker"
+bucket = aws::listS3Object(account,"dolphindbload","","test")
+assert 1,  ["test.txt","test_delimiter.csv","test_directory.csv","test_temporalFormat.csv"] in set(bucket["key name"]) 
+assert 2, bucket.size() == 4
+
+@testing:case="test_function_listS3Object_with_marker_no_file"
+bucket = aws::listS3Object(account,"dolphindbload","dup","level")
+assert 1, bucket.size() == 0
+
+@testing:case="test_function_listS3Object_with_delimiter"
+bucket = aws::listS3Object(account,"dolphindbload","test","","_")
+assert 1, bucket.size() == 2
+assert 1, bucket["key name"] == ["test.txt","test_"]
+
+@testing:case="test_function_listS3Object_with_delimiter_without_marker" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","",,"/")
+
+@testing:case="test_function_listS3Object_with_nextMarker_without_marker" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","",,"/","test")
+
+@testing:case="test_function_listS3Object_with_nextMarker_without_delimiter" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","","",,"test")
+
+@testing:case="test_function_listS3Object_with_delimiter_with_maxKeys_0" 
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long(0))
+assert 1, bucket.size() == 0
+
+@testing:case="test_function_listS3Object_with_maxKeys_negative" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long(-32))
+
+@testing:case="test_function_listS3Object_with_maxKeys_bigger_2147483647" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long(2147483648))
+
+@testing:case="test_function_listS3Object_with_maxKeys_2147483647"
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long(2147483647))
+assert 1, bucket.size() == 9
+
+@testing:case="test_function_listS3Object_with_maxKeys_NULL" 
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long())
+assert 1, bucket.size() == 0
+
+@testing:case="test_function_listS3Object_with_delimiter_without_maxKeys" ,exception=1
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",NULL)
+
+@testing:case="test_function_listS3Object_with_marker_no_file"
+bucket = aws::listS3Object(account,"dolphindbload","dup","level")
+assert 1, bucket.size() == 0
+
+@testing:case="test_function_listS3Object_with_more_parameters" ,syntaxError=1
+bucket = aws::listS3Object(account,"dolphindbload","","","/","test",long(),"dsaf")
+
+@testing:case="test_function_listS3Object_with_account_NULL" ,exception=1
+bucket = aws::listS3Object(NULL,"ddb-test1","dup.csv")
+
+@testing:case="test_function_listS3Object_with_account_NULL_2",exception=1
+ac = dict(`id`key`region, [string(), string(), string()])
+bucket = aws::listS3Object(ac,"ddb-test1","dup.csv")
+
+@testing:case="test_function_listS3Object_with_bucket_NULL"
+bucket = aws::listS3Object(account,string(),"test")
+assert 1, bucket.size() == 0
+
+@testing:case="test_function_listS3Object_with_bucket_NULL_2",exception=1
+bucket = aws::listS3Object(account,NULL,"test")
+
+@testing:case="test_function_listS3Object_with_multiThread"
+def f1(account, bucket, prefix){
+	for(i in 0:100){
+		re = aws::listS3Object(account, bucket, prefix)
+		assert 1,re.cols()==7
+		assert 2,re.colNames()==["index","bucket name","key name","last modified","length","ETag","owner"]
+		assert 3,re.size()==1
+		assert 4,re["bucket name"]==["dolphindbload"]
+		assert 5,re["key name"]==["dup.csv"]
+	}
+}
+jobs = array(STRING)
+for(i in 0:10){
+	jobs.append!(submitJob("listS3Object"+string(i), "listS3Object"+string(i), f1, account, "dolphindbload", "dup.csv"))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 10)
+
+@testing:case="test_plugin_getS3Object_without_account", exception=1
+res = aws::getS3Object(,'dolphindbload',"dup.csv","test.txt")
+
+@testing:case="test_plugin_getS3Object_without_bucket", exception=1
+res = aws::getS3Object(account,,"dup.csv","test.txt")
+
+@testing:case="test_plugin_getS3Object_without_key", exception=1
+res = aws::getS3Object(account,"dolphindbload",)
+
+@testing:case="test_plugin_getS3Object_with_key_NULL_1", exception=1
+res = aws::getS3Object(account,"dolphindbload",NULL)
+
+@testing:case="test_plugin_getS3Object_with_key_NULL_2"
+res = aws::getS3Object(account,"dolphindbload",string(),"test.txt")
+
+@testing:case="test_plugin_getS3Object_with_account_NULL_1", exception=1
+res = aws::getS3Object(NULL,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_getS3Object_with_account_NULL_2", exception=1
+ac = dict(`id`key`region, [string(), string(), string()])
+res = aws::getS3Object(ac,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_getS3Object_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+res = aws::getS3Object(ac,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_getS3Object_with_outputFile_invaild"
+outputDir = WORK_DIR+"/not_exists"
+aws::getS3Object(account,"dolphindbload","dup.csv", outputDir+"/23423.txt")
+
+@testing:case="test_plugin_getS3Object_with_more_parameters", syntaxError = 1
+aws::getS3Object(account,"dolphindbload","dup.csv", "23423","43243")
+
+@testing:case="test_plugin_getS3Object_with_multiThread"
+outputDir = WORK_DIR+"/awss3"
+try{
+	rmdir(outputDir, true)	
+}catch(ex){}
+mkdir(outputDir)
+def f1(account, bucket, key, outputDir, outputFilename){
+	for(i in 0:100){
+		outputFile = outputDir+"/"+outputFilename+string(i)
+		res = aws::getS3Object(account,bucket,key,outputFile)
+		assert 1, res == outputFile
+	}	
+}
+jobs = array(STRING)
+for(i in 0:10){
+	jobs.append!(submitJob("getS3Object"+string(i), "getS3Object"+string(i), f1, account, "dolphindbload", "dup.csv", outputDir, "A"+string(i*101)))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 10)
+try{
+	rmdir(outputDir, true)	
+}catch(ex){}
+
+@testing:case="test_plugin_readS3Object_with_account_error",exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::readS3Object(ac,"dolphindbload","dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_with_account_NULL",exception=1
+aws::readS3Object(NULL,"dolphindbload","dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_without_account",exception=1
+aws::readS3Object(,"dolphindbload","dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_without_bucket",exception=1
+aws::readS3Object(account,,"dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_with_bucket_NULL",exception=1
+aws::readS3Object(account,NULL,"dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_with_bucket_NULL_2",exception=1
+aws::readS3Object(account,string(),"dup.csv", 0,100)
+
+@testing:case="test_plugin_readS3Object_without_key",exception=1
+aws::readS3Object(account,"dolphindbload",, 0,100)
+
+@testing:case="test_plugin_readS3Object_with_key_NULL",exception=1
+aws::readS3Object(account,"dolphindbload",NULL, 0,100)
+
+@testing:case="test_plugin_readS3Object_with_key_NULL_2"
+res = aws::readS3Object(account,"dolphindbload",string(), 0,100)
+assert 1, res.size() > 100
+
+@testing:case="test_plugin_readS3Object_with_key_not_exist",exception=1
+aws::readS3Object(account,"dolphindbload","dup", 0,100)
+
+@testing:case="test_plugin_readS3Object_without_offset",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv", ,100)
+
+@testing:case="test_plugin_readS3Object_with_offset_string",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv","0" ,100)
+
+@testing:case="test_plugin_readS3Object_with_offset_double",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",32.4 ,100)
+
+@testing:case="test_plugin_readS3Object_with_offset_NULL",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",NULL ,100)
+
+@testing:case="test_plugin_readS3Object_with_offset_NULL_2",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",int(),100)
+
+@testing:case="test_plugin_readS3Object_with_offset_NULL_3",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",long(),100)
+
+@testing:case="test_plugin_readS3Object_with_offset_int_vector",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",[0, 1],100)
+
+@testing:case="test_plugin_readS3Object_without_length",syntaxError = 1
+aws::readS3Object(account,"dolphindbload","dup.csv",0 )
+
+@testing:case="test_plugin_readS3Object_with_length_string",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",0,"100")
+
+@testing:case="test_plugin_readS3Object_with_length_double",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",32.4 ,100)
+
+@testing:case="test_plugin_readS3Object_with_length_NULL",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",0 ,NULL)
+
+@testing:case="test_plugin_readS3Object_with_length_NULL_2",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",0,int())
+
+@testing:case="test_plugin_readS3Object_with_length_NULL_3",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",0,long())
+
+@testing:case="test_plugin_readS3Object_with_length_int_vector",exception=1
+aws::readS3Object(account,"dolphindbload","dup.csv",0,[100,324])
+
+@testing:case="test_plugin_readS3Object_with_multiThread"
+def f1(account, bucket, key){
+	for(i in 0:100){
+		re=aws::readS3Object(account,bucket, key,0,100)
+		assert 1,re.size()==100
+		assert 2,re[0]=='t'
+		assert 3,re[1]=='s'
+	}	
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("readS3Object"+string(i), "readS3Object"+string(i), f1, account, "dolphindbload", "folder1/dup.csv"))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+
+
+@testing:case="test_plugin_deleteS3Object_without_account", exception=1
+aws::deleteS3Object(,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_account_NULL", exception=1
+aws::deleteS3Object(NULL,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::deleteS3Object(ac ,"dolphindbload","dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_without_bucket", exception=1
+aws::deleteS3Object(account ,,"dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_bucket_NULL", exception=1
+aws::deleteS3Object(account ,NULL,"dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_bucket_NULL_2", exception=1
+aws::deleteS3Object(account ,string(),"dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_bucket_not_exist", exception=1
+aws::deleteS3Object(account ,"not_exist","dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_with_bucket_int", exception=1
+aws::deleteS3Object(account ,23,"dup.csv")
+
+@testing:case="test_plugin_deleteS3Object_without_key", syntaxError=1
+aws::deleteS3Object(account ,"dolphindbload")
+
+@testing:case="test_plugin_deleteS3Object_with_key_NULL", exception=1
+aws::deleteS3Object(account ,"dolphindbload", NULL)
+
+@testing:case="test_plugin_deleteS3Object_with_key_NULL_2", exception=1
+aws::deleteS3Object(account ,"dolphindbload", string())
+
+@testing:case="test_plugin_deleteS3Object_more_parameters", syntaxError=1
+aws::deleteS3Object(account ,"dolphindbload", "dup.csv",string())
+
+@testing:case="test_plugin_uploadS3Object_prapare"
+t=table(1..10 as id,11..20 as val)
+saveText(t,WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_without_account", exception=1
+aws::uploadS3Object(,"dolphindbload",'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_account_NULL", exception=1
+aws::uploadS3Object(NULL,"dolphindbload",'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::uploadS3Object(ac,"dolphindbload",'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_bucket_string_vector", exception=1
+aws::uploadS3Object(account,["dolphindbload","dolphindbload"],'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_bucket_NULL", exception=1
+aws::uploadS3Object(account,NULL,'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_bucket_NULL_2", exception=1
+aws::uploadS3Object(account,string(),'test.csv',WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_without_key", exception=1
+aws::uploadS3Object(account,"dolphindbload",,WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_key_string_vector", exception=1
+aws::uploadS3Object(account,"dolphindbload",['test.csv','test.csv'],WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_key_NULL", exception=1
+aws::uploadS3Object(account,"dolphindbload",NULL,WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_key_NULL_2", exception=1
+aws::uploadS3Object(account,"dolphindbload",string(),WORK_DIR+"/test1.txt")
+
+@testing:case="test_plugin_uploadS3Object_without_inputFileName", syntaxError=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt')
+
+@testing:case="test_plugin_uploadS3Object_with_inputFileName_NULL", exception=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt', NULL)
+
+@testing:case="test_plugin_uploadS3Object_with_inputFileName_NULL_2", exception=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt', string())
+
+@testing:case="test_plugin_uploadS3Object_with_inputFileName_string_vector", exception=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt', [WORK_DIR+"/test1.txt",WORK_DIR+"/test1.txt"])
+
+@testing:case="test_plugin_uploadS3Object_with_inputFileName_int", exception=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt',234)
+
+@testing:case="test_plugin_uploadS3Object_with_not_exist", exception=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt',"not_test2.txt")
+
+@testing:case="test_plugin_uploadS3Object_with_more_parameters", syntaxError=1
+aws::uploadS3Object(account,"dolphindbload",'test.txt',WORK_DIR+"/test1.txt", 323)
+
+@testing:case="test_plugin_uploadS3Object_exist"
+aws::uploadS3Object(account,"dolphindbload",'test.txt',WORK_DIR+"/test1.txt")
+aws::uploadS3Object(account,"dolphindbload",'test.txt',WORK_DIR+"/test1.txt")
+res = aws::readS3Object(account,"dolphindbload",'test.txt',0 ,100)
+assert 1, res.size() == 58
+assert 2, res[0] == 'i'
+assert 3, res[1] == 'd'
+
+@testing:case="test_plugin_uploadS3Object_and_deleteS3Object_multiThread"
+def f1(account, bucket, key, inputFileName){
+	for(i in 0:100){ 
+		aws::uploadS3Object(account,bucket,key+string(i),inputFileName)
+		res = aws::readS3Object(account,bucket,key+string(i),0 ,100)
+		assert 1, res.size() == 58
+		assert 2, res[0] == 'i'
+		assert 3, res[1] == 'd'
+		//aws::deleteS3Object(account,bucket,key+string(i))
+	}	
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("uploadS3Object"+string(i), "uploadS3Object"+string(i), f1, account, "dolphindbload", "tmpTable"+string(i*101),WORK_DIR+"/test1.txt"))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+
+def f2(account, bucket, key){
+	for(i in 0:100){ 	
+		try{
+			aws::deleteS3Object(account,bucket,key+string(i))
+		}catch(ex){}
+	}	
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("deleteS3Object"+string(i), "deleteS3Object"+string(i), f2, account, "dolphindbload", "tmpTable"+string(i*101)))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 2, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+
+@testing:case="test_plugin_uploadS3Object_listS3Bucket_without_account", exception=1
+aws::listS3Bucket()
+
+@testing:case="test_plugin_uploadS3Object_listS3Bucket_with_account_NULL", exception=1
+aws::listS3Bucket(NULL)
+
+@testing:case="test_plugin_uploadS3Object_listS3Bucket_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::listS3Bucket(ac)
+
+@testing:case="test_plugin_uploadS3Object_listS3Bucket_with_more_parameters", syntaxError=1
+aws::listS3Bucket(account, "dolphindbload")
+
+@testing:case="test_plugin_listS3Bucket_with_multiThread"
+def f1(account){
+	for(i in 0:100){
+		res = aws::listS3Bucket(account)	
+		assert 1, res.size()>=2
+		assert 2, res.colNames()==["index","bucket name","creation date"]
+	}
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("listS3Bucket"+string(i), "listS3Bucket"+string(i), f1, account))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+
+@testing:case="test_plugin_deleteS3Bucket_without_account", exception=1
+aws::deleteS3Bucket(,'ddb_test1')
+
+@testing:case="test_plugin_deleteS3Bucket_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::deleteS3Bucket(ac,'ddb_test1')
+
+@testing:case="test_plugin_deleteS3Bucket_with_account_NULL", exception=1
+aws::deleteS3Bucket(NULL,'ddb_test1')
+
+@testing:case="test_plugin_deleteS3Bucket_without_bucket", syntaxError=1
+aws::deleteS3Bucket(account)
+
+@testing:case="test_plugin_deleteS3Bucket_with_bucket_NULL", exception=1
+aws::deleteS3Bucket(account,NULL)
+
+@testing:case="test_plugin_deleteS3Bucket_with_bucket_NULL_2", exception=1
+aws::deleteS3Bucket(account,string())
+
+@testing:case="test_plugin_deleteS3Bucket_with_bucket_string_vector", exception=1
+aws::deleteS3Bucket(account,["ddb-test1", "ddb-test1"])
+
+@testing:case="test_plugin_deleteS3Bucket_with_bucket_int", exception=1
+aws::deleteS3Bucket(account,32)
+
+@testing:case="test_plugin_deleteS3Bucket_with_more_parameters", syntaxError=1
+aws::deleteS3Bucket(account,"ddb-test1", 43)
+
+
+@testing:case="test_plugin_createS3Bucket_without_account", exception=1
+aws::createS3Bucket(,'ddb_test1')
+
+@testing:case="test_plugin_createS3Bucket_with_account_error", exception=1
+ac = dict(`id`key`region, ["aa", "aa", "aa"])
+aws::createS3Bucket(ac,'ddb_test1')
+
+@testing:case="test_plugin_createS3Bucket_with_account_NULL", exception=1
+aws::createS3Bucket(NULL,'ddb_test1')
+
+@testing:case="test_plugin_createS3Bucket_without_bucket", syntaxError=1
+aws::createS3Bucket(account)
+
+@testing:case="test_plugin_createS3Bucket_with_bucket_NULL", exception=1
+aws::createS3Bucket(account,NULL)
+
+@testing:case="test_plugin_createS3Bucket_with_bucket_NULL_2", exception=1
+aws::createS3Bucket(account,string())
+
+@testing:case="test_plugin_createS3Bucket_with_bucket_string_vector", exception=1
+aws::createS3Bucket(account,["ddb-test1", "ddb-test1"])
+
+@testing:case="test_plugin_createS3Bucket_with_bucket_int", exception=1
+aws::createS3Bucket(account,32)
+
+@testing:case="test_plugin_createS3Bucket_with_more_parameters", syntaxError=1
+aws::createS3Bucket(account,"ddb-test1", 43)
+
+@testing:case="test_plugin_createS3Bucket_deleteS3Bucket_with_multiThread"
+def f1(account, key){
+	for(i in 0:10){
+		keyName = key+"cca"+string(i)
+		try{
+			aws::createS3Bucket(account,keyName)	
+			res = aws::listS3Bucket(account)
+			assert 1 , keyName in res["bucket name"]
+		//aws::deleteS3Bucket(account,key)
+		}catch(ex){}
+	}	
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("createS3Bucket"+string(i), "createS3Bucket"+string(i), f1, account, "tmpbucket"+string(i)))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 1, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+
+def f2(account, key){
+	for(i in 0:10){
+		keyName = key+"cca"+string(i)
+		try{
+			aws::deleteS3Bucket(account,keyName)
+		}catch(ex){}
+	}	
+}
+jobs = array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("createS3Bucket"+string(i), "createS3Bucket"+string(i), f2, account, "tmpbucket"+string(i)))
+}
+res = each(def (t):getJobReturn(t,true), jobs)
+assert 2, (exec errorMsg from getRecentJobs() where jobId in jobs) == take(string(), 5)
+assert 3,like(aws::listS3Bucket(account)["bucket name"],"tmpbucekt%").at() == 0
+
+@testing:case="test_plugin_loadS3Object_with_big_data"
+n=9000000
+id = bigarray(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = bigarray(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+//saveText(tmp1,WORK_DIR+"/tmp1.txt")
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+
+//uploadS3Object
+//aws::uploadS3Object(account,"dolphindb" , 'bigData.txt', WORK_DIR+"/tmp1.txt")
+aws::loadS3Object(account, "dolphindb", 'bigData.txt' ,6, db,`table1,[`id])
+ex = select * from tmp1 order by id
+res = select * from loadTable(dbName, `table1) order by id
+assert 1 , each(eqObj,res.values(), ex.values())
+dropDatabase(dbName)
+
+@testing:case="test_plugin_loadS3Object_with_multiThread"
+def createDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)	
+	}
+	db = database(dbName, VALUE, 1..10)	
+	return db
+}
+def f1(account, dbName){
+	db = database(dbName)
+	aws::loadS3Object(account, "dolphindb", 'bigData.txt' ,6, db,`table1,`id)	
+}
+each(def (number):createDB("dfs://testAws"+string(number)), 0..3)	
+sleep(1000)
+jobs = array(STRING)
+for(number in 0:4){
+	jobs.append!(submitJob("loadS3Object"+string(number), "loadS3Object"+string(number), f1, account, "dfs://testAws"+string(number)))	
+}
+each(def(jobId):getJobReturn(jobId,true), jobs)
+
+for(i in 0:4){
+	dbName = "dfs://testAws"+string(i)
+	ex = select * from tmp1 order by id
+	res = select * from loadTable(dbName, `table1) order by id	
+	assert 1, each(eqObj,res.values(), ex.values())
+	dropDatabase(dbName)
+}
+
+
+@testing:case="test_plugin_loadS3Object_with_chinese_colName"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("编号"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id as id ,symbol as "编号",values as "价格",timestamps as times)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account ,"dolphindb" , "chineseData.txt" ,6,db ,`table1,`id)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 1, eqObj(res.values(), ex.values())
+assert 2, res.colNames() == ["id", "编号","价格",`times]
+
+@testing:case="test_plugin_loadS3Object_with_uuid"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", "5d212a78-cc48-e3b1-4235-b4d91473ee87", "5d212a78-cc48-e3b1-4235-b4d91473ee88"]) join uuid() , n)
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account ,"dolphindb" , "uuid.txt" ,6,db ,`table1,`id)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 1, eqObj(res.values(), ex.values())
+
+@testing:case="test_plugin_loadS3Object_with_ipaddr"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = take(ipaddr(["192.168.1.13", "192.168.1.14", "192.168.1.15", "192.168.1.16"]) join ipaddr(), n)
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account ,"dolphindb" , "ipaddr.txt" ,6,db ,`table1,`id)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 1, eqObj(res.values(), ex.values())
+
+@testing:case="test_plugin_loadS3Object_with_int128"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", "e1671797c52e15f763380b45e841ec34", "e1671797c52e15f763380b45e841ec35"]) join int128(), n)
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account ,"dolphindb" , "int128.txt" ,6,db ,`table1,`id)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 1, eqObj(res.values(), ex.values())
+
+@testing:case="test_plugin_loadS3Object_execute_more_times"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+//saveText(tmp1,"tmp1.txt")
+//aws::uploadS3Object(account,"dolphindb" , 'smallData2.txt', "tmp1.txt")
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+for(i in 0:100){
+	db = database(dbName)
+	aws::loadS3Object(account, "dolphindb", 'smallData.txt' ,6, db,`table1,`id)	
+	ex = select * from tmp1 order by id
+	res = select * from loadTable(dbName, `table1) order by id	
+	assert 1, each(eqObj,res.values(), ex.values())
+	dropTable(db, `table1)
+}
+dropDatabase(dbName)	
+
+@testing:case="test_plugin_loadS3Object_account_NULL", exception=1
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(NULL, "dolphindb", 'smallData.txt' ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_account_int", exception=1
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(23, "dolphindb", 'smallData.txt' ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_bucket_NULL", exception=1
+res = aws::loadS3Object(account , , 'smallData.txt' ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_bucket_NULL_2"
+res = aws::loadS3Object(account ,string() , 'smallData.txt' ,6, db,`table1,`id)	
+assert 1, res[`errorCode] == 3
+assert 2, like(res[`errorInfo],"%getS3Object cannot get object:%")
+
+@testing:case="test_plugin_loadS3Object_bucket_int", exception=1
+res = aws::loadS3Object(account ,23 , 'smallData.txt' ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_bucket_string_vector"
+res = aws::loadS3Object(account ,["dolphindb","dolphindbload"], 'smallData.txt' ,6, db,`table1,`id)
+assert 1, res[`errorCode] == 3
+assert 2, like(res[`errorInfo],"%getS3Object cannot get object:%")
+
+@testing:case="test_plugin_loadS3Object_key_NULL", exception=1
+res = aws::loadS3Object(account ,"dolphindb" ,  ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_key_NULL_2"
+res = aws::loadS3Object(account ,string() , string(),6, db,`table1,`id)	
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The input file is empty%")
+
+@testing:case="test_plugin_loadS3Object_key_int", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , 23 ,6, db,`table1,`id)	
+
+@testing:case="test_plugin_loadS3Object_key_string_vector_1"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb", ['smallData.txt','smallData.txt'] ,6, db,`table1,`id)
+tmp1.append!(tmp1)
+ex = select * from tmp1 order by id
+res = select * from loadTable(dbName, `table1) order by id
+assert 1, each(eqObj, ex.values(), res.values())
+
+
+@testing:case="test_plugin_loadS3Object_key_string_vector_2"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb", ['smallData.txt','smallData2.txt'] ,6, db,`table1,`id)
+tmp1.append!(tmp1)
+ex = select * from tmp1 order by id
+res = select * from loadTable(dbName, `table1) order by id
+assert 1, each(eqObj, ex.values(), res.values())
+
+@testing:case="test_plugin_loadS3Object_threadCount_string", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,`6, db,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_threadCount_int_vector", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,[12,2], db,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_threadCount_NULL", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,NULL, db,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_without_threadCount", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,, db,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_without_threadCount_float", exception=1
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,3.6, db,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_without_dbHandle"
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6, ,`table1,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%dbHandle must be a database handle%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_dbHandle_NULL"
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,NULL ,`table1,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%dbHandle must be a database handle%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_dbHandle_string"
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,"db" ,`table1,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%dbHandle must be a database handle%") == true 
+
+@testing:case="test_plugin_loadS3Object_without_tableName"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%tableName can't be empty%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_tableName_NULL"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,NULL,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%tableName can't be empty%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_tableName_NULL_2"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,string(),`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%tableName can't be empty%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_tableName_int"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,324,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%tableName can't be empty%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_tableName_string_vector"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,[`table1, `table2],`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%tableName is not valid%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_partitionColumns_int"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1,234)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%partitionColumns must be string or string vector%") == true 
+
+@testing:case="test_function_loadS3Object_transform_Error_2"
+db = database( "dfs://testAwss3")
+tableName=`table1
+def f1(){
+	return 4324
+}
+res = aws::loadS3Object(account, "dolphindb", 'tmp1.txt',6, db,tableName,[`symbol,`int],,,,f1)
+assert 1, res[`errorCode][0] == 3
+assert 2, like(res[`errorInfo][0], "%getS3Object cannot get object:%") == true
+
+@testing:case="test_function_loadS3Object_with_transform"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+dates = (date(2021.01.13) + take(1..10, n)).format("yyyy#MM#dd")
+times = (time(00:00:00) + take(1..10, n)).format("HH*mm*ss*SSS")
+tmp1 = table(id,symbol,values, dates, times)
+//saveText(tmp1,'transform.txt')
+//aws::uploadS3Object(account,"dolphindb" , 'transform.txt', 'transform.txt')
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+t1 = table(1:0, `id`symbol`values`date`time,[INT,SYMBOL,INT,DATE, TIME])
+pt1 = db.createPartitionedTable(t1, `table1, `id)
+def f1(mutable table1){
+	dates =temporalParse(lpad(string(table1.dates),10), "yyyy#MM#dd")
+	times = temporalParse(lpad(string(table1.times),12),"HH*mm*ss*SSS")
+	resultTable = table(table1.id, table1.symbol, table1.values,dates, times)
+	return resultTable
+}
+t1 = f1(tmp1)
+names = `id`symbol`values`dates`times
+typeString = [`INT,`SYMBOL,`INT,`STRING,`STRING]
+sch = table(names as name, typeString as type)
+res = aws::loadS3Object(account, "dolphindb", 'transform.txt',6, db,`table1,`id,,sch,,f1)
+assert 1, res[`errorCode][0] == 0
+res = select * from loadTable(dbName, `table1) order by id
+ex =select * from t1 order by id
+assert 2, eqObj(res.values(), ex.values()) 
+
+@testing:case="test_function_loadS3Object_with_transform_partial_function"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+dates = (date(2021.01.13) + take(1..10, n)).format("yyyy#MM#dd")
+times = (time(00:00:00) + take(1..10, n)).format("HH*mm*ss*SSS")
+tmp1 = table(id,symbol,values, dates, times)
+//saveText(tmp1,'transform.txt')
+//aws::uploadS3Object(account,"dolphindb" , 'transform.txt', 'transform.txt')
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+t1 = table(1:0, `id`symbol`values`date`time,[INT,SYMBOL,INT,DATE, TIME])
+pt1 = db.createPartitionedTable(t1, `table1, `id)
+def f1(mutable table1, number){
+	dates =temporalParse(lpad(string(table1.dates),10), "yyyy#MM#dd")+number
+	times = temporalParse(lpad(string(table1.times),12),"HH*mm*ss*SSS")
+	resultTable = table(table1.id, table1.symbol, table1.values,dates, times)
+	return resultTable
+}
+t1 = f1(tmp1,3)
+names = `id`symbol`values`dates`times
+typeString = [`INT,`SYMBOL,`INT,`STRING,`STRING]
+sch = table(names as name, typeString as type)
+res = aws::loadS3Object(account, "dolphindb", 'transform.txt',6, db,`table1,`id,,sch,,f1{,3})
+assert 1, res[`errorCode][0] == 0
+res = select * from loadTable(dbName, `table1) order by id
+ex =select * from t1 order by id
+assert 2, eqObj(res.values(), ex.values()) 
+
+@testing:case="test_function_loadS3Object_with_transform_exception"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+dates = (date(2021.01.13) + take(1..10, n)).format("yyyy#MM#dd")
+times = (time(00:00:00) + take(1..10, n)).format("HH*mm*ss*SSS")
+tmp1 = table(id,symbol,values, dates, times)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+t1 = table(1:0, `id`symbol`values`date`time,[INT,SYMBOL,INT,DATE, TIME])
+pt1 = db.createPartitionedTable(t1, `table1, `id)
+def f1(mutable table1, number){
+	try{
+		if(number > 4){
+			throw "number bigger 4"	
+		}
+		dates =temporalParse(lpad(string(table1.dates),10), "yyyy.MM.dd")+number
+		times = temporalParse(lpad(string(table1.times),12),"HH:mm:ss.SSS")
+		resultTable = table(table1.id, table1.symbol, table1.values,dates, times)
+		return resultTable
+	}catch(ex){print(ex)}
+}
+names = `id`symbol`values`dates`times
+typeString = [`INT,`SYMBOL,`INT,`STRING,`STRING]
+sch = table(names as name, typeString as type)
+res = aws::loadS3Object(account, "dolphindb", 'transform.txt',6, db,`table1,`id,,,,f1{,5})
+assert 1, res[`errorCode][0] == 2
+assert 2, like(res[`errorInfo], "%A transforming function must return a table%") == true
+
+@testing:case="test_plugin_loadS3Object_with_partitionColumns_error_with_table_schema"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+t1 = table(1:0, `id`symbol`values`timestamp,[INT,SYMBOL,INT,TIMESTAMP])
+pt1 = db.createPartitionedTable(t1, `table1, `id)
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1,`symbol)
+assert 1, res[`errorCode] == 0
+res = select *from  loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 2, eqObj(res.values(), ex.values())
+
+@testing:case="test_plugin_loadS3Object_with_partitionColumns_error_without_table_schema"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1,`symbol)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The data type of partitioning column [symbol] doesn't match the partition scheme in dbHandle%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_partitionColumns_NULL"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1,NULL)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%partitionColumns must be string or string vector%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_partitionColumns_NULL_2"
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1,string())
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The partitioning column [] doesn't exist.%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_threadCount_bigger_than_10", exception=1
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,11,db ,`table1,`id)
+
+@testing:case="test_plugin_loadS3Object_without_partitionColumns", syntaxError = 1
+db = database( "dfs://testAwss3")
+res = aws::loadS3Object(account ,"dolphindb" , "smallData.txt" ,6,db ,`table1)
+
+
+@testing:case="test_plugin_loadS3Object_olap_with_sortColumns"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%sortColumns can only specified for TSDB engine%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_atomic_NULL"
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("A"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id,symbol,values,timestamps)
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,,bool())
+res = select * from loadTable(dbName, `table1) order by id,symbol
+ex = select * from tmp1 order by id, symbol
+assert 1, each(eqObj,res.values(), ex.values())
+
+@testing:case="test_plugin_loadS3Object_with_atomic_string"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,,"true")
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo], "%atomic must be a boolean value%") == true
+
+@testing:case="test_plugin_loadS3Object_with_skipRows_string"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,"43")
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%skipRows must be an integer between 0 and 1024%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_skipRows_bigger_than_data_size"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,901)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The input file is empty after skipping specified rows%") == true 
+
+@testing:case="test_plugin_loadS3Object_with_skipRows_bigger_than_0_smaller_than_data_size"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,20)
+assert 1, res[`errorCode] == 0
+res = select * from loadTable(dbName, `table1)
+assert 2, res.rows() == 1781
+
+@testing:case="test_plugin_loadS3Object_with_skipRows_bigger_than_0_smaller_than_data_size_without_table_schema"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,20)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The partitioning column [id] doesn't exist%") == true 
+
+//tsdb
+@testing:case="test_plugin_loadS3Object_tsdb_without_sortColumns"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10,,`TSDB)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%sortColumns must be specified%") == true 
+
+
+@testing:case="test_plugin_loadS3Object_tsdb_with_sortColumns_NULL"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10,,`TSDB)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,NULL)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%sortColumns must be one or multiple column names%") == true 
+
+
+@testing:case="test_plugin_loadS3Object_tsdb_with_sortColumns_NULL_2"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10,,`TSDB)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,string())
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%The sort column [] doesn't exist%") == true 
+
+@testing:case="test_plugin_loadS3Object_tsdb_with_sortColumns_int"
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10,,`TSDB)
+res = aws::loadS3Object(account ,"dolphindb" ,"smallData.txt" ,6,db ,`table1,`id,,,,,12)
+assert 1, res[`errorCode] == 2
+assert 2, like(res[`errorInfo],"%sortColumns must be one or multiple column names%") == true 
+
+
+#include "setup/settings.txt"
+PLUGIN_DIR =getHomeDir() +"/plugins"
+try{
+	loadPlugin(PLUGIN_DIR+"/awss3/PluginAWSS3.txt")
+}catch(ex){print ex}
+
+@testing:case="test_awss3_prapare"
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_awss3_copyS3Object_account_NULL", exception=1
+aws::copyS3Object(, "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_account_string_NULL", exception=1
+aws::copyS3Object(string(), "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_account_dict_NULL", exception=1
+aws::copyS3Object(dict(), "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_account_dict_ERROR", exception=1
+aws::copyS3Object(dict(`id`key,["CCC", "AAA"]), "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_account_dict_vector", exception=1
+aws::copyS3Object([account, account], "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_account_int", exception=1
+aws::copyS3Object(32, "dolphindbload", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_NULL", exception=1
+aws::copyS3Object(account,NULL, ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_string_NULL", exception=1
+aws::copyS3Object(account,string(), ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_string_vector", exception=1
+aws::copyS3Object(account,["dolphindbload","dolphindbload"], ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_not_exists", exception=1
+aws::copyS3Object(account,"error", ["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_int", exception=1
+aws::copyS3Object(account,12 ,["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_without_bucket", exception=1
+aws::copyS3Object(account, ,["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_table", exception=1
+aws::copyS3Object(account, table(1..3 as id, 1..3 as val),["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_bucket_string_set", exception=1
+aws::copyS3Object(account, set(["dolphindbload","dolphindbload"]),["dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_without_srcPath", exception=1
+aws::copyS3Object(account, "dolphindbload",, ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_NULL", exception=1
+aws::copyS3Object(account, "dolphindbload",string(), ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_NULL_2", exception=1
+aws::copyS3Object(account, "dolphindbload",NULL, ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_set", exception=1
+aws::copyS3Object(account, "dolphindbload",set(["dup.csv","dup.csv","dup.csv"]), ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_vector_not_same_destPath_1", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv","dup.csv","dup.csv"], ["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_vector_not_same_destPath_2", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv","dup.csv"], ["last/dup.csv","last/dup.csv","last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_vector_not_same_destPath_3", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv","dup.csv"], "last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_srcPath_string_vector_not_same_destPath_4", syntaxError=1
+aws::copyS3Object(account, "dolphindbload","dup.csv"], ["last/dup.csv","last/dup.csv","last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_not_string", exception=1
+aws::copyS3Object(account, "dolphindbload",112 ,["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_not_exists", exception=1
+aws::copyS3Object(account, "dolphindbload","newdup.csv" ,["last/dup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_some_not_exists", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv","newdup.csv"] ,["last/dup.csv", "last/newdup.csv"])
+
+@testing:case="test_awss3_copyS3Object_srcPath_clear"
+file = select * from aws::listS3Object(account, "dolphindbload", "last") 
+assert 1, file.size() == 1
+
+file1 = aws::readS3Object(account, "dolphindbload", "dup.csv", 0, 100)
+file2 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0, 100)
+assert 2, file1 == file2
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_without_destPath", syntaxError=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"] )
+
+@testing:case="test_awss3_copyS3Object_without_destPath_NULL", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"] ,)
+
+@testing:case="test_awss3_copyS3Object_without_destPath_NULL_2", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"],string())
+
+@testing:case="test_awss3_copyS3Object_without_destPath_int", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"],112)
+
+@testing:case="test_awss3_copyS3Object_without_destPath_string_set", exception=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"],set(["last/newdup.csv","last/dup.csv"]))
+
+@testing:case="test_awss3_copyS3Object_without_destPath_table", exception=1
+try{
+	aws::deleteS3Object(account,"dolphindbload","set(\"last/dup.csv\",\"last/newdup.csv\")")
+}catch(ex){}
+aws::copyS3Object(account, "dolphindbload",["dup.csv"],table(1..3 as id, 1..3 as value))
+
+@testing:case="test_awss3_copyS3Object_with_more_paraments", syntaxError=1
+aws::copyS3Object(account, "dolphindbload",["dup.csv"],["last/newdup.csv"], "test")
+
+@testing:case="test_awss3_copyS3Object_srcPath_scalar"
+aws::copyS3Object(account, "dolphindbload","dup.csv" ,["last/dup.csv"])
+file = select * from aws::listS3Object(account, "dolphindbload", "last") 
+assert 1, file.size() == 1
+
+file1 = aws::readS3Object(account, "dolphindbload", "dup.csv", 0, 100)
+file2 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0, 100)
+assert 2, file1 == file2
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_destPath_scalar"
+aws::copyS3Object(account, "dolphindbload",["dup.csv"] ,"last/dup.csv")
+file = select * from aws::listS3Object(account, "dolphindbload", "last") 
+assert 1, file.size() == 1
+
+file1 = aws::readS3Object(account, "dolphindbload", "dup.csv", 0, 100)
+file2 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0, 100)
+assert 2, file1 == file2
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_srcPath_duplicate"
+aws::copyS3Object(account, "dolphindbload",["dup.csv", "dup.csv"] ,["last/dup.csv", "last/newdup.csv"])
+file = select * from aws::listS3Object(account, "dolphindbload", "last") 
+assert 1, file.size() == 2
+
+file1 = aws::readS3Object(account, "dolphindbload", "dup.csv", 0, 100)
+file2 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0, 100)
+file3 = aws::readS3Object(account, "dolphindbload", "last/newdup.csv", 0, 100)
+assert 2, file1 == file2
+assert 3, file2 == file3
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+aws::deleteS3Object(account,"dolphindbload","last/newdup.csv")
+
+@testing:case="test_awss3_copyS3Object_destPath_duplicate"
+//aws::copyS3Object(account, "dolphindbload",["dup.csv", "test.txt"] ,["last/dup.csv", "last/dup.csv"])
+aws::copyS3Object(account , "dolphindbload", "dup.csv", "last/dup.csv")
+aws::copyS3Object(account , "dolphindbload", "test.txt", "last/dup.csv")
+file = select * from aws::listS3Object(account, "dolphindbload", "last") 
+assert 1, file.size() == 1
+
+file1 = aws::readS3Object(account, "dolphindbload", "test.txt", 0,50)
+file2 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0, 50)
+assert 2, file1 == file2
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_with_chinese_data"
+try{
+	aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+}catch(ex){}
+aws_dir = WORK_DIR+"/aws"
+aws::copyS3Object(account, "dolphindbload","chineseData.csv" ,"last/dup.csv")
+file1 = aws::readS3Object(account, "dolphindbload", "last/dup.csv", 0,1000)
+file2 = aws::readS3Object(account, "dolphindbload", "chineseData.csv", 0,1000)
+assert 1, file1 == file2
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_with_arrayvector_data"
+aws::copyS3Object(account, "dolphindbload","arrayvector.csv" ,"last/dup.csv")
+dbName = "dfs://createtest"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+create database "dfs://createtest" partitioned by HASH([SYMBOL,2]),VALUE(1..120), engine=TSDB;
+create table "dfs://createtest".table1(
+	"id" INT,
+	"name" SYMBOL,
+	"receivedTime" DATETIME,
+	"cbool" BOOL[],
+	"cshort" SHORT[],
+	"cint" INT[],
+	"clong" LONG[],
+	"cdate" DATE[],
+	"cdatetime" DATETIME[],
+	"cmonth" MONTH[],
+	"ctime" TIME[],
+	"cminute" MINUTE[],
+	"csecond" SECOND[],
+	"ctimestamp" TIMESTAMP[],
+	"cnanotime" NANOTIME[],
+	"cnanotimestamp" NANOTIMESTAMP[],
+	"cfloat" FLOAT[],
+	"cdouble" DOUBLE[]
+)
+partitioned by name,id,
+sortColumns=(`id`name`receivedTime);
+
+db = database(dbName)
+sch = select name, typeString from schema(loadTable(dbName, `table1)).colDefs
+res = aws::loadS3Object(account,  "dolphindbload", "last/dup.csv", 5, db,`table1,[`name,`id],,sch,,,`id`name`receivedTime)
+db.createPartitionedTable(table(1:0, sch[`name], sch[`typeString]), `table2, [`name, `id],,`id`name`receivedTime)
+ext =  aws::loadS3Object(account,  "dolphindbload", "arrayvector.csv", 5, db,`table2,[`name,`id],,sch,,,`id`name`receivedTime)
+assert 1, res[`errorCode] == 0
+assert 2, ext[`errorCode] == 0
+res = select * from loadTable(dbName, `table1)
+ext = select * from loadTable(dbName, `table2)
+assert 3, each(eqObj, res.values(), ext.values())
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+@testing:case="test_awss3_copyS3Object_with_bigData"
+aws::copyS3Object(account, "dolphindbload","bigData.csv" ,"last/dup.csv")
+dbName = "dfs://testAwss3"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+re1 = aws::loadS3Object(account, "dolphindbload", "bigData.csv" ,6, db,`table1,[`id])
+re2 = aws::loadS3Object(account, "dolphindbload", "last/dup.csv" ,6, db,`table2,[`id])
+res = select * from loadTable(dbName, `table2) order by id
+ext = select * from loadTable(dbName, `table1) order by id
+assert 1, re1[`errorCode] == 0
+assert 2, re2[`errorCode] == 0
+assert 3, each(eqObj, res.values(), ext.values())
+aws::deleteS3Object(account,"dolphindbload","last/dup.csv")
+
+//aws::listS3Object(account,"dolphindbload","")
+
+
+@testing:case="test_function_account_id_NULL", exception=1
+account=dict(string,string)
+//account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_account_key_NULL", exception=1
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+//account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_account_region_NULL", exception=1
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+//account[`region]="cn-north-1"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_with_endpoint_NULL", exception=1
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`endpoint]=NULL
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_with_endpoint_error", exception=1
+account=dict(string,string)
+account[`id]="<OBJECT_STORAGE_ACCESS_KEY_REDACTED>"
+account[`key]="<OBJECT_STORAGE_SECRET_KEY_REDACTED>"
+account[`endpoint]="192.168.0.126:8701"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_with_without_isHttp", exception=1
+account=dict(string,string)
+account[`id]="<OBJECT_STORAGE_ACCESS_KEY_REDACTED>"
+account[`key]="<OBJECT_STORAGE_SECRET_KEY_REDACTED>"
+account[`endpoint]="192.168.0.126:28001"
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_with_http_NULL", exception=1
+account=dict(string,string)
+account[`id]="<OBJECT_STORAGE_ACCESS_KEY_REDACTED>"
+account[`key]="<OBJECT_STORAGE_SECRET_KEY_REDACTED>"
+account[`endpoint]="localhost:9001"
+account[`isHttp] =`NULL
+bucket = aws::listS3Bucket(account)
+
+@testing:case="test_function_with_endpoint"
+account=dict(STRING,ANY)
+account['id']="minioadmin";
+account['key']="minioadmin"
+account['endpoint'] = "localhost:9000";
+account['isHttp'] = true;
+if("ddb-test1" in aws::listS3Bucket(account)["bucket name"]){
+	aws::deleteS3Bucket(account,"ddb-test1")
+}
+aws::createS3Bucket(account,"ddb-test1")
+bucket = aws::listS3Bucket(account)
+assert 1, bucket.size() > 0
+
+@testing:case="test_aws_keyword_prapare"
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+//bucket = aws::listS3Bucket(account)
+
+@testing:case="test_aws_function_listS3Bucket_keyword_error",syntaxError=1
+aws::listS3Bucket(s3account =account)
+
+@testing:case="test_aws_function_listS3Bucket_keyword"
+assert 1, eqObj(syntax(aws::listS3Bucket), "listS3Bucket(account)")
+assert 2, "dolphindb" in aws::listS3Bucket(account =account)["bucket name"]
+
+@testing:case="test_aws_function_listS3Object_with_some_keyword",syntaxError=1
+assert 4, "dup.csv" in aws::listS3Object(account = account, bucket="dolphindbload", "")["key name"]
+
+@testing:case="test_aws_function_listS3Object_keyword"
+assert 1, eqObj(syntax(aws::listS3Object), "listS3Object(account, bucket, prefix, [marker],[delimiter], [nextMarker], [maxKeys])")
+assert 2, "dup.csv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="")["key name"]
+assert 3, "folder1/dup.csv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="folder1", marker="",delimiter="_",nextMarker="test", MaxKeys=long(15))["key name"]
+
+@testing:case="test_aws_function_getS3Object_keyword"
+assert 1, eqObj(syntax(aws::getS3Object), "getS3Object(account, bucket, key, [outputFile])")
+assert 2, aws::getS3Object(account=account, bucket="dolphindbload", key="dup.csv") =="dup.csv"
+assert 3, aws::getS3Object(account=account, bucket="dolphindbload", key="dup.csv", outputFile=WORK_DIR+"/dup.csv") == WORK_DIR+"/dup.csv"
+
+@testing:case="test_aws_function_readS3Object_keyword"
+assert 1, eqObj(syntax(aws::readS3Object), "readS3Object(account, bucket, key, offset, length)")
+assert 2, aws::readS3Object(account=account, bucket="dolphindbload", key="folder1/dup.csv", offset=0, length=100).size() == 100
+
+@testing:case="test_aws_function_deleteS3Object_keyword"
+t=table(1..10 as id,11..20 as val)
+saveText(t,WORK_DIR+"/test1.txt")
+
+assert 1, eqObj(syntax(aws::deleteS3Object), "deleteS3Object(account, bucket, key)")
+assert 2, eqObj(syntax(aws::uploadS3Object), "uploadS3Object(account, bucket, key, inputFile)")
+aws::uploadS3Object(account=account, bucket="dolphindbload", key="newTest1.scv", inputFile=WORK_DIR+"/test1.txt")
+assert 3, "newTest1.scv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="")["key name"]
+aws::deleteS3Object(account=account, bucket="dolphindbload", key="newTest1.scv")
+assert 4,not "newTest1.scv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="")["key name"]
+rm(WORK_DIR+"/test1.txt")
+
+@testing:case="test_aws_function_deleteS3Bucket_keyword"
+assert 1, eqObj(syntax(aws::deleteS3Bucket), "deleteS3Bucket(account, bucket)")
+assert 2, eqObj(syntax(aws::createS3Bucket), "createS3Bucket(account, bucket)")
+aws::createS3Bucket(account =account, bucket="tmpbucket1")
+assert 3, "tmpbucket1" in aws::listS3Bucket(account =account)["bucket name"]
+aws::deleteS3Bucket(account =account, bucket="tmpbucket1")
+assert 4,  not  "tmpbucket1" in aws::listS3Bucket(account =account)["bucket name"]
+
+@testing:case="test_aws_function_loadS3Object_keyword"
+assert 1, eqObj(syntax(aws::loadS3Object),"loadS3Object(account, bucket, key, threadCount, dbHandle, tableName, partitionColumns, [delimiter],[schema], [skipRows], [transform], [sortColumns], [atomic], [arrayDelimiter])")
+
+n=900
+id = array(INT,0, n).append!(take(1..10, n))
+symbol = take("编号"+string(1..10), n)
+values = array(INT,0, n).append!(take(1..10, n))
+timestamps = timestamp(2021.01.13) + take(1..10, n)
+tmp1 = table(id as id ,symbol as "编号",values as "价格",timestamps as times)
+dbName = "dfs://testaws"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account=account ,bucket="dolphindb" , key="chineseData.txt" ,threadCount=6,dbHandle=db ,tableName=`table1,partitionColumns=`id)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 2, eqObj(res.values(), ex.values())
+assert 3, res.colNames() == ["id", "编号","价格",`times]
+
+dbName = "dfs://testaws"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 1..10)
+aws::loadS3Object(account=account ,bucket="dolphindb" , key="chineseData.txt" ,threadCount=6,dbHandle=db ,tableName=`table1,partitionColumns=`id,schema=schema(res).colDefs)
+res = select * from loadTable(dbName, `table1) order by id
+ex = select * from tmp1 order by id
+assert 4, eqObj(res.values(), ex.values())
+assert 5, res.colNames() == ["id", "编号","价格",`times]
+
+@testing:case="test_aws_function_headS3Object_keyword"
+assert 1, eqObj(syntax(aws::headS3Object),"headS3Object(account, bucket, key)")
+assert 2, aws::headS3Object(account=account, bucket="dolphindbload", key="dup.csv")["key name"] == "dup.csv"
+
+@testing:case="test_aws_function_copyS3Object_keyword"
+assert 1, eqObj(syntax(aws::copyS3Object), "copyS3Object(account, bucket, srcPath, destPath)")
+assert 2, not "newDup.csv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="")["key name"]
+aws::copyS3Object(account = account, bucket="dolphindbload", srcPath="dup.csv", destPath="newDup.csv")
+assert 3, "newDup.csv" in aws::listS3Object(account = account, bucket="dolphindbload", prefix="")["key name"]
+aws::deleteS3Object(account=account, bucket="dolphindbload", key="newDup.csv")
+
+@testing:case="test_odbc_getLogLevel_default"
+assert 1, eqObj(aws::getLogLevel(), getConfig("logLevel"))
+
+@testing:case="test_function_odbc_setLogLevel_empty",exception=1
+aws::setLogLevel()
+
+@testing:case="test_function_odbc_setLogLevel_arg_over",syntaxError=1
+aws::setLogLevel(INFO, 2)
+
+@testing:case="test_function_odbc_setLogLevel_other_saclar_1",exception=1
+aws::setLogLevel(true)
+
+@testing:case="test_function_odbc_setLogLevel_other_saclar_2",exception=1
+aws::setLogLevel(DOUBLE)
+
+@testing:case="test_function_odbc_setLogLevel_vector",exception=1
+aws::setLogLevel([INFO, INFO])
+
+@testing:case="test_function_odbc_setLogLevel_pair",exception=1
+aws::setLogLevel(INFO:INFO)
+
+@testing:case="test_function_odbc_setLogLevel_matrix",exception=1
+aws::setLogLevel(1..6$2:3)
+
+@testing:case="test_function_odbc_setLogLevel_set",exception=1
+aws::setLogLevel(set(1 2 3))
+
+@testing:case="test_function_odbc_setLogLevel_dict",exception=1
+aws::setLogLevel(dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_odbc_setLogLevel_table",exception=1
+aws::setLogLevel(table(1 2 3 as x))
+
+@testing:case="test_function_odbc_getLogLevel_arg_over",syntaxError=1
+aws::getLogLevel(1)
+
+@testing:case="test_function_odbc_getLogLevel_setLogLevel_multi_times"
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	aws::setLogLevel(logLevel)
+	ans = aws::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_function_odbc_getLogLevel_setLogLevel_multi_jobs"
+def submitJob_set(){
+	for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+		aws::setLogLevel(logLevel)
+	}
+}
+
+def submitJob_get(){
+	for(i in 1..1000){
+		ans = aws::getLogLevel()
+		assert 1, ans in ["DEBUG", "INFO", "WARNING", "ERROR"]
+	}
+}
+
+job1 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job2 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job3 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+job4 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+getJobReturn(job4, true)
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	aws::setLogLevel(logLevel)
+	ans = aws::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_odbc_setLogLevel_default"
+if(getConfig("logLevel")=="DEBUG"){set = DEBUG}
+if(getConfig("logLevel")=="INFO"){set = INFO}
+if(getConfig("logLevel")=="WARNING"){set = WARNING}
+if(getConfig("logLevel")=="ERROR"){set = ERROR}
+aws::setLogLevel(set)
+assert 1, eqObj(aws::getLogLevel(), getConfig("logLevel"))
+
+//https://dolphindb1.atlassian.net/browse/DPLG-4925
+@testing:case="test_plugin_without_access_delete_prepare"
+account=dict(string,string)
+account[`id]="<AWS_ACCESS_KEY_ID_REDACTED>"
+account[`key]="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+
+t=table(1..10 as id,11..20 as val)
+saveText(t,WORK_DIR+"test1.txt")
+aws::uploadS3Object(account,"dolphindbload","logs/20210101/barbican-ddb-testing/test1_1.txt",WORK_DIR+"test1.txt") 
+assert 1,"logs/20210101/barbican-ddb-testing/test1_1.txt" in aws::listS3Object(account,"dolphindbload","")["key name"]
+
+@testing:case="test_plugin_without_access_delete_failed", exception=1
+aws::deleteS3Object(account,"dolphindbload","logs/20210101/barbican-ddb-testing/test1_1.txt") 
+
+@testing:case="test_plugin_with_access_delete_file_failed"
+assert 1,"logs/20210101/barbican-ddb-testing/test1_1.txt" in aws::listS3Object(account,"dolphindbload","")["key name"]
+account=dict(string,string)
+account['id']="<AWS_ACCESS_KEY_ID_REDACTED>"
+account['key']="<AWS_SECRET_ACCESS_KEY_REDACTED>"
+account[`region]="cn-north-1"
+aws::deleteS3Object(account,"dolphindbload","logs/20210101/barbican-ddb-testing/test1_1.txt") 
+assert 2, not "logs/20210101/barbican-ddb-testing/test1_1.txt" in aws::listS3Object(account,"dolphindbload","")["key name"]
+rm(WORK_DIR+"test1.txt")

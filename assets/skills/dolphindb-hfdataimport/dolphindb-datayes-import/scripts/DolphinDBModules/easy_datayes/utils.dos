@@ -1,0 +1,242 @@
+module easy_datayes::utils
+
+/*
+*  @ brief  
+*  工具函数
+*/
+
+/*
+*  @FunctionName: write_log
+*  @Brief: 打印日志，格式符合starfish平台要求
+*  @Param: message: string 日志内容
+*  @Param: level="info": string 日志等级，默认 info
+*  @SampleUsage: write_log(message="<easy_csmar> : 测试日志", level="warning")
+*/
+def write_log(message, level="info"){
+    msg = dict(`message`level, [message, level])
+    writeLog(toStdJson(msg))
+    print(toStdJson(msg))
+    return msg
+}
+
+/*
+*  @FunctionName: check_dfs_table
+*  @Brief: 检查库内已有库表是否满足模块要求
+*  @Param: dbname: string 已经存在的数据库库名
+*  @Param: tbname: string 已经存在的数据库表名
+*  @Param: schematable: table 模块里设置的目标表结构
+*  @Param: engine: STRING 检查的数据库存储引擎类型
+*  @Param: sort_columns: 对于 TSDB 引擎还会检查 sortColumns 参数是否一致
+*/
+def check_dfs_table(dbname, tbname, schematable, engine="OLAP", sort_columns=""){
+    // 检查表结构
+    exists_schema = loadTable(dbname, tbname).schema().colDefs.values()[0:2].lower()
+    target_schema = schematable.schema().colDefs.values()[0:2].lower()
+    if(!eqObj(exists_schema, target_schema)){
+        msg = stringFormat("库表结构不一致！已有的数据库表 [%W, %W] 表结构为 [%W], 目标表结构为 [%W]", 
+                                dbname, tbname, 
+                                concat(exists_schema[0]+"("+exists_schema[1]+")", ","), 
+                                concat(target_schema[0]+"("+target_schema[1]+")", ","))
+        return msg
+    }
+    // 检查 sort_columns 的设置
+    if(existsTable(dbname, tbname) and engine=="TSDB"){
+        exists_sort_columns = concat(loadTable(dbname, tbname).schema().sortColumns, ",").lower()
+        target_sort_columns = concat(sort_columns, ",").lower()
+        if(exists_sort_columns!=target_sort_columns){
+            msg = stringFormat("索引列设置不一致！已有的数据库表 [%W, %W] sort_columns 为 [%W], 目标设置为 [%W]", 
+                                dbname, tbname, 
+                                exists_sort_columns, 
+                                target_sort_columns)
+            return msg
+        }
+    }
+    return "same"
+}
+
+/*
+*  @FunctionName: task_status_db
+*  @Brief: 创建监控导入任务状态的数据库。会检查数据库是否存在，如果存在且表结构服务预期则跳过，否则创建 dfs://job_info 用于保存任务导入进度
+*  @Param: iscreate: bool, true 表示检查库表是否存在会创建库表。false 仅返回表对象
+*  @SampleUsage: task_status_db()
+*/
+def task_status_db(iscreate=false){
+    dbname = "dfs://job_info"
+    tbname = "job_info"
+    engine = "TSDB"
+    sort_columns = `data_type`exchange`load_date
+    //指定表结构
+    schematable = table(
+        array(DATE,0) as load_date,
+        array(SYMBOL,0) as data_type,
+        array(SYMBOL,0) as exchange,
+        array(TIMESTAMP,0) as received_time,
+        array(TIMESTAMP,0) as start_time,
+        array(TIMESTAMP,0) as end_time,
+        array(SYMBOL,0) as job_status,
+        array(STRING,0) as error_msg)
+    if(iscreate==true){
+        // 检查是否存在指定数据库
+        if(existsDatabase(dbname)){   // 如果存在，则检查建库方式是否符合预期
+            // 检查该库是否属于 TSDB (为了满足去重)
+            db = database(dbname)
+            if(schema(db).engineType != engine){
+                msg = stringFormat("数据库 [%W] 是 %W 引擎, 删库重建为 %W 引擎", dbname, schema(db).engineType, engine)
+                write_log(msg)
+                dropDatabase(dbname)
+            }
+        }
+        if(!existsDatabase(dbname)){    // 如果不存在，则创建 TSDB 数据库
+            //按照值分区
+            db = database(dbname, VALUE, 2025.01.01..2025.01.10, engine=engine, atomic="CHUNK")
+        }
+        // 检查是否存在指定的维度表
+        if(existsTable(dbname, tbname)){ // 如果存在，则检查建表方式是否符合预期
+            msg = check_dfs_table(dbname, tbname, schematable, engine, sort_columns)
+            if(msg != "same"){
+                msg = write_log(msg, level="warning")
+                msg = write_log(stringFormat("[%W, %W] 删除重建", dbname, tbname), level="warning")
+                dropTable(db, tbname)
+            }
+        }
+        if(!existsTable(dbname, tbname)){   // 如果不存在，则创建维度表
+            //创建维度表
+            if(engine=="TSDB"){
+                db.createDimensionTable(table=schematable, tableName=tbname, sortColumns=sort_columns, keepDuplicates=LAST)   
+            }else{
+                db.createDimensionTable(table=schematable, tableName=tbname) 
+            }
+        }
+    }else{
+        return loadTable(dbname, tbname)
+    }
+}
+
+/*
+*  @FunctionName: update_task_status
+*  @Brief: 更新数据导入任务进度
+*/
+def update_task_status(load_date, data_type, exchange, job_status, error_msg){
+    job_status_db = task_status_db()
+    job_list = table(load_date as load_date, data_type as data_type, exchange as exchange, 
+                    take(timestamp(NULL), size(load_date)) as received_time,
+                    take(timestamp(NULL), size(load_date)) as start_time,
+                    take(timestamp(NULL), size(load_date)) as end_time,
+                    job_status as job_status, error_msg as error_msg)
+    // job_status = "waiting" 刚提交新任务, received_time 为提交时间; start_time, end_time 为空
+    status = select * from job_list where job_status="waiting"
+    update status set received_time=now()
+    job_status_db.append!(status)
+    // job_status = "progress" 正在执行的任务, start_time 为开始时间; end_time 为空
+    status = select * from job_list where job_status="progress"
+    job_list_db = select * from job_status_db where load_date in status["load_date"]
+    status = select load_date, data_type, exchange, job_list_db.received_time as received_time, 
+                    now() as start_time, end_time, job_status, error_msg 
+            from lj(status, job_list_db, `load_date`data_type`exchange) 
+    job_status_db.append!(status)
+    // job_status = "completed", end_time 为结束时间
+    status = select * from job_list where job_status="completed"
+    job_list_db = select * from job_status_db where load_date in status["load_date"]
+    status = select load_date, data_type, exchange, 
+                    job_list_db.received_time as received_time, 
+                    job_list_db.start_time as start_time, 
+                    now() as end_time, job_status, error_msg 
+            from lj(status, job_list_db, `load_date`data_type`exchange) 
+    update status set job_status="failed" where error_msg!=NULL
+    job_status_db.append!(status)
+    // job_status = "failed", end_time 为结束时间
+    status = select * from job_list where job_status="failed"
+    job_list_db = select * from job_status_db where load_date in status["load_date"]
+    status = select load_date, data_type, exchange, 
+                    job_list_db.received_time as received_time, 
+                    job_list_db.start_time as start_time, 
+                    now() as end_time, job_status, error_msg 
+            from lj(status, job_list_db, `load_date`data_type`exchange) 
+    job_status_db.append!(status)
+    // 报错信息输出到日志
+    error_message = error_msg.dropna()
+    if(size(error_message)>0){
+        write_log(error_msg, "error")
+    }
+}
+
+/*
+ * @FunctionName: my_files
+ * @Brief: 在 file_dir 路径下, 递归寻找满足 regex 正则条件的绝对路径
+ * @Param: file_dir: string 搜寻目录.
+ * @Param: regex: 需要匹配的正则表达式
+ * @SampleUsage: my_files("./", "log$")
+ */
+def my_files(file_dir, regex){
+	// Ensure that the directory path ends with a '/' for consistency
+	if(endsWith(file_dir, "/")) 	filedir = file_dir
+	else 				            filedir = file_dir + "/"
+	// Get the filenames in the current directory that match the regex pattern
+	res = filedir + exec filename from files(filedir) where regexFind(filename, regex) != -1
+	// Get a list of subdirectories in the current directory
+	folderFiles = exec filename from files(filedir) where isDir=true
+	// If there are no subdirectories, return the matched files
+	if(size(folderFiles)==0) return res
+	// Recursively search for matching files in each subdirectory
+	for(folder in folderFiles){
+		res = res join my_files(filedir + folder, regex)
+	}
+	return res
+}
+
+/*
+ * @FunctionName: get_file_date
+ * @Brief: 获取指定 file_dir 路径下, 需要导入的日期文件夹
+ * @Param: file_dir: 需要搜索的文件夹.
+ * @Param: start_date=NULL: 搜索的起始日期，NULL 表示不限制起始日期.
+ * @Param: end_date=NULL: 搜索的结束日期，NULL 表示不限制结束日期.
+ * @SampleUsage: get_file_date("./")
+ */
+def get_file_date(file_dir, start_date=NULL, end_date=NULL){
+	// Retrieve all directory paths that match the "^[0-9]{8}$" format, indicating dates.
+	try{
+		fileDirs = my_files(file_dir, "^[0-9]{8}$")
+	}catch(ex){
+        msg = string(ex[0])+":"+string(ex[1])
+        msg = write_log(msg)
+        return false
+	}
+
+	// Filter folders based on startDate if provided
+    if(typestr(start_date)!="VOID"){
+        st = temporalFormat(start_date, "yyyyMMdd")
+        fileDirs = fileDirs[each(def(path, file){return last(split(path, "/")) >= file}, fileDirs, st)]
+    }
+	// Filter folders based on endDate if provided
+    if(typestr(end_date)!="VOID"){
+        et = temporalFormat(end_date, "yyyyMMdd")
+        fileDirs = fileDirs[each(def(path, file){return last(split(path, "/")) <= file}, fileDirs, et)]
+    }
+	// Return the remaining directories that match the date criteria
+	return fileDirs
+}
+
+/*
+ * @FunctionName: dynamic_import_module
+ * @Brief: 根据模块名字，动态加载模块
+ * @Param: module_name: 需要加载的模块
+ * @SampleUsage: dynamic_import_module("ta")
+ */
+def dynamic_import_module(module_name){
+    runScript("use " + module_name)
+}
+
+/*
+*  @FunctionName: reverse_dict
+*  @Brief: dict 的 key, value 反转映射。 key 和 value 都是 STRING 类型
+*  @Param: dict_param: 需要操作的字典
+*  @SampleUsage: reverse_dict(set_data_type())
+*/
+def reverse_dict(dict_param){
+    dict_key = dict_param.keys().flatten()
+    dict_value = dict_param[dict_key].flatten()
+    res = dict(dict_value, dict_key)
+    return res
+}
+
+

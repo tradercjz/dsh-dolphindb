@@ -1,0 +1,142 @@
+{
+  "function": "fieldCheck",
+  "args": {
+    "data": [
+      {
+        "dataName": "stockMinKSH",
+        "dbName": "dfs://stockMinKSH",
+        "tbName": "stockMinKSH_v2",
+        "timeCol": "DateTime",
+        "frequency": "minute",
+        "sourceTimeRange": ["2021.01.01", "2021.06.30"],
+        "joinFields": [
+          {
+            "name": "joinDate",
+            "sourceColumns": ["DateTime"],
+            "selectExpr": "date(DateTime)",
+            "frequency": "daily",
+            "reason": "将分钟级 DateTime 转换为日频日期，用于和日频表按最粗时间粒度匹配"
+          }
+        ],
+        "requiredFields": [
+          {
+            "name": "securityId",
+            "sourceColumns": ["SecurityID"],
+            "status": "direct",
+            "reason": "股票代码，用于和日频表 ts_code 关联，并作为因子计算的分组字段"
+          },
+          {
+            "name": "tradeTime",
+            "sourceColumns": ["DateTime"],
+            "status": "direct",
+            "reason": "分钟级时间戳，用于排序、提取交易日期，并作为分钟级因子结果时间字段"
+          },
+          {
+            "name": "kmin_preClose",
+            "sourceColumns": ["PreClosePx"],
+            "status": "direct",
+            "reason": "分钟行情中的前收盘价，用于计算分钟价格动量"
+          },
+          {
+            "name": "kmin_last",
+            "sourceColumns": ["LastPx"],
+            "status": "direct",
+            "reason": "分钟最新价，用于计算分钟价格动量"
+          },
+          {
+            "name": "kmin_amount",
+            "sourceColumns": ["Amount"],
+            "status": "direct",
+            "reason": "分钟成交额，用于计算分钟成交额强度"
+          },
+          {
+            "name": "kmin_volume",
+            "sourceColumns": ["Volume"],
+            "status": "direct",
+            "reason": "分钟成交量，可用于后续扩展成交活跃度类因子"
+          }
+        ]
+      },
+      {
+        "dataName": "stock_daily_prev",
+        "dbName": "dfs://stock_daily",
+        "tbName": "stock_daily_prev",
+        "timeCol": "trade_date",
+        "frequency": "daily",
+        "sourceTimeRange": ["2020.01.01", "2025.12.31"],
+        "joinFields": [
+          {
+            "name": "joinDate",
+            "sourceColumns": ["trade_date"],
+            "selectExpr": "trade_date",
+            "frequency": "daily",
+            "reason": "日频表本身已经是日频粒度，直接作为 joinDate 用于时间匹配"
+          }
+        ],
+        "requiredFields": [
+          {
+            "name": "securityId",
+            "sourceColumns": ["ts_code"],
+            "status": "direct",
+            "reason": "股票代码，用于和分钟表 SecurityID 关联"
+          },
+          {
+            "name": "tradeDate",
+            "sourceColumns": ["trade_date"],
+            "status": "direct",
+            "reason": "日频交易日期，用于和分钟表提取出的 tradeDate 关联"
+          },
+          {
+            "name": "kday_close",
+            "sourceColumns": ["close"],
+            "status": "direct",
+            "reason": "日频收盘价，用于计算日频趋势强度"
+          },
+          {
+            "name": "kday_preClose",
+            "sourceColumns": ["pre_close"],
+            "status": "direct",
+            "reason": "日频前收盘价，可用于计算日频收益率"
+          },
+          {
+            "name": "kday_ma20",
+            "sourceColumns": ["ma20"],
+            "status": "direct",
+            "reason": "20 日均线，用于衡量日频趋势强度"
+          },
+          {
+            "name": "kday_pctChg",
+            "sourceColumns": ["pct_chg"],
+            "status": "direct",
+            "reason": "日频涨跌幅，可作为日频趋势方向的辅助字段"
+          },
+          {
+            "name": "kday_turnoverRate",
+            "sourceColumns": ["turnover_rate"],
+            "status": "derived",
+            "reason": "数据源无换手率字段，但存在成交量与流通股本，可按同一口径推导"
+          }
+        ]
+      }
+    ],
+    "timeRange": ["2025.01.01", "2025.12.31"],
+    "joinPlan": {
+      "baseTb": "stockMinKSH",
+      "steps": [
+        {
+          "rightTb": "stock_daily_prev",
+          "joinType": "left",
+          "on": [
+            ["stockMinKSH.securityId", "stock_daily_prev.securityId"],
+            ["stockMinKSH.joinDate", "stock_daily_prev.joinDate"]
+          ]
+        }
+      ]
+    },
+    "output": {
+      "frequency": "minute",
+      "timeCol": "tradeTime",
+      "contextBy": ["securityId"]
+    }
+  }
+}

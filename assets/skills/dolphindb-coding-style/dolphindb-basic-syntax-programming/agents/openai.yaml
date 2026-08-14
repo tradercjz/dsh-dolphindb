@@ -1,0 +1,4 @@
+interface:
+  display_name: "DolphinDB 基础语法编程"
+  short_description: "生成和修复 DolphinScript，覆盖语法、字面量、索引、库表和查询"
+  default_prompt: "Use $dolphindb-basic-syntax-programming to 检查这段 DolphinDB 代码的基础语法、字面量、索引访问、库表操作和查询输出形态。"

@@ -1,0 +1,30 @@
+// ============================================================
+// EqAmericanOption — parseInstrument 构建示例
+// 构建一只权益美式期权（个股 Put）
+// ============================================================
+// 金融含义：
+//   权益美式期权允许在到期日之前任意时刻行权，价值 >= 对应欧式期权。
+//   使用 BAW (Barone-Adesi-Whaley) 近似解析法定价。
+//   对于深度实值的 Put（或有高股息率的 Call），提前行权溢价显著。
+//   所需市场数据与 EqEuropeanOption 相同：贴现曲线 + 股息率 + 波动率 + 现货价。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Option"              // 期权类
+instDict["optionType"]         = "AmericanOption"       // 美式期权
+instDict["assetType"]          = "EqAmericanOption"     // 权益美式期权
+
+// --- 期权要素 ---
+instDict["instrumentId"]       = "STOCK_P_100"         // 自定义标识
+instDict["notionalCurrency"]   = "CNY"
+instDict["notionalAmount"]     = 100.0                 // 名义本金
+instDict["maturity"]           = 2026.03.18            // 到期日
+instDict["strike"]             = 100.0                 // 执行价 100 元
+instDict["payoffType"]         = "Put"                 // 看跌
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "STOCK"               // 标的资产
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

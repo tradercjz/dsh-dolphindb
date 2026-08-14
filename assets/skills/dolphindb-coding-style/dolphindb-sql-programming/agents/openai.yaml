@@ -1,0 +1,4 @@
+interface:
+  display_name: "DolphinDB SQL 编程"
+  short_description: "编写、审查和优化 DolphinDB SQL，包括分组、时序关联、透视、元编程和分布式查询"
+  default_prompt: "Use $dolphindb-sql-programming to 分析这段 DolphinDB SQL 的任务类型、推荐入口、执行语义和优化方案。"

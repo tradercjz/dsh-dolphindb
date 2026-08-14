@@ -1,0 +1,77 @@
+// ============================================================
+// fxForwardPricer — 完整定价示例
+// USDCNY 外汇远期 NPV 计算
+// ============================================================
+// 定价方法：
+//   基于利率平价 (IRP)：F = S × exp((r_dom − r_for) × T)
+//   NPV = notional × (F − strike) × DF_dom（对 Buy 方）。
+//   当 strike = IRP 远期价格时 NPV = 0（公平远期）。
+//   USDCNY 中，CNY 利率 < USD 利率 → 远期贴水（F < S）。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/05_fx_forward/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]      = "Forward"
+instDict["forwardType"]      = "FxForward"
+instDict["expiry"]           = 2026.09.20
+instDict["delivery"]         = 2026.09.22
+instDict["currencyPair"]     = "USDCNY"
+instDict["direction"]        = "Buy"               // 买入 USD
+instDict["notionalCurrency"] = "USD"
+instDict["notionalAmount"]   = 1000000.0
+instDict["strike"]           = 7.30                 // 约定远期汇率
+instDict["domesticCurve"]    = "CNY"
+instDict["foreignCurve"]     = "USD"
+inst = parseInstrument(instDict)
+
+// --- Step 2: CNY 贴现曲线（见 market_data/ir_yield_curve/demo.dos）---
+pricingDate = 2026.03.20
+domDict = dict(STRING, ANY)
+domDict["mktDataType"]         = "Curve"
+domDict["curveType"]           = "IrYieldCurve"
+domDict["referenceDate"]       = pricingDate
+domDict["currency"]            = "CNY"
+domDict["curveName"]           = "CNY"
+domDict["dayCountConvention"]  = "Actual365"
+domDict["compounding"]         = "Continuous"
+domDict["interpMethod"]        = "CubicSpline"
+domDict["extrapMethod"]        = "Flat"
+domDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+domDict["values"]  = [0.0170, 0.0178, 0.0188]
+domCurve = parseMktData(domDict)
+
+// --- Step 3: USD 贴现曲线 ---
+forDict = dict(STRING, ANY)
+forDict["mktDataType"]         = "Curve"
+forDict["curveType"]           = "IrYieldCurve"
+forDict["referenceDate"]       = pricingDate
+forDict["currency"]            = "USD"
+forDict["curveName"]           = "USD"
+forDict["dayCountConvention"]  = "Actual365"
+forDict["compounding"]         = "Continuous"
+forDict["interpMethod"]        = "CubicSpline"
+forDict["extrapMethod"]        = "Flat"
+forDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+forDict["values"]  = [0.0420, 0.0430, 0.0440]
+forCurve = parseMktData(forDict)
+
+// --- Step 4: 定价 ---
+spot = 7.25                                         // 即期汇率
+npv = fxForwardPricer(inst, pricingDate, spot, domCurve, forCurve)
+// npv < 0 → strike 7.30 > IRP远期 ~7.12 → Buy方以高价买入，亏损
+// npv > 0 → strike 低于远期 → Buy方有利
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [结果]
+//   npv = -141,229.04              — Buy 方 NPV（CNY 计价）
+//
+// [金融解释]
+//   Buy USD at strike 7.30，IRP 远期 ≈ S × exp((r_CNY - r_USD) × T)
+//   = 7.25 × exp((0.0178 - 0.0430) × 0.5) ≈ 7.16。
+//   strike 7.30 > 远期 7.16 → Buy 方以高于市场远期的价格买入 → 亏损。
+//   NPV ≈ (7.16 - 7.30) × 1,000,000 × DF ≈ -141,229 CNY，吻合。
+//
+// [合理性] ✓ strike > 远期价 → NPV < 0，方向与量级均正确。
+// ============================================================

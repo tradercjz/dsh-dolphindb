@@ -1,0 +1,30 @@
+module easy_datayes::tbSchema::csvSchema::entrustCsvSchema
+
+/*
+ * @FunctionName: entrustCsvSchemaSZ
+ * @Brief: Defines the schema for the entrust CSV data for the Shenzhen market based on the trading day.
+ * @Param: day: The specific trading day for which the schema is being defined.
+ * @Return: A table schema defining the structure of the entrust CSV data.
+ */
+def entrustCsvSchemaSZOrder(day){
+	name = `RecNo`SecurityID`OrderEntryTime`Price`OrderQty`OrderKind`FunctionCode`SetNo`LocalTime`SeqNo
+	typeString = `INT`SYMBOL`TIME`DOUBLE`LONG`SYMBOL`SYMBOL`INT`TIME`LONG
+	return table(name, typeString)
+}
+def entrustCsvSchemaSZmdl6330(day){
+	name = `ChannelNo`ApplSeqNum`MDStreamID`SecurityID`SecurityIDSource`Price`OrderQty`Side`TransactTime`OrdType`LocalTime`SeqNo
+	typeString = `INT`LONG`SYMBOL`SYMBOL`SYMBOL`DOUBLE`LONG`INT`TIME`INT`TIME`LONG
+	return table(name, typeString)
+}
+
+/*
+ * @FunctionName: entrustCsvSchemaSH
+ * @Breif: Defines the schema for the entrust CSV data for the Shanghai market.
+ * @Return: A table schema defining the structure of the entrust CSV data.
+ */
+def entrustCsvSchemaSH(){
+	name = `DataStatus`OrderIndex`OrderChannel`SecurityID`OrderTime`OrderType`OrderNO`OrderPrice`Balance`OrderBSFlag`BizIndex`LocalTime`SeqNo
+	typeString = `INT`LONG`INT`SYMBOL`TIME`SYMBOL`INT`DOUBLE`LONG`SYMBOL`LONG`TIME`LONG
+	return table(name, typeString)	
+}
+

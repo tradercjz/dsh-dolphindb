@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "dataTypes": {
+    "stock": {
+      "3": {
+        "meaning": "minute_kline",
+        "frequencyNotes": "Minute K-line data. Use the smallest bundled minute table that satisfies the requested frequency and fields.",
+        "datasourceRefs": [
+          "refs/datasource/stock/stock_1min_k.json",
+          "refs/datasource/stock/stock_5min_k.json",
+          "refs/datasource/stock/idx_1min_k.json",
+          "refs/datasource/stock/stock_limit.json",
+          "refs/datasource/stock/stock_adj_factor.json",
+          "refs/datasource/stock/index_weight.json"
+        ],
+        "initializeInterfaces": "refs/initialize/interfaces/stock/datatype3",
+        "callbackRefs": "refs/callback/stock/datatype3"
+      },
+      "4": {
+        "meaning": "daily_kline",
+        "frequencyNotes": "Daily K-line data.",
+        "datasourceRefs": [
+          "refs/datasource/stock/stock_daily.json",
+          "refs/datasource/stock/stock_daily_basic.json",
+          "refs/datasource/stock/index_daily.json",
+          "refs/datasource/stock/stock_limit.json",
+          "refs/datasource/stock/stock_adj_factor.json",
+          "refs/datasource/stock/index_weight.json"
+        ],
+        "initializeInterfaces": "refs/initialize/interfaces/stock/datatype4",
+        "callbackRefs": "refs/callback/stock/datatype4"
+      }
+    },
+    "securityCreditAccount": {
+      "3": {
+        "meaning": "minute_kline_credit_account",
+        "frequencyNotes": "Minute K-line data for margin trading / securities lending account backtests. Datasource must also prepare securityReference.",
+        "datasourceRefs": [
+          "refs/datasource/securityCreditAccount/stock_1min_k.json",
+          "refs/datasource/securityCreditAccount/stock_5min_k.json",
+          "refs/datasource/securityCreditAccount/idx_1min_k.json",
+          "refs/datasource/securityCreditAccount/stock_limit.json",
+          "refs/datasource/securityCreditAccount/stock_adj_factor.json",
+          "refs/datasource/securityCreditAccount/index_weight.json"
+        ],
+        "initializeInterfaces": "refs/initialize/interfaces/securityCreditAccount/datatype3",
+        "callbackRefs": "refs/callback/securityCreditAccount/datatype3",
+        "requiredRuntimeArtifacts": ["securityReference"]
+      },
+      "4": {
+        "meaning": "daily_kline_credit_account",
+        "frequencyNotes": "Daily K-line data for margin trading / securities lending account backtests. Datasource must also prepare securityReference.",
+        "datasourceRefs": [
+          "refs/datasource/securityCreditAccount/stock_daily.json",
+          "refs/datasource/securityCreditAccount/stock_daily_basic.json",
+          "refs/datasource/securityCreditAccount/index_daily.json",
+          "refs/datasource/securityCreditAccount/stock_limit.json",
+          "refs/datasource/securityCreditAccount/stock_adj_factor.json",
+          "refs/datasource/securityCreditAccount/index_weight.json"
+        ],
+        "initializeInterfaces": "refs/initialize/interfaces/securityCreditAccount/datatype4",
+        "callbackRefs": "refs/callback/securityCreditAccount/datatype4",
+        "requiredRuntimeArtifacts": ["securityReference"]
+      }
+    }
+  },
+  "notes": [
+    "Config refs may allow dataTypes not listed here. If no bundled datasource/initialize/callback refs exist for a dataType, mark script generation unsupported or ask the user to choose a supported dataType."
+  ]
+}

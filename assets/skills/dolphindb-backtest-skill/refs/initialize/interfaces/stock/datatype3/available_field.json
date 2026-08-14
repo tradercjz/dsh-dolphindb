@@ -1,0 +1,50 @@
+{
+    "symbol": {
+        "type": "STRING",
+        "desc": "股票代码"
+    },
+    "tradeTime": {
+        "type": "TIMESTAMP",
+        "desc": "时间戳"
+    },
+    "open": {
+        "type": "DOUBLE",
+        "desc": "开盘价"
+    },
+    "low": {
+        "type": "DOUBLE",
+        "desc": "最低价"
+    },
+    "high": {
+        "type": "DOUBLE",
+        "desc": "最高价"
+    },
+    "close": {
+        "type": "DOUBLE",
+        "desc": "收盘价"
+    },
+    "volume": {
+        "type": "LONG",
+        "desc": "成交量"
+    },
+    "amount": {
+        "type": "DOUBLE",
+        "desc": "成交金额"
+    },
+    "upLimitPrice": {
+        "type": "DOUBLE",
+        "desc": "涨停价"
+    },
+    "downLimitPrice": {
+        "type": "DOUBLE",
+        "desc": "跌停价"
+    },
+    "prevClosePrice": {
+        "type": "DOUBLE",
+        "desc": "前收盘价"
+    },
+    "signal": {
+        "type": "DOUBLE[]",
+        "desc": "其他字段列表"
+    }
+}

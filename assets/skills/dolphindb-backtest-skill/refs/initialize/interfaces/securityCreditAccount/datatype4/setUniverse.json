@@ -1,0 +1,31 @@
+{
+  "id": "setUniverse",
+  "name": "设置标的池",
+  "signature": "Backtest::setUniverse(engine, symbolList)",
+  "description": "设置策略在回测中的候选证券范围。对于 securityCreditAccount 策略，该接口只负责限定候选标的池，不负责判断单只证券在某日是否可融资、可融券；相关资格与信用约束由 securityReference 和账户配置决定。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄"
+    },
+    {
+      "name": "symbolList",
+      "type": "STRING[]",
+      "description": "标的池，STRING 类型向量"
+    }
+  ],
+  "constraints": [
+    "当前阶段仅在被启用时允许使用该接口。",
+    "当用户需求、配置或策略描述中给出了自定义标的池设置需求时，才需要使用。",
+    "symbolList 的内容在不清楚的情况下，需要询问用户",
+    "股票代码，上交所以\".XSHG\"结尾，深交所以\".XSHE\"结尾",
+    "之前的流程中，如果策略涉及到指数的成分股，会默认处理好，这里不需要针对这种情况进行处理",
+    "该接口只负责设置候选证券范围，不负责判断融资融券资格。融资融券资格由 securityReference 和账户配置统一约束，不在 initialize 阶段单独筛选。"
+  ],
+  "returns": {
+    "type": "VOID",
+    "description": "该接口不返回值。"
+  },
+  "examples": []
+}

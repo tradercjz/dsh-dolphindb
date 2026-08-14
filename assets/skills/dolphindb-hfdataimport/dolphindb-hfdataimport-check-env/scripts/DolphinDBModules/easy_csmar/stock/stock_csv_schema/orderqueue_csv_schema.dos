@@ -1,0 +1,151 @@
+module easy_csmar::stock::stock_csv_schema::orderqueue_csv_schema
+
+
+/*
+*  @FunctionName: orderqueue_csv_schema_sz
+*  @Brief: 深交所订单队列csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: orderqueue_csv_schema_sz(day=2026.05.26)
+*/
+def orderqueue_csv_schema_sz(day){
+	schema_tb = table(
+        array(SYMBOL, 0) as Symbol,           // 证券代码 (varchar(6))
+        array(DATE, 0) as TradingDate,        // 交易归属日期 (int yyyymmdd)
+        array(TIMESTAMP, 0) as TradingTime,   // 交易发生时间 (datetime yyyy-mm-dd hh:mm:ss.sss)
+        array(DOUBLE, 0) as LastPrice,        // 最新成交价 (decimal(9,3))
+        array(SYMBOL, 0) as Side,             // 买卖方向 (varchar(1), 1=买/2=卖)
+        array(DOUBLE, 0) as Price,            // 委托价格 (decimal(9,3))
+        array(LONG, 0) as Volume,           // 委托总量 (decimal(19,2))
+        array(INT, 0) as Numorders,        // 最优价位上的总委托笔数 (decimal(9,0))
+        array(INT, 0) as Noorders,         // 揭示的委托笔数 (decimal(9,0))
+        array(DOUBLE, 0) as OrderVolume01,
+        array(DOUBLE, 0) as OrderVolume02,
+        array(DOUBLE, 0) as OrderVolume03,
+        array(DOUBLE, 0) as OrderVolume04,
+        array(DOUBLE, 0) as OrderVolume05,
+        array(DOUBLE, 0) as OrderVolume06,
+        array(DOUBLE, 0) as OrderVolume07,
+        array(DOUBLE, 0) as OrderVolume08,
+        array(DOUBLE, 0) as OrderVolume09,
+        array(DOUBLE, 0) as OrderVolume10,
+        array(DOUBLE, 0) as OrderVolume11,
+        array(DOUBLE, 0) as OrderVolume12,
+        array(DOUBLE, 0) as OrderVolume13,
+        array(DOUBLE, 0) as OrderVolume14,
+        array(DOUBLE, 0) as OrderVolume15,
+        array(DOUBLE, 0) as OrderVolume16,
+        array(DOUBLE, 0) as OrderVolume17,
+        array(DOUBLE, 0) as OrderVolume18,
+        array(DOUBLE, 0) as OrderVolume19,
+        array(DOUBLE, 0) as OrderVolume20,
+        array(DOUBLE, 0) as OrderVolume21,
+        array(DOUBLE, 0) as OrderVolume22,
+        array(DOUBLE, 0) as OrderVolume23,
+        array(DOUBLE, 0) as OrderVolume24,
+        array(DOUBLE, 0) as OrderVolume25,
+        array(DOUBLE, 0) as OrderVolume26,
+        array(DOUBLE, 0) as OrderVolume27,
+        array(DOUBLE, 0) as OrderVolume28,
+        array(DOUBLE, 0) as OrderVolume29,
+        array(DOUBLE, 0) as OrderVolume30,
+        array(DOUBLE, 0) as OrderVolume31,
+        array(DOUBLE, 0) as OrderVolume32,
+        array(DOUBLE, 0) as OrderVolume33,
+        array(DOUBLE, 0) as OrderVolume34,
+        array(DOUBLE, 0) as OrderVolume35,
+        array(DOUBLE, 0) as OrderVolume36,
+        array(DOUBLE, 0) as OrderVolume37,
+        array(DOUBLE, 0) as OrderVolume38,
+        array(DOUBLE, 0) as OrderVolume39,
+        array(DOUBLE, 0) as OrderVolume40,
+        array(DOUBLE, 0) as OrderVolume41,
+        array(DOUBLE, 0) as OrderVolume42,
+        array(DOUBLE, 0) as OrderVolume43,
+        array(DOUBLE, 0) as OrderVolume44,
+        array(DOUBLE, 0) as OrderVolume45,
+        array(DOUBLE, 0) as OrderVolume46,
+        array(DOUBLE, 0) as OrderVolume47,
+        array(DOUBLE, 0) as OrderVolume48,
+        array(DOUBLE, 0) as OrderVolume49,
+        array(DOUBLE, 0) as OrderVolume50,
+        array(INT, 0) as NoPriceLevel,        // 买卖盘价位数量 (int)
+        array(LONG, 0) as UNIX,             // 格林威治时刻 (decimal(19,0))
+        array(SYMBOL, 0) as Market,           // 市场代码 (varchar(5), SZSE=深交所)
+        array(LONG, 0) as SecurityID          // 证券统一编码 (decimal(19,0))
+    ).schema().colDefs
+	return table(schema_tb.name,schema_tb.typeString)
+}
+
+/*
+*  @FunctionName: orderqueue_csv_schema_sh
+*  @Brief: 上交所订单队列csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: orderqueue_csv_schema_sh(day=2026.05.26)
+*/
+def orderqueue_csv_schema_sh(day){
+	schema_tb = table(
+        array(SYMBOL, 0) as Symbol,           // 证券代码 (原字段: varchar(6))
+        array(DATE, 0) as TradingDate,        // 交易归属日期 (原字段: int yyyymmdd)
+        array(TIMESTAMP, 0) as TradingTime,   // 交易发生时间 (原字段: datetime yyyy-mm-dd hh:mm:ss.sss)
+        array(SYMBOL, 0) as Side,             // 买卖方向 (原字段: varchar(1), 1=买/2=卖)
+        array(INT, 0) as NoPriceLevel,        // 买卖盘价位数量 (原字段: int, 10=十档)
+        array(DOUBLE, 0) as Price,            // 委托价格 (原字段: decimal(12,4))
+        array(INT, 0) as Numorders,        // 最优价位上的委托笔数 (原字段: decimal(9,0))
+        array(DOUBLE, 0) as OrderVolume01,
+        array(DOUBLE, 0) as OrderVolume02,
+        array(DOUBLE, 0) as OrderVolume03,
+        array(DOUBLE, 0) as OrderVolume04,
+        array(DOUBLE, 0) as OrderVolume05,
+        array(DOUBLE, 0) as OrderVolume06,
+        array(DOUBLE, 0) as OrderVolume07,
+        array(DOUBLE, 0) as OrderVolume08,
+        array(DOUBLE, 0) as OrderVolume09,
+        array(DOUBLE, 0) as OrderVolume10,
+        array(DOUBLE, 0) as OrderVolume11,
+        array(DOUBLE, 0) as OrderVolume12,
+        array(DOUBLE, 0) as OrderVolume13,
+        array(DOUBLE, 0) as OrderVolume14,
+        array(DOUBLE, 0) as OrderVolume15,
+        array(DOUBLE, 0) as OrderVolume16,
+        array(DOUBLE, 0) as OrderVolume17,
+        array(DOUBLE, 0) as OrderVolume18,
+        array(DOUBLE, 0) as OrderVolume19,
+        array(DOUBLE, 0) as OrderVolume20,
+        array(DOUBLE, 0) as OrderVolume21,
+        array(DOUBLE, 0) as OrderVolume22,
+        array(DOUBLE, 0) as OrderVolume23,
+        array(DOUBLE, 0) as OrderVolume24,
+        array(DOUBLE, 0) as OrderVolume25,
+        array(DOUBLE, 0) as OrderVolume26,
+        array(DOUBLE, 0) as OrderVolume27,
+        array(DOUBLE, 0) as OrderVolume28,
+        array(DOUBLE, 0) as OrderVolume29,
+        array(DOUBLE, 0) as OrderVolume30,
+        array(DOUBLE, 0) as OrderVolume31,
+        array(DOUBLE, 0) as OrderVolume32,
+        array(DOUBLE, 0) as OrderVolume33,
+        array(DOUBLE, 0) as OrderVolume34,
+        array(DOUBLE, 0) as OrderVolume35,
+        array(DOUBLE, 0) as OrderVolume36,
+        array(DOUBLE, 0) as OrderVolume37,
+        array(DOUBLE, 0) as OrderVolume38,
+        array(DOUBLE, 0) as OrderVolume39,
+        array(DOUBLE, 0) as OrderVolume40,
+        array(DOUBLE, 0) as OrderVolume41,
+        array(DOUBLE, 0) as OrderVolume42,
+        array(DOUBLE, 0) as OrderVolume43,
+        array(DOUBLE, 0) as OrderVolume44,
+        array(DOUBLE, 0) as OrderVolume45,
+        array(DOUBLE, 0) as OrderVolume46,
+        array(DOUBLE, 0) as OrderVolume47,
+        array(DOUBLE, 0) as OrderVolume48,
+        array(DOUBLE, 0) as OrderVolume49,
+        array(DOUBLE, 0) as OrderVolume50,
+        array(LONG, 0) as UNIX,             // 格林威治时间 (原字段: decimal(19,0))
+        array(SYMBOL, 0) as Market,           // 交易所代码 (原字段: varchar(5), SSE=上交所)
+        array(INT, 0) as Noorders,          // 发布的委托笔数 (原字段: decimal(9,0))
+        array(LONG, 0) as SecurityID,         // 证券统一编码 (原字段: decimal(19,0))
+        array(DOUBLE, 0) as Volume            // 委托总量 (原字段: decimal(19,2))
+    ).schema().colDefs
+	return table(schema_tb.name,schema_tb.typeString)
+}

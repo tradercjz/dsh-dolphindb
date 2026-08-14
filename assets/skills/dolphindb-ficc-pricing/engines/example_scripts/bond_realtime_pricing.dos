@@ -1,0 +1,191 @@
+// ============================================================
+// 债券实时定价 Pipeline —— 经过实测验证 (2026-04-20)
+//
+// 架构：
+//   bondMktDataSt (streamTable)
+//       ↓  subscribeTable
+//   BOND_MKTDATA_ENGINE (createMktDataEngine)
+//       ↓  handler=pricingEngine
+//   BOND_PRICING_ENGINE (createPricingEngine)
+//       ↓  handler 函数
+//   pricingResultSt (streamTable 输出)
+//
+// 数据来源：Instrument 库（替换为实际部署路径，见 Step 2）
+// 曲线样本券：9支国债 (3M ~ 30Y)
+// 定价目标券：200007.XIBE (50Y 国债，2070-05-25)
+//
+// 实测结果：
+//   批次1（初始）：price = 139.21
+//   批次2（+10bps）：price = 135.86 (-3.35)
+//   批次3（仅 10Y +5bps）：price = 135.86 (-0.0007)
+// ============================================================
+
+referenceDate = 2026.04.20
+
+// ============================================================
+// Step 1: 清理（确保幂等性）
+// ============================================================
+try { unsubscribeTable(tableName="bondMktDataSt", actionName="feedMktDataEngine") } catch(ex) {}
+try { dropStreamEngine("BOND_MKTDATA_ENGINE") } catch(ex) {}
+try { dropStreamEngine("BOND_PRICING_ENGINE") } catch(ex) {}
+try { undef("bondMktDataSt", SHARED) } catch(ex) {}
+try { undef("pricingResultSt", SHARED) } catch(ex) {}
+
+// ============================================================
+// Step 2: 从 DB 加载曲线构建样本券
+//   - 9支 XIBE 国债，覆盖 3M ~ 30Y 关键期限
+//   - 按到期日排序（createMktDataEngine 自动计算 term）
+// ============================================================
+db = database("dfs://instrument_std")   // ▶ 替换为你的 Instrument 库路径
+instTbl = loadTable(db, "Instrument")
+
+// 选券原则：国债 (TREASURY_BOND)，关键期限节点，XIBE 市场
+bondIds = [
+    "250013.XIBE",   // ~3M  (maturity 2026-07-25)
+    "260001.XIBE",   // ~9M  (maturity 2027-01-15)
+    "260004.XIBE",   // ~3Y  (maturity 2029-02-25)
+    "260003.XIBE",   // ~5Y  (maturity 2031-01-25)
+    "250025.XIBE",   // ~7Y  (maturity 2032-12-25)
+    "260005.XIBE",   // ~10Y (maturity 2036-02-25)
+    "2400102.XIBE",  // ~13Y (maturity 2039-08-29)
+    "2500004.XIBE",  // ~20Y (maturity 2045-07-15)
+    "260002.XIBE"    // ~30Y (maturity 2056-01-15)
+]
+
+bondMeta = select instrumentId, maturity, instrument
+           from instTbl where instrumentId in bondIds order by maturity
+curveBonds = bondMeta.instrument   // INSTRUMENT vector
+print("曲线样本券加载: " + string(curveBonds.size()) + " 支")
+
+// ============================================================
+// Step 3: 加载定价目标券
+//   - 选用不在曲线构建集合中的债券
+//   - 200007.XIBE (50Y 国债，2070-05-25，票面 3.73%)
+// ============================================================
+targetMeta = select instrumentId, maturity, coupon, instrument
+             from instTbl where instrumentId = "200007.XIBE"
+targetInst = targetMeta.instrument[0]
+print("定价目标券: " + targetMeta.instrumentId[0] +
+      " 到期=" + string(targetMeta.maturity[0]) +
+      " 票面=" + string(targetMeta.coupon[0]))
+
+// ============================================================
+// Step 4: 创建输出流表（定价结果）
+// ============================================================
+share streamTable(1:0, `eventTime`name`date`price,
+                  [NANOTIMESTAMP, STRING, DATE, DOUBLE]) as pricingResultSt
+print("输出流表 pricingResultSt 已创建")
+
+// ============================================================
+// Step 5: 创建定价引擎
+// ============================================================
+def pricingHandler(eventTime, name, date, npv) {
+    tableInsert(pricingResultSt, eventTime, name, date, npv)
+}
+
+eCfg = dict(STRING, ANY)
+eCfg["numThreads"] = 1
+eCfg["outputTime"] = true   // handler 接收 eventTime 参数
+
+pricingEngine = createPricingEngine("BOND_PRICING_ENGINE", [targetInst], pricingHandler, eCfg)
+print("定价引擎 BOND_PRICING_ENGINE 已创建")
+
+// ============================================================
+// Step 6: 创建市场数据引擎（BondYieldCurve 配置）
+//
+// 关键注意：
+//   - bonds 字段传入 INSTRUMENT vector（不需要手动算 terms）
+//   - 引擎自动计算 maturity - referenceDate 作为每支债的 term
+//   - name 必须与定价目标券的 discountCurve 或默认匹配规则对应
+// ============================================================
+mktCfg = dict(STRING, ANY)
+mktCfg["name"]               = "CNY_TREASURY_BOND"
+mktCfg["type"]               = "BondYieldCurve"
+mktCfg["bonds"]              = curveBonds
+mktCfg["currency"]           = "CNY"
+mktCfg["dayCountConvention"] = "ActualActualISDA"
+mktCfg["compounding"]        = "Compounded"    // 离散复利，中国市场惯例
+mktCfg["interpMethod"]       = "CubicSpline"   // 三次样条，比 Linear 更光滑
+mktCfg["extrapMethod"]       = "Flat"          // 平外推，短端和长端超出范围时使用
+
+mCfg = dict(STRING, ANY)
+mCfg["numThreads"] = 1
+mCfg["outputTime"] = true
+
+// handler=pricingEngine：曲线构建完成后自动触发定价引擎
+mktDataEngine = createMktDataEngine("BOND_MKTDATA_ENGINE", referenceDate, [mktCfg],
+                                     handler=pricingEngine,
+                                     engineConfig=mCfg)
+print("市场数据引擎 BOND_MKTDATA_ENGINE 已创建")
+
+// ============================================================
+// Step 7: 创建输入流表并订阅到市场数据引擎
+//
+// 输入格式：type (STRING), name (STRING), price (DOUBLE)
+//   type  = "Bond"
+//   name  = instrumentId（必须与 curveBonds 中的 instrumentId 一致）
+//   price = YTM（小数，如 0.0175 = 1.75%）
+// ============================================================
+share streamTable(1:0, `type`name`price, [STRING, STRING, DOUBLE]) as bondMktDataSt
+subscribeTable(
+    tableName="bondMktDataSt",
+    actionName="feedMktDataEngine",
+    handler=mktDataEngine,
+    msgAsTable=true,
+    reconnect=true
+)
+print("流表订阅已建立：bondMktDataSt -> BOND_MKTDATA_ENGINE")
+
+// ============================================================
+// Step 8: 模拟行情推送 — 批次1：初始 YTM 报价
+// ============================================================
+print("\n=== 批次1：初始 YTM 报价 ===")
+nameCol = bondIds
+price1 = [1.55, 1.62, 1.75, 1.82, 1.90, 2.00, 2.08, 2.18, 2.35] / 100
+
+insert into bondMktDataSt
+    select take("Bond", 9) as type, nameCol as name, price1 as price
+
+sleep(800)  // 引擎异步处理，等待完成
+
+n1 = exec count(*) from pricingResultSt
+print("定价结果行数: " + string(n1))
+print(select * from pricingResultSt)
+// 预期：200007.XIBE price ≈ 139.21
+
+// ============================================================
+// Step 9: 模拟行情推送 — 批次2：利率整体上行 10bps
+// ============================================================
+print("\n=== 批次2：利率整体上行 10bps ===")
+price2 = price1 + 0.001   // +10bps
+
+insert into bondMktDataSt
+    select take("Bond", 9) as type, nameCol as name, price2 as price
+
+sleep(800)
+
+n2 = exec count(*) from pricingResultSt
+print("定价结果行数: " + string(n2))
+print(select * from pricingResultSt)
+// 预期：200007.XIBE price ≈ 135.86（下跌 ~3.35，符合 44Y 高久期债特征）
+
+// ============================================================
+// Step 10: 模拟行情推送 — 批次3：仅更新 10Y 节点（局部更新）
+// ============================================================
+print("\n=== 批次3：仅更新 10Y 节点（局部更新触发完整重定价）===")
+insert into bondMktDataSt values("Bond", "260005.XIBE", 2.05/100)
+
+sleep(800)
+
+n3 = exec count(*) from pricingResultSt
+print("定价结果行数: " + string(n3))
+print(select * from pricingResultSt)
+// 预期：200007.XIBE price ≈ 135.86（几乎不变，44Y 债对 10Y 变动不敏感）
+
+print("\n=== 流式定价 Pipeline 测试完成 ===")
+
+// ============================================================
+// 附：使用 getMktData 直接查看引擎内部的曲线状态
+// ============================================================
+// curve = getMktData(mktDataEngine, "Curve", referenceDate, "CNY_TREASURY_BOND")
+// print(extractMktData(curve))

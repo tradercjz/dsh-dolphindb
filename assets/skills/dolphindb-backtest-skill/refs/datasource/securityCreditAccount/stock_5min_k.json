@@ -1,0 +1,47 @@
+{
+    "db_name": "dfs://tushare_minute_db",
+    "tb_name": "stock_5min_k",
+    "desc": "存放A股市场的5分钟未复权行情数据，包含上海证券交易所、深圳证券交易所和北京证券交易所的股票，字段覆盖交易日期、交易时间、开盘价、最高价、最低价、收盘价、成交量、成交金额和数据更新时间。",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "股票代码，上海证券交易所以 .SH 结尾，深证证券交易所以 .SZ 结尾，北京证券交易所以 .BJ 结尾"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "trade_time": {
+            "type": "TIME",
+            "desc": "交易时间"
+        },
+        "open": {
+            "type": "DOUBLE",
+            "desc": "开盘价"
+        },
+        "high": {
+            "type": "DOUBLE",
+            "desc": "最高价"
+        },
+        "low": {
+            "type": "DOUBLE",
+            "desc": "最低价"
+        },
+        "close": {
+            "type": "DOUBLE",
+            "desc": "收盘价"
+        },
+        "vol": {
+            "type": "DOUBLE",
+            "desc": "成交量（股）"
+        },
+        "amount": {
+            "type": "DOUBLE",
+            "desc": "成交金额（元）"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "数据更新时间"
+        }
+    }
+}

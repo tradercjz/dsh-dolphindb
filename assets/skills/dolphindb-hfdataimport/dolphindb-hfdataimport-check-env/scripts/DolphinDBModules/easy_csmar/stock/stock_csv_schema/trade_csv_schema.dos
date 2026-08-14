@@ -1,0 +1,55 @@
+module easy_csmar::stock::stock_csv_schema::trade_csv_schema
+
+
+/*
+*  @FunctionName: trade_csv_schema_sz
+*  @Brief: 深交所逐笔成交csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: trade_csv_schema_sz(day=2026.05.26)
+*/
+def trade_csv_schema_sz(day){
+	schema_tb = table(
+		array(SYMBOL, 0) as Symbol,
+		array(DATE, 0) as TradingDate,
+		array(TIMESTAMP, 0) as TradingTime,
+		array(LONG, 0) as BuyOrderID,
+		array(LONG, 0) as SellOrderID,
+		array(DOUBLE, 0) as TradePrice,
+		array(DOUBLE, 0) as TradeVolume,
+		array(SYMBOL, 0) as TradeType,
+		array(LONG, 0) as UNIX,
+		array(SYMBOL, 0) as Market,  
+		array(LONG, 0) as SecurityID,
+		array(SYMBOL, 0) as SymbolSource,
+		array(INT, 0) as SetID,
+		array(LONG, 0) as RecID
+	).schema().colDefs
+	return table(schema_tb.name,schema_tb.typeString)
+}
+
+/*
+*  @FunctionName: trade_csv_schema_sh
+*  @Brief: 上交所逐笔成交csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: trade_csv_schema_sh(day=2026.05.26)
+*/
+def trade_csv_schema_sh(day){
+	schema_tb = table(
+		array(SYMBOL, 0) as Symbol,
+		array(DATE, 0) as TradingDate,
+		array(TIMESTAMP, 0) as TradingTime,
+		array(LONG, 0) as RecID,
+		array(INT, 0) as TradeChannel,
+		array(DOUBLE, 0) as TradePrice,
+		array(DOUBLE, 0) as TradeVolume,
+		array(DOUBLE, 0) as TradeAmount,
+		array(LONG, 0) as UNIX,
+		array(SYMBOL, 0) as Market,
+		array(INT, 0) as BuyRecID,
+		array(INT, 0) as SellRecID,
+		array(SYMBOL, 0) as BuySellFlag,
+		array(LONG, 0) as SecurityID,
+		array(LONG, 0) as RecNO
+	).schema().colDefs
+	return table(schema_tb.name,schema_tb.typeString)
+}

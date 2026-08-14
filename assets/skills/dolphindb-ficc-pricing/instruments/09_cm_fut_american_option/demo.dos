@@ -1,0 +1,30 @@
+// ============================================================
+// CmFutAmericanOption — parseInstrument 构建示例
+// 构建一只商品期货美式期权（白糖 SR509C6000）
+// ============================================================
+// 金融含义：
+//   与欧式期权不同，美式期权可在到期日之前任意时刻行权，因此美式
+//   期权的价值 >= 欧式期权（提前行权溢价）。
+//   使用 BAW (Barone-Adesi-Whaley) 近似解析法定价。
+//   大商所豆粕期权是欧式，郑商所白糖期权是美式。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Option"                // 期权类
+instDict["optionType"]         = "AmericanOption"         // 美式期权
+instDict["assetType"]          = "CmFutAmericanOption"    // 商品期货美式期权
+
+// --- 期权要素 ---
+instDict["instrumentId"]       = "SR509C6000"            // 合约代码：白糖2509-Call-6000
+instDict["notionalAmount"]     = 10.0                    // 合约乘数（吨/手）
+instDict["notionalCurrency"]   = "CNY"
+instDict["strike"]             = 6000.0                  // 执行价
+instDict["maturity"]           = 2025.08.06              // 到期日
+instDict["payoffType"]         = "Call"                  // 看涨
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "SR509"                 // 标的期货合约
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

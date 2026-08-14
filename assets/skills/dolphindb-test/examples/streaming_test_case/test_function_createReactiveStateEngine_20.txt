@@ -1,0 +1,920 @@
+
+//https://dolphindb1.atlassian.net/browse/DOL-135
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_cumpercentile"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4`factor5, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <cumpercentile(price, 25, "linear")>, <cumpercentile(price, 35, "lower")>, <cumpercentile(price, 45, "higher")>, <cumpercentile(price, 55, "nearest")>, <cumpercentile(price, 65, "midpoint")>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, cumpercentile(price, 25, "linear") as factor1, cumpercentile(price, 35, "lower") as factor2, cumpercentile(price, 45, "higher") as factor3, cumpercentile(price, 55, "nearest") as factor4, cumpercentile(price, 65, "midpoint") as factor5 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, cumpercentile(price, 25, "linear") as factor1, cumpercentile(price, 35, "lower") as factor2, cumpercentile(price, 45, "higher") as factor3, cumpercentile(price, 55, "nearest") as factor4, cumpercentile(price, 65, "midpoint") as factor5 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_dynamicGroupCumcount"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=rand(1 2 3, n)
+qty=rand(1 2 3, n)
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, INT, INT])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, INT, INT, INT])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <dynamicGroupCumcount(price, qty, 3)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, dynamicGroupCumcount(price, qty, 3) as `factor1`factor2`factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=rand(1 2 3, n)
+qty=rand(1 2 3, n)
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, dynamicGroupCumcount(price, qty, 3) as `factor1`factor2`factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_dynamicGroupCumsum"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=take(1 2 3, n)
+qty=take(1 2 3, n)
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, INT, INT])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <dynamicGroupCumsum(price, qty, price, qty, 3)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+//re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+//assert 5, re1==6
+//ex = select sym, askSeqNum, Side, timestamp as updateTime, dynamicGroupCumsum(price, qty, price, qty, 3) as `factor1`factor2`factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+//re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+//assert 6, each(eqObj, re.values(), ex.values())
+//
+//delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=take(1 2 3, n)
+qty=take(1 2 3, n)
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+//re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+//re1 = select * from re where Side in "BB"+string(1..4)
+//re2 = select * from re where in(Side, "BB"+string(1..4))==false
+//ex = select sym, askSeqNum, Side, timestamp as updateTime, dynamicGroupCumsum(price, qty, price, qty, 3) as `factor1`factor2`factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+//ex1 = select * from re where Side in "BB"+string(1..4)
+//ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+//assert 7, each(eqObj, re1.values(), ex1.values())
+//assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_ewmCorr"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <ewmCorr(price, other=qty, com=0.5)>, <ewmCorr(price, other=qty, span=1)>, <ewmCorr(price, other=qty, halfLife=0.75)>, <ewmCorr(price, other=qty, alpha=0.5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmCorr(price, other=qty, com=0.5) as factor1, ewmCorr(price, other=qty, span=1) as factor2, ewmCorr(price, other=qty, halfLife=0.75) as factor3, ewmCorr(price, other=qty, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmCorr(price, other=qty, com=0.5) as factor1, ewmCorr(price, other=qty, span=1) as factor2, ewmCorr(price, other=qty, halfLife=0.75) as factor3, ewmCorr(price, other=qty, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_ewmCov"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <ewmCov(price, other=qty, com=0.5)>, <ewmCov(price, other=qty, span=1)>, <ewmCov(price, other=qty, halfLife=0.75)>, <ewmCov(price, other=qty, alpha=0.5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmCov(price, other=qty, com=0.5) as factor1, ewmCov(price, other=qty, span=1) as factor2, ewmCov(price, other=qty, halfLife=0.75) as factor3, ewmCov(price, other=qty, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmCov(price, other=qty, com=0.5) as factor1, ewmCov(price, other=qty, span=1) as factor2, ewmCov(price, other=qty, halfLife=0.75) as factor3, ewmCov(price, other=qty, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_ewmMean"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <ewmMean(price, com=0.5)>, <ewmMean(price, span=1)>, <ewmMean(price, halfLife=0.75)>, <ewmMean(price, alpha=0.5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmMean(price, com=0.5) as factor1, ewmMean(price, span=1) as factor2, ewmMean(price, halfLife=0.75) as factor3, ewmMean(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmMean(price, com=0.5) as factor1, ewmMean(price, span=1) as factor2, ewmMean(price, halfLife=0.75) as factor3, ewmMean(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_ewmStd"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <ewmStd(price, com=0.5)>, <ewmStd(price, span=1)>, <ewmStd(price, halfLife=0.75)>, <ewmStd(price, alpha=0.5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmStd(price, com=0.5) as factor1, ewmStd(price, span=1) as factor2, ewmStd(price, halfLife=0.75) as factor3, ewmStd(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmStd(price, com=0.5) as factor1, ewmStd(price, span=1) as factor2, ewmStd(price, halfLife=0.75) as factor3, ewmStd(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_ewmVar"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <ewmVar(price, com=0.5)>, <ewmVar(price, span=1)>, <ewmVar(price, halfLife=0.75)>, <ewmVar(price, alpha=0.5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmVar(price, com=0.5) as factor1, ewmVar(price, span=1) as factor2, ewmVar(price, halfLife=0.75) as factor3, ewmVar(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, ewmVar(price, com=0.5) as factor1, ewmVar(price, span=1) as factor2, ewmVar(price, halfLife=0.75) as factor3, ewmVar(price, alpha=0.5) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_iterate"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <iterate(1, 0.8, price)>, <iterate(1, 0.3, qty)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, iterate(1, 0.8, price) as factor1, iterate(1, 0.3, qty) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, iterate(1, 0.8, price) as factor1, iterate(1, 0.3, qty) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_mcount"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, INT, INT])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <mcount(price, 5)>, <mcount(price, 150)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mcount(price, 5) as factor1, mcount(price, 150) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mcount(price, 5) as factor1, mcount(price, 150) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_mkurtosis"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <mkurtosis(price, 5, true)>, <mkurtosis(price, 5, false)>, <mkurtosis(price, 150)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mkurtosis(price, 5, true) as factor1, mkurtosis(price, 5, false) as factor2, mkurtosis(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mkurtosis(price, 5, true) as factor1, mkurtosis(price, 5, false) as factor2, mkurtosis(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_mmad"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <mmad(price, 5, true)>, <mmad(price, 5, false)>, <mmad(price, 150)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mmad(price, 5, true) as factor1, mmad(price, 5, false) as factor2, mmad(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mmad(price, 5, true) as factor1, mmad(price, 5, false) as factor2, mmad(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_mmed"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <mmed(price, 5)>, <mmed(price, 150)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mmed(price, 5) as factor1, mmed(price, 150) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mmed(price, 5) as factor1, mmed(price, 150) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_mskew"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <mskew(price, 5, true)>, <mskew(price, 5, false)>, <mskew(price, 150)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mskew(price, 5, true) as factor1, mskew(price, 5, false) as factor2, mskew(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, mskew(price, 5, true) as factor1, mskew(price, 5, false) as factor2, mskew(price, 150) as factor3 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_move"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string(1..n)
+csymbol = rand("C"+string(1..10), n)
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty`cstring`csymbol, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE, STRING, SYMBOL])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, STRING, SYMBOL])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <move(cstring, 5)>, <move(csymbol, 5)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, move(cstring, 5) as factor1, move(csymbol, 5) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string((n+1)..(2*n))
+csymbol = rand("C"+string(1..10), n)
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, move(cstring, 5) as factor1, move(csymbol, 5) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_tmove"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string(1..n)
+csymbol = rand("C"+string(1..10), n)
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty`cstring`csymbol, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE, STRING, SYMBOL])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, STRING, SYMBOL])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <tmove(timestamp, cstring, 5s)>, <tmove(timestamp, csymbol, 5s)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, tmove(timestamp, cstring, 5s) as factor1, tmove(timestamp, csymbol, 5s) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string((n+1)..(2*n))
+csymbol = rand("C"+string(1..10), n)
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, tmove(timestamp, cstring, 5s) as factor1, tmove(timestamp, csymbol, 5s) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_tmfirst"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string(1..n)
+csymbol = rand("C"+string(1..10), n)
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty`cstring`csymbol, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE, STRING, SYMBOL])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, STRING, SYMBOL])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <tmfirst(timestamp, cstring, 5s)>, <tmfirst(timestamp, csymbol, 5s)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, tmfirst(timestamp, cstring, 5s) as factor1, tmfirst(timestamp, csymbol, 5s) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+cstring="S"+string((n+1)..(2*n))
+csymbol = rand("C"+string(1..10), n)
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty, cstring, csymbol)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, tmfirst(timestamp, cstring, 5s) as factor1, tmfirst(timestamp, csymbol, 5s) as factor2 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_percentChange"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <percentChange(price, 2)>, <percentChange(price, 4)>, <percentChange(price, 8)>, <percentChange(price, 16)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, percentChange(price, 2) as factor1, percentChange(price, 4) as factor2, percentChange(price, 8) as factor3, percentChange(price, 16) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, percentChange(price, 2) as factor1, percentChange(price, 4) as factor2, percentChange(price, 8) as factor3, percentChange(price, 16) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL
+
+
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_delete_part_deltas"
+n = 1000
+timestamp=temporalAdd(2012.01.01T12:23:23.125, 1..n, "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t1 = table(timestamp, sym, askSeqNum, Side, price, qty)
+dummy = table(1:0, `timestamp`sym`askSeqNum`Side`price`qty, [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, DOUBLE])
+outputTable = table(1000:0, `sym`askSeqNum`Side`updatetime`factor1`factor2`factor3`factor4, [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+engine = createReactiveStateEngine(name = "test", metrics = [<timestamp as updateTime>, <deltas(price, 2)>, <deltas(price, 4)>, <deltas(price, 8)>, <deltas(price, 16)>], dummyTable = dummy, outputTable = outputTable, keyColumn = `sym`askSeqNum`Side, keyPurgeFilter = <updateTime<temporalAdd(2012.01.01T12:23:23.125, n/2, "s")>, keyPurgeFreqInSecond = 3)
+sleep(4000)
+engine.append!(t1)
+dummy.append!(t1)
+
+re1= (exec numGroups from getStreamEngineStat().ReactiveStreamEngine where name = `test)[0]
+assert 5, re1==6
+ex = select sym, askSeqNum, Side, timestamp as updateTime, deltas(price, 2) as factor1, deltas(price, 4) as factor2, deltas(price, 8) as factor3, deltas(price, 16) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+re = select * from outputTable order by sym, askSeqNum, Side, updateTime
+assert 6, each(eqObj, re.values(), ex.values())
+
+delete from dummy where Side in "BB"+string(1..4)
+
+//write again
+timestamp=temporalAdd(2012.01.01T12:23:23.125, (n+1)..(2*n), "s")
+sym=take(`AA, n) 
+askSeqNum=take(`name1, n) 
+Side=loop(take{, 100}, "BB"+string(1..10)).flatten()
+price=double(rand(100, n))
+qty=double(rand(100, n))
+t2 = table(timestamp, sym, askSeqNum, Side, price, qty)
+engine.append!(t2)
+dummy.append!(t2)
+
+re = select * from outputTable where updateTime>=temporalAdd(2012.01.01T12:23:23.125, n+1, "s") order by sym, askSeqNum, Side, updateTime
+re1 = select * from re where Side in "BB"+string(1..4)
+re2 = select * from re where in(Side, "BB"+string(1..4))==false
+ex = select sym, askSeqNum, Side, timestamp as updateTime, deltas(price, 2) as factor1, deltas(price, 4) as factor2, deltas(price, 8) as factor3, deltas(price, 16) as factor4 from dummy context by sym, askSeqNum, Side order by sym, askSeqNum, Side, updateTime
+ex1 = select * from re where Side in "BB"+string(1..4)
+ex2 = select * from re where in(Side, "BB"+string(1..4))==false
+assert 7, each(eqObj, re1.values(), ex1.values())
+assert 8, each(eqObj, re2.values(), ex2.values())
+
+dropAggregator("test")
+engine=NULL

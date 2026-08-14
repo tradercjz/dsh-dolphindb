@@ -1,0 +1,54 @@
+// DolphinDB backtest script skeleton
+// Fill each section with strategy-specific DolphinDB code and remove placeholder comments before final output.
+
+// 1. Helper functions from datasource_result.used_functions
+// Include only helper function bodies proven by bundled refs.
+
+// 2. Datasource
+// data = ...
+// data must contain: symbol, tradeTime, open, low, high, close, volume, amount, upLimitPrice, downLimitPrice, prevClosePrice
+// Optional packed signal values must match datasource_result.signal_schema.
+
+// 3. Config and context bindings
+config = dict(STRING, ANY)
+// config["startDate"] = yyyy.MM.dd
+// config["endDate"] = yyyy.MM.dd
+config["context"] = dict(STRING, ANY)
+// Example context binding when datasource uses gen_bk_singal:
+// config["context"]["bk_map_dict_reverse"] = bk_map_dict_reverse
+
+// 4. Initialize
+// initialize_code must expose initialize_result.initialize_indicators for callback reads.
+def initialize(mutable context){
+    // Initialize context, state, subscriptions, and indicators.
+}
+
+// 5. Callback functions
+// Callback reads must be declared in callback_result callbacks[*].context_fields,
+// datasource_signal_reads, and initialize_indicator_reads.
+// def onBar(mutable context, msg, indicator){
+//     // Trading logic.
+// }
+
+// 6. Callback dictionary
+callbacks = dict(STRING, ANY)
+callbacks["initialize"] = initialize
+// callbacks["onBar"] = onBar
+
+// 7. Backtest engine creation
+engine_name = "strategy_engine"
+engine = Backtest::getBacktestEngineList()[engine_name]
+if (not engine is null){
+    Backtest::dropBacktestEngine(engine)
+}
+
+engine = Backtest::createBacktester(engine_name, config, callbacks)
+// For strategyGroup=securityCreditAccount, use this signature after datasource creates securityReference:
+// engine = Backtest::createBacktester(engine_name, config, callbacks, false, securityReference)
+
+// 8. Run backtest
+Backtest::appendQuotationMsg(engine, data)
+Backtest::appendEndMarker(engine)
+
+// 9. Return summary
+Backtest::getReturnSummary(engine)

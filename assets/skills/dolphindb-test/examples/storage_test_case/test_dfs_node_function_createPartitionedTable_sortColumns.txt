@@ -1,0 +1,263 @@
+#include "checkChunk.txt"
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_time_prepare"
+def createData(n){
+	symbolv=rand(`A`B`C`D`E`F`G,n)
+	namev=rand(`A`B`C`D`E`F`G,n)+string(1)
+	idv=rand(1..100,n)
+	price1v=rand(10.0,n)
+	price2v=rand(10.0,n)
+	timestampv=rand(timestamp(concatDateTime(1970.01.02..1970.03.01,00:01:30.002+1..59)),n)
+	datev=date(timestampv)
+	timev=rand(time(concatDateTime(1970.01.02..1970.03.01,00:01:30.002+1..59)),n)
+	datetimev=rand(datetime(concatDateTime(1970.01.02..1970.03.01,00:01:30.002+1..59)),n)
+	nanotimev=rand(nanotime(concatDateTime(1970.01.02..1970.03.01,00:01:30.002+1..59)),n)
+	nanotimestampv=rand(nanotimestamp(concatDateTime(1970.01.02..1970.03.01,00:01:30.002+1..59)),n)
+	return table(symbolv,namev,idv,price1v,price2v,timestampv,datev,timev,datetimev,nanotimev,nanotimestampv)
+}
+
+def nodeCompaction(dbName){
+	 suffix=substr(dbName, 5)
+	 chunkIds=exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	 for(x in chunkIds){
+	  triggerIotCompaction(x)
+	 }
+}
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_time_only"
+dbName = "dfs://test_sortColumns_time_only"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+t=createData(1000000)
+db1 = database(, HASH, [SYMBOL,3])
+db2 = database(, RANGE, 1970.01.01+(0..10)*7)
+db = database(directory=dbName, partitionType=COMPO, partitionScheme=[db1, db2], engine="TSDB")
+pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symbolv`timestampv, sortColumns=`datev`timev`datetimev).append!(t)
+pt2 = db.createPartitionedTable(table=t, tableName=`pt2, partitionColumns=`symbolv`timestampv, sortColumns=`nanotimev`datev`timev`datetimev).append!(t)
+pt3 = db.createPartitionedTable(table=t, tableName=`pt3, partitionColumns=`symbolv`timestampv, sortColumns=`nanotimev`nanotimestampv`datev`timev`datetimev,sortKeyMappingFunction=[hashBucket{,4},hashBucket{,5},hashBucket{,2},hashBucket{,3}],compressMethods={timestampv:"delta"}).append!(t)
+dt1 = db.createTable(table=t, tableName=`dt1, sortColumns=`datev`timev`datetimev).append!(t)
+dt2 = db.createTable(table=t, tableName=`dt2, sortColumns=`datetimev`nanotimev`datev`timev).append!(t)
+dt3 = db.createTable(table=t, tableName=`dt3, sortColumns=`datetimev`nanotimev`nanotimestampv`datev`timev).append!(t)
+datet=rand(t[`datev],1)[0]
+timet=rand(t[`timev],1)[0]
+datetimet=rand(t[`datetimev],1)[0]
+nanotimet=rand(t[`nanotimev],1)[0]
+nanotimestampt=rand(t[`nanotimestampv],1)[0]
+//where sortColumns
+res=select * from pt1 where datev=datet order by price1v,price2v
+ex=select * from t where datev=datet order by price1v,price2v
+assert 1,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet order by price1v,price2v
+assert 2,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and   timev=timet order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet  order by price1v,price2v
+assert 3,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet  order by price1v,price2v
+assert 4,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and  timev=timet   or  datetimev= datetimet  order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 5,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 6,each(eqObj,res.values(),ex.values())
+
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+res=select * from pt2 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 7,each(eqObj,res.values(),ex.values())
+res=select * from dt2 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 8,each(eqObj,res.values(),ex.values())
+
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+res=select * from pt3 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 9,each(eqObj,res.values(),ex.values())
+res=select * from dt3 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 10,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_include_time"
+dbName = "dfs://test_sortColumns_time"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+t=createData(1000000)
+db1 = database(, HASH, [SYMBOL,3])
+db2 = database(, VALUE, 1970.01.01+0..10)
+db = database(directory=dbName, partitionType=COMPO, partitionScheme=[db1, db2], engine="TSDB")
+pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symbolv`timestampv, sortColumns=`idv`datev`timev`datetimev).append!(t)
+pt2 = db.createPartitionedTable(table=t, tableName=`pt2, partitionColumns=`symbolv`timestampv, sortColumns=`nanotimev`datev`timev`datetimev`idv).append!(t)
+pt3 = db.createPartitionedTable(table=t, tableName=`pt3, partitionColumns=`symbolv`timestampv, sortColumns=`nanotimev`namev`nanotimestampv`datev`timev`datetimev`idv).append!(t)
+dt1 = db.createTable(table=t, tableName=`dt1, sortColumns=`idv`datev`timev`datetimev).append!(t)
+dt2 = db.createTable(table=t, tableName=`dt2, sortColumns=`nanotimev`datev`timev`datetimev`idv).append!(t)
+dt3 = db.createTable(table=t, tableName=`dt3, sortColumns=`nanotimev`namev`nanotimestampv`datev`timev`datetimev`idv).append!(t)
+datet=rand(t[`datev],1)[0]
+timet=rand(t[`timev],1)[0]
+datetimet=rand(t[`datetimev],1)[0]
+nanotimet=rand(t[`nanotimev],1)[0]
+nanotimestampt=rand(t[`nanotimestampv],1)[0]
+//where sortColumns
+res=select * from pt1 where datev=datet order by price1v,price2v
+ex=select * from t where datev=datet order by price1v,price2v
+assert 1,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet order by price1v,price2v
+assert 2,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and   timev=timet order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet  order by price1v,price2v
+assert 3,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet  order by price1v,price2v
+assert 4,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and  timev=timet   or  datetimev= datetimet  order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 5,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 6,each(eqObj,res.values(),ex.values())
+
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+res=select * from pt2 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 7,each(eqObj,res.values(),ex.values())
+res=select * from dt2 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 8,each(eqObj,res.values(),ex.values())
+
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+res=select * from pt3 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 9,each(eqObj,res.values(),ex.values())
+res=select * from dt3 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 10,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_time_flush"
+datet=rand(t[`datev],1)[0]
+timet=rand(t[`timev],1)[0]
+datetimet=rand(t[`datetimev],1)[0]
+nanotimet=rand(t[`nanotimev],1)[0]
+nanotimestampt=rand(t[`nanotimestampv],1)[0]
+//where sortColumns
+pnodeRunAllNodes(flushTSDBCache)
+res=select * from pt1 where datev=datet order by price1v,price2v
+ex=select * from t where datev=datet order by price1v,price2v
+assert 1,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet order by price1v,price2v
+assert 2,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+res=select * from pt1 where datev=datet and   timev=timet order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet  order by price1v,price2v
+assert 3,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet  order by price1v,price2v
+assert 4,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+res=select * from pt1 where datev=datet and  timev=timet   or  datetimev= datetimet  order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 5,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 6,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+res=select * from pt2 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 7,each(eqObj,res.values(),ex.values())
+res=select * from dt2 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 8,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+res=select * from pt3 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 9,each(eqObj,res.values(),ex.values())
+res=select * from dt3 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 10,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_time_compact"
+datet=rand(t[`datev],1)[0]
+timet=rand(t[`timev],1)[0]
+datetimet=rand(t[`datetimev],1)[0]
+nanotimet=rand(t[`nanotimev],1)[0]
+nanotimestampt=rand(t[`nanotimestampv],1)[0]
+//where sortColumns
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+res=select * from pt1 where datev=datet order by price1v,price2v
+ex=select * from t where datev=datet order by price1v,price2v
+assert 1,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet order by price1v,price2v
+assert 2,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+res=select * from pt1 where datev=datet and   timev=timet order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet  order by price1v,price2v
+assert 3,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet  order by price1v,price2v
+assert 4,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+res=select * from pt1 where datev=datet and  timev=timet   or  datetimev= datetimet  order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 5,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 6,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+res=select * from pt2 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 7,each(eqObj,res.values(),ex.values())
+res=select * from dt2 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 8,each(eqObj,res.values(),ex.values())
+
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+res=select * from pt3 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 9,each(eqObj,res.values(),ex.values())
+res=select * from dt3 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet or nanotimestampv =nanotimestampt order by price1v,price2v
+assert 10,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_createPartitionedTable_tsdb_sortColumns_keepDuplicates_sortKeyMappingFunction"
+dbName = "dfs://test_sortColumns_time_keepDuplicates_sortKeyMappingFunction"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+t=createData(1000000)
+db = database(directory=dbName, partitionType=HASH, partitionScheme=[DATE,10], engine="TSDB")
+pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`timestampv, sortColumns=`datev`timev`datetimev,keepDuplicates=LAST,sortKeyMappingFunction=[hashBucket{,2},hashBucket{,3}],compressMethods={timestampv:"delta"}).append!(t)
+pt2 = db.createPartitionedTable(table=t, tableName=`pt2, partitionColumns=`timestampv, sortColumns=`nanotimev`datev`timev`datetimev,keepDuplicates=FIRST,compressMethods={timestampv:"delta"}).append!(t)
+dt1 = db.createTable(table=t, tableName=`dt1, sortColumns=`datev`timev`datetimev,keepDuplicates=LAST,compressMethods={timestampv:"delta"}).append!(t)
+dt2 = db.createTable(table=t, tableName=`dt2, sortColumns=`datetimev`nanotimev`datev`timev,keepDuplicates=FIRST).append!(t)
+datet=rand(t[`datev],1)[0]
+timet=rand(t[`timev],1)[0]
+datetimet=rand(t[`datetimev],1)[0]
+nanotimet=rand(t[`nanotimev],1)[0]
+nanotimestampt=rand(t[`nanotimestampv],1)[0]
+pnodeRunAllNodes(flushTSDBCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+//where sortColumns
+res=select * from pt1 where datev=datet order by price1v,price2v
+ex=select * from t where datev=datet 
+ex=select * from ex where isDuplicated([datev,timev,datetimev], LAST)=false order by price1v,price2v
+assert 1,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet order by price1v,price2v
+assert 2,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and   timev=timet order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet  
+ex=select * from ex where isDuplicated([datev,timev,datetimev], LAST)=false order by price1v,price2v
+assert 3,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet  order by price1v,price2v
+assert 4,each(eqObj,res.values(),ex.values())
+
+res=select * from pt1 where datev=datet and  timev=timet   or  datetimev= datetimet  order by price1v,price2v
+ex=select * from t where datev=datet and   timev=timet   or  datetimev= datetimet 
+ex=select * from ex where isDuplicated([datev,timev,datetimev], LAST)=false order by price1v,price2v
+assert 5,each(eqObj,res.values(),ex.values())
+res=select * from dt1 where datev=datet and   timev=timet   or  datetimev= datetimet order by price1v,price2v
+assert 6,each(eqObj,res.values(),ex.values())
+
+ex=select * from t where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet 
+ex=select * from ex where isDuplicated([nanotimev,datev,timev,datetimev], FIRST)=false order by price1v,price2v
+res=select * from pt2 where datev=datet and  timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 7,each(eqObj,res.values(),ex.values())
+res=select * from dt2 where datev=datet and   timev=timet   or  datetimev= datetimet  or nanotimev =nanotimet order by price1v,price2v
+assert 8,each(eqObj,res.values(),ex.values())

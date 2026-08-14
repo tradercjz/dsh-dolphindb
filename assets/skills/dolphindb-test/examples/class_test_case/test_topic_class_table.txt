@@ -1,0 +1,427 @@
+@testing:case="test_topic_class_with_table_prepare"
+login("admin", "123456")
+dbName = "dfs://testClass"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 1..10, ,`TSDB)
+t1 = table(take(1..10,100).sort() as id, take("A"+string(1..10), 100) as name, array(DECIMAL64(4)[]).append!(arrayVector(take(1 3 5, 100).cumsum().int(), take(100.0,298).double())) as value)
+pt = db.createPartitionedTable(t1, `pt, `id, ,`id).append!(t1)
+
+def createusers(){
+	MST=getControllerAlias()
+	login("admin","123456")
+	userlist=rpc(MST,getUserList)
+	grouplist=rpc(MST,getGroupList)
+	for(userr in userlist){
+		deleteUser(userr)
+	}
+	for(groupp in grouplist){
+		deleteGroup(groupp)
+	}
+	rpc(MST,createUser,"u1","123456")
+	rpc(MST,createUser,"u2","123456")
+}
+
+@testing:case="test_topic_class_with_append!_without_permission", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(dbName, tableName){
+		t1 = table([1] as id, ["tt1"] as name, array(DECIMAL64(4)[]).append!([[1]]) as value)
+		loadTable(dbName, tableName).append!(t1)
+	}	
+}
+
+login("u1", "123456")
+f = F1(dbName, "pt")
+
+@testing:case="test_topic_class_with_append!_without_permission_1", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		t1 = table([1] as id, ["tt1"] as name, array(DECIMAL64(4)[]).append!([[1]]) as value)
+		loadTable(dbName, tableName).append!(t1)
+	}	
+}
+
+login("u1", "123456")
+f = F1()
+f .f1(dbName, "pt")
+
+@testing:case="test_topic_class_with_delete_without_permission", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(dbName, tableName){
+		delete from loadTable(dbName, tableName) where id = 1
+	}	
+}
+
+login("u1", "123456")
+f = F1(dbName, "pt")
+
+@testing:case="test_topic_class_with_delete_without_permission_2", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		delete from loadTable(dbName, tableName) where id = 1
+	}	
+}
+
+login("u1", "123456")
+f = F1()
+f .f1(dbName, "pt")
+
+@testing:case="test_topic_class_with_update_without_permission", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(dbName, tableName){
+		update  loadTable(dbName, tableName) set name = "newtt1" where id = 1
+	}	
+}
+
+login("u1", "123456")
+f = F1(dbName, "pt")
+
+@testing:case="test_topic_class_with_update_without_permission", exception=1
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		update  loadTable(dbName, tableName) set name = "newtt1" where id = 1
+	}	
+}
+
+login("u1", "123456")
+f = F1()
+f.f1(dbName, "pt")
+
+@testing:case="test_topic_class_with_append!_with_permission"
+login("admin", "123456")
+MST=getControllerAlias()
+createusers()
+class F1{
+	def F1(dbName, tableName){
+		t1 = table([1] as id, ["tt1"] as name, array(DECIMAL64(4)[]).append!([[1]]) as value)
+		loadTable(dbName, tableName).append!(t1)
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+go
+login("u1", "123456")
+f = F1(dbName, "pt")
+assert 1, (exec count(*) from loadTable(dbName, "pt")) == 101
+
+@testing:case="test_topic_class_with_append!_with_permission_2"
+login("admin", "123456")
+MST=getControllerAlias()
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		t1 = table([1] as id, ["tt1"] as name, array(DECIMAL64(4)[]).append!([[1]]) as value)
+		loadTable(dbName, tableName).append!(t1)
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+go
+login("u1", "123456")
+f = F1()
+f.f1(dbName, "pt")
+assert 1, (exec count(*) from loadTable(dbName, "pt")) == 102
+
+@testing:case="test_topic_class_with_delete_without_permission"
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		delete from loadTable(dbName, tableName) where id = 1
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+login("u1", "123456")
+f = F1()
+assert 1, (exec count(*) from loadTable(dbName, "pt")) == 102
+f.f1(dbName, "pt")
+assert 2, (exec count(*) from loadTable(dbName, "pt")) == 90
+
+@testing:case="test_topic_class_with_delete_without_permission_2"
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		delete from loadTable(dbName, tableName) where id = 2
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+login("u1", "123456")
+f = F1()
+assert 1, (exec count(*) from loadTable(dbName, "pt")) == 90
+f.f1(dbName, "pt")
+assert 2, (exec count(*) from loadTable(dbName, "pt")) == 80
+
+@testing:case="test_topic_class_with_update_without_permission"
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(dbName, tableName){
+		update  loadTable(dbName, tableName) set name = "newtt1" where id = 4
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+login("u1", "123456")
+f = F1(dbName, "pt")
+assert 1, (exec name from loadTable(dbName, "pt") where id = 4) == take("newtt1", 10)
+
+@testing:case="test_topic_class_with_update_without_permission_2"
+login("admin", "123456")
+createusers()
+class F1{
+	def F1(){}
+	def f1(dbName, tableName){
+		update  loadTable(dbName, tableName) set name = "newtt1" where id = 4
+	}	
+}
+rpc(MST, grant, "u1", DB_WRITE, "dfs://testClass")
+rpc(MST, grant, "u1", DB_READ, "dfs://testClass")
+login("u1", "123456")
+f = F1()
+f.f1(dbName, "pt")
+assert 1, (exec name from loadTable(dbName, "pt") where id = 4) == take("newtt1", 10)
+
+@testing:case="test_topic_class_with_assign_table"
+class F1{
+	h::ANY
+	def F1(dbName, tableName){
+		h = loadTable(dbName, tableName)	
+	}	
+	def getCount(){
+		return exec count(*) from self.h	
+	}
+}
+f = F1(dbName, `pt)
+f.getCount()
+assert 1,  f.getCount() == (exec count(*) from loadTable(dbName, `pt))
+
+@testing:case="test_topic_class_with_assign_table_after_dropDatabase", exception=1
+login("admin","123456")
+dropDatabase(dbName)
+f.getCount()
+
+@testing:case="test_topic_class_with_eval_select"
+login("admin", "123456")
+dbName = "dfs://testClass"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 1..10, ,`TSDB)
+t1 = table(take(1..10,100).sort() as id, take("A"+string(1..10), 100) as name, array(DECIMAL64(4)[]).append!(arrayVector(take(1 3 5, 100).cumsum().int(), rand(100.0,298).double())) as value)
+pt = db.createPartitionedTable(t1, `pt, `id, ,`id).append!(t1)
+
+class A{
+	name::STRING
+	def A(name_){
+		name = name_
+	}	
+	def sql1(dbName, tableName, whereCondition){
+		script = sql(select=sqlCol(name), from=loadTable(dbName, tableName), where=whereCondition)
+		return eval(script)
+	}
+}
+n = A("id")
+ext = n.sql1(dbName, "pt", [<name = "A1">])
+assert 1, each(eqObj, ext.values(), table(1..10 as id).values())
+
+@testing:case="test_topic_class_with_eval_where"
+class A{
+	name::STRING
+	def A(name_){
+		name = name_
+	}	
+	def sql1(dbName, tableName, colName){
+		whereCondition = parseExpr(name+"=1")
+		script = sql(select=sqlCol(colName), from=loadTable(dbName, tableName), where=whereCondition)
+		return eval(script)
+	}
+}
+n = A("id")
+ext = n.sql1(dbName, "pt",`name)
+assert 1, each(eqObj, ext.values(), table("A"+string(1..10) as id).values())
+
+@testing:case="test_topic_class_with_eval_groupby"
+class A{
+	name::STRING
+	def A(name_){
+		name = name_
+	}	
+	def sql1(dbName, tableName, colName){
+		whereCondition = parseExpr(colName+"=`A1")
+		script = sql(select=sqlColAlias(<avg(value)>), from=loadTable(dbName, tableName), where=whereCondition, groupBy=sqlCol(name))
+		return eval(script)
+	}
+}
+n = A("id")
+res = n.sql1(dbName, "pt",`name)
+ext = select avg(value) from loadTable(dbName, "pt") where name=`A1 group by id
+assert 1, each(eqObj, res.values(), ext.values())
+
+@testing:case="test_topic_class_with_function_and_sql", exception=1
+class F{
+	res:: DOUBLE
+	def F(){
+		sum = 0.0	
+	}
+	defg func1(value){
+		res = sum(value)\res
+		return res
+	}
+	def func2(value){
+		res = (res+value)\(res-value)
+		return res
+	}
+	defg func3(value){
+		return avg(value)	
+	}
+}
+f = F()
+re = select f.func3(value) from loadTable(dbName, `pt)
+ext = select avg(value) from loadTable(dbName, `pt)
+//assert 1 , each(eqObj, re.values(), ext.values())
+
+@testing:case="test_topic_class_clear"
+login("admin","123456")
+userlist=rpc(MST,getUserList)
+grouplist=rpc(MST,getGroupList)
+for(userr in userlist){
+	deleteUser(userr)
+}
+for(groupp in grouplist){
+	deleteGroup(groupp)
+}
+
+
+@testing:case="test_topic_class_table_with_where"
+class demo1{
+    name :: STRING
+    def demo1(name_) {
+        name = name_
+    }
+    def sel() {
+        t = table([1, 2, 3] as id, `a1`a2`a3 as colName)
+        print(name)
+        t_pre = select * from t where colName = name
+        return t_pre
+    }
+}
+new = demo1("a1")
+res = new.sel()
+ext  = table([1] as id, ["a1"] as colName)
+assert 1, each(eqObj, res.values(), ext.values())
+
+class demo{
+	name :: ANY
+	t :: ANY
+	def demo(name_) {
+		name = name_
+		t = table(take(1..3, 2000) as id, rand(`a1`a2`a3, 2000) as colName, rand(100.0, 2000) as value)
+	}
+	def whereCol() {
+		t_pre = select * from t where colName = name
+		return t_pre
+	}
+	def groupbyCol(func){
+		t_pre = select func(value) from t   group by name[colName]	
+		return t_pre
+	}
+	def whereCol2(name2){
+		t_pre = select value > name from t where colName = name2
+		return t_pre
+	}	
+}
+new = demo("a1")
+res = new.whereCol()
+ext  = select * from new.t where colName = "a1"
+assert 2, each(eqObj, res.values(), ext.values())
+
+
+d1 = dict(`a1`a2`a3, 1 1 2)
+new = demo(dict(`a1`a2`a3, 1 1 2))
+res = new.groupbyCol(avg) 
+ext  = select avg(value) from new.t group by d1[colName] as d1 order by d1
+res.sortBy!(res.colNames())
+ext.sortBy!(ext.colNames())
+assert 3, each(eqObj, res.values(), ext.values())
+
+new = demo(35)
+res = new.whereCol2("a2") 
+ext =select value > 35 from new.t where colName = "a2"
+assert 4, each(eqObj, res.values(), ext.values())
+
+
+@testing:case="test_topic_class_table_with_where_in"
+n = 10000
+SecurityID = rand(`st0001`st0002`st0003`st0004`st0005, n)
+sym = rand(`A`B, n)
+TradeDate = 2022.01.01 + rand(30,n)
+TotalVolumeTrade = rand(1000..3000, n)
+TotalValueTrade = rand(100.0, n)
+snap = table(SecurityID, TradeDate, TotalVolumeTrade, TotalValueTrade).sortBy!(`SecurityID`TradeDate)
+dbName = "dfs://testClass"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, 2022.01.01..2022.01.30)
+pt1 = db.createPartitionedTable(snap, `pt1, `TradeDate).append!(snap)
+class demo{
+	pt :: ANY
+	ids:: STRING VECTOR
+	val :: DATE
+	def demo(ids_, val_) {
+		ids = ids_
+		val = val_
+	}
+	def query() {
+		return select * from loadTable("dfs://testClass", "pt1") where SecurityID in ids
+	}
+	def query2(){
+		return select * from loadTable("dfs://testClass", "pt1") where SecurityID not in ids
+	}
+	def query3(){
+		return select * from loadTable("dfs://testClass", "pt1") where TradeDate > val
+	} 
+
+	def query4(){
+		return 	select * from loadTable("dfs://testClass", "pt1") where TradeDate < val
+	}
+}
+ids = `st0001`st0002
+d1 = demo(ids,2022.01.10)
+res  = d1.query()
+ext = select * from loadTable("dfs://testClass", "pt1") where SecurityID in ids
+assert 1, each(eqObj, res.values(), ext.values())
+
+res  = d1.query2()
+ext = select * from loadTable("dfs://testClass", "pt1") where SecurityID not in ids
+assert 2, each(eqObj, res.values(), ext.values())
+
+res  = d1.query3()
+ext = select * from loadTable("dfs://testClass", "pt1") where TradeDate > 2022.01.10
+assert 3, each(eqObj, res.values(), ext.values())
+
+res  = d1.query4()
+ext = select * from loadTable("dfs://testClass", "pt1") where TradeDate < 2022.01.10
+assert 4, each(eqObj, res.values(), ext.values())

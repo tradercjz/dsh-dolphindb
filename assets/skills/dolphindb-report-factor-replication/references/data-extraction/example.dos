@@ -1,0 +1,262 @@
+// ============================================================
+// 因子：intradayLiquidityMomentum
+// 公式：(LastPx - PreClosePx) / PreClosePx * log(circulatingShares)
+//       circulatingShares = vol * 10000 / turnover_rate
+// 数据源：dfs://stockMinKSH/stockMinKSH_v2 (minute)
+//         dfs://stock_daily/stock_daily_prev   (daily)
+// ============================================================
+
+// Part A: 取数函数 extractData（合并自 Skill 包 extractData.dos）
+def extractData(args, returnType = "string") {
+
+    startDate = temporalParse(string(args["timeRange"][0]), "yyyy.MM.dd")
+    endDate = temporalParse(string(args["timeRange"][1]), "yyyy.MM.dd")
+
+    dataList = args["data"]
+    joinPlan = args["joinPlan"]
+
+    tableSqlMap = dict(STRING, STRING)
+    finalSelectParts = array(STRING, 0)
+
+    // 为每张表构造子查询
+    for (cfg in dataList) {
+
+        dataName = string(cfg["dataName"])
+        dbName = string(cfg["dbName"])
+        tbName = string(cfg["tbName"])
+        timeCol = string(cfg["timeCol"])
+        frequency = string(cfg["frequency"])
+
+        // 检查 timeRange 是否被 sourceTimeRange 覆盖
+        sourceStartDate = temporalParse(string(cfg["sourceTimeRange"][0]), "yyyy.MM.dd")
+        sourceEndDate = temporalParse(string(cfg["sourceTimeRange"][1]), "yyyy.MM.dd")
+
+        if (startDate < sourceStartDate || endDate > sourceEndDate) {
+            result = dict(STRING, ANY)
+            result["success"] = false
+            result["result"] = ""
+            result["message"] = "数据源时间范围不足：" + dataName +
+                                " 的可用时间范围是 " + string(sourceStartDate) + " 至 " + string(sourceEndDate) +
+                                "，但请求的 timeRange 是 " + string(startDate) + " 至 " + string(endDate)
+            return result
+        }
+
+        selectParts = array(STRING, 0)
+        selectedNames = array(STRING, 0)
+
+        // 处理 requiredFields
+        for (field in cfg["requiredFields"]) {
+
+            name = string(field["name"])
+            sourceCol = string(field["sourceColumns"][0])
+
+            if (sourceCol == "") {
+                result = dict(STRING, ANY)
+                result["success"] = false
+                result["result"] = ""
+                result["message"] = "字段 " + name + " 的 sourceColumns[0] 为空，请检查 args"
+                return result
+            }
+
+            selectItem = sourceCol + " as " + name
+
+            if (size(selectedNames) == 0 || sum(selectedNames == name) == 0) {
+                selectParts.append!(selectItem)
+                selectedNames.append!(name)
+            }
+
+            if (size(finalSelectParts) == 0 || sum(finalSelectParts == name) == 0) {
+                finalSelectParts.append!(name)
+            }
+        }
+
+        // 处理 joinFields
+        try {
+            for (jf in cfg["joinFields"]) {
+
+                joinName = string(jf["name"])
+                joinExpr = string(jf["selectExpr"])
+
+                if (joinExpr == "") {
+                    result = dict(STRING, ANY)
+                    result["success"] = false
+                    result["result"] = ""
+                    result["message"] = "joinFields 字段 " + joinName + " 的 selectExpr 为空，请检查 args"
+                    return result
+                }
+
+                joinItem = joinExpr + " as " + joinName
+
+                if (size(selectedNames) == 0 || sum(selectedNames == joinName) == 0) {
+                    selectParts.append!(joinItem)
+                    selectedNames.append!(joinName)
+                }
+            }
+        } catch(ex) {}
+
+        // 拼 from
+        fromText = "loadTable(\"" + dbName + "\", \"" + tbName + "\")"
+
+        // 拼 where（分钟表用 date(DateTime)，日频表直接用 trade_date）
+        if (frequency == "minute" || frequency == "second" || frequency == "tick") {
+            timeFilterExpr = "date(" + timeCol + ")"
+        } else {
+            timeFilterExpr = timeCol
+        }
+
+        whereText = timeFilterExpr + " between " + string(startDate) + " : " + string(endDate)
+
+        // 拼当前表 SQL
+        selectText = concat(selectParts, ", ")
+
+        tableSql = "(select " + selectText +
+                   " from " + fromText +
+                   " where " + whereText + ")"
+
+        tableSqlMap[dataName] = tableSql
+    }
+
+    // 找到 baseTb
+    baseTb = string(joinPlan["baseTb"])
+
+    try {
+        joinedTable = tableSqlMap[baseTb]
+    } catch(ex) {
+        result = dict(STRING, ANY)
+        result["success"] = false
+        result["result"] = ""
+        result["message"] = "没有找到 baseTb 对应的数据源配置：" + baseTb
+        return result
+    }
+
+    // 按 joinPlan.steps 逐步 left join
+    for (step in joinPlan["steps"]) {
+
+        rightTb = string(step["rightTb"])
+        joinType = string(step["joinType"])
+
+        try {
+            rightTable = tableSqlMap[rightTb]
+        } catch(ex) {
+            continue
+        }
+
+        leftKeyText = ""
+        rightKeyText = ""
+        allKeyNamesSame = true
+
+        for (pair in step["on"]) {
+
+            leftFullName = string(pair[0])
+            rightFullName = string(pair[1])
+
+            leftParts = split(leftFullName, ".")
+            rightParts = split(rightFullName, ".")
+
+            leftKey = string(leftParts[size(leftParts) - 1])
+            rightKey = string(rightParts[size(rightParts) - 1])
+
+            leftKeyText = leftKeyText + "`" + leftKey
+            rightKeyText = rightKeyText + "`" + rightKey
+
+            if (leftKey != rightKey) {
+                allKeyNamesSame = false
+            }
+        }
+
+        if (joinType == "left") {
+
+            if (allKeyNamesSame) {
+                joinedTable = "lj(" + joinedTable + ", " + rightTable + ", " + leftKeyText + ")"
+            } else {
+                joinedTable = "lj(" + joinedTable + ", " + rightTable + ", " + leftKeyText + ", " + rightKeyText + ")"
+            }
+
+        } else {
+            result = dict(STRING, ANY)
+            result["success"] = false
+            result["result"] = ""
+            result["message"] = "当前版本只支持 left join，暂不支持：" + joinType
+            return result
+        }
+    }
+
+    // 最外层 select 最终需要的标准字段
+    finalSelect = concat(finalSelectParts, ", ")
+
+    sqlText = "select " + finalSelect + " from " + joinedTable
+
+    // 返回 SQL 或执行 SQL
+    if (returnType == "string") {
+        result = dict(STRING, ANY)
+        result["success"] = true
+        result["result"] = sqlText
+        result["message"] = ""
+        return result
+    }
+
+    if (returnType == "data") {
+        result = dict(STRING, ANY)
+        result["success"] = true
+        result["result"] = runSQL(sqlText)
+        result["message"] = ""
+        return result
+    }
+
+    result = dict(STRING, ANY)
+    result["success"] = false
+    result["result"] = ""
+    result["message"] = "returnType 只能是 string 或 data，当前传入的是：" + string(returnType)
+    return result
+}
+
+// Part B: fieldCheck JSON 参数
+jsonStr = "{\"data\":[{\"dataName\":\"stockMinKSH\",\"dbName\":\"dfs://stockMinKSH\",\"tbName\":\"stockMinKSH_v2\",\"timeCol\":\"DateTime\",\"frequency\":\"minute\",\"sourceTimeRange\":[\"2021.01.04\",\"2021.06.30\"],\"joinFields\":[{\"name\":\"joinDate\",\"sourceColumns\":[\"DateTime\"],\"selectExpr\":\"date(DateTime)\",\"frequency\":\"daily\",\"reason\":\"分钟级 DateTime 转为日期，用于与日频表按日期匹配\"}],\"requiredFields\":[{\"name\":\"securityId\",\"sourceColumns\":[\"SecurityID\"],\"status\":\"direct\",\"reason\":\"股票代码，用于关联和分组\"},{\"name\":\"tradeTime\",\"sourceColumns\":[\"DateTime\"],\"status\":\"direct\",\"reason\":\"分钟级时间戳，作为因子输出时间字段\"},{\"name\":\"kmin_last\",\"sourceColumns\":[\"LastPx\"],\"status\":\"direct\",\"reason\":\"分钟最新价，用于计算 (LastPx - PreClosePx) / PreClosePx\"},{\"name\":\"kmin_preClose\",\"sourceColumns\":[\"PreClosePx\"],\"status\":\"direct\",\"reason\":\"前收盘价，用于计算 (LastPx - PreClosePx) / PreClosePx\"}]},{\"dataName\":\"stock_daily_prev\",\"dbName\":\"dfs://stock_daily\",\"tbName\":\"stock_daily_prev\",\"timeCol\":\"trade_date\",\"frequency\":\"daily\",\"sourceTimeRange\":[\"2020.01.02\",\"2025.12.03\"],\"joinFields\":[{\"name\":\"joinDate\",\"sourceColumns\":[\"trade_date\"],\"selectExpr\":\"trade_date\",\"frequency\":\"daily\",\"reason\":\"日频表本身就是日频，直接作为 joinDate\"}],\"requiredFields\":[{\"name\":\"securityId\",\"sourceColumns\":[\"ts_code\"],\"status\":\"direct\",\"reason\":\"股票代码，用于和分钟表关联\"},{\"name\":\"kday_vol\",\"sourceColumns\":[\"vol\"],\"status\":\"direct\",\"reason\":\"日频成交量，用于计算 circulatingShares = vol * 10000 / turnover_rate\"},{\"name\":\"kday_turnoverRate\",\"sourceColumns\":[\"turnover_rate\"],\"status\":\"direct\",\"reason\":\"日频换手率，用于计算 circulatingShares\"}]}],\"timeRange\":[\"2021.01.04\",\"2021.06.30\"],\"joinPlan\":{\"baseTb\":\"stockMinKSH\",\"steps\":[{\"rightTb\":\"stock_daily_prev\",\"joinType\":\"left\",\"on\":[[\"stockMinKSH.securityId\",\"stock_daily_prev.securityId\"],[\"stockMinKSH.joinDate\",\"stock_daily_prev.joinDate\"]]}]},\"output\":{\"frequency\":\"minute\",\"timeCol\":\"tradeTime\",\"contextBy\":[\"securityId\"]}}"
+
+args = fromStdJson(jsonStr)
+
+// Part C: 调用取数函数获取取数 SQL 字符串
+dataSql = extractData(args, "string")["result"]
+
+// Part D: 执行取数 SQL 获取原始计算数据
+data = runSQL(dataSql)
+
+// Part E: 因子计算函数
+def calcFactor(data) {
+    // 派生 circulatingShares 并过滤非法值
+    processedData = select
+        tradeTime,
+        securityId,
+        kmin_last,
+        kmin_preClose,
+        kday_vol * 10000 / kday_turnoverRate as circulatingShares
+    from data
+    where isValid(kmin_last)
+        and isValid(kmin_preClose)
+        and isValid(kday_vol)
+        and isValid(kday_turnoverRate)
+        and kmin_preClose > 0
+        and kday_turnoverRate > 0
+
+    // 计算因子：intradayLiquidityMomentum = (LastPx - PreClosePx) / PreClosePx * log(circulatingShares)
+    factorData = select
+        tradeTime,
+        securityId,
+        (kmin_last - kmin_preClose) / kmin_preClose * log(circulatingShares) as factorValue
+    from processedData
+    where circulatingShares > 0
+
+    // 整理为平台标准输出字段
+    result = select
+        tradeTime,
+        securityId,
+        "intradayLiquidityMomentum" as factorname,
+        factorValue as value
+    from factorData
+    where isValid(factorValue)
+
+    return result
+}
+
+// Part F: 执行因子计算
+result = calcFactor(data)

@@ -1,0 +1,399 @@
+
+@testing:case="sql_update_prepare"
+def Symbol(v){
+	return symbol(string(v))
+}
+datatypes1=[char, int, short, long, float, double]
+datatypes2=[date, month, time, minute, second, datetime, timestamp, nanotime, nanotimestamp,string,Symbol,bool]
+
+@testing:case="sql_update_contextBy_having_add_newColumn",exception=1
+n=100
+t=table(rand([1, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, 1..n as close, 1..n as high)
+update t set cbCount = sum(cb)  context by symbol having  count(close)>40000
+
+@testing:case="sql_update_contextBy_having_col_not_exist",exception=1
+n=100
+t=table(rand([1, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, 1..n as close, 1..n as high)
+update t set cb = sum(cb)  context by symbol having  count(close1)>40000
+
+@testing:case="sql_update_contextBy_having_without_filter"//,exception=1
+n=100
+t=table(rand([11, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, 1..n as close, 1..n as high)
+update t set cb = 1 context by symbol having  count(close)
+assert 1,(exec cb from t)==1
+update t set cb = 2 context by symbol having 1
+assert 2,(exec cb from t)==2
+
+@testing:case="sql_update_contextBy_having_without_filter1",syntaxError=1
+n=100
+t=table(rand([11, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, 1..n as close, 1..n as high)
+update t set cb = 1 context by symbol having  
+
+
+@testing:case="sql_update_contextBy_having_1cols"
+mytype=int
+def testUpdateContextBy(n,close,high,mytype){
+	closev=mytype(close)
+	highv=mytype(high)
+	t=table(rand([1, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, closev as close, highv as high)
+	s=exec sum(close) from t context by symbol 
+	tmp1=select sum(cb) as cb,symbol,min(close) as close,max(high) as high from t context by symbol having  sum(close)>s[0]
+	tmp2=select * from t context by symbol having  sum(close)<=s[0]
+	ex=select * from unionAll(tmp1,tmp2) order by cb,symbol,close,high
+	update t set cb = sum(cb),close=min(close),high=max(high) context by symbol having  sum(close)>s[0]
+	res=select * from t order by cb,symbol,close,high
+	return each(eqObj,res.values(),ex.values())
+}
+
+n=50000
+close=1..n + 0.05f
+high=n..1 + 0.15f
+assert 1,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=1..n 
+high=n..1 
+assert 2,loop(testUpdateContextBy{n,close,high,},datatypes2)
+close=rand(1..100 join NULL,n) + 0.05f
+high=rand(100..1 join NULL,n)  + 0.15f
+assert 3,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=rand(1..100 join NULL,n) 
+high=rand(100..1 join NULL,n)
+assert 4,loop(testUpdateContextBy{n,close,high,},datatypes2)
+
+@testing:case="sql_update_contextBy_having_2cols"
+datatypes2=[date, month, time, minute, second, datetime, timestamp, nanotime, nanotimestamp]
+
+def testUpdateContextBy(n,close,high,mytype){
+	closev=mytype(close)
+	highv=mytype(high)
+	t=table(rand([1, 0,], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, 1..n as flag, closev as close, highv as high)
+	data=exec avg(close) as a,med(high) as m,abs(close-high) as abs from t context by symbol 
+
+	tmp1=select count(cb) as cb,symbol,flag,last(close) as close,max(high) as high from t context by symbol having  avg(close)>=data[`a][0] and med(high)=data[`m][0]
+	tmp2=select * from t context by symbol having  avg(close)<data[`a][0] or med(high)!=data[`m][0]
+	ex=select cb,symbol,flag,close,high from unionAll(tmp1,tmp2) order by flag
+	replaceColumn!(ex,`high,mytype(ex.high))
+	update t set cb = count(cb),close=last(close),high=max(high) context by symbol having  avg(close)>=data[`a][0] and med(high)=data[`m][0]
+	res=select * from t order by flag
+	result1=each(eqObj,res.values(),ex.values())
+	
+	tmp1=select count(cb) as cb,symbol,flag,last(close) as close,max(high) as high from t context by symbol having  avg(close)<= med(high)
+	tmp2=select * from t context by symbol having  avg(close)> med(high)
+	ex=select cb,symbol,flag,close,high from unionAll(tmp1,tmp2) order by flag
+	replaceColumn!(ex,`high,mytype(ex.high))
+	update t set cb = count(cb),close=last(close),high=max(high) context by symbol having  avg(close)<= med(high)
+	res=select * from t order by flag
+	result2=each(eqObj,res.values(),ex.values())
+	
+	tmp1=select count(cb) as cb,symbol,flag,last(close) as close,max(high) as high from t context by symbol having  abs(close-high) >=data[`abs][0]
+	tmp2=select * from t context by symbol having  abs(close-high)<data[`abs][0]
+	ex=select cb,symbol,flag,close,high from unionAll(tmp1,tmp2) order by flag
+	replaceColumn!(ex,`high,mytype(ex.high))
+	update t set cb = count(cb),close=last(close),high=max(high) context by symbol having  abs(close-high) >=data[`abs][0]
+	res=select * from t order by flag
+	result3=each(eqObj,res.values(),ex.values())
+	return result1&&result2&&result3
+}
+n=500
+close=1..n + 0.05f
+high=n..1 + 0.15f
+assert 1,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=1..n 
+high=n..1 
+assert 2,loop(testUpdateContextBy{n,close,high,},datatypes2)
+close=rand(1..100 join NULL,n) + 0.05f
+high=rand(100..1 join NULL,n)  + 0.15f
+assert 3,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=rand(1..100 join NULL,n) 
+high=rand(100..1 join NULL,n)
+assert 4,loop(testUpdateContextBy{n,close,high,},datatypes2)
+
+@testing:case="sql_update_contextBy_having_addColumn"
+datatypes2=[date, month, time, minute, second, datetime, timestamp, nanotime, nanotimestamp,string,Symbol,bool]
+mytype=int
+def testUpdateContextBy(n,close,high,mytype){
+	closev=mytype(close)
+	highv=mytype(high)
+	t=table(rand([1, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, closev as close, highv as high)
+	addColumn(t,`close1`high1,[mytype,mytype])
+	tmp=table(rand([1, 0], n) as cb, symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol, closev as close, highv as high, closev as close1, highv as high1)
+	t.append!(tmp)
+	cdata=rand(closev,1)[0]
+	ex1=select sum(cb) as cb,symbol,close,high,first(close) as close1,last(high) as high1 from t context  by symbol having min(close)>min(high)
+	ex2=select  *  from t context  by symbol  having min(close)<=min(high)
+	ex=select * from unionAll(ex1,ex2) 
+	update t set cb = sum(cb),close1=first(close),high1=last(high)context by symbol having min(close)>min(high)
+	re=select * from t
+	return each(eqObj,re.sortBy!(re.colNames()).values(),ex.sortBy!(ex.colNames()).values())
+}
+
+n=500
+close=1..n + 0.05f
+high=n..1 + 0.15f
+assert 1,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=rand(1..n ,n)
+high=rand(1..n ,n)
+assert 2,loop(testUpdateContextBy{n,close,high,},datatypes2)
+close=rand(1..100 join NULL,n) + 0.05f
+high=rand(100..1 join NULL,n)  + 0.15f
+assert 3,loop(testUpdateContextBy{n,close,high,},datatypes1)
+close=rand(1..100 join NULL,n) 
+high=rand(100..1 join NULL,n)
+assert 4,loop(testUpdateContextBy{n,close,high,},datatypes2)
+
+@testing:case="sql_update_contextBy_having_table_rows"
+//0
+t=table(100:0,`id`symbol`price`qty,[INT,SYMBOL,DOUBLE,INT])
+update t set price = sum(price) context by symbol having min(id)>1
+assert 1,size(t)==0
+//>0
+rows=[1,10,1024,2048,65537]
+for(n in rows){
+	t=table(1..n as id,rand("s"+string(1..10),n) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+	data=exec sum(qty) as sum from t context by symbol 
+	tmp1=select id,symbol,sum(price),qty from t context by symbol  having sum(qty)>=data[0]
+	tmp2=select * from t context by symbol  having sum(qty)<data[0]
+	ex=select * from unionAll(tmp1,tmp2) order by id
+	update t set price = sum(price) context by symbol having sum(qty)>=data[0]
+	res=select * from t  order by id
+	assert 2,each(eqObj,res.values(),ex.values())
+}
+
+@testing:case="sql_update_contextBy_having_table_cols"
+//1 col
+t=table(1 1 1 2 2 2 as id)
+update t set id = count(id) context by id having sum(id)==3
+ex=table(3 3 3 2 2 2 as id)
+assert 1,each(eqObj,t.values(),ex.values())
+//more than 300 cols
+n=10
+t=table(1..n as id,rand("s"+string(1..10),n) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+for(i in 0:300){
+	t["price"+string(i)]=rand(10.0,n)
+}
+tmp1=select *, sum3(price1) as sum3 from t context by symbol   having max(price0,price2)>=price3
+update tmp1 set price=sum3
+dropColumns!(tmp1,`sum3)
+tmp2=select * from t context by symbol   having max(price0,price2)<price3
+ex=select * from unionAll(tmp1,tmp2) order by id
+update t set price = sum3(price1) context by symbol    having max(price0,price2)>=price3
+res=select * from t  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_filter_range"
+n = 100
+t=table(1..n as id,rand("s"+string(1..10),n) as symbol,rand(10.0,n) as price,rand(10.0,n) as price1,rand(100,n) as qty)
+//empty filter
+ex=t
+update t set price=price*qty context by symbol having avg(qty)>10000
+assert 1,each(eqObj,t.values(),ex.values())
+//all filter
+update t set price=avg(price)*qty context by symbol having avg(qty)>10
+update ex set price=avg(price)*qty context by symbol
+assert 2,each(eqObj,t.values(),ex.values())
+//part group filter 
+tmp1=select *, avg(qty)*price as p1 from t context by symbol having avg(price)>200
+update tmp1 set price=p1
+dropColumns!(tmp1,`p1)
+tmp2=select * from t context by symbol having avg(price)<=200
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=avg(qty)*price context by symbol having avg(price)>200
+res=select * from t  order by id
+assert 3,each(eqObj,res.values(),ex.values())
+//in group part filter 
+n=100
+t=table(1..n as id,take("s"+string(1..2),n) as symbol,rand(10.0,n) as price,rand(10.0,n) as price1,rand(100,n) as qty)
+tmp1=select * from t context by symbol having avg(price)>price1
+update tmp1 set price=1
+tmp2=select * from t context by symbol having avg(price)<=price1
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=1 context by symbol having avg(price)>price1
+res=select * from t  order by id
+assert 4,each(eqObj,res.values(),ex.values())
+//part group part filter 
+n=100
+t=table(1..n as id,take("s"+string(1..3),n) as symbol,rand(10.0,n) as price,rand(10.0,n) as price1,rand(100,n) as qty)
+tmp1=select * from t context by symbol having avg(price)>price1 and count(price)>33
+update tmp1 set price=1
+tmp2=select * from t context by symbol having avg(price)<=price1 or count(price)<=33
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=1 context by symbol having avg(price)>price1 and count(price)>33
+res=select * from t  order by id
+assert 5,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_fucntions"
+//def
+defg f1(x){
+	return avg(x)+1
+}
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,price-1,qty from t context by date having f1(price)>5
+tmp2=select * from t context by date having f1(price)<=5
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=price-1 context by date having f1(price)>5
+res=select * from t  order by id
+assert 1,each(eqObj,res.values(),ex.values())
+//Aggregate 
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,price-1,qty  from t context by date,symbol having beta(price,qty)>0 and std(qty)<=20
+tmp2=select * from t context by date,symbol having beta(price,qty)<=0 or std(qty)>20
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=price-1 context by date,symbol having beta(price,qty)>0 and std(qty)<=20
+res=select * from t  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+//no Aggregate
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price ,qty   from t context by date,symbol csort id having denseRank(id)==0
+tmp2=select * from t context by date,symbol csort id having denseRank(id)!=0
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price) context by date,symbol  csort id having denseRank(id) ==0
+res=select * from t  order by id
+assert 3,each(eqObj,res.values(),ex.values())
+
+//no Aggregate && Aggregate
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price, msum(qty,2) as qty  from t context by date csort id having denseRank(id)!=0 or sum(id)<500
+tmp2=select * from t context by date csort id having denseRank(id)==0 and  sum(id)>=500
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price) ,qty=msum(qty,2)  context by date  csort id having denseRank(id)!=0 or sum(id)<500
+res=select * from t  order by id
+assert 4,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_where"
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price, msum(qty,2) as qty  from t where date between 2010.01.01:2010.01.08  context by date csort id having denseRank(id)<=2
+tmp2=select * from t where date between 2010.01.09:2010.01.10 
+tmp3=select * from t where date between 2010.01.01:2010.01.08 context by date csort id having denseRank(id)>2
+ex=select * from unionAll(tmp3,unionAll(tmp1,tmp2))  order by id
+update t set price=cumsum(price),qty=msum(qty,2) where date between 2010.01.01:2010.01.08  context by date csort id having denseRank(id)<=2
+res=select * from t  order by id
+assert 1,each(eqObj,res.values(),ex.values())
+
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price, msum(qty,2) as qty  from t where id in 0..59  context by date csort id having denseRank(id)<1
+tmp2=select * from t where  id in 60..n
+tmp3=select * from t where id in 0..59  context by date csort id having denseRank(id)>=1
+ex=select * from unionAll(tmp3,unionAll(tmp1,tmp2))  order by id
+update t set price=cumsum(price),qty=msum(qty,2) where id in 0..59  context by date csort id having denseRank(id)<1
+res=select * from t  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price, msum(qty,2) as qty  from t where qty in 0..59  context by date csort id having denseRank(id)<1
+tmp2=select * from t where  qty in 60..n
+tmp3=select * from t where qty in 0..59  context by date csort id having denseRank(id)>=1
+ex=select * from unionAll(tmp3,unionAll(tmp1,tmp2))  order by id
+update t set price=cumsum(price),qty=msum(qty,2) where qty in 0..59  context by date csort id having denseRank(id)<1
+res=select * from t  order by id
+assert 3,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_conditions"
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price, msum(qty,2) as qty  from t where qty in 0..59  context by symbol  having max(date) between 2010.01.01:2010.01.08 
+tmp2=select * from t where  qty in 60..n
+tmp3=select * from t where qty in 0..59  context by symbol  having  max(date) between 2010.01.09:2010.01.10
+ex=select * from unionAll(tmp3,unionAll(tmp1,tmp2))  order by id
+update t set price=cumsum(price),qty=msum(qty,2) where qty in 0..59  context by symbol  having max(date) between 2010.01.01:2010.01.08 
+res=select * from t  order by id
+assert 1,each(eqObj,res.values(),ex.values())
+
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price ,qty   from t context by symbol csort id having max(date) in (2010.01.01,2010.01.07)
+tmp2=select * from t context by symbol  csort id having max(date) not in (2010.01.01,2010.01.07)
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price) context by symbol  csort id having max(date) in (2010.01.01,2010.01.07)
+res=select * from t  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_csort"
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price ,qty   from t context by symbol csort id having cumsum(id)>=100  and cumsum(id)<150
+tmp2=select * from t context by symbol csort id having cumsum(id)<100  or cumsum(id)>=150
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price) context by symbol  csort id having cumsum(id)>=100  and cumsum(id)<150
+res=select * from t  order by id
+assert 1,each(eqObj,res.values(),ex.values())
+
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price ,qty  from t context by symbol csort price having mavg(id,2)>=50  
+tmp2=select * from t context by symbol csort price having mavg(id,2)<50  
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price) context by symbol csort price having mavg(id,2)>=50 
+res=select * from t  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp1=select id,date,symbol,cumsum(price)as price ,msum(qty,2)-id  as qty  from t context by symbol csort price having cumcorr(qty,price)>0
+tmp2=select * from t context by symbol csort price having cumcorr(qty,price)<=0
+ex=select * from unionAll(tmp1,tmp2)  order by id
+update t set price=cumsum(price),qty=msum(qty,2)-id context by symbol csort price having cumcorr(qty,price)>0
+res=select * from t  order by id
+assert 3,each(eqObj,res.values(),ex.values())
+
+@testing:case="sql_update_contextBy_having_multi_times"
+n = 100
+t=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+for(i in 0:10){
+	tmp1=select id,date,symbol,cumsum(price)as price ,msum(qty,2)-id  as qty  from t context by symbol csort price having cumcorr(qty,price)>0
+	tmp2=select * from t context by symbol csort price having cumcorr(qty,price)<=0
+	ex=select * from unionAll(tmp1,tmp2)  order by id
+	update t set price=cumsum(price),qty=msum(qty,2)-id context by symbol csort price having cumcorr(qty,price)>0
+	res=select * from t  order by id
+	assert 1,each(eqObj,res.values(),ex.values())
+}
+
+@testing:case="sql_update_contextBy_having_join"
+n = 200
+t1=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+t2=table(1..n as id,take(2010.01.01..2010.01.10,n) as date,symbol(rand("00000"+string(1..9)+".SZ", n)) as symbol,rand(10.0,n) as price,rand(100,n) as qty)
+tmp=indexedTable(`id,t1)
+tmp1=select id,date,symbol,cumsum(t2.price),qty from lj(t1,t2,`symbol`date) context by symbol,date having avg(qty)>50
+tmp1=select * from tmp1 where isDuplicated(id,LAST)==false
+upsert!(tmp,tmp1,,`id)
+ex=select * from tmp order by id
+update t1 set t1.price=cumsum(t2.price) from lj(t1,t2,`symbol`date) context by symbol,date having avg(qty)>50
+res=select * from t1  order by id
+assert 1,each(eqObj,res.values(),ex.values())
+
+tmp1=select id,date,symbol,avg(t2.price),qty from ej(t1,t2,`symbol`date) context by symbol,date having avg(qty)>50
+tmp1=select * from tmp1 where isDuplicated(id,LAST)==false
+upsert!(tmp,tmp1,,`id)
+ex=select * from tmp order by id
+update t1 set t1.price=avg(t2.price) from ej(t1,t2,`symbol`date) context by symbol,date having avg(qty)>50
+res=select * from t1  order by id
+assert 2,each(eqObj,res.values(),ex.values())
+
+tmp1=select id,date,symbol,cumsum(t2.price),qty from lsj(t1,t2,`symbol`date) context by symbol,date having avg(qty)>t2.qty  
+tmp1=select * from tmp1 where isDuplicated(id,LAST)==false
+upsert!(tmp,tmp1,,`id)
+ex=select * from tmp order by id
+update t1 set t1.price=cumsum(t2.price) from lsj(t1,t2,`symbol`date) context by symbol,date having avg(qty)>t2.qty  
+res=select * from t1  order by id
+assert 3,each(eqObj,res.values(),ex.values())
+
+tmp1=select id,date,symbol,t1.price+cumsum(t2.price),qty from cj(t1,t2) context by symbol,date csort id having denseRank(t2.qty)>50
+tmp1=select * from tmp1 where isDuplicated(id,LAST)==false
+upsert!(tmp,tmp1,,`id)
+ex=select * from tmp order by id
+update t1 set t1.price=t1.price+cumsum(t2.price) from  cj(t1,t2) context by symbol,date csort id having denseRank(t2.qty)>50
+res=select * from t1  order by id
+assert 4,each(eqObj,res.values(),ex.values())
+
+tmp1=select id,date,symbol,0,qty from aj(t1,t2,`id) context by symbol,date csort id having  denseRank(t2.qty)==0 or count(*)>2
+tmp1=select * from tmp1 where isDuplicated(id,LAST)==false
+upsert!(tmp,tmp1,,`id)
+ex=select * from tmp order by id
+update t1 set t1.price=0 from  aj(t1,t2,`id) context by symbol,date csort id having  denseRank(t2.qty)==0 or   count(*)>2
+res=select * from t1  order by id
+assert 5,each(eqObj,res.values(),ex.values())

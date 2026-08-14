@@ -1,0 +1,760 @@
+#include "checkChunk.txt"
+/*
+ * this case requires a 2 node cluster
+
+*/
+
+#include "setup/settings.txt"
+login("admin","123456")
+/**RANGE Partition**/
+if(existsDatabase("dfs://test_addColumn_range")){
+	dropDatabase("dfs://test_addColumn_range")
+	}
+n=1000	
+ID=rand(10, n)
+x=rand(1.0, n)
+t=table(ID, x);
+db=database("dfs://test_addColumn_range",RANGE,  0 5 10, , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID, , `ID);
+pt.append!(t);
+
+
+@testing:case="test_add_column_colName_NULL",exception=1
+addColumn(pt,NULL,INT)
+
+
+
+//@testing:case="test_add_column_colType_NULL",exception=1
+//addColumn(pt,"addColumn1",NULL)
+
+//@testing:case="test_add_column_colName_empty_string",exception=1
+//addColumn(pt,"",INT)
+
+@testing:case="test_add_column_colName_set",exception=1
+addColumn(pt,set(["addColumn1","addColumn2"]),[INT,DOUBLE])
+
+@testing:case="test_add_column_colName_pair",exception=1
+addColumn(pt,"addColumn1":"addColumn2",[INT,DOUBLE])
+
+//@testing:case="test_add_column_colName_colType_vector_empty_string",exception=1
+//addColumn(pt,["addColumn1",""],[INT,FLOAT])
+
+@testing:case="test_add_column_colName_colType_size_different",exception=1
+addColumn(pt,"addColumn1",[INT,DOUBLE])
+
+@testing:case="test_add_column_colType_set",exception=1
+addColumn(pt,["addColumn1","addColumn2"],set([INT,DOUBLE]))
+
+@testing:case="test_add_column_colType_pair",exception=1
+addColumn(pt,["addColumn1","addColumn2"],INT:DOUBLE)
+
+
+@testing:case="test_add_column_existing_column",exception=1
+addColumn(pt,"ID",[INT])
+
+
+@testing:case="test_add_column_colName_param_check_bool",exception=1
+addColumn(pt,true,INT)
+
+@testing:case="test_add_column_colName_param_check_char",exception=1
+addColumn(pt,'a',INT)
+
+@testing:case="test_add_column_colName_param_check_short",exception=1
+addColumn(pt,22h,INT)
+
+@testing:case="test_add_column_colName_param_check_int",exception=1
+addColumn(pt,2,INT)
+
+@testing:case="test_add_column_colName_param_check_long",exception=1
+addColumn(pt,22l,INT)
+
+@testing:case="test_add_column_colName_param_check_date",exception=1
+addColumn(pt,2012.02.13,INT)
+
+@testing:case="test_add_column_colName_param_check_month",exception=1
+addColumn(pt,2013.06M,INT)
+
+@testing:case="test_add_column_colName_param_check_time",exception=1
+addColumn(pt,23:30:10.008,INT)
+
+@testing:case="test_add_column_colName_param_check_minute",exception=1
+addColumn(pt,13:30m,INT)
+
+@testing:case="test_add_column_colName_param_check_second",exception=1
+addColumn(pt,13:30:10,INT)
+
+@testing:case="test_add_column_colName_param_check_datetime",exception=1
+addColumn(pt,2012.06.13 13:30:10,INT)
+
+@testing:case="test_add_column_colName_param_check_timestamp",exception=1
+addColumn(pt,2012.06.13 13:30:10.008,INT)
+
+@testing:case="test_add_column_colName_param_check_nanotime",exception=1
+addColumn(pt,13:30:10.008007006,INT)
+
+@testing:case="test_add_column_colName_param_check_nanotimestamp",exception=1
+addColumn(pt,2012.06.13 13:30:10.008007006,INT)
+
+@testing:case="test_add_column_colName_param_check_float",exception=1
+addColumn(pt,2.1f,INT)
+
+@testing:case="test_add_column_colName_param_check_double",exception=1
+addColumn(pt,2.1,INT)
+
+@testing:case="test_add_column_colTypes_param_check_bool",exception=1
+addColumn(pt,"addColumn1",true)
+
+@testing:case="test_add_column_colTypes_param_check_date",exception=1
+addColumn(pt,"addColumn1",2013.06.13)
+
+@testing:case="test_add_column_colTypes_param_check_month",exception=1
+addColumn(pt,"addColumn1",2013.06M)
+
+@testing:case="test_add_column_colTypes_param_check_time",exception=1
+addColumn(pt,"addColumn1",13:30:10.008)
+
+@testing:case="test_add_column_colTypes_param_check_minute",exception=1
+addColumn(pt,"addColumn1",13:30m)
+
+@testing:case="test_add_column_colTypes_param_check_second",exception=1
+addColumn(pt,"addColumn1",13:30:10)
+
+@testing:case="test_add_column_colTypes_param_check_datetime",exception=1
+addColumn(pt,"addColumn1",2012.06.13 13:30:10)
+
+@testing:case="test_add_column_colTypes_param_check_timestamp",exception=1
+addColumn(pt,"addColumn1",2012.06.13 13:30:10.008)
+
+@testing:case="test_add_column_colTypes_param_check_nanotime",exception=1
+addColumn(pt,"addColumn1",13:30:10.008007006)
+
+@testing:case="test_add_column_colTypes_param_check_nanotimestamp",exception=1
+addColumn(pt,"addColumn1",2012.06.13 13:30:10.008007006)
+
+@testing:case="test_add_column_colTypes_param_check_functiondef",syntaxError=1
+addColumn(pt,"addColumn1",def f1(a,b){return a+b;})
+
+@testing:case="test_add_column_colTypes_param_check_negative_integer",exception=1
+addColumn(pt,"addColumn1",-1)
+
+@testing:case="test_add_column_colTypes_param_check_large_integer",exception=1
+addColumn(pt,"addColumn1",1000)
+
+@testing:case="test_add_column_access_denied",exception=1
+login("admin","123456")
+MST=getControllerAlias()
+rpc(MST,createUser,"user_add_column","123456")
+login("user_add_column","123456")
+addColumn(pt,`addColumn,INT)
+logout("user_add_column")
+
+
+@testing:case="test_add_columns_range"
+login("admin","123456")
+//add one column
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 1,re.name[2]=="addColumn1"
+assert 2,re.typeString[2]=="INT"
+//append data
+addColumn=rand(20,n)
+temp=table(ID,x,addColumn)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 3,data.cols()==3
+assert 4,data.rows()==n*2
+
+//add multiple columns
+addColumn(pt,["addColumn2","addColumn3"],[INT,DOUBLE])
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 5,re.name[3]=="addColumn2"
+assert 6,re.typeString[3]=="INT"
+assert 7,re.name[4]=="addColumn3"
+assert 8,re.typeString[4]=="DOUBLE"
+
+addColumn1=rand(15,n)
+addColumn2=rand(30,n)
+addColumn3=rand(12.0,n)
+temp=table(ID,x,addColumn1,addColumn2,addColumn3)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 9,data.cols()==5
+assert 10,data.rows()==3*n
+
+//different table name
+pt1=loadTable("dfs://test_addColumn_range","pt")
+pt1.addColumn("addColumn4",INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt1=loadTable("dfs://test_addColumn_range","pt")
+assert 11,pt1.cols()==6
+
+@testing:case="test_add_columns_loop_different_data_type_range"
+login("admin","123456")
+/**RANGE Partition**/
+if(existsDatabase("dfs://test_addColumn_range")){
+	dropDatabase("dfs://test_addColumn_range")
+	}
+n=1000	
+ID=rand(10, n)
+x=rand(1.0, n)
+t=table(ID, x);
+db=database("dfs://test_addColumn_range",RANGE,  0 5 10, , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID, , `ID);
+pt.append!(t);
+
+//add column different data types: data type ID from 1 to 18
+for(i in 1..18){
+	columnName="addColumn"+format(i,"##")
+	addColumn(pt,columnName,i)
+	//reload table
+	pt=loadTable(db,"pt")
+	}
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,"pt")
+assert 1,pt.cols()==20
+
+/**HASH partition**/
+@testing:case="test_add_columns_hash"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_hash")){
+	dropDatabase("dfs://test_addColumn_hash")
+	}
+n=1000
+ID=rand(10, n)
+x=rand(1.0, n)
+t=table(ID, x)
+db=database("dfs://test_addColumn_hash", HASH,  [INT, 2], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID, , `ID)
+pt.append!(t);
+
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 1,re.name[2]=="addColumn1"
+assert 2,re.typeString[2]=="INT"
+//append data
+addColumn=rand(20,n)
+temp=table(ID,x,addColumn)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 3,data.cols()==3
+assert 4,data.rows()==n*2
+
+//add multiple columns
+addColumn(pt,["addColumn2","addColumn3"],[INT,DOUBLE])
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 5,re.name[3]=="addColumn2"
+assert 6,re.typeString[3]=="INT"
+assert 7,re.name[4]=="addColumn3"
+assert 8,re.typeString[4]=="DOUBLE"
+
+addColumn1=rand(15,n)
+addColumn2=rand(30,n)
+addColumn3=rand(12.0,n)
+temp=table(ID,x,addColumn1,addColumn2,addColumn3)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 9,data.cols()==5
+assert 10,data.rows()==3*n
+
+
+@testing:case="test_add_columns_loop_different_data_type_hash"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_hash")){
+	dropDatabase("dfs://test_addColumn_hash")
+	}
+n=1000
+ID=rand(10, n)
+x=rand(1.0, n)
+t=table(ID, x)
+db=database("dfs://test_addColumn_hash", HASH,  [INT, 2], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID, , `ID)
+pt.append!(t);
+
+//add column different data types: data type ID from 1 to 18
+for(i in 1..18){
+	columnName="addColumn"+format(i,"##")
+	addColumn(pt,columnName,i)
+	//reload table
+	pt=loadTable(db,"pt")
+	}
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,"pt")
+assert 1,pt.cols()==20
+
+/**VALUE partition**/
+@testing:case="test_add_columns_value"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_value")){
+	dropDatabase("dfs://test_addColumn_value")
+	}
+n=1000
+month=take(2000.01M..2000.12M, n);
+x=rand(1.0, n);
+t=table(month, x);
+db=database("dfs://test_addColumn_value", VALUE, 2000.01M..2000.12M, , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `month, , `month);
+pt.append!(t);
+
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 1,re.name[2]=="addColumn1"
+assert 2,re.typeString[2]=="INT"
+//append data
+addColumn=rand(20,n)
+temp=table(month,x,addColumn)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 3,data.cols()==3
+assert 4,data.rows()==n*2
+
+//add multiple columns
+addColumn(pt,["addColumn2","addColumn3"],[INT,DOUBLE])
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 5,re.name[3]=="addColumn2"
+assert 6,re.typeString[3]=="INT"
+assert 7,re.name[4]=="addColumn3"
+assert 8,re.typeString[4]=="DOUBLE"
+
+addColumn1=rand(15,n)
+addColumn2=rand(30,n)
+addColumn3=rand(12.0,n)
+temp=table(month,x,addColumn1,addColumn2,addColumn3)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 9,data.cols()==5
+assert 10,data.rows()==3*n
+
+
+@testing:case="test_add_columns_loop_different_data_type_value"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_value")){
+	dropDatabase("dfs://test_addColumn_value")
+	}
+n=1000
+month=take(2000.01M..2000.12M, n);
+x=rand(1.0, n);
+t=table(month, x);
+db=database("dfs://test_addColumn_value", VALUE, 2000.01M..2000.12M, , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `month, , `month);
+pt.append!(t);
+
+//add column different data types: data type ID from 1 to 18
+for(i in 1..18){
+	columnName="addColumn"+format(i,"##")
+	addColumn(pt,columnName,i)
+	//reload table
+	pt=loadTable(db,"pt")
+	}
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,"pt")
+assert 1,pt.cols()==20
+
+/**LIST partition**/
+@testing:case="test_add_columns_list"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_list")){
+	dropDatabase("dfs://test_addColumn_list")
+	}
+n=1000
+ticker = rand(`MSFT`GOOG`FB`ORCL`IBM,n);
+x=rand(1.0, n);
+t=table(ticker, x);
+
+db=database("dfs://test_addColumn_list", LIST, [`IBM`ORCL`MSFT, `GOOG`FB], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ticker, , `ticker)
+pt.append!(t);
+
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 1,re.name[2]=="addColumn1"
+assert 2,re.typeString[2]=="INT"
+//append data
+addColumn=rand(20,n)
+temp=table(ticker,x,addColumn)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 3,data.cols()==3
+assert 4,data.rows()==n*2
+
+//add multiple columns
+addColumn(pt,["addColumn2","addColumn3"],[INT,DOUBLE])
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 5,re.name[3]=="addColumn2"
+assert 6,re.typeString[3]=="INT"
+assert 7,re.name[4]=="addColumn3"
+assert 8,re.typeString[4]=="DOUBLE"
+
+addColumn1=rand(15,n)
+addColumn2=rand(30,n)
+addColumn3=rand(12.0,n)
+temp=table(ticker,x,addColumn1,addColumn2,addColumn3)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 9,data.cols()==5
+assert 10,data.rows()==3*n
+
+@testing:case="test_add_columns_loop_different_data_type_list"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_list")){
+	dropDatabase("dfs://test_addColumn_list")
+	}
+n=1000
+ticker = rand(`MSFT`GOOG`FB`ORCL`IBM,n);
+x=rand(1.0, n);
+t=table(ticker, x);
+
+db=database("dfs://test_addColumn_list", LIST, [`IBM`ORCL`MSFT, `GOOG`FB], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `ticker, , `ticker)
+pt.append!(t);
+
+//add column different data types: data type ID from 1 to 18
+for(i in 1..18){
+	columnName="addColumn"+format(i,"##")
+	addColumn(pt,columnName,i)
+	//reload table
+	pt=loadTable(db,"pt")
+	}
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,"pt")
+assert 1,pt.cols()==20
+
+/**COMPO partition**/
+@testing:case="test_add_columns_compo"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_compo")){
+	dropDatabase("dfs://test_addColumn_compo")
+	}
+n=1000
+ID=rand(100, n)
+dates=2017.08.07..2017.08.11
+date=rand(dates, n)
+x=rand(10.0, n)
+t=table(ID, date, x)
+
+dbDate = database(, VALUE, 2017.08.07..2017.08.11)
+dbID = database(, RANGE, 0 50 100)
+db = database("dfs://test_addColumn_compo", COMPO, [dbDate, dbID], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `date`ID, , `date`ID)
+pt.append!(t)
+
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 1,re.name[3]=="addColumn1"
+assert 2,re.typeString[3]=="INT"
+//append data
+addColumn=rand(20,n)
+temp=table(ID,date,x,addColumn)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 3,data.cols()==4
+assert 4,data.rows()==n*2
+
+//add multiple columns
+addColumn(pt,["addColumn2","addColumn3"],[INT,DOUBLE])
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+re=select * from schema(pt).colDefs
+assert 5,re.name[4]=="addColumn2"
+assert 6,re.typeString[4]=="INT"
+assert 7,re.name[5]=="addColumn3"
+assert 8,re.typeString[5]=="DOUBLE"
+
+addColumn1=rand(15,n)
+addColumn2=rand(30,n)
+addColumn3=rand(12.0,n)
+temp=table(ID,date,x,addColumn1,addColumn2,addColumn3)
+pt.append!(temp)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+data=select * from pt
+assert 9,data.cols()==6
+assert 10,data.rows()==3*n
+
+@testing:case="test_add_columns_loop_different_data_type_compo"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn_compo")){
+	dropDatabase("dfs://test_addColumn_compo")
+	}
+n=1000
+ID=rand(100, n)
+dates=2017.08.07..2017.08.11
+date=rand(dates, n)
+x=rand(10.0, n)
+t=table(ID, date, x)
+
+dbDate = database(, VALUE, 2017.08.07..2017.08.11)
+dbID = database(, RANGE, 0 50 100)
+db = database("dfs://test_addColumn_compo", COMPO, [dbDate, dbID], , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `date`ID, , `date`ID)
+pt.append!(t)
+
+//add column different data types: data type ID from 1 to 18
+for(i in 1..18){
+	columnName="addColumn"+format(i,"##")
+	addColumn(pt,columnName,i)
+	//reload table
+	pt=loadTable(db,"pt")
+	}
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,"pt")
+assert 1,pt.cols()==21
+
+@testing:case="test_function_add_columns_different_partitions"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn")){
+	dropDatabase("dfs://test_addColumn")
+	}
+
+n=1000
+month=take(2000.01M..2000.12M, n);
+x=rand(1.0, n);
+t=table(month, x);
+db=database("dfs://test_addColumn", VALUE, 2000.01M..2000.12M, , "TSDB")
+pt = db.createPartitionedTable(t, `pt, `month, , `month);
+pt.append!(t);
+
+//reload table: new column is already in pt
+addColumn(pt,`addColumn1,INT)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+pt=loadTable(db,`pt)
+assert 1,(exec count(*) from schema(pt).colDefs)==3
+
+//append data to 2 partitions
+monthv=take(2000.01M,10) join take(2000.02M,10)
+xv=rand(1.0,20)
+addColumn1=rand(10,20)
+t1=table(monthv,xv,addColumn1)
+pt.append!(t1)
+
+//check if the new column in other partitions
+re=select * from loadTable("dfs://test_addColumn","pt") where month>=2000.03M
+assert 1,re.cols()==3
+assert 2,isNull(re.addColumn1)==true
+/*
+@testing:case="test_function_addColumn_recovery"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn")){
+	dropDatabase("dfs://test_addColumn")
+	}
+
+n=1000
+month=take(2000.01M..2000.12M, n);
+x=rand(1.0, n);
+t=table(month, x);
+db=database("dfs://test_addColumn", VALUE, 2000.01M..2000.12M)
+pt = db.createPartitionedTable(t, `pt, `month);
+pt.append!(t);
+exec count(*) from loadTable("dfs://test_addColumn","pt")
+
+//stop one datanode
+MST=getControllerAlias()
+NODE2="18902datanode"
+rpc(MST,stopDataNode,NODE2)
+
+addColumn(pt,["addColumn1","addColumn2"],[INT,DOUBLE])
+pt=loadTable(db,`pt)
+assert 1,(exec count(*) from schema(pt).colDefs)==4
+*/
+
+/*
+@testing:case="test_function_addColumn_rollback"
+login("admin","123456")
+if(existsDatabase("dfs://test_addColumn")){
+	dropDatabase("dfs://test_addColumn")
+	}
+
+n=1000
+month=take(2000.01M..2000.04M, n);
+x=rand(1.0, n);
+t=table(month, x);
+db=database("dfs://test_addColumn", VALUE, 2000.01M..2000.04M)
+pt = db.createPartitionedTable(t, `pt, `month);
+pt.append!(t);
+
+addColumn(pt,["addColumn1","addColumn2"],[INT,DOUBLE])
+
+def writeData(){
+	db=database("dfs://test_addColumn")
+	pt=loadTable(db,"pt")
+	n=1000
+	monthv=take(2000.01M,n)
+	xv=rand(20,n)
+	add1=rand(10,n)
+	add2=rand(10.0,n)
+	t1=table(monthv,xv,add1,add2)
+	pt.append!(t1)
+	}
+	//writeData()
+jobId="writeData"+temporalFormat(now(),"yyyy_MM_ddTHH_mm_ss_SSS")
+submitJob(jobId,"writeData",writeData)
+sleep(30000)
+MST=getControllerAlias()
+
+rpc(MST,stopDataNode,NODE2)
+getJobReturn(jobId,true)
+getJobMessage(jobId)
+
+
+sleep(65000)
+rpc(MST,startDataNode,NODE2)
+
+
+login("admin","123456")
+pt=select * from loadTable("dfs://test_addColumn","pt")
+//the new columns already in the table
+assert 1,pt.cols()==4
+assert 2,isNull(pt.addColumn1)==true
+assert 3,isNull(pt.addColumn2)==true
+assert 4,(exec count(*) from loadTable("dfs://test_addColumn","pt"))==1000
+
+//append new data
+monthv=take(2000.01M,10)
+xv=rand(20,10)
+add1=rand(10,10)
+add2=rand(10.0,10)
+t3=table(monthv,xv,add1,add2)
+pt.append!(t3)
+assert 5,(exec count(*) from loadTable("dfs://test_addColumn","pt"))==1010
+
+*/
+
+@testing:case="test_addColumn_Begin_with_number_sz.s"
+dbName = "dfs://test_addColumn_Begin_with_number_sz.s"
+tbName = "test"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+ID=1..6
+x=1..6\5
+t1=table(ID as "00001.sz", x)
+db=database(dbName,RANGE,  1 4 7,,'TSDB')
+pt = db.createPartitionedTable(t1, tbName, `00001.sz,,`00001.sz)
+pt.append!(t1)
+addColumn(pt,["00002.sz"], take(DOUBLE, 1))
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+assert 1,(select * from pt).cols()==3
+
+pt=loadTable(dbName,tbName)
+pnodeRunAllNodes(purgeCacheEngine)
+sleep(1000)
+
+t1["00002.sz"]=take(double(),t1.size())
+t2=table(ID as "00001.sz",7..12\5 as x,1..6  as "00002.sz")
+for(i in 0:10){
+	print(i)
+	pt.append!(t2)
+	t1.append!(t2)
+	pnodeRunAllNodes(purgeCacheEngine)
+	sleep(1000)
+	assert 2,each(eqObj,(select * from pt order by x).values(),(select * from t1 order by x).values())
+}
+
+
+addColumn(pt,["sz.s2"], take(DOUBLE, 1))
+pnodeRunAllNodes(flushTSDBCache)
+sleep(5000)
+assert 3,(select * from pt).cols()==4
+
+pt=loadTable(dbName,tbName)
+
+t1["sz.s2"]=take(double(),t1.size())
+t2=table(ID as "00001.sz",7..12\5 as x,1..6  as "00002.sz",1..6  as  "sz.s2")
+for(i in 0:10){
+	print(i)
+	pt.append!(t2)
+	t1.append!(t2)
+	pnodeRunAllNodes(purgeCacheEngine)
+	sleep(2000)
+	assert 2,each(eqObj,(select * from pt order by x).values(),(select * from t1 order by x).values())
+}
+
+
+@testing:case="test_function_addColumn_D20-5181"
+dbName = "dfs://test_addcolumn"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 1..10,,`TSDB,,"DATABASE")
+t = table(`a`b`c as sym,1..3 as id)
+pt = createPartitionedTable(db, t, `pt, `id,,`id).append!(t)
+addColumn(pt,`cuuid,UUID)
+addColumn(pt,`cint128,INT128)
+addColumn(pt,`cipaddr,IPADDR)
+schema(loadTable(dbName,"pt")).colDefs
+re = select * from pt
+ex = select * from t
+addColumn(ex,`cuuid,UUID)
+addColumn(ex,`cint128,INT128)
+addColumn(ex,`cipaddr,IPADDR)
+re.sortBy!(re.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj, re.values(), ex.values())
+re2 = schema(re).colDefs[`name]
+re3 = schema(re).colDefs[`typeString]
+ex2 = [`sym, `id, `cuuid, `cint128, `cipaddr]
+ex3 = [`STRING, `INT, `UUID, `INT128, `IPADDR]
+assert 2, eqObj(re2, ex2)
+assert 3, eqObj(re3, ex3)
+t = table(`a`b`c as sym,1..3 as id,rand(uuid(),3) as cuuid,rand(int128(),3) as cint128,rand(ipaddr(),3) as cipaddr)
+loadTable(dbName,"pt").append!(t)
+pnodeRunAllNodes(flushOLAPCache)
+sleep(5000)
+re4 = select * from pt
+ex4 = ex.append!(t)
+re4.sortBy!(re4.colNames())
+ex4.sortBy!(ex4.colNames())
+assert 4, each(eqObj, re4.values(), ex4.values())

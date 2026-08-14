@@ -1,0 +1,106 @@
+module easy_datayes::loadData::loadOneDayData::loadOneDayOrderQueue
+
+use easy_datayes::tbSchema::csvSchema::orderQueueCsvSchema
+
+/*
+ * @FunctionName: transformOrderQueueSH
+ * @Brief: Transforms SH order queue CSV (OrderQueue.csv) to standardized format.
+ * @Param: t: Raw CSV chunk loaded via orderQueueCsvSchema().
+ * @Param: day: Trading date.
+ * @Return: Standardized table with 13 columns.
+ */
+def transformOrderQueueSH(t, day){
+    tmpData = select SecurityID + ".SH" as code,
+                    "SH" as exchange,
+                    day as trade_date,
+                    TradeTime as trade_time,
+                    double(NULL) as last_price,
+                    Side as side,
+                    Price as order_price,
+                    Volume as total_order_qty,
+                    NumOrders as order_num,
+                    NoOrders as order_no,
+                    fixedLengthArrayVector(OrderQty1, OrderQty2, OrderQty3, OrderQty4, OrderQty5, OrderQty6, OrderQty7, OrderQty8, OrderQty9, OrderQty10, OrderQty11, OrderQty12, OrderQty13, OrderQty14, OrderQty15, OrderQty16, OrderQty17, OrderQty18, OrderQty19, OrderQty20, OrderQty21, OrderQty22, OrderQty23, OrderQty24, OrderQty25, OrderQty26, OrderQty27, OrderQty28, OrderQty29, OrderQty30, OrderQty31, OrderQty32, OrderQty33, OrderQty34, OrderQty35, OrderQty36, OrderQty37, OrderQty38, OrderQty39, OrderQty40, OrderQty41, OrderQty42, OrderQty43, OrderQty44, OrderQty45, OrderQty46, OrderQty47, OrderQty48, OrderQty49, OrderQty50) as order_qty,
+                    NoPriceLevel as level_num,
+                    now() as update_time
+              from t
+    return tmpData
+}
+
+/*
+ * @FunctionName: transformOrderQueueSZOrderQueue
+ * @Brief: Transforms SZ order queue CSV old format (OrderQueue.csv) to standardized format.
+ *         Side is read from the CSV file directly.
+ * @Param: t: Raw CSV chunk loaded via orderQueueCsvSchema().
+ * @Param: day: Trading date.
+ * @Return: Standardized table with 13 columns.
+ */
+def transformOrderQueueSZOrderQueue(t, day){
+    tmpData = select SecurityID + ".SZ" as code,
+                    "SZ" as exchange,
+                    day as trade_date,
+                    TradeTime as trade_time,
+                    double(NULL) as last_price,
+                    Side as side,
+                    Price as order_price,
+                    Volume as total_order_qty,
+                    NumOrders as order_num,
+                    NoOrders as order_no,
+                    fixedLengthArrayVector(OrderQty1, OrderQty2, OrderQty3, OrderQty4, OrderQty5, OrderQty6, OrderQty7, OrderQty8, OrderQty9, OrderQty10, OrderQty11, OrderQty12, OrderQty13, OrderQty14, OrderQty15, OrderQty16, OrderQty17, OrderQty18, OrderQty19, OrderQty20, OrderQty21, OrderQty22, OrderQty23, OrderQty24, OrderQty25, OrderQty26, OrderQty27, OrderQty28, OrderQty29, OrderQty30, OrderQty31, OrderQty32, OrderQty33, OrderQty34, OrderQty35, OrderQty36, OrderQty37, OrderQty38, OrderQty39, OrderQty40, OrderQty41, OrderQty42, OrderQty43, OrderQty44, OrderQty45, OrderQty46, OrderQty47, OrderQty48, OrderQty49, OrderQty50) as order_qty,
+                    NoPriceLevel as level_num,
+                    now() as update_time
+              from t
+    return tmpData
+}
+
+/*
+ * @FunctionName: transformOrderQueueSZmdl6281
+ * @Brief: Transforms SZ order queue CSV (mdl_6_28_1.csv, sell side) to standardized format.
+ *         Side is hardcoded to "S" since this file contains only sell orders.
+ * @Param: t: Raw CSV chunk loaded via orderQueueCsvSchema().
+ * @Param: day: Trading date.
+ * @Return: Standardized table with 13 columns.
+ */
+def transformOrderQueueSZmdl6281(t, day){
+    tmpData = select SecurityID + ".SZ" as code,
+                    "SZ" as exchange,
+                    day as trade_date,
+                    TradeTime as trade_time,
+                    double(NULL) as last_price,
+                    "S" as side,
+                    Price as order_price,
+                    Volume as total_order_qty,
+                    NumOrders as order_num,
+                    NoOrders as order_no,
+                    fixedLengthArrayVector(OrderQty1, OrderQty2, OrderQty3, OrderQty4, OrderQty5, OrderQty6, OrderQty7, OrderQty8, OrderQty9, OrderQty10, OrderQty11, OrderQty12, OrderQty13, OrderQty14, OrderQty15, OrderQty16, OrderQty17, OrderQty18, OrderQty19, OrderQty20, OrderQty21, OrderQty22, OrderQty23, OrderQty24, OrderQty25, OrderQty26, OrderQty27, OrderQty28, OrderQty29, OrderQty30, OrderQty31, OrderQty32, OrderQty33, OrderQty34, OrderQty35, OrderQty36, OrderQty37, OrderQty38, OrderQty39, OrderQty40, OrderQty41, OrderQty42, OrderQty43, OrderQty44, OrderQty45, OrderQty46, OrderQty47, OrderQty48, OrderQty49, OrderQty50) as order_qty,
+                    NoPriceLevel as level_num,
+                    now() as update_time
+              from t
+    return tmpData
+}
+
+/*
+ * @FunctionName: transformOrderQueueSZmdl6282
+ * @Brief: Transforms SZ order queue CSV (mdl_6_28_2.csv, buy side) to standardized format.
+ *         Side is hardcoded to "B" since this file contains only buy orders.
+ * @Param: t: Raw CSV chunk loaded via orderQueueCsvSchema().
+ * @Param: day: Trading date.
+ * @Return: Standardized table with 13 columns.
+ */
+def transformOrderQueueSZmdl6282(t, day){
+    tmpData = select SecurityID + ".SZ" as code,
+                    "SZ" as exchange,
+                    day as trade_date,
+                    TradeTime as trade_time,
+                    double(NULL) as last_price,
+                    "B" as side,
+                    Price as order_price,
+                    Volume as total_order_qty,
+                    NumOrders as order_num,
+                    NoOrders as order_no,
+                    fixedLengthArrayVector(OrderQty1, OrderQty2, OrderQty3, OrderQty4, OrderQty5, OrderQty6, OrderQty7, OrderQty8, OrderQty9, OrderQty10, OrderQty11, OrderQty12, OrderQty13, OrderQty14, OrderQty15, OrderQty16, OrderQty17, OrderQty18, OrderQty19, OrderQty20, OrderQty21, OrderQty22, OrderQty23, OrderQty24, OrderQty25, OrderQty26, OrderQty27, OrderQty28, OrderQty29, OrderQty30, OrderQty31, OrderQty32, OrderQty33, OrderQty34, OrderQty35, OrderQty36, OrderQty37, OrderQty38, OrderQty39, OrderQty40, OrderQty41, OrderQty42, OrderQty43, OrderQty44, OrderQty45, OrderQty46, OrderQty47, OrderQty48, OrderQty49, OrderQty50) as order_qty,
+                    NoPriceLevel as level_num,
+                    now() as update_time
+              from t
+    return tmpData
+}

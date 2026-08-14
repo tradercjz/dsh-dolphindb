@@ -1,0 +1,72 @@
+/**
+最短路径非流动性因子 — Normal High-Frequency Factor Example
+
+- 股价变动最短路径：最高价与最低价之差的二倍减去收盘价与开盘价之差的绝对值
+- 最短路径非流动性因子：股价变动最短路径与成交额的比值之和
+
+Data source: dfs://stockMinKSH / stockMinKSH (minute K-line)
+Factor type: Normal (single down-frequency step)
+
+DolphinDB server version: 2.00.15 / 3.00.2.5
+Storage engine: TSDB
+*/
+
+//自定义因子计算函数
+def illiqShortCut(minKTB){
+    /*@test 少量数据临时调试
+    minKTB = 
+        select SecurityID, date(DateTime) as TradeDate, time(DateTime) as TradeTime, OpenPx, HighPx, LowPx, LastPx, LastPx*Volume as TradeMoney
+        from loadTable("dfs://stockMinKSH", "stockMinKSH")
+        where date(DateTime)=2021.01.04, SecurityID in `603189 and LastPx>0
+    */
+    //最短路径非流动性因子=sum(股价变动最短路径/成交额)
+    res = 
+        select
+            SecurityID,
+            TradeDate,
+            sum((2*(HighPx-LowPx)-abs(OpenPx-LastPx))\TradeMoney) as Value,
+            "illiqShortCut" as factorName,
+            now() as updateTime
+        from minKTB
+        group by SecurityID, TradeDate
+    return res
+}
+
+//后台任务计算函数模版
+def factorjob(conf){
+    dataTB = loadTable(conf[`dataDB], conf[`dataTB])
+    days = conf[`startDay]..conf[`endDay]
+    startTime = 09:30:00.000
+    endTime = 14:57:00.000
+    //提取计算所需数据，sqlDS生成元代码
+    ds = sqlDS(<select SecurityID, date(DateTime) as TradeDate, time(DateTime) as TradeTime, OpenPx, HighPx, LowPx, LastPx, LastPx*Volume as TradeMoney
+        from dataTB
+        where date(DateTime) in days and (time(DateTime) between startTime and endTime) and (SecurityID like "00%" or SecurityID like "30%" or SecurityID like "6%") and LastPx>0>)
+    //计算因子，mr函数将因子在不同节点并行计算，unionAll函数将不同节点的计算结果汇总
+    res = mr(ds, conf[`func]).unionAll()
+    //写入因子库，存储到磁盘做持久化
+    loadTable(conf[`factorDB], conf[`factorTB]).append!(select * from res)
+}
+
+//计算模版配置参数
+conf = {
+    func : illiqShortCut,
+    funcsec : NULL,
+    factorName : "illiqShortCut",
+    dataDB : "dfs://stockMinKSH",
+    dataTB : "stockMinKSH",
+    factorDB : "dfs://factor_day",
+    factorTB : "factor_day",
+    startDay : 2021.01.01,
+    endDay : 2021.01.31
+}
+
+//提交计算和存储因子的任务到服务器
+id = submitJob("factorjob", conf[`factorName], factorjob, conf)
+
+//查看任务完成情况
+getJobStatus(id)
+
+//因子数据查看
+// data = select * from loadTable("dfs://factor_day","factor_day") where TradeDate=2021.01.04, SecurityID in `603189, factorName="illiqShortCut"
+// select count(*) from loadTable("dfs://factor_day","factor_day") where factorName="illiqShortCut" group by TradeDate

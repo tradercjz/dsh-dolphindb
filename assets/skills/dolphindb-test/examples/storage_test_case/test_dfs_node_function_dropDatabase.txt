@@ -1,0 +1,62 @@
+dbname="dfs://test_database_drop"
+
+if(existsDatabase(dbname)) {
+	dropDatabase(dbname)
+}
+t = table(take(`A,20) as id, 1..20 as pt)
+db = database(dbname,VALUE,1..30, , "TSDB")
+db.createPartitionedTable(t,"tb","pt", , `pt).append!(t)
+
+
+db = database(dbname)
+tbdata = db.loadTable(`tb)
+print exec count(*) from tbdata
+
+
+@testing:case ="drop database"
+
+assert 1,(exec count(*) from tbdata)==20
+
+dropPartition(db, "/9", `tb)
+assert 2, existsPartition("/9") == false
+
+dropTable(db,`tb)
+assert 3, existsTable(dbname,`tb)==false
+
+dropDatabase(dbname)
+assert 4, existsDatabase(dbname)==false
+
+@testing:case="dropDatabase_ex1", exception=1
+dropDatabase(1)
+
+@testing:case="test_dropDatabase_dbUrl_end_with_slash"
+db=database("dfs://test_dropDatabase",VALUE,2012.06.01..2012.06.10, , "TSDB")
+assert 1,existsDatabase("dfs://test_dropDatabase")==true
+assert 2,existsDatabase("dfs://test_dropDatabase/")==true
+dropDatabase("dfs://test_dropDatabase/")
+assert 3,existsDatabase("dfs://test_dropDatabase")==false
+assert 4,existsDatabase("dfs://test_dropDatabase/")==false
+
+@testing:case="test_dropDatabase_multi_time"
+for(i in 1..50){
+print(i)
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+dropDatabase(dbPath)
+}
+n=600000
+db1 = database("", VALUE, 2020.02.01 .. 2020.02.10)
+db2 = database("", HASH, [STRING, 10])
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+t = table(timestamp(take(2020.02.01 .. 2020.02.10,n))+take(i,n) as timestamp, take("id" +string(1..50), n) as id, take(1.0, n) as value)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `timestamp`id, , `id`timestamp).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timestamp`id, , `id`timestamp).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", `timestamp`id, , `id`timestamp).append!(t)
+re=select * from loadTable(dbPath, `pt) order by timestamp, id
+re1=select * from loadTable(dbPath, `pt1) order by timestamp, id
+re2=select * from loadTable(dbPath, `pt2) order by timestamp, id
+assert 1, (exec count(*) from re where int(time(timestamp))!=i)==0
+assert 2, (exec count(*) from re1 where int(time(timestamp))!=i)==0
+assert 3, (exec count(*) from re2 where int(time(timestamp))!=i)==0
+}

@@ -1,0 +1,478 @@
+@testing:case="test_topic_class_share_table_prapare"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share streamTable(1:0, `id`name, [INT,STRING]) as ClassShareT
+
+@testing:case="test_topic_class_share_table_same_as_className"
+class ClassShareT{
+	id:: INT
+	name:: string
+	def ClassShareT(id_, name_){
+		id = id_
+		name = name_	
+	}
+}
+
+t = ClassShareT(1, "tt1")
+insert into ClassShareT values (1, "tt1")
+assert 1, t.id == ClassShareT[`id][0]
+assert 2, t.name == ClassShareT[`name][0]
+
+@testing:case="test_topic_class_share_table_same_as_attribute"
+class Foo{
+	id:: INT
+	ClassShareT :: ANY
+	def Foo(id_,name_){
+		id = id_
+		ClassShareT = name_	
+	}
+}
+f = Foo(1,"tt1")
+assert 1, f.id == 1
+assert 2, f.ClassShareT == "tt1"
+
+@testing:case="test_topic_class_share_table_same_as_functionName"
+class Foo{
+	id:: INT
+	name:: ANY
+	def Foo(id_,name_){
+		id = id_
+		name = name_	
+	}
+
+	def ClassShareT(id,name){
+		insert into ClassShareT values (id,name)
+	}
+}
+f = Foo(1,"tt1")
+f.ClassShareT(1,"tt1")
+assert 1,  (exec count(*) from ClassShareT) == 2
+
+@testing:case="test_topic_class_share_table_same_as_functionName_2"
+class Foo{
+	id:: INT
+	name:: ANY
+	def Foo(id_,name_){
+		id = id_
+		name = name_	
+	}
+
+	def ClassShareT(v1,v2){
+		return v1+v2
+	}
+}
+f = Foo(1,"tt1")
+assert 1, f.ClassShareT(1,2) == 3
+assert 2,  f.id == 1
+assert 3, f.name == "tt1"
+
+@testing:case="test_topic_class_share_table_assgin"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share streamTable(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = 	objByName(`ClassShareT)
+	}
+	
+	def getVal(){
+		res = array(INT)
+		return res.append!(exec id from value) 	
+	}
+}
+f = F1(1)
+//exec count(*) from f.ClassShareT
+assert 1, (exec count(*) from f.ClassShareT) == 0
+ClassShareT.append!(table(1..10 as id, "A"+string(1..10) as name))
+assert 2, (exec count(*) from f.ClassShareT) == 10
+f.ClassShareT.append!(table(1..10 as id, "A"+string(1..10) as name))
+assert 3, (exec count(*) from f.ClassShareT) == 20
+
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+assert 4, (exec count(*) from f.ClassShareT) == 20
+
+@testing:case="test_topic_class_share_table_with_variable_insert_into"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share streamTable(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = table(1:0, `id`name, [INT,STRING])
+	}	
+	def append(id,name){
+		insert into ClassShareT values(id,name)	
+	}
+	def getVal(ClassShareT){
+		return select * from ClassShareT	
+	}
+}
+f = F1(12)
+f.append(1, "tt1")
+f.append(2, "tt2")
+f.append(3, "tt3")
+assert 1, (exec count(*) from f.ClassShareT) == 3
+assert 2, (exec count(*) from ClassShareT) == 0
+assert 3, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`name]== ["id1","name"]
+assert 4, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`typeString]== ["STRING","STRING"]
+
+@testing:case="test_topic_class_share_table_with_variable_append"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share streamTable(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = table(1:0, `id`name, [INT,STRING])
+	}	
+	def append(table){
+		ClassShareT.append!(table)	
+	}
+	def getVal(ClassShareT){
+		return select * from ClassShareT	
+	}
+}
+f = F1(12)
+f.append(table([1] as id, ["tt1"] as name))
+f.append(table([2] as id, ["tt2"] as name))
+f.append(table([3] as id, ["tt3"] as name))
+assert 1, (exec count(*) from f.ClassShareT) == 3
+assert 2, (exec count(*) from ClassShareT) == 0
+assert 3, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`name]== ["id1","name"]
+assert 4, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`typeString]== ["STRING","STRING"]
+
+@testing:case="test_topic_class_share_table_with_variable_tableInsert"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share streamTable(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = table(1:0, `id`name, [INT,STRING])
+	}	
+	def append(table){
+		ClassShareT.tableInsert(table)	
+	}
+	def getVal(ClassShareT){
+		return select * from ClassShareT	
+	}
+}
+f = F1(12)
+f.append(table([1] as id, ["tt1"] as name))
+f.append(table([2] as id, ["tt2"] as name))
+f.append(table([3] as id, ["tt3"] as name))
+assert 1, (exec count(*) from f.ClassShareT) == 3
+assert 2, (exec count(*) from ClassShareT) == 0
+assert 3, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`name]== ["id1","name"]
+assert 4, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`typeString]== ["STRING","STRING"]
+
+@testing:case="test_topic_class_share_table_with_variable_delete"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share table(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = table(1:0, `id`name, [INT,STRING])
+	}	
+	def deleteData(id_){
+		delete  from ClassShareT where  id = id_
+	}
+	def getVal(ClassShareT){
+		return select * from ClassShareT	
+	}
+}
+f = F1(12)
+f.memberModify!(append!,`ClassShareT, table(1 2 3 as id, ["tt1","tt2","tt3"] as name))
+append!(ClassShareT, table(1 2 3 as id, ["tt1","tt2","tt3"] as name))
+f.deleteData(1)
+assert 1, (exec count(*) from f.ClassShareT) == 2
+assert 2, (exec count(*) from ClassShareT) == 3
+assert 3, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`name]== ["id1","name"]
+assert 4, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`typeString]== ["STRING","STRING"]
+
+@testing:case="test_topic_class_share_table_with_variable_update"
+try{
+	undef(`ClassShareT, SHARED)
+}catch(ex){}
+share table(1:0, `id`name, [INT,STRING]) as ClassShareT
+class F1{
+	id :: INT
+	ClassShareT :: ANY
+	def F1(id_){
+		id = id_
+		ClassShareT = table(1:0, `id`name, [INT,STRING])
+	}	
+	def updateData(id_, name_){
+		update   ClassShareT set name = name_ where  id = id_
+	}
+	def getVal(ClassShareT){
+		return select * from ClassShareT	
+	}
+}
+f = F1(12)
+f.memberModify!(append!,`ClassShareT, table(1 2 3 as id, ["tt1","tt2","tt3"] as name))
+append!(ClassShareT, table(1 2 3 as id, ["tt1","tt2","tt3"] as name))
+f.updateData(1, "tt5")
+assert 1, (exec name from f.ClassShareT where id  = 1) == ["tt5"]
+assert 2, (exec name from ClassShareT where id  = 1) == ["tt1"]
+assert 3, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`name]== ["id1","name"]
+assert 4, schema(f.getVal(table(1:0, `id1`name, [STRING,STRING]))).colDefs[`typeString]== ["STRING","STRING"]
+
+//共享引擎
+@testing:case="test_topic_class_share_engine_same_as_className"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngine{
+	id:: INT
+	name:: string
+	def testTngine(id_, name_){
+		id = id_
+		name = name_	
+	}
+}
+
+t = testTngine(1, "tt1")
+assert 1, t.id == 1
+assert 2, t.name == "tt1"
+
+getStreamEngine(`testTngine).append!(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 3, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_same_as_attribute"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngine{
+	id:: INT
+	testTngine:: ANY
+	def testTngine(id_, testTngine_){
+		id = id_
+		testTngine = testTngine_	
+	}
+}
+
+t = testTngine(1, "tt1")
+getStreamEngine(`testTngine).append!(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+
+assert 1, t.id == 1
+assert 2, t.testTngine == "tt1"
+assert 3, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_same_as_functionName"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngineClass{
+	id:: INT
+	name:: STRING
+	def testTngineClass(id_, name_){
+		id = id_
+		name = name_	
+	}
+
+	def testTngine(dummy) {
+		getStreamEngine(`testTngine).append!(dummy)
+	}
+}
+
+t = testTngineClass(1, "tt1")
+assert 1, t.id == 1
+assert 2, t.name == "tt1"
+
+t.testTngine(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 3, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_same_as_functionName_2"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngineClass{
+	id:: INT
+	name:: STRING
+	def testTngineClass(id_, name_){
+		id = id_
+		name = name_	
+	}
+
+	def testTngine(a, b) {
+		return add(a, b)
+	}
+}
+
+t = testTngineClass(1, "tt1")
+assert 1, t.id == 1
+assert 2, t.name == "tt1"
+assert 3, t.testTngine(1, 1) == 2
+
+getStreamEngine(`testTngine).append!(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 4, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_with_append!"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngineClass{
+	id:: INT
+	testTngine :: ANY
+	def testTngineClass(id_){
+		id = id_
+		testTngine = getStreamEngine(`testTngine)	
+	}
+
+	def calculate(dummy) {
+		testTngine.append!(dummy)
+	}
+}
+
+t = testTngineClass(1)
+t.calculate(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_with_append!_rpc"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngineClass{
+	id:: INT
+	testTngine :: ANY
+	def testTngineClass(id_){
+		id = id_
+		testTngine = getStreamEngine(`testTngine)	
+	}
+
+	def calculate(dummy) {
+		rpc(getNodeAlias(), append!, testTngine, dummy)
+	}
+}
+
+t = testTngineClass(1)
+t.calculate(dummy)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL
+
+@testing:case="test_topic_class_share_engine_with_insert_into_rpc"
+try {dropAggregator(`testTngine)} catch(ex) {}
+go
+sym = take(`AA`BB`CC, 3000)
+price = round(rand(100.0, 3000), 2)
+qty = rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("testTngine", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+
+share engine as "testTngine"
+
+class testTngineClass{
+	id:: INT
+	testTngine :: ANY
+	def testTngineClass(id_){
+		id = id_
+		testTngine = getStreamEngine(`testTngine)	
+	}
+
+	def calculate(dummy) {
+		rpc(getNodeAlias(), append!, testTngine, dummy)
+		insert into testTngine values(`AA, 100.0, 100)
+	}
+}
+
+t = testTngineClass(1)
+t.calculate(dummy)
+insert into dummy values(`AA, 100.0, 100)
+expected = select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("testTngine")
+engine=NULL

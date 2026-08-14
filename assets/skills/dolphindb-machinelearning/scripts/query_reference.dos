@@ -1,0 +1,274 @@
+/*
+DolphinDB Web AI 的一次性查询脚本块库。
+不要运行整个文件。只复制当前任务需要的脚本块。
+不要定义或调用自定义 web* 函数。
+约束：不猜测元数据名称，输出有界查询、画像和结果摘要。
+*/
+
+// 块索引：
+// 1-5：DFS 数据库和表发现。
+// 6-10：库表校验、schema、行数、预览和字段搜索。
+// 11-16：有界过滤、时间范围、聚合、join 质量、分页和结果摘要。
+// 17-20：物理画像、候选表画像、时间列和标签/状态分布。
+// 21-23：周期聚合基础表、lag 和 SQL 摘要。
+// ML 原始数据选择通常参考块 6-16、21-23。
+
+// 块 1：列出集群中可见的 DFS 数据库。
+// 输入：无。
+// 输出：webDatabaseCandidates。
+// 适用：用户没有提供数据库路径，需要先发现可见数据库。
+webDatabaseCandidates = getClusterDFSDatabases(false)
+webDatabaseCandidates
+
+// 块 2：回退列出当前节点可见的 DFS 数据库。
+// 输入：无。
+// 输出：webDatabaseCandidates。
+// 适用：当前运行时不支持集群级数据库列表时使用。
+webDatabaseCandidates = getDFSDatabases()
+webDatabaseCandidates
+
+// 块 3：列出所有可见 DFS 表，并按领域关键词过滤。
+// 输入：webKeywords。
+// 输出：webAllTables、webTableCandidates。
+// 适用：用户只描述领域或业务问题，需要从表名中找候选数据源。
+webKeywords = ["device","equipment","machine","asset","sensor","telemetry","fault","failure","alarm","error","maintenance","status","event"]
+webAllTables = getClusterDFSTables(false)
+webCandidateMask = take(false, size(webAllTables))
+for(webKeyword in webKeywords){
+    webCandidateMask = webCandidateMask || like(lower(webAllTables), "%" + webKeyword + "%")
+}
+webTableCandidates = webAllTables[webCandidateMask]
+webTableCandidates
+
+// 块 4：列出一个 DFS 数据库下的表。
+// 输入：webDbPath。
+// 输出：webTablesInDb。
+// 适用：用户给出数据库路径但未给出表名。
+webDbPath = "dfs://REPLACE_DB"
+webTablesInDb = getDFSTablesByDatabase(webDbPath)
+webTablesInDb
+
+// 块 5：使用 listTables 回退列出一个 DFS 数据库下的表。
+// 输入：webDbPath。
+// 输出：webTablesInDb。
+// 适用：getDFSTablesByDatabase 在当前运行时不可用时。
+webDbPath = "dfs://REPLACE_DB"
+webTableInfo = listTables(webDbPath)
+webTablesInDb = exec tableName from webTableInfo
+webTablesInDb
+
+// 块 6：在 schema 或查询工作前校验 DFS 数据库和表。
+// 输入：webDbPath、webTableName。
+// 输出：webSourceCheck。
+// 适用：任何 loadTable、schema 或 select 前的存在性检查。
+webDbPath = "dfs://REPLACE_DB"
+webTableName = "REPLACE_TABLE"
+webDbExists = existsDatabase(webDbPath)
+webTableExists = iif(webDbExists, existsTable(webDbPath, webTableName), false)
+webSourceCheck = table([webDbPath] as db_path, [webTableName] as table_name, [webDbExists] as db_exists, [webTableExists] as table_exists)
+webSourceCheck
+
+// 块 7：加载表并检查 schema。
+// 输入：webDbPath、webTableName。
+// 输出：webSource、webColDefs。
+// 适用：块 6 确认数据库和表存在之后。
+webSource = loadTable(webDbPath, webTableName)
+webColDefs = schema(webSource)["colDefs"]
+webColDefs
+
+// 块 8：获取行数、空表标记和紧凑预览。
+// 输入：webSource。
+// 输出：webRowCount、webIsEmpty、webPreview。
+// 适用：任何分析前的数据范围确认。
+webRowCount = exec count(*) from webSource
+webIsEmpty = webRowCount == 0
+webPreview = select top 20 * from webSource
+table([webRowCount] as rows, [webIsEmpty] as is_empty)
+webPreview
+
+// 块 9：统计 schema 中各列类型数量。
+// 输入：webColDefs。
+// 输出：webTypeSummary。
+// 适用：快速理解表结构和可用类型。
+webTypeSummary = select upper(typeString) as type_string, count(*) as columns from webColDefs group by upper(typeString) order by columns desc
+webTypeSummary
+
+// 块 10：按关键词搜索 schema 字段。
+// 输入：webColDefs、webColumnKeywords。
+// 输出：webColumnMatches。
+// 适用：按业务词查找候选列，例如 device、time、status。
+webColumnKeywords = ["REPLACE_KEYWORD"]
+webColumnNames = lower(exec name from webColDefs)
+webColumnMask = take(false, size(webColumnNames))
+for(webKeyword in webColumnKeywords){
+    webColumnMask = webColumnMask || like(webColumnNames, "%" + lower(webKeyword) + "%")
+}
+webColumnMatches = select * from webColDefs where lower(name) in webColumnNames[webColumnMask]
+webColumnMatches
+
+// 块 11：按等值条件做有界只读查询。
+// 输入：webSource、webFilterCol、webFilterValue。
+// 输出：webResult。
+// 适用：按实体、状态、类别等字段过滤。
+webFilterCol = "REPLACE_FILTER_COL"
+webFilterValue = "REPLACE_FILTER_VALUE"
+webSql = "select top 100 * from webSource where " + webFilterCol + " = '" + webFilterValue + "'"
+webResult = eval(parseExpr(webSql))
+webResult
+
+// 块 12：按时间范围做有界预览。
+// 输入：webSource、webTimeCol、webStartTime、webEndTime。
+// 输出：webResult。
+// 适用：用户指定时间窗口或需要按时间抽样。
+webTimeCol = "REPLACE_TIME_COL"
+webStartTime = 2026.01.01
+webEndTime = 2026.02.01
+webSql = "select top 100 * from webSource where " + webTimeCol + " >= " + string(webStartTime) + " and " + webTimeCol + " < " + string(webEndTime) + " order by " + webTimeCol
+webResult = eval(parseExpr(webSql))
+webResult
+
+// 块 13：分组多指标聚合。
+// 输入：webSource、webGroupCol、webValueCol。
+// 输出：webResult。
+// 适用：按维度查看计数、均值、最小值、最大值和中位数。
+webGroupCol = "REPLACE_GROUP_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webSql = "select top 50 " + webGroupCol + ", count(*) as rows, avg(" + webValueCol + ") as avg_value, min(" + webValueCol + ") as min_value, med(" + webValueCol + ") as median_value, max(" + webValueCol + ") as max_value from webSource group by " + webGroupCol + " order by rows desc"
+webResult = eval(parseExpr(webSql))
+webResult
+
+// 块 14：join 前后行数和 key 质量检查。
+// 输入：webLeft、webRight、webJoinKey。
+// 输出：webJoinCheck。
+// 适用：执行 join 前评估 key 空值、重复和 join 后行数变化。
+webJoinKey = "REPLACE_JOIN_KEY"
+webLeftRows = exec count(*) from webLeft
+webRightRows = exec count(*) from webRight
+webLeftNullSql = "select count(*) as null_rows from webLeft where isNull(" + webJoinKey + ")"
+webRightNullSql = "select count(*) as null_rows from webRight where isNull(" + webJoinKey + ")"
+webLeftNullResult = eval(parseExpr(webLeftNullSql))
+webRightNullResult = eval(parseExpr(webRightNullSql))
+webLeftNullRows = exec null_rows from webLeftNullResult
+webRightNullRows = exec null_rows from webRightNullResult
+webLeftDistinctSql = "select count(*) as distinct_keys from (select distinct " + webJoinKey + " from webLeft)"
+webRightDistinctSql = "select count(*) as distinct_keys from (select distinct " + webJoinKey + " from webRight)"
+webLeftDistinctResult = eval(parseExpr(webLeftDistinctSql))
+webRightDistinctResult = eval(parseExpr(webRightDistinctSql))
+webLeftDistinctKeys = exec distinct_keys from webLeftDistinctResult
+webRightDistinctKeys = exec distinct_keys from webRightDistinctResult
+webJoinCheck = table([webLeftRows] as left_rows, [webRightRows] as right_rows, [long(webLeftNullRows[0])] as left_null_keys, [long(webRightNullRows[0])] as right_null_keys, [long(webLeftDistinctKeys[0])] as left_distinct_keys, [long(webRightDistinctKeys[0])] as right_distinct_keys)
+webJoinCheck
+
+// 块 15：分页式有界读取。
+// 输入：webSource、webOffset、webPageSize。
+// 输出：webResult。
+// 适用：需要查看局部记录但不能无界打印。
+webOffset = 0
+webPageSize = 100
+webResult = select top webPageSize * from (select * from webSource limit webOffset, webPageSize)
+webResult
+
+// 块 16：查询结果摘要。
+// 输入：webResult。
+// 输出：webQuerySummary。
+// 适用：向聊天答案解释输出规模和字段数量。
+webResultRows = exec count(*) from webResult
+webResultCols = size(schema(webResult)["colDefs"].name)
+webQuerySummary = table([webResultRows] as result_rows, [webResultCols] as result_columns)
+webQuerySummary
+
+// 块 17：单表物理画像。
+// 输入：webSource、webDbPath、webTableName。
+// 输出：webTablePhysicalProfile。
+// 适用：从旧版 inspect 能力提炼，用于报告表的引擎、分区、排序和样本规模。
+webSourceSchema = schema(webSource)
+webSourceRows = exec count(*) from webSource
+webSourceCols = size(webSourceSchema["colDefs"].name)
+webTablePhysicalProfile = table([webDbPath] as db_path, [webTableName] as table_name, [webSourceRows] as rows, [webSourceCols] as columns, [string(webSourceSchema.engineType)] as engine_type, [string(webSourceSchema.partitionTypeName)] as partition_type, [string(webSourceSchema.partitionColumnName)] as partition_column, [string(webSourceSchema.sortColumns)] as sort_columns, [string(webSourceSchema.keepDuplicates)] as keep_duplicates)
+webTablePhysicalProfile
+
+// 块 18：整库候选表画像。
+// 输入：webDbPath、webTablesInDb、webMaxTables。
+// 输出：webDatabaseTableProfile。
+// 适用：已知数据库但未确定目标表时，快速比较候选表的行数、列数和物理属性。
+webMaxTables = 50
+webProfileCount = min(webMaxTables, size(webTablesInDb))
+webDatabaseTableProfile = table(100:0, `table_name`rows`columns`engine_type`partition_column`sort_columns, [STRING,LONG,INT,STRING,STRING,STRING])
+if(webProfileCount > 0){
+    for(webI in 0..(webProfileCount - 1)){
+        webCandidateTableName = string(webTablesInDb[webI])
+        if(existsTable(webDbPath, webCandidateTableName)){
+            webCandidateSource = loadTable(webDbPath, webCandidateTableName)
+            webCandidateSchema = schema(webCandidateSource)
+            webCandidateRows = exec count(*) from webCandidateSource
+            webDatabaseTableProfile.append!(table([webCandidateTableName] as table_name, [long(webCandidateRows)] as rows, [int(size(webCandidateSchema["colDefs"].name))] as columns, [string(webCandidateSchema.engineType)] as engine_type, [string(webCandidateSchema.partitionColumnName)] as partition_column, [string(webCandidateSchema.sortColumns)] as sort_columns))
+        }
+    }
+}
+webDatabaseTableProfile
+
+// 块 19：时间列候选扫描。
+// 输入：webColDefs。
+// 输出：webTimeColumnCandidates。
+// 适用：时序报告、时间切分、未来窗口标签或月度聚合前。
+webTimeTypeNames = ["DATE","MONTH","TIME","MINUTE","SECOND","DATETIME","TIMESTAMP","NANOTIME","NANOTIMESTAMP","DATEHOUR"]
+webLowerNames = lower(string(webColDefs.name))
+webTimeColumnCandidates = select name as column_name, typeString as type_string, comment from webColDefs where upper(typeString) in webTimeTypeNames or like(webLowerNames, "%time%") or like(webLowerNames, "%date%") or like(webLowerNames, "%timestamp%") or like(webLowerNames, "%month%")
+webTimeColumnCandidates
+
+// 块 20：标签或状态列分布摘要。
+// 输入：webSource、webLabelCol、webTopN。
+// 输出：webLabelDistribution。
+// 适用：监督学习、状态分析或调查报告前确认标签/状态是否可用。
+webLabelCol = "REPLACE_LABEL_OR_STATUS_COL"
+webTopN = 50
+webLabelSql = "select top " + string(webTopN) + " " + webLabelCol + " as label_value, count(*) as rows from webSource group by " + webLabelCol + " order by rows desc"
+webLabelDistribution = eval(parseExpr(webLabelSql))
+webLabelDistribution
+
+// 块 21：月度聚合建模基础表。
+// 输入：webSource、webTimeCol、webValueCol、webAggMethod、webOutputCol。
+// 输出：webMonthlyBase。
+// 适用：旧版 monthly pipeline 的安全拆分，用于按月预测、报告或建模基础表。
+webTimeCol = "REPLACE_TIME_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webAggMethod = "sum"
+webOutputCol = "target_value"
+webAggExpr = iif(webAggMethod == "avg", "avg(" + webValueCol + ")", iif(webAggMethod == "max", "max(" + webValueCol + ")", iif(webAggMethod == "min", "min(" + webValueCol + ")", iif(webAggMethod == "count", "count(" + webValueCol + ")", "sum(" + webValueCol + ")"))))
+webMonthlySql = "select month(" + webTimeCol + ") as month_bucket, " + webAggExpr + " as " + webOutputCol + " from webSource group by month_bucket order by month_bucket"
+webMonthlyBase = eval(parseExpr(webMonthlySql))
+webMonthlyBase
+
+// 块 22：月度聚合结果添加 lag 特征。
+// 输入：webMonthlyBase、webOutputCol、webMaxLag。
+// 输出：webMonthlyFeatures、webMonthlyFeatureReport。
+// 适用：月度预测或趋势建模前补充历史滞后特征。
+webOutputCol = "target_value"
+webMaxLag = 3
+webMonthlyFeatures = select * from webMonthlyBase order by month_bucket
+webMonthlyFeatures["year"] = year(webMonthlyFeatures.month_bucket)
+webMonthlyFeatures["month_num"] = monthOfYear(webMonthlyFeatures.month_bucket)
+webMonthlyFeatures["month_idx"] = 0..(size(webMonthlyFeatures.month_bucket) - 1)
+webLagFeatureNames = take("", 0)
+webPrevLagCol = webOutputCol
+if(webMaxLag > 0){
+    for(webLagN in 1..webMaxLag){
+        webLagCol = webOutputCol + "_lag" + string(webLagN)
+        webMonthlyFeatures[webLagCol] = prev(webMonthlyFeatures[webPrevLagCol])
+        webLagFeatureNames.append!(webLagCol)
+        webPrevLagCol = webLagCol
+    }
+}
+webMonthlyFeatureReport = table(webLagFeatureNames as feature_name, take("monthly_lag", size(webLagFeatureNames)) as feature_family)
+webMonthlyFeatureReport
+
+// 块 23：查询 SQL 摘要。
+// 输入：webSelectExpr、webWhereExpr、webOrderExpr、webLimitRows。
+// 输出：webQuerySqlSummary。
+// 适用：向聊天解释本次查询如何被限制和排序，不作为整文件 pipeline 执行。
+webSelectExpr = "REPLACE_SELECT_EXPR"
+webWhereExpr = "REPLACE_WHERE_EXPR"
+webOrderExpr = "REPLACE_ORDER_EXPR"
+webLimitRows = 100
+webQuerySqlSummary = table([webDbPath] as db_path, [webTableName] as table_name, [webSelectExpr] as select_expr, [webWhereExpr] as where_expr, [webOrderExpr] as order_expr, [webLimitRows] as limit_rows)
+webQuerySqlSummary

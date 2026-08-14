@@ -1,0 +1,203 @@
+// DolphinDB 流计算脚本
+// 包含流引擎和流订阅状态的信息采集函数
+
+// @description 所有流引擎状态（queueDepth、处理延迟、内存占用、错误统计等）
+// @collect stream-delay, oom
+// @permission readonly
+def checkStreamEngine() {
+    t = getStreamEngineStat()
+    d = dict(STRING, ANY)
+    totalCount = 0
+    totalErrorCount = 0
+    totalMem = long(0)
+    keys = t.keys()
+    countTb = table(1:0, `type`count, [SYMBOL, LONG])
+    errorCountTb = table(1:0, `type`error_count, [SYMBOL, LONG])
+    memTb = table(1:0, `type`mem_bytes, [SYMBOL, LONG])
+
+    for (key in t.keys()) {
+        t1 = exec count(*) from t[key]
+        insert into countTb values (key, t1)
+        totalCount += t1
+        
+        if(key == "CEPEngine"){
+            t2 = exec count(*) from t[key] where lastErrorMessage != NULL
+            insert into errorCountTb values (key, t2)
+            totalErrorCount += t2
+        }else{
+            if("lastErrMsg" in t[key].columnNames()){
+                t2 = exec count(*) from t[key] where lastErrMsg != NULL
+                insert into errorCountTb values (key, t2)
+                totalErrorCount += t2
+            }
+        }
+
+        t3 = long(NULL)
+        if ("memoryInUsed" in t[key].schema().colDefs.name) {
+            t3 = exec sum(memoryInUsed) from t[key]
+        } else if ("memoryUsed" in t[key].schema().colDefs.name) {
+            t3 = exec sum(memoryUsed) from t[key]
+        }
+        if (!isNull(t3)) {
+            insert into memTb values (key, t3)
+            totalMem += t3
+        }
+    }
+
+    insert into countTb values ("All", totalCount)
+    insert into errorCountTb values ("All", totalErrorCount)
+    insert into memTb values ("All", totalMem)
+
+    d["count"] = countTb
+    d["error_count"] = errorCountTb
+    d["mem_bytes"] = memTb
+    d["raw_stat"] = t
+
+    return d
+}
+
+// @description 流订阅状态（subWorkers 队列深度、lastMsgId、错误统计等）
+// @collect stream-delay, oom
+// @permission readonly
+def checkStreaming() {
+    t = getStreamingStat()
+    d = dict(STRING, ANY)
+
+    d["sub_workers_total_count"] = exec count(*) from t.subWorkers
+    d["sub_workers_error_count"] = exec count(*) from t.subWorkers where lastErrMsg != NULL and now() - lastFailedTimestamp < 60000
+    d["sub_workers_queue_depth"] = select max(queueDepth) as queue_depth from t.subWorkers where workerId != NULL group by workerId as worker_id order by queue_depth desc
+    d["sub_conns_total_count"] = exec count(*) from t.subConns
+    d["sub_conns_last_msg_latency"] = select max(lastMsgLatency) as last_msg_latency from t.subConns group by publisher order by last_msg_latency desc
+    d["pub_conns_queue_depth"] = select max(queueDepth) as queue_depth from t.pubConns group by client as worker_id order by queue_depth desc
+    d["pub_tables_total_count"] = exec count(*) from t.pubTables
+    d["pub_tables_count"] = select count(*) from t.pubTables group by subscriber.split(":").at(0) as subscriber_ip
+    d["udp_pub_tables_total_count"] = long(NULL)
+    if ("udpPubTables" in t.keys()) {
+        d["udp_pub_tables_total_count"] = exec count(*) from t.udpPubTables
+    }
+    d["raw_stat"] = t
+
+    return d
+}
+
+// @description 获取有错误的流订阅详情
+// @collect stream-delay
+// @permission readonly
+def checkFailedSubscriptions() {
+    t = getStreamingStat()
+    
+    d = dict(STRING, ANY)
+    d["failed_workers"] = select * from t.subWorkers 
+                          where lastErrMsg != NULL and now() - lastFailedTimestamp < 300000
+                          order by lastFailedTimestamp desc
+    d["total_failed"] = size(d["failed_workers"])
+    
+    return d
+}
+
+// @description 获取队列深度超过阈值的流订阅
+// @params threshold:int:required
+// @collect stream-delay
+// @permission readonly
+def checkHighQueueSubscriptions(threshold) {
+    if (threshold <= 0) {
+        throw "threshold must be positive"
+    }
+    
+    t = getStreamingStat()
+    
+    d = dict(STRING, ANY)
+    d["high_queue_workers"] = select * from t.subWorkers 
+                              where queueDepth > threshold
+                              order by queueDepth desc
+    d["threshold"] = threshold
+    d["total_high_queue"] = size(d["high_queue_workers"])
+    
+    return d
+}
+
+// @description 取消流订阅。二选一：tableNames=[...]+actionNames=[...] 按对取消（两个 vector 同长度）；failedOnly=true 自动取消所有有错误的订阅
+// @params tableNames:vector:optional, actionNames:vector:optional, failedOnly:bool:optional
+// @permission danger
+def unsubscribeStreaming(tableNames=NULL, actionNames=NULL, failedOnly=false) {
+    // 1. 解析目标对
+    tbs = array(STRING, 0)
+    acs = array(STRING, 0)
+    if (failedOnly) {
+        t = getStreamingStat()
+        // subWorkers.topic 形如 "<host>:<port>/<tableName>/<actionName>"，取最后两段
+        failedTopics = exec topic from t.subWorkers
+                       where lastErrMsg != NULL and now() - lastFailedTimestamp < 300000
+        if (size(failedTopics) == 0) {
+            return "no failed subscriptions to cancel"
+        }
+        for (tp in failedTopics) {
+            parts = tp.split("/")
+            n = size(parts)
+            if (n < 2) { continue }
+            tbs.append!(parts[n-2])
+            acs.append!(parts[n-1])
+        }
+        if (size(tbs) == 0) {
+            return "failed subscriptions found but no parseable topics"
+        }
+    } else {
+        if (isNull(tableNames) or isNull(actionNames) or size(tableNames) == 0) {
+            throw "must specify tableNames+actionNames pairs, or failedOnly=true"
+        }
+        if (size(tableNames) != size(actionNames)) {
+            throw "tableNames and actionNames must have the same length"
+        }
+        tbs = tableNames
+        acs = actionNames
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(tbs)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+
+    for (i in 0..(size(tbs)-1)) {
+        tableName = tbs[i]
+        actionName = acs[i]
+        try {
+            unsubscribeTable(tableName=tableName, actionName=actionName)
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + tableName + "/" + actionName)
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + tableName + "/" + actionName + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    return results
+}
+
+// @description 删除流引擎（支持单个或批量）
+// @params names:vector:required
+// @permission danger
+def dropStreamEngines(names) {
+    if (isNull(names) or size(names) == 0) {
+        throw "names cannot be empty"
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(names)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+
+    for (name in names) {
+        try {
+            dropStreamEngine(name)
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + name)
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + name + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    return results
+}

@@ -1,0 +1,975 @@
+#include "setup/settings.txt"
+#include "checkChunk.txt"
+
+def getVolumeId(replicas){
+	result = array(LONG, 0)
+	replica = replicas.split(",")
+	for(rep in replica){
+		re = rep.split(":")
+		result.append!(long(re[5]))
+	}
+	return [result]
+}
+
+def getPath(path){
+	p = path.split("/")
+	for(i in 0:p.size()){
+		if(p[i] == "CHUNKS"){
+			break	
+		}	
+	}
+	return concat(p[:i], "/")
+}
+
+def checkVolumeId(){
+	res1 =  select chunkId, replicas from rpc(getControllerAlias(),getClusterChunksStatus)
+	res2 = select chunkId, path from pnodeRunAllNodes(getAllChunks)
+	res = select each(getVolumeId,replicas) as f1 , chunkId, each(getPath,path) as f2 from res1 inner join res2 on res1.chunkId = res2.chunkId
+	ext = select volumeId as volumeId, f1, f2 from getClusterVolumeUsage() as t1 inner join res on t1.volumePath = res.f2
+	return each(def(x,y):x in y, ext.volumeId, ext.f1).all()
+}
+@testing:case="test_moveReplicas_tblChunk_to_original_datanode_do_not_have_this_chunk"
+dbCompleteName="dfs://moveReplicas_tblChunk_to_datanode_not"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="moveReplicas_tblChunk_to_datanode_not"
+tbName="pt"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+tblChunk=select * from allChunks where dfsPath like "%.tbl"
+srcNode=tblChunk.site[0]
+transChunkId=tblChunk.chunkId[0]
+allDataNodes=exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0
+destNode=allDataNodes[at(in(allDataNodes,tblChunk.site)==false)][0]
+
+MST=getControllerAlias()
+print srcNode+": "+tblChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==0
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_tblChunk_to_original_datanode_already_have_this_chunk"
+dbCompleteName="dfs://test_moveReplicas_tblChunk_to_datanode_have"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_tblChunk_to_datanode_have"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+tblChunk=select * from allChunks where dfsPath like "%.tbl"
+srcNode=tblChunk.site[0]
+transChunkId=tblChunk.chunkId[0]
+destNode=tblChunk.site[1]
+
+MST=getControllerAlias()
+print srcNode+": "+tblChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==1
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+
+assert 6,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_domainChunk_to_original_datanode_do_not_have_this_chunk"
+dbCompleteName="dfs://test_moveReplicas_domainChunk_to_datanode_not"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_domainChunk_to_datanode_not"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+domainChunk=select * from allChunks where dfsPath like "%domain"
+srcNode=domainChunk.site[0]
+transChunkId=domainChunk.chunkId[0]
+allDataNodes=exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0
+destNode=allDataNodes[at(in(allDataNodes,domainChunk.site)==false)][0]
+
+MST=getControllerAlias()
+print srcNode+": "+domainChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==0
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+assert 6,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_domainChunk_to_original_datanode_already_have_this_chunk"
+dbCompleteName="dfs://test_moveReplicas_domainChunk_to_datanode_have"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_domainChunk_to_datanode_have"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+domainChunk=select * from allChunks where dfsPath like "%domain"
+srcNode=domainChunk.site[0]
+transChunkId=domainChunk.chunkId[0]
+destNode=domainChunk.site[1]
+
+MST=getControllerAlias()
+print srcNode+": "+domainChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==1
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_dataChunk_to_original_datanode_do_not_have_this_chunk"
+dbCompleteName="dfs://test_moveReplicas_dataChunk_to_datanode_not"
+createDB(DATA_DIR,dbCompleteName)
+
+purgeCacheEngine()
+
+dbName="test_moveReplicas_dataChunk_to_datanode_not"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk=select * from allChunks where dfsPath like "%10001_51131%"
+srcNode=dataChunk.site[0]
+transChunkId=dataChunk.chunkId[0]
+allDataNodes=exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0
+destNode=allDataNodes[at(in(allDataNodes,dataChunk.site)==false)][0]
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==0
+
+chunkT=select * from newAllChunks where chunkId=transChunkId
+
+purgeCacheEngine()
+length=exec count(*) from loadTable(dbCompleteName,"pt") where 10001<=PERMNO<51131
+v1=rpc(chunkT[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,length)
+v2=rpc(chunkT[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,length)
+assert 4,each(eqObj,v1.values(),v2.values())
+assert 6,checkVolumeId()
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==true
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_dataChunk_to_original_datanode_already_have_this_chunk"
+dbCompleteName="dfs://test_moveReplicas_dataChunk_to_datanode_have"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_dataChunk_to_datanode_have"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk=select * from allChunks where dfsPath like "%10001_51131%"
+srcNode=dataChunk.site[0]
+transChunkId=dataChunk.chunkId[0]
+destNode=dataChunk.site[1]
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId)
+
+sleep(1000)
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,newAllChunks.size()==12
+assert 2,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 3,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==1
+assert 6,checkVolumeId()
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_move_multiple_Replicas_to_original_datanode"
+dbCompleteName="dfs://test_move_multiple_replicas"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_move_multiple_replicas"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+NODES=exec distinct site from allChunks
+NODE1=NODES[0]
+NODE2=NODES[1]
+
+transferedChunks=select * from allChunks where site=NODE1
+MST=getControllerAlias()
+for(i in 0..(size(transferedChunks)-1)){
+	print NODE1+": "+transferedChunks.dfsPath[i]+" "+transferedChunks.chunkId[i]+"  ---->   "+NODE2
+	}
+rpc(MST,moveReplicas,NODE1,NODE2,transferedChunks.chunkId)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId in transferedChunks.chunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId in transferedChunks.chunkId).isNull().any()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+chunksOnDestNode=select * from newAllChunks where site=NODE2
+assert 1,newAllChunks.size()==12
+assert 2,in(transferedChunks.chunkId,chunksOnDestNode.chunkId)
+assert 6,checkVolumeId()
+//assert 4,compareAllChunks(newAllChunks,false,tbName)==0
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+
+@testing:case="test_moveReplicas_volumn_not_exist"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+dbName="test_moveReplicas_volumn"
+
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+dataChunk = select * from allChunks where dfsPath like "%10001_51131%"
+transChunkId = dataChunk[`chunkId][0]
+srcNode=dataChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,srcNodeHomeDir+"/volumn")
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId).isNull()==true)
+}
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+assert 1,eqObj(dataChunk.values(),newDataChunk.values())
+assert 6,checkVolumeId()
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_chunk_exist_in_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+dbName="test_moveReplicas_volumn"
+
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+dataChunk = select * from allChunks where dfsPath like "%10001_51131%"
+transChunkId = dataChunk[`chunkId][0]
+srcNode=dataChunk.site[0]
+chunkPath=concat(split(dataChunk.path[0],"/")[0:(size(split(dataChunk.path[0],"/"))-4)],"/")
+
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+//movePath = exec directory from pnodeRunAllNodes(getAllStorages) where site=srcNode
+
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,chunkPath)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId).isNull()==true)
+}
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+assert 1,eqObj(dataChunk.values(),newDataChunk.values())
+
+v1=rpc(newDataChunk[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+v2=rpc(newDataChunk[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+assert 2,each(eqObj,v1.values(),v2.values())
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_one_datachunk_single_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk = select * from allChunks where dfsPath like "%10001_51131%"
+transChunkId = dataChunk[`chunkId][0]
+srcNode=dataChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn = srcNodeHomeDir+"/tabletSingle/volumn1"
+rpc(srcNode,addVolumes,newVolumn)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,newVolumn)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId).isNull()==true)
+}
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+newDestChunk = select * from newDataChunk where site=srcNode
+physicalName = listTables(dbCompleteName)[`physicalIndex][0]
+assert 2,eqObj(newDestChunk[`path][0],newVolumn+"/CHUNKS/"+dbName+"/10001_51131/"+physicalName)
+
+purgeCacheEngine()
+v1=rpc(newDataChunk[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+v2=rpc(newDataChunk[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+assert 3,each(eqObj,v1.values(),v2.values())
+
+assert 6,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_one_datachunk_multi_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk = select * from allChunks where dfsPath like "%10001_51131%"
+transChunkId = dataChunk[`chunkId][0]
+srcNode=dataChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn1 = srcNodeHomeDir+"/tabletSingle/volumn2"
+newVolumn2 = srcNodeHomeDir+"/tabletSingle/volumn3"
+rpc(srcNode,addVolumes,newVolumn1)
+rpc(srcNode,addVolumes,newVolumn2)
+sleep(1000)
+
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,[newVolumn1,newVolumn2])
+
+select * from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId).isNull()==true)
+}
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+newDestChunk = select * from newDataChunk where site=srcNode
+physicalName = listTables(dbCompleteName)[`physicalIndex][0]
+assert 2,eqObj(newDestChunk[`path][0],newVolumn1+"/CHUNKS/"+dbName+"/10001_51131/"+physicalName)
+
+v1=rpc(newDataChunk[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+v2=rpc(newDataChunk[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(newDataChunk[`path][0],dbName)[1],"pt",0,-1)
+assert 3,each(eqObj,v1.values(),v2.values())
+assert 6,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_multi_datachunk_single_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk = select * from allChunks where like(dfsPath, "%.tbl")==false, like(dfsPath, "%domain")==false
+srcNode = (exec site from (select count(*) from dataChunk group by site) where count=max(count))[0]
+transChunkIds = exec chunkId from dataChunk where site=srcNode
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn = srcNodeHomeDir+"/tabletSingle/volumn4"
+rpc(srcNode,addVolumes,newVolumn)
+sleep(1000)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkIds,newVolumn)
+
+select * from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+if(re>0){
+	do{
+		sleep(1000)
+	}while(((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds).isNull()).any()==true)
+}
+
+sleep(10000)
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId in transChunkIds
+newDestChunk = select * from newDataChunk where site=srcNode
+
+for(i in 0..(transChunkIds.size()-1)){
+	chunkName = split(newDestChunk[`path][i],dbName)[1]
+	assert 2,eqObj(newDestChunk[`path][i],newVolumn+"/CHUNKS/"+dbName+chunkName)
+}
+
+for(transChunkId in transChunkIds){
+	checkChunk = select * from newDataChunk where chunkId = transChunkId
+	v1=rpc(checkChunk[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(checkChunk[`path][0],dbName)[1],"pt",0,-1)
+	v2=rpc(checkChunk[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(checkChunk[`path][0],dbName)[1],"pt",0,-1)
+	assert 3,each(eqObj,v1.values(),v2.values())
+}
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_multi_datachunk_multi_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk = select * from allChunks where like(dfsPath, "%.tbl")==false, like(dfsPath, "%domain")==false
+srcNode = (exec site from (select count(*) from dataChunk group by site) where count=max(count))[0]
+transChunkIds = exec chunkId from dataChunk where site=srcNode
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn1 = srcNodeHomeDir+"/tabletSingle/volumn5"
+newVolumn2 = srcNodeHomeDir+"/tabletSingle/volumn6"
+rpc(srcNode,addVolumes,newVolumn1)
+rpc(srcNode,addVolumes,newVolumn2)
+sleep(1000)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkIds,[newVolumn1,newVolumn2])
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+if(re>0){
+	do{
+		sleep(1000)
+	}while(((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds).isNull()).any()==true)
+}
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId in transChunkIds
+newDestChunk = select * from newDataChunk where site=srcNode
+
+for(i in 0..(transChunkIds.size()-1)){
+	chunkName = split(newDestChunk[`path][i],dbName)[1]
+	assert 2,eqObj(newDestChunk[`path][i],newVolumn1+"/CHUNKS/"+dbName+chunkName)
+}
+
+for(transChunkId in transChunkIds){
+	checkChunk = select * from newDataChunk where chunkId = transChunkId
+	v1=rpc(checkChunk[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(checkChunk[`path][0],dbName)[1],"pt",0,-1)
+	v2=rpc(checkChunk[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(checkChunk[`path][0],dbName)[1],"pt",0,-1)
+	assert 3,each(eqObj,v1.values(),v2.values())
+}
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_to_new_voulme_srcNode_destNode_not_same_node_destNode_already_has_the_chunk"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk = select * from allChunks where dfsPath like "%10001_51131%"
+transChunkId = dataChunk[`chunkId][0]
+srcNode=dataChunk.site[0]
+desNode=dataChunk.site[1]
+desNodeHomeDir = rpc(desNode,getHomeDir)
+newVolumn = desNodeHomeDir+"/tabletSingle/volumn7"
+rpc(desNode,addVolumes,newVolumn)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+desNode
+rpc(MST,moveReplicas,srcNode,desNode,transChunkId,newVolumn)
+
+assert 2,eqObj((exec count(*)  from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId),0)
+
+newDataChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+assert 3,eqObj(dataChunk.values(),newDataChunk.values())
+assert 6,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_one_dataChunk_to_new_voulme_srcNode_destNode_not_same_node_destNode_not_have_the_chunk"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+purgeCacheEngine()
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk=select * from allChunks where dfsPath like "%10001_51131%"
+srcNode=dataChunk.site[0]
+transChunkId=dataChunk.chunkId[0]
+allDataNodes=exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0
+destNode=allDataNodes[at(in(allDataNodes,dataChunk.site)==false)][0]
+destNodeHomeDir = rpc(destNode,getHomeDir)
+newVolumn = destNodeHomeDir+"/tabletSingle/volumn8"
+rpc(destNode,addVolumes,newVolumn)
+sleep(2000)
+pnodeRunAllNodes(getAllStorages)
+  
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId,newVolumn)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 2,newAllChunks.size()==12
+assert 3,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 4,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==0
+
+chunkT=select * from pnodeRunAllNodes(getAllChunks) where chunkId=transChunkId
+v1=rpc(chunkT[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,-1)
+v2=rpc(chunkT[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,-1)
+assert 6,each(eqObj,v1.values(),v2.values())
+assert 8,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 7,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_one_dataChunk_to_multi_voulme_srcNode_destNode_not_same_node_destNode_not_have_the_chunk"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+purgeCacheEngine()
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+dataChunk=select * from allChunks where dfsPath like "%10001_51131%"
+srcNode=dataChunk.site[0]
+transChunkId=dataChunk.chunkId[0]
+allDataNodes=exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0
+destNode=allDataNodes[at(in(allDataNodes,dataChunk.site)==false)][0]
+destNodeHomeDir = rpc(destNode,getHomeDir)
+newVolumn1 = destNodeHomeDir+"/tabletSingle/volumn9"
+newVolumn2 = destNodeHomeDir+"/tabletSingle/volumn10"
+rpc(destNode,addVolumes,newVolumn1)
+rpc(destNode,addVolumes,newVolumn2)
+pnodeRunAllNodes(getAllStorages)
+  
+MST=getControllerAlias()
+print srcNode+": "+dataChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+destNode
+movePath = split((exec path from allChunks where site = destNode)[0],"/CHUNKS")[0]
+rpc(MST,moveReplicas,srcNode,destNode,transChunkId,[newVolumn1,newVolumn2])
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newAllChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 2,newAllChunks.size()==12
+assert 3,(select * from newAllChunks where site=destNode and chunkId=transChunkId).size()==1
+assert 4,(select * from newAllChunks where site=srcNode and chunkId=transChunkId).size()==0
+
+chunkT=select * from newAllChunks where chunkId=transChunkId
+v1=rpc(chunkT[`node][0],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,-1)
+v2=rpc(chunkT[`node][1],readTabletChunk,transChunkId,dbCompleteName,split(chunkT[`path][0],dbName)[1],"pt",0,-1)
+assert 6,each(eqObj,v1.values(),v2.values())
+assert 8,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 7,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case = "test_move_Replicas_to_computenode"
+login("admin", "123456")
+dbName = "dfs://test_copyReplicas"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, 1..10,,`TSDB)
+n = 10000
+t = table(n:n, `id`col1`col2`col3`col4`col5`col6`col7`col8`col9`col10, [INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+pt = db.createPartitionedTable(t, `pt, `id,,`id)
+t[`id]=take(1, n)
+for(i in 1..10){
+	t["col"+string(i)]=rand(1000.0, n)
+}
+pt.append!(t)
+node1 = distinct(exec site from getChunksMeta())
+chunkIds = exec chunkId from getChunksMeta()
+cnode_cnt = count(select * from rpc(getControllerAlias(), getClusterPerf) where mode = 4)
+if(cnode_cnt == 0){
+	print("there is no compute node")
+}else{
+	computenode_list = exec name from rpc(getControllerAlias(), getClusterPerf) where mode = 4
+	cnode = rand(computenode_list, 1)[0]
+	dnode = rand(node1, 1)[0]
+	chunkID = rand(chunkIds, 1)[0]
+	try{
+		rpc(getControllerAlias(), moveReplicas{dnode, cnode, string(chunkID)})
+	}
+	catch(exp){
+		pos = strpos(exp[1], "must be data node")
+		assert 1, pos != -1
+	}
+	try{
+		rpc(getControllerAlias(), moveReplicas{dnode, cnode, string(chunkIds)})
+	}
+	catch(exp){
+		pos = strpos(exp[1], "must be data node")
+		assert 2, pos != -1
+	}
+}
+assert 8,checkVolumeId()
+//https://dolphindb1.atlassian.net/browse/D20-22497
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_filechunk_without_destVolume",exception=1
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+
+assert 1,allChunks.size()==12
+
+
+fileChunk = select * from allChunks where dfsPath like "%tbl%"
+transChunkId = fileChunk[`chunkId][0]
+srcNode=fileChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn = srcNodeHomeDir+"/tabletSingle/volumn0_1"
+rpc(srcNode,addVolumes,newVolumn)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+fileChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_filechunk_exist_in_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+dbName="test_moveReplicas_volumn"
+
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+fileChunk = select * from allChunks where dfsPath like "%tbl%"
+transChunkId = fileChunk[`chunkId][0]
+srcNode=fileChunk.site[0]
+chunkPath=concat(split(fileChunk.path[0],"/")[0:(size(split(fileChunk.path[0],"/"))-4)],"/")
+
+MST=getControllerAlias()
+print srcNode+": "+fileChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+//movePath = exec directory from pnodeRunAllNodes(getAllStorages) where site=srcNode and directory like chunkPath
+
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,chunkPath)
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newfileChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+assert 1,eqObj(fileChunk.values(),newfileChunk.values())
+assert 8,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 3,eqObj((exec count(*) from pt),temp.rows()*2)
+
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_one_filechunk_single_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+
+assert 1,allChunks.size()==12
+
+
+fileChunk = select * from allChunks where dfsPath like "%tbl%"
+transChunkId = fileChunk[`chunkId][0]
+srcNode=fileChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn = srcNodeHomeDir+"/tabletSingle/volumn1_1"
+rpc(srcNode,addVolumes,newVolumn)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+fileChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,newVolumn)
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+
+newfileChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+newDestChunk = select * from newfileChunk where site=srcNode
+physicalName = split(newfileChunk.dfsPath[0],"/")[2]
+assert 2,eqObj(newDestChunk[`path][0],newVolumn+"/CHUNKS/"+dbName+"/"+physicalName)
+assert 8,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_one_filechunk_multi_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+
+assert 1,allChunks.size()==12
+
+
+fileChunk = select * from allChunks where dfsPath like "%tbl%"
+transChunkId = fileChunk[`chunkId][0]
+srcNode=fileChunk.site[0]
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn1 = srcNodeHomeDir+"/tabletSingle/volumn2_1"
+newVolumn2 = srcNodeHomeDir+"/tabletSingle/volumn3_1"
+rpc(srcNode,addVolumes,newVolumn1)
+rpc(srcNode,addVolumes,newVolumn2)
+sleep(1000)
+
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+fileChunk.dfsPath[0]+"  "+transChunkId+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkId,[newVolumn1,newVolumn2])
+
+select * from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId
+if(re>0){
+	do{
+		sleep(1000)
+	}while((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId=transChunkId)[0].isNull()==true)
+}
+newfileChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId = transChunkId 
+newDestChunk = select * from newfileChunk where site=srcNode
+physicalName = split(newfileChunk.dfsPath[0],"/")[2]
+assert 2,eqObj(newDestChunk[`path][0],newVolumn1+"/CHUNKS/"+dbName+"/"+physicalName)
+assert 8,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_multi_filechunk_single_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+fileChunk = select * from allChunks where like(dfsPath, "%.tbl") 
+srcNode = (exec site from (select count(*) from fileChunk group by site) where count=max(count))[0]
+transChunkIds = exec chunkId from fileChunk where site=srcNode
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn = srcNodeHomeDir+"/tabletSingle/volumn4_1"
+rpc(srcNode,addVolumes,newVolumn)
+sleep(1000)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkIds,newVolumn)
+
+select * from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+if(re>0){
+	do{
+		sleep(1000)
+	}while(((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds).isNull()).any()==true)
+}
+
+sleep(10000)
+newfileChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId in transChunkIds
+newDestChunk = select * from newfileChunk where site=srcNode
+
+for(i in 0..(transChunkIds.size()-1)){
+	chunkName = split(newDestChunk[`path][i],dbName)[1]
+	assert 2,eqObj(newDestChunk[`path][i],newVolumn+"/CHUNKS/"+dbName+chunkName)
+}
+
+assert 8,checkVolumeId()
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)
+
+@testing:case="test_moveReplicas_srcNode_destNode_same_node_move_multi_filechunk_multi_new_volumn"
+dbCompleteName="dfs://test_moveReplicas_volumn"
+createDB(DATA_DIR,dbCompleteName)
+
+dbName="test_moveReplicas_volumn"
+allChunks=select * from pnodeRunAllNodes(getAllChunks) where dfsPath like ("/"+ dbName +"/%") and flag=0 order by dfsPath
+assert 1,allChunks.size()==12
+
+
+fileChunk = select * from allChunks where like(dfsPath, "%.tbl")
+srcNode = (exec site from (select count(*) from fileChunk group by site) where count=max(count))[0]
+transChunkIds = exec chunkId from fileChunk where site=srcNode
+srcNodeHomeDir = rpc(srcNode,getHomeDir)
+newVolumn1 = srcNodeHomeDir+"/tabletSingle/volumn5_1"
+newVolumn2 = srcNodeHomeDir+"/tabletSingle/volumn6_1"
+rpc(srcNode,addVolumes,newVolumn1)
+rpc(srcNode,addVolumes,newVolumn2)
+sleep(1000)
+pnodeRunAllNodes(getAllStorages)
+
+MST=getControllerAlias()
+print srcNode+": "+fileChunk.dfsPath[0]+"  "+transChunkIds+"   --->   "+srcNode
+rpc(MST,moveReplicas,srcNode,srcNode,transChunkIds,[newVolumn1,newVolumn2])
+
+sleep(1000)
+re = exec count(*) from  rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds
+if(re>0){
+	do{
+		sleep(1000)
+	}while(((exec FinishTime from rpc(MST, getRecoveryTaskStatus) where ChunkId in transChunkIds).isNull()).any()==true)
+}
+
+newfileChunk = select * from pnodeRunAllNodes(getAllChunks) where chunkId in transChunkIds
+newDestChunk = select * from newfileChunk where site=srcNode
+
+for(i in 0..(transChunkIds.size()-1)){
+	chunkName = split(newDestChunk[`path][i],dbName)[1]
+	assert 2,eqObj(newDestChunk[`path][i],newVolumn1+"/CHUNKS/"+dbName+chunkName)
+}
+assert 8,checkVolumeId()
+
+//read and write
+pt=loadTable(dbCompleteName,"pt")
+temp=select * from pt
+pt.append!(temp)
+assert 4,eqObj((exec count(*) from pt),temp.rows()*2)

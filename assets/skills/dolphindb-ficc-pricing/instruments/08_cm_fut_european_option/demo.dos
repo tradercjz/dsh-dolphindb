@@ -1,0 +1,30 @@
+// ============================================================
+// CmFutEuropeanOption — parseInstrument 构建示例
+// 构建一只商品期货欧式期权（豆粕 M2509C3200）
+// ============================================================
+// 金融含义：
+//   商品期货期权的标的物是期货合约（而非现货）。欧式期权只能在
+//   到期日行权。使用 Black-76 模型定价（BSM 的期货版本），
+//   期货价格(futPrice)替代现货价格作为标的。
+//   定价需要：贴现曲线 + 波动率曲面(VolatilitySurface) + 期货价格。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Option"               // 期权类
+instDict["optionType"]         = "EuropeanOption"        // 欧式
+instDict["assetType"]          = "CmFutEuropeanOption"   // 商品期货欧式期权
+
+// --- 期权要素 ---
+instDict["instrumentId"]       = "M2509C3200"            // 合约代码：豆粕2509-Call-3200
+instDict["notionalAmount"]     = 10.0                    // 合约乘数（吨/手）
+instDict["notionalCurrency"]   = "CNY"
+instDict["strike"]             = 3200.0                  // 执行价
+instDict["maturity"]           = 2025.08.06              // 到期日
+instDict["payoffType"]         = "Call"                  // 看涨
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "M2509"                 // 标的期货合约
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

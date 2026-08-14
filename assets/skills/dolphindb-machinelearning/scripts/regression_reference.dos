@@ -1,0 +1,382 @@
+/*
+DolphinDB Web AI 的一次性回归脚本块库。
+不要运行整个文件。只把需要的脚本块复制到任务脚本中。
+不要定义或调用自定义 web* 函数。
+约束：输出紧凑训练、评估和模型选择摘要。
+*/
+
+// 块索引：
+// 1：目标分布检查。
+// 2-10：快速 baseline 切分、训练、预测、指标、残差、误差样本、打分和摘要。
+// 11-14：模型函数可用性、候选模型表、train/val/test 切分和空切分检查。
+// 15-22：候选训练、网格候选、最佳候选、风险报告、test 评估和模型选择摘要。
+
+// 块 1：检查回归目标分布。
+// 输入：webFeatures、webLabelCol。
+// 输出：webTargetSummary。
+// 适用：训练前确认目标范围、中心和分位数。
+webLabelCol = "REPLACE_NUMERIC_TARGET"
+webTargetSql = "select count(*) as rows, min(" + webLabelCol + ") as min_value, percentile(" + webLabelCol + ", 25) as q1, avg(" + webLabelCol + ") as avg_value, med(" + webLabelCol + ") as median_value, percentile(" + webLabelCol + ", 75) as q3, max(" + webLabelCol + ") as max_value from webFeatures"
+webTargetSummary = eval(parseExpr(webTargetSql))
+webTargetSummary
+
+// 块 2：从 webFeatures 准备训练/测试切分。
+// 输入：webFeatures、webLabelCol、webFeatureCols、webSeed。
+// 输出：webTrain、webTest。
+// 适用：回归训练的默认随机切分。
+webLabelCol = "REPLACE_NUMERIC_TARGET"
+webFeatureCols = ["REPLACE_FEATURE_1","REPLACE_FEATURE_2"]
+webSeed = 20260519
+webData = select * from webFeatures where rand(1.0, webSeed) >= 0
+webTrain = select * from webData where rand(1.0, webSeed) < 0.8
+webTest = select * from webData where rand(1.0, webSeed) >= 0.8
+table([exec count(*) from webTrain] as train_rows, [exec count(*) from webTest] as test_rows, [string(webFeatureCols)] as feature_cols)
+
+// 块 3：训练新的随机森林回归器。
+// 输入：webTrain、webLabelCol、webFeatureCols、webSeed。
+// 输出：webModel、webModelName。
+// 适用：表格数据回归的稳健默认模型。
+webModelName = "randomForestRegressor"
+webTrainDS = sqlDS(<select * from webTrain>)
+webModel = randomForestRegressor(webTrainDS, webLabelCol, webFeatureCols, numTrees=200, maxDepth=12, randomSeed=webSeed)
+webModelName
+
+// 块 4：预测并构建回归预测表。
+// 输入：webModel、webTest、webFeatureCols、webLabelCol。
+// 输出：webPredictions。
+// 适用：测试集评估。
+webPred = predict(webModel, webTest)
+webActualSql = "select " + webLabelCol + " as actual_value from webTest"
+webActual = eval(parseExpr(webActualSql))
+webPredictions = table(webActual.actual_value as actual_value, webPred as predicted_value)
+webPredictions
+
+// 块 5：计算 MAE、RMSE、R2 和 MAPE。
+// 输入：webPredictions、webModelName。
+// 输出：webEvalReport。
+// 适用：回归模型主评估。
+webErr = webPredictions.predicted_value - webPredictions.actual_value
+webMae = avg(abs(webErr))
+webRmse = sqrt(avg(webErr * webErr))
+webMeanActual = avg(webPredictions.actual_value)
+webSsTot = sum((webPredictions.actual_value - webMeanActual) * (webPredictions.actual_value - webMeanActual))
+webSsRes = sum(webErr * webErr)
+webR2 = iif(webSsTot == 0, 0.0, 1.0 - webSsRes \ webSsTot)
+webMape = avg(abs(webErr \ webPredictions.actual_value))
+webEvalReport = table(["test"] as dataset, [size(webPredictions.actual_value)] as rows, [webMae] as mae, [webRmse] as rmse, [webR2] as r2, [webMape] as mape, [webModelName] as model_function)
+webEvalReport
+
+// 块 6：残差摘要。
+// 输入：webPredictions。
+// 输出：webResidualSummary。
+// 适用：解释误差分布和偏差方向。
+webResiduals = webPredictions.predicted_value - webPredictions.actual_value
+webResidualSummary = table([min(webResiduals)] as min_residual, [percentile(webResiduals, 25)] as q1_residual, [avg(webResiduals)] as avg_residual, [med(webResiduals)] as median_residual, [percentile(webResiduals, 75)] as q3_residual, [max(webResiduals)] as max_residual)
+webResidualSummary
+
+// 块 7：预测误差最大的样本。
+// 输入：webPredictions。
+// 输出：webTopErrorReport。
+// 适用：查看模型误差最大的记录。
+webPredictionErrors = select *, abs(predicted_value - actual_value) as abs_error from webPredictions
+webTopErrorReport = select top 20 * from webPredictionErrors order by abs_error desc
+webTopErrorReport
+
+// 块 8：预测误差最小的样本。
+// 输入：webPredictions。
+// 输出：webBottomErrorReport。
+// 适用：查看模型拟合较好的记录。
+webPredictionErrors = select *, abs(predicted_value - actual_value) as abs_error from webPredictions
+webBottomErrorReport = select top 20 * from webPredictionErrors order by abs_error
+webBottomErrorReport
+
+// 块 9：为当前或预测时点特征行打分。
+// 输入：webModel、webScoreFeatures、webFeatureCols、webEntityCol。
+// 输出：webPredictionReport。
+// 适用：输出实体级数值预测。
+webEntityCol = "REPLACE_ENTITY_COL"
+webScorePred = predict(webModel, webScoreFeatures)
+webEntitySql = "select " + webEntityCol + " as entity_id from webScoreFeatures"
+webScoreEntities = eval(parseExpr(webEntitySql))
+webPredictionReport = table(webScoreEntities.entity_id as entity_id, webScorePred as predicted_value)
+webPredictionReport
+
+// 块 10：回归建模结果摘要。
+// 输入：webTargetSummary、webEvalReport、webResidualSummary。
+// 输出：webRegressionSummary。
+// 适用：向聊天答案汇总目标分布、指标和残差。
+webRegressionSummary = table([string(webTargetSummary)] as target_summary, [string(webEvalReport)] as eval_report, [string(webResidualSummary)] as residual_summary)
+webRegressionSummary
+
+// 块 11：回归模型函数可用性检查。
+// 输入：无。
+// 输出：webRegressionModelAvailability。
+// 适用：选择候选回归模型前，确认当前 DolphinDB 运行时支持哪些训练函数。
+webRegressionModelAvailability = table(["random_forest","ridge","lasso","elastic_net","glm_regression","adaboost_regressor"] as model_id, ["randomForestRegressor","ridge","lasso","elasticNet","glm","adaBoostRegressor"] as function_name, [defined("randomForestRegressor", DEF), defined("ridge", DEF), defined("lasso", DEF), defined("elasticNet", DEF), defined("glm", DEF), defined("adaBoostRegressor", DEF)] as available)
+webRegressionModelAvailability
+
+// 块 12：回归候选模型表。
+// 输入：webSelectedModelId、webFallbackModelId、webCandidateModelIds、webRegressionModelAvailability。
+// 输出：webRegressionCandidateModels。
+// 适用：把用户指定、默认 fallback 和候选列表合并为可审查的模型选择表。
+webSelectedModelId = ""
+webFallbackModelId = "random_forest"
+webCandidateModelIds = ["random_forest","ridge","lasso","elastic_net","glm_regression","adaboost_regressor"]
+webRequestedModelIds = distinct([webSelectedModelId, webFallbackModelId] join webCandidateModelIds)
+webRegressionCandidateModels = table(100:0, `model_id`function_name`available`selection_source, [STRING,STRING,BOOL,STRING])
+for(webModelId in webRequestedModelIds){
+    if(strlen(trim(string(webModelId))) > 0){
+        webModelRow = select * from webRegressionModelAvailability where model_id = string(webModelId)
+        webModelRowCount = exec count(*) from webModelRow
+        webFunctionName = ""
+        webAvailable = false
+        if(webModelRowCount > 0){
+            webFunctionName = string(webModelRow.function_name[0])
+            webAvailable = bool(webModelRow.available[0])
+        }
+        webSelectionSource = iif(string(webModelId) == webSelectedModelId, "selected", iif(string(webModelId) == webFallbackModelId, "fallback", "candidate"))
+        webRegressionCandidateModels.append!(table([string(webModelId)] as model_id, [webFunctionName] as function_name, [webAvailable] as available, [webSelectionSource] as selection_source))
+    }
+}
+webRegressionCandidateModels
+
+// 块 13：回归 train/val/test 切分。
+// 输入：webFeatures、webLabelCol、webTimeCol、webSplitMode、webTrainRatio、webValRatio。
+// 输出：webTrain、webVal、webTest、webSplitReport。
+// 适用：需要模型选择或网格搜索时，比简单 train/test 更稳健。
+webTimeCol = "REPLACE_TIME_COL"
+webSplitMode = "time_based"
+webTrainRatio = 0.70
+webValRatio = 0.15
+webRows = exec count(*) from webFeatures
+if(webSplitMode == "time_based"){
+    webSplitWork = eval(parseExpr("select * from webFeatures order by " + webTimeCol))
+    webSplitWork["web_split_idx"] = 0..(webRows - 1)
+    webTrainEnd = int(floor(webRows * webTrainRatio))
+    webValEnd = int(floor(webRows * (webTrainRatio + webValRatio)))
+    webTrain = select * from webSplitWork where web_split_idx < webTrainEnd
+    webVal = select * from webSplitWork where web_split_idx >= webTrainEnd and web_split_idx < webValEnd
+    webTest = select * from webSplitWork where web_split_idx >= webValEnd
+} else {
+    webSplitWork = select *, rand(1.0) as web_split_r from webFeatures
+    webTrain = select * from webSplitWork where web_split_r < webTrainRatio
+    webVal = select * from webSplitWork where web_split_r >= webTrainRatio and web_split_r < webTrainRatio + webValRatio
+    webTest = select * from webSplitWork where web_split_r >= webTrainRatio + webValRatio
+}
+webSplitReport = table([webSplitMode] as split_mode, [exec count(*) from webTrain] as train_rows, [exec count(*) from webVal] as val_rows, [exec count(*) from webTest] as test_rows)
+webSplitReport
+
+// 块 14：回归空切分检查。
+// 输入：webSplitReport。
+// 输出：webSplitReadinessReport。
+// 适用：训练前阻断 train、val 或 test 任一集合为空的情况。
+webTrainRows = exec train_rows from webSplitReport
+webValRows = exec val_rows from webSplitReport
+webTestRows = exec test_rows from webSplitReport
+webSplitReady = webTrainRows[0] > 0 && webValRows[0] > 0 && webTestRows[0] > 0
+webSplitReadinessReport = table([webSplitReady] as split_ready, [long(webTrainRows[0])] as train_rows, [long(webValRows[0])] as val_rows, [long(webTestRows[0])] as test_rows, [iif(webSplitReady, "", "train/val/test must all be non-empty")] as blocking_reason)
+webSplitReadinessReport
+
+// 块 15：训练候选回归模型模板。
+// 输入：webTrain、webLabelCol、webFeatureCols、webSelectedModelId、webSeed。
+// 输出：webModel、webModelName。
+// 适用：按候选模型训练当前请求的候选回归模型。
+webSelectedModelId = "random_forest"
+webTrainDS = sqlDS(<select * from webTrain>)
+if(webSelectedModelId == "ridge"){
+    webModelName = "ridge"
+    webModel = ridge(webTrainDS, webLabelCol, webFeatureCols, alpha=1.0, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, solver="svd")
+} else if(webSelectedModelId == "lasso"){
+    webModelName = "lasso"
+    webModel = lasso(webTrainDS, webLabelCol, webFeatureCols, alpha=0.1, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, positive=false, checkInput=true)
+} else if(webSelectedModelId == "elastic_net"){
+    webModelName = "elasticNet"
+    webModel = elasticNet(webTrainDS, webLabelCol, webFeatureCols, alpha=0.1, l1Ratio=0.5, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, positive=false, checkInput=true)
+} else if(webSelectedModelId == "glm_regression"){
+    webModelName = "glm"
+    webModel = glm(webTrainDS, webLabelCol, webFeatureCols, family="gaussian", link="identity", maxIter=200, tolerance=0.000001)
+} else if(webSelectedModelId == "adaboost_regressor"){
+    webModelName = "adaBoostRegressor"
+    webModel = adaBoostRegressor(webTrainDS, webLabelCol, webFeatureCols, numTrees=200, maxDepth=2, learningRate=0.1, randomSeed=webSeed)
+} else {
+    webModelName = "randomForestRegressor"
+    webModel = randomForestRegressor(webTrainDS, webLabelCol, webFeatureCols, numTrees=200, maxDepth=12, randomSeed=webSeed)
+}
+webModelName
+
+// 块 16：回归网格候选结果表。
+// 输入：webCandidateId、webSelectedModelId、webModelName、webEvalReport、webSelectionMetric。
+// 输出：webGridCandidateReport。
+// 适用：评估多个候选模型或参数组合后，保留紧凑可比较记录。
+webCandidateId = 1
+webSelectionMetric = "rmse"
+webMetricValue = iif(webSelectionMetric == "mae", -(exec mae from webEvalReport), iif(webSelectionMetric == "r2", exec r2 from webEvalReport, iif(webSelectionMetric == "mape", -(exec mape from webEvalReport), -(exec rmse from webEvalReport))))
+webGridCandidateReport = table([webCandidateId] as candidate_id, [webSelectedModelId] as model_id, [webModelName] as model_function, ["success"] as status, [webSelectionMetric] as selection_metric, [double(webMetricValue[0])] as selection_score, [string(webEvalReport)] as eval_report)
+webGridCandidateReport
+
+// 块 17：回归最佳候选选择表。
+// 输入：webGridCandidateReport。
+// 输出：webBestRegressionCandidate。
+// 适用：网格搜索或多模型比较后，选择验证集指标最优的候选。
+webBestRegressionCandidate = select top 1 * from webGridCandidateReport where status = "success" order by selection_score desc, candidate_id
+webBestRegressionCandidate
+
+// 块 18：回归模型风险报告。
+// 输入：webEvalReport。
+// 输出：webRegressionRiskReport。
+// 适用：把低 R2、高 MAPE 或高误差风险转成聊天可解释结论。
+webR2Value = exec r2 from webEvalReport
+webMapeValue = exec mape from webEvalReport
+webRiskLevel = "LOW"
+webRiskWhere = "regression metrics have no major warning"
+webRiskAction = "continue with current evaluation and inspect residuals"
+if(webR2Value[0] < 0){
+    webRiskLevel = "HIGH"
+    webRiskWhere = "R2 is below 0 and model is worse than mean baseline"
+    webRiskAction = "recheck target definition, leakage exclusions, feature quality and split strategy"
+} else if(webMapeValue[0] > 0.50){
+    webRiskLevel = "MEDIUM"
+    webRiskWhere = "MAPE is above 50 percent and relative error is high"
+    webRiskAction = "inspect top error samples and consider target transformation or additional features"
+}
+webRegressionRiskReport = table(["regression_model"] as risk_subject, [webRiskLevel] as risk_level, [webRiskWhere] as risk_where, [webRiskAction] as risk_action)
+webRegressionRiskReport
+
+// 块 19：回归轻量网格计划表。
+// 输入：webRegressionModelAvailability、webGridCandidateLimit。
+// 输出：webRegressionGridPlan、webRegressionGridPlanSummary。
+// 适用：按旧版 registry 的默认网格生成当前请求内可审查的候选计划，默认最多执行 20 个候选。
+webGridCandidateLimit = 20
+webRfAvailable = bool(exec available from webRegressionModelAvailability where model_id = "random_forest")
+webRidgeAvailable = bool(exec available from webRegressionModelAvailability where model_id = "ridge")
+webLassoAvailable = bool(exec available from webRegressionModelAvailability where model_id = "lasso")
+webElasticAvailable = bool(exec available from webRegressionModelAvailability where model_id = "elastic_net")
+webGlmAvailable = bool(exec available from webRegressionModelAvailability where model_id = "glm_regression")
+webAdaAvailable = bool(exec available from webRegressionModelAvailability where model_id = "adaboost_regressor")
+webRegressionGridPlan = table(
+    1..16 as candidate_id,
+    ["random_forest","random_forest","random_forest","random_forest","ridge","ridge","ridge","lasso","lasso","elastic_net","elastic_net","glm_regression","glm_regression","adaboost_regressor","adaboost_regressor","adaboost_regressor"] as model_id,
+    ["randomForestRegressor","randomForestRegressor","randomForestRegressor","randomForestRegressor","ridge","ridge","ridge","lasso","lasso","elasticNet","elasticNet","glm","glm","adaBoostRegressor","adaBoostRegressor","adaBoostRegressor"] as model_function,
+    ["{\"numTrees\":100,\"maxDepth\":8}","{\"numTrees\":100,\"maxDepth\":12}","{\"numTrees\":200,\"maxDepth\":8}","{\"numTrees\":200,\"maxDepth\":12}","{\"alpha\":0.1}","{\"alpha\":1.0}","{\"alpha\":10.0}","{\"alpha\":0.01}","{\"alpha\":0.1}","{\"alpha\":0.01,\"l1Ratio\":0.1}","{\"alpha\":0.1,\"l1Ratio\":0.5}","{\"maxIter\":200,\"tolerance\":0.000001}","{\"maxIter\":200,\"tolerance\":0.00001}","{\"numTrees\":100,\"maxDepth\":2,\"learningRate\":0.05}","{\"numTrees\":100,\"maxDepth\":3,\"learningRate\":0.1}","{\"numTrees\":200,\"maxDepth\":2,\"learningRate\":0.05}"] as params_json,
+    [100,100,200,200,0,0,0,0,0,0,0,0,0,100,100,200] as num_trees,
+    [8,12,8,12,0,0,0,0,0,0,0,0,0,2,3,2] as max_depth,
+    [0.0,0.0,0.0,0.0,0.1,1.0,10.0,0.01,0.1,0.01,0.1,0.0,0.0,0.0,0.0,0.0] as alpha_value,
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.5,0.0,0.0,0.0,0.0,0.0] as l1_ratio,
+    [0,0,0,0,1000,1000,1000,1000,1000,1000,1000,200,200,0,0,0] as max_iter,
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.05,0.1,0.05] as learning_rate,
+    [0.0,0.0,0.0,0.0,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.0001,0.000001,0.00001,0.0,0.0,0.0] as tolerance,
+    [webRfAvailable,webRfAvailable,webRfAvailable,webRfAvailable,webRidgeAvailable,webRidgeAvailable,webRidgeAvailable,webLassoAvailable,webLassoAvailable,webElasticAvailable,webElasticAvailable,webGlmAvailable,webGlmAvailable,webAdaAvailable,webAdaAvailable,webAdaAvailable] as available
+)
+webRegressionGridPlan["skip_reason"] = iif(webRegressionGridPlan.available, "", "function_unavailable")
+webRegressionGridPlanSummary = table([webGridCandidateLimit] as grid_candidate_limit, [exec count(*) from webRegressionGridPlan] as grid_candidate_total_estimated, [exec count(*) from webRegressionGridPlan > webGridCandidateLimit] as grid_truncated)
+webRegressionGridPlan
+
+// 块 20：回归轻量网格搜索示例。
+// 输入：webTrain、webVal、webLabelCol、webFeatureCols、webSelectionMetric、webRegressionGridPlan、webRegressionGridPlanSummary、webSeed。
+// 输出：webRegressionGridSearchReport。
+// 适用：在验证集上评估当前请求内的候选模型和参数组合。
+webSelectionMetric = "rmse"
+webRegressionGridSearchReport = table(100:0, `candidate_id`status`error_message`model_id`model_function`params_json`selection_metric`selection_score`rank`is_best`val_mae`val_rmse`val_r2`val_mape`num_trees`max_depth`candidate_elapsed_ms, [INT,STRING,STRING,STRING,STRING,STRING,STRING,DOUBLE,INT,BOOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,INT,INT,LONG])
+webCandidateLimitValue = exec grid_candidate_limit from webRegressionGridPlanSummary
+webGridRows = select * from webRegressionGridPlan where candidate_id <= webCandidateLimitValue[0]
+webGridRowCount = exec count(*) from webGridRows
+webCandidateTrainDS = sqlDS(<select * from webTrain>)
+if(webGridRowCount > 0){
+    for(webGridI in 0..(webGridRowCount - 1)){
+        webGridRow = select * from webGridRows where candidate_id = int(webGridI + 1)
+        webCandidateId = int(webGridRow.candidate_id[0])
+        webCandidateStart = now()
+        webSelectedModelId = string(webGridRow.model_id[0])
+        webModelName = string(webGridRow.model_function[0])
+        webParamsJson = string(webGridRow.params_json[0])
+        webCandidateStatus = "success"
+        webCandidateError = ""
+        webMae = 0.0
+        webRmse = 0.0
+        webR2 = 0.0
+        webMape = 0.0
+        webCandidateScore = -1.0
+        if(!bool(webGridRow.available[0])){
+            webCandidateStatus = "skipped"
+            webCandidateError = string(webGridRow.skip_reason[0])
+        } else {
+            try{
+                if(webSelectedModelId == "ridge"){
+                    webCandidateModel = ridge(webCandidateTrainDS, webLabelCol, webFeatureCols, alpha=double(webGridRow.alpha_value[0]), intercept=true, normalize=false, maxIter=int(webGridRow.max_iter[0]), tolerance=double(webGridRow.tolerance[0]), solver="svd")
+                } else if(webSelectedModelId == "lasso"){
+                    webCandidateModel = lasso(webCandidateTrainDS, webLabelCol, webFeatureCols, alpha=double(webGridRow.alpha_value[0]), intercept=true, normalize=false, maxIter=int(webGridRow.max_iter[0]), tolerance=double(webGridRow.tolerance[0]), positive=false, checkInput=true)
+                } else if(webSelectedModelId == "elastic_net"){
+                    webCandidateModel = elasticNet(webCandidateTrainDS, webLabelCol, webFeatureCols, alpha=double(webGridRow.alpha_value[0]), l1Ratio=double(webGridRow.l1_ratio[0]), intercept=true, normalize=false, maxIter=int(webGridRow.max_iter[0]), tolerance=double(webGridRow.tolerance[0]), positive=false, checkInput=true)
+                } else if(webSelectedModelId == "glm_regression"){
+                    webCandidateModel = glm(webCandidateTrainDS, webLabelCol, webFeatureCols, family="gaussian", link="identity", maxIter=int(webGridRow.max_iter[0]), tolerance=double(webGridRow.tolerance[0]))
+                } else if(webSelectedModelId == "adaboost_regressor"){
+                    webCandidateModel = adaBoostRegressor(webCandidateTrainDS, webLabelCol, webFeatureCols, numTrees=int(webGridRow.num_trees[0]), maxDepth=int(webGridRow.max_depth[0]), learningRate=double(webGridRow.learning_rate[0]), randomSeed=webSeed)
+                } else {
+                    webCandidateModel = randomForestRegressor(webCandidateTrainDS, webLabelCol, webFeatureCols, numTrees=int(webGridRow.num_trees[0]), maxDepth=int(webGridRow.max_depth[0]), randomSeed=webSeed)
+                }
+                webCandidatePredicted = predict(webCandidateModel, webVal)
+                webCandidatePredictions = table(webVal[webLabelCol] as actual_value, webCandidatePredicted as predicted_value)
+                webErr = webCandidatePredictions.predicted_value - webCandidatePredictions.actual_value
+                webMae = avg(abs(webErr))
+                webRmse = sqrt(avg(webErr * webErr))
+                webMeanActual = avg(webCandidatePredictions.actual_value)
+                webSsTot = sum((webCandidatePredictions.actual_value - webMeanActual) * (webCandidatePredictions.actual_value - webMeanActual))
+                webSsRes = sum(webErr * webErr)
+                webR2 = iif(webSsTot == 0, 0.0, 1.0 - webSsRes \ webSsTot)
+                webMape = avg(abs(webErr \ webCandidatePredictions.actual_value))
+                webCandidateScore = iif(webSelectionMetric == "mae", -webMae, iif(webSelectionMetric == "r2", webR2, iif(webSelectionMetric == "mape", -webMape, -webRmse)))
+            } catch(ex) {
+                webCandidateStatus = "failed"
+                webCandidateError = string(ex)
+            }
+        }
+        webRegressionGridSearchReport.append!(table([webCandidateId] as candidate_id, [webCandidateStatus] as status, [webCandidateError] as error_message, [webSelectedModelId] as model_id, [webModelName] as model_function, [webParamsJson] as params_json, [webSelectionMetric] as selection_metric, [webCandidateScore] as selection_score, [0] as rank, [false] as is_best, [webMae] as val_mae, [webRmse] as val_rmse, [webR2] as val_r2, [webMape] as val_mape, [int(webGridRow.num_trees[0])] as num_trees, [int(webGridRow.max_depth[0])] as max_depth, [long(now() - webCandidateStart)] as candidate_elapsed_ms))
+    }
+}
+webRegressionGridSearchReport
+
+// 块 21：回归最佳候选 test 评估。
+// 输入：webTrain、webVal、webTest、webLabelCol、webFeatureCols、webRegressionGridSearchReport、webSeed。
+// 输出：webFinalModel、webFinalModelName、webBestRegressionCandidate、webBestRegressionPredictions、webBestRegressionTestReport。
+// 适用：验证集选出最佳候选后，用 train+val 重新训练，并只用 test 指标作为最终泛化报告。
+webBestRegressionCandidate = select top 1 * from webRegressionGridSearchReport where status = "success" order by selection_score desc, candidate_id
+webBestRegressionCandidateRows = exec count(*) from webBestRegressionCandidate
+if(webBestRegressionCandidateRows == 0){
+    throw "没有成功的回归网格候选；请先查看 webRegressionGridSearchReport.error_message，并运行最小 API 验证后再继续。"
+}
+webBestModelId = string(webBestRegressionCandidate.model_id[0])
+webFinalModelName = string(webBestRegressionCandidate.model_function[0])
+webFinalTrain = unionAll(webTrain, webVal)
+webFinalTrainDS = sqlDS(<select * from webFinalTrain>)
+if(webBestModelId == "ridge"){
+    webFinalModel = ridge(webFinalTrainDS, webLabelCol, webFeatureCols, alpha=1.0, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, solver="svd")
+} else if(webBestModelId == "lasso"){
+    webFinalModel = lasso(webFinalTrainDS, webLabelCol, webFeatureCols, alpha=0.1, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, positive=false, checkInput=true)
+} else if(webBestModelId == "elastic_net"){
+    webFinalModel = elasticNet(webFinalTrainDS, webLabelCol, webFeatureCols, alpha=0.1, l1Ratio=0.5, intercept=true, normalize=false, maxIter=1000, tolerance=0.0001, positive=false, checkInput=true)
+} else if(webBestModelId == "glm_regression"){
+    webFinalModel = glm(webFinalTrainDS, webLabelCol, webFeatureCols, family="gaussian", link="identity", maxIter=200, tolerance=0.000001)
+} else if(webBestModelId == "adaboost_regressor"){
+    webFinalModel = adaBoostRegressor(webFinalTrainDS, webLabelCol, webFeatureCols, numTrees=int(webBestRegressionCandidate.num_trees[0]), maxDepth=int(webBestRegressionCandidate.max_depth[0]), learningRate=0.1, randomSeed=webSeed)
+} else {
+    webFinalModel = randomForestRegressor(webFinalTrainDS, webLabelCol, webFeatureCols, numTrees=int(webBestRegressionCandidate.num_trees[0]), maxDepth=int(webBestRegressionCandidate.max_depth[0]), randomSeed=webSeed)
+}
+webBestPredicted = predict(webFinalModel, webTest)
+webBestRegressionPredictions = table(webTest[webLabelCol] as actual_value, webBestPredicted as predicted_value)
+webErr = webBestRegressionPredictions.predicted_value - webBestRegressionPredictions.actual_value
+webMae = avg(abs(webErr))
+webRmse = sqrt(avg(webErr * webErr))
+webMeanActual = avg(webBestRegressionPredictions.actual_value)
+webSsTot = sum((webBestRegressionPredictions.actual_value - webMeanActual) * (webBestRegressionPredictions.actual_value - webMeanActual))
+webSsRes = sum(webErr * webErr)
+webR2 = iif(webSsTot == 0, 0.0, 1.0 - webSsRes \ webSsTot)
+webMape = avg(abs(webErr \ webBestRegressionPredictions.actual_value))
+webBestRegressionTestReport = table(["test"] as dataset, [size(webBestRegressionPredictions.actual_value)] as rows, [webMae] as mae, [webRmse] as rmse, [webR2] as r2, [webMape] as mape, [webFinalModelName] as model_function, [webBestModelId] as model_id)
+webBestRegressionTestReport
+
+// 块 22：回归模型选择摘要。
+// 输入：webRegressionGridPlanSummary、webRegressionGridSearchReport、webBestRegressionCandidate、webBestRegressionTestReport。
+// 输出：webRegressionModelSelectionSummary。
+// 适用：最终聊天输出前，解释候选、截断、最佳模型、验证集选择指标和测试集最终指标。
+webRegressionModelSelectionSummary = table([string(webRegressionGridPlanSummary)] as grid_plan_summary, [string(select * from webRegressionGridSearchReport order by selection_score desc, candidate_id)] as grid_search_report, [string(webBestRegressionCandidate)] as best_candidate, [string(webBestRegressionTestReport)] as test_report)
+webRegressionModelSelectionSummary

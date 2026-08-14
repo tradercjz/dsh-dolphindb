@@ -1,0 +1,55 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "stock_daily",
+    "desc": "存放A股市场的日线未复权的行情数据，包含上海证券交易所、深圳证券交易所和北京证券交易所的股票，字段覆盖开盘价、最高价、最低价、收盘价、昨收价、涨跌额、涨跌幅、成交量、成交额和数据更新时间。",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "股票代码，上海证券交易所以 .SH 结尾，深证证券交易所以 .SZ 结尾，北京证券交易所以 .BJ 结尾"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "open": {
+            "type": "DOUBLE",
+            "desc": "开盘价"
+        },
+        "high": {
+            "type": "DOUBLE",
+            "desc": "最高价"
+        },
+        "low": {
+            "type": "DOUBLE",
+            "desc": "最低价"
+        },
+        "close": {
+            "type": "DOUBLE",
+            "desc": "收盘价"
+        },
+        "pre_close": {
+            "type": "DOUBLE",
+            "desc": "昨收价【除权价】"
+        },
+        "change": {
+            "type": "DOUBLE",
+            "desc": "涨跌额（今收-昨收）"
+        },
+        "pct_chg": {
+            "type": "DOUBLE",
+            "desc": "涨跌幅【基于除权后的昨收计算的涨跌幅：(今收-除权昨收)/除权昨收】"
+        },
+        "vol": {
+            "type": "DOUBLE",
+            "desc": "成交量（手）"
+        },
+        "amount": {
+            "type": "DOUBLE",
+            "desc": "成交额（千元）"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "数据更新时间"
+        }
+    }
+}

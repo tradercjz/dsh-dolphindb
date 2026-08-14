@@ -1,0 +1,114 @@
+// ============================================================
+// Orca DStream API Demo: 持仓指标实时计算（as-of join 版）
+// ============================================================
+
+// 1. Catalog
+if (!existsCatalog("orcaPositionDemo")) {
+    createCatalog("orcaPositionDemo")
+}
+go
+use catalog orcaPositionDemo
+
+// 2. Clean old graph
+try {
+    dropStreamGraph("positionGraph", true)
+} catch(ex) {
+}
+
+// 3. Build stream graph
+g = createStreamGraph("positionGraph")
+
+// 行情快照流（右表）
+marketSrc = g.source(
+    "marketStream",
+    `InstrumentID`MarketTime`LastPrice`VolumeMultiple,
+    [SYMBOL, TIMESTAMP, DOUBLE, INT]
+)
+
+// 持仓明细流（左表）
+positionSrc = g.source(
+    "positionStream",
+    `AccountID`InstrumentID`PosiDirection`ReceivedTime`Position`YdPosition`TodayPosition`OpenCost`PositionCost`Commission`PreSettlementPrice,
+    [SYMBOL, SYMBOL, SYMBOL, TIMESTAMP, LONG, LONG, LONG, DOUBLE, DOUBLE, DOUBLE, DOUBLE]
+)
+
+// as-of join + 指标计算（matchingColumn/timeColumn 列自动输出，metrics 中不要重复）
+joined = positionSrc.asofJoinEngine(
+    rightStream = marketSrc,
+    metrics = <[
+        AccountID,
+        PosiDirection,
+        Position,
+        YdPosition,
+        TodayPosition,
+        OpenCost,
+        PositionCost,
+        PreSettlementPrice,
+        LastPrice,
+        VolumeMultiple,
+        iif(PosiDirection == "LONG", 1, -1) as DirectionSign,
+        iif(PosiDirection == "LONG", 1, -1) * VolumeMultiple * Position * (LastPrice - OpenCost) as FloatingProfitByTrade,
+        iif(PosiDirection == "LONG", 1, -1) * VolumeMultiple * Position * (LastPrice - PreSettlementPrice) as FloatingProfitByDate,
+        Position as AvailableVolume,
+        LastPrice * Position * VolumeMultiple as PositionValue,
+        iif(PosiDirection == "LONG", 1, -1) * Position * VolumeMultiple as Delta
+    ]>,
+    matchingColumn = `InstrumentID,
+    timeColumn = `ReceivedTime`MarketTime
+)
+
+// 按 key 保留最新
+joined.latestKeyedSink(
+    name = "positionResult",
+    keyColumn = `AccountID`InstrumentID`PosiDirection,
+    timeColumn = `ReceivedTime
+)
+
+g.submit()
+sleep(3000)
+getStreamGraphMeta("positionGraph")
+
+// 4. Mock data（列顺序必须与 source schema 一致）
+marketData = table(
+    `IF2401`IF2401`IF2401`IF2401`IF2401`IF2401`IF2401 as InstrumentID,
+    [
+        2024.01.15T09:30:00.000,
+        2024.01.15T09:30:05.000,
+        2024.01.15T09:30:10.000,
+        2024.01.15T09:30:15.000,
+        2024.01.15T09:30:20.000,
+        2024.01.15T09:30:25.000,
+        2024.01.15T09:30:30.000
+    ] as MarketTime,
+    [3920.0, 3921.5, 3923.0, 3922.0, 3924.5, 3925.0, 3926.0] as LastPrice,
+    take(300, 7) as VolumeMultiple
+)
+appendOrcaStreamTable("marketStream", marketData)
+sleep(500)
+
+positionData = table(
+    [`A0001, `A0001, `A0002, `A0002, `A0001, `A0002] as AccountID,
+    `IF2401`IF2401`IF2401`IF2401`IF2401`IF2401 as InstrumentID,
+    [`LONG, `SHORT, `LONG, `SHORT, `LONG, `LONG] as PosiDirection,
+    [
+        2024.01.15T09:30:03.000,
+        2024.01.15T09:30:08.000,
+        2024.01.15T09:30:12.000,
+        2024.01.15T09:30:18.000,
+        2024.01.15T09:30:28.000,
+        2024.01.15T09:30:35.000
+    ] as ReceivedTime,
+    [10, 5, 20, 8, 10, 20] as Position,
+    [8, 5, 18, 8, 8, 18] as YdPosition,
+    [2, 0, 2, 0, 2, 2] as TodayPosition,
+    [3918.0, 3920.0, 3915.0, 3921.0, 3918.0, 3915.0] as OpenCost,
+    [39180.0, 19600.0, 78300.0, 31368.0, 39180.0, 78300.0] as PositionCost,
+    [15.0, 10.0, 30.0, 12.0, 15.0, 30.0] as Commission,
+    [3915.0, 3918.0, 3910.0, 3920.0, 3915.0, 3910.0] as PreSettlementPrice
+)
+appendOrcaStreamTable("positionStream", positionData)
+
+sleep(3000)
+
+// 5. Query
+select * from orca_table.positionResult

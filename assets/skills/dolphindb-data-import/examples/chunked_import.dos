@@ -1,0 +1,33 @@
+// Example: Import very large CSV file using textChunkDS
+
+// Step 1: Check DB/Table existence (4-branch handling)
+dbPath = "dfs://bigdata"
+tableName = "pt"
+dbExists = existsDatabase(dbPath)
+tableExists = iif(dbExists, existsTable(dbPath, tableName), false)
+
+schema = table(1:0, `sym`date`price`qty,
+               [SYMBOL, DATE, DOUBLE, INT])
+
+if (!dbExists) {
+    // Branch 1: DB doesn't exist — create new DB and table
+    db = database(dbPath, VALUE, `IBM`MSFT`GM`C`FB`GOOG`V`F`XOM`AMZN)
+    pt = db.createPartitionedTable(schema, `pt, `sym)
+} else if (dbExists && !tableExists) {
+    // Branch 2: DB exists, table doesn't — reuse DB, create table
+    db = database(dbPath)
+    pt = db.createPartitionedTable(schema, `pt, `sym)
+} else {
+    // Branch 3: DB exists, table exists — reuse both
+    db = database(dbPath)
+    pt = loadTable(dbPath, tableName)
+}
+
+// Step 2: Split file into 500 MB chunks
+ds = textChunkDS("/data/huge_trades.txt", 500)
+
+// Step 3: Import via mr (parallel MUST be false)
+mr(ds, append!{pt}, ,, false)
+
+// Step 4: Verify
+select count(*) from pt

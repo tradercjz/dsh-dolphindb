@@ -1,0 +1,31 @@
+// ============================================================
+// FxForward — parseInstrument 构建示例
+// 构建一笔 USDCNY 外汇远期
+// ============================================================
+// 金融含义：
+//   外汇远期是最基础的 FX 衍生品：约定在未来某日(delivery)以约定
+//   汇率(strike)买入/卖出一定金额的外币。远期价格由利率平价(IRP)
+//   决定：F = S × exp((r_dom - r_for) × T)。
+//   当 strike > IRP远期 时，Buy 方 NPV < 0（以高于公允的价格买入）。
+//   定价需要：本外币两条贴现曲线 + 即期汇率。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]      = "Forward"           // 远期类产品
+instDict["forwardType"]      = "FxForward"          // 外汇远期
+
+// --- 远期要素 ---
+instDict["expiry"]           = 2026.09.20           // 到期日
+instDict["delivery"]         = 2026.09.22           // 交割日（T+2）
+instDict["currencyPair"]     = "USDCNY"             // 货币对
+instDict["direction"]        = "Buy"                // 方向：买入 USD
+instDict["notionalCurrency"] = "USD"
+instDict["notionalAmount"]   = 1000000.0            // 名义本金 100万 USD
+instDict["strike"]           = 7.30                 // 远期执行价
+instDict["domesticCurve"]    = "CNY"                // 本币曲线标签
+instDict["foreignCurve"]     = "USD"                // 外币曲线标签
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

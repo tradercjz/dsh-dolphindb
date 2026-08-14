@@ -1,0 +1,124 @@
+// DolphinDB 资源监控脚本
+// 包含内存、CPU、License 等系统资源的信息采集函数
+
+// @description 集群所有节点的 CPU、内存、连接数、磁盘等指标
+// @collect async-replication, crash, disk-full, metadata-repair, node-down, oom, slow-query, stream-delay, system-hang
+// @permission readonly
+def checkClusterPerf() {
+    return getClusterPerf(true)
+}
+
+// @description 节点资源全景：license / 内存使用 / 内存配置限制 / 缓存引擎状态
+// @collect oom, startup-failure, system-hang, slow-query, stream-delay, disk-full
+// @permission readonly
+def checkResource() {
+    d = dict(STRING, ANY)
+
+    // ── License ──
+    lic = license()
+    cfg = getConfig()
+    clusterPerf = rpc(getControllerAlias(), getClusterPerf{true})
+    licenseInfo = dict(STRING, ANY)
+    licenseInfo["max_mem_gigabytes"] = (exec first(maxMemSize) from clusterPerf where name == getNodeAlias())
+    licenseInfo["max_cores"] = min(lic["maxCoresPerNode"], int(cfg["workerNum"]))
+    licenseInfo["max_connections"] = (exec first(maxConnections) from clusterPerf where name == getNodeAlias())
+    licenseInfo["max_sub_queue_depth"] = long(cfg["maxSubQueueDepth"])
+    licenseInfo["max_pub_queue_depth"] = long(cfg["maxPubQueueDepthPerSite"])
+    licenseInfo["license_expiration"] = lic["expiration"].timestamp().convertTZ("Asia/Shanghai","UTC").long()
+    licenseInfo["license"] = lic
+    d["license"] = licenseInfo
+
+    // ── 当前内存使用 ──
+    memStat = dict(STRING, STRING, true)
+    memStat["max_mem_size_bytes"] = string(long(getConfig("maxMemSize")) * 1024 * 1024 * 1024)
+    memStat["allocated_bytes"] = string(mem()["allocatedBytes"])
+    memStat["free_bytes"] = string(mem()["freeBytes"])
+    memStat["used_bytes"] = string(mem()["allocatedBytes"] - mem()["freeBytes"])
+    res1 = getSessionMemoryStat()
+    memStat["session_used_bytes"] = string((exec sum(memSize) from res1 where !userId.startsWith("__") && sessionId != NULL)[0])
+    internMem = exec userId, memSize from res1 where userId.startsWith("__") && sessionId == NULL
+    memStat[internMem.userId] = string(internMem.memSize)
+    d["memory_stat"] = memStat
+
+    // ── 内存配置限制（license / maxMemSize / queryResult 对比）──
+    memLimit = dict(STRING, ANY)
+    memLimit["license_max_mem_gb"] = lic["maxMemoryPerNode"]
+    memLimit["config_max_mem_gb"] = long(cfg["maxMemSize"])
+    memLimit["query_result_limit_gb"] = getMemLimitOfQueryResult()
+    memLimit["physical_mem_gb"] = mem()["physicalMemoryInMB"] / 1024.0
+    memLimit["config_exceeds_license"] = memLimit["config_max_mem_gb"] > memLimit["license_max_mem_gb"]
+    memLimit["config_exceeds_physical"] = memLimit["config_max_mem_gb"] > memLimit["physical_mem_gb"] * 0.9
+    memLimit["query_limit_exceeds_config"] = memLimit["query_result_limit_gb"] > memLimit["config_max_mem_gb"]
+    d["memory_limit"] = memLimit
+
+    // ── 缓存引擎（OLAP / TSDB / LevelFileIndex，老版本可能不存在） ──
+    cacheEngine = dict(STRING, ANY)
+    if (getNodeType() == 0) {
+        olapSize = NULL
+        try { olapSize = getOLAPCacheEngineSize() } catch(ex) {}
+        if (size(olapSize) != 0) {
+            cacheEngine["olap_cache_used_bytes"] = olapSize[0]
+            cacheEngine["olap_cache_free_bytes"] = olapSize[1]
+            cacheEngine["olap_cache_allocated_bytes"] = olapSize[2]
+            cacheEngine["olap_cache_capacity_bytes"] = olapSize[3]
+            cacheEngine["olap_cache_usage_percent"] = olapSize[0] * 100.0 / olapSize[3]
+        }
+        tsdbSize = NULL
+        try { tsdbSize = getTSDBCacheEngineSize() } catch(ex) {}
+        if (!isNull(tsdbSize)) {
+            cacheEngine["tsdb_cache_capacity_bytes"] = tsdbSize
+        }
+        levelStatus = NULL
+        try { levelStatus = getLevelFileIndexCacheStatus() } catch(ex) {}
+        if (size(levelStatus) != 0) {
+            cacheEngine["level_file_index_cache"] = levelStatus
+        }
+    }
+    d["cache_engine"] = cacheEngine
+    return d
+}
+
+// @description 清除节点的所有数据缓存，释放内存
+// @permission danger
+def clearCache1() {
+    clearAllCache()
+    return "cache cleared"
+}
+
+// @description 删除共享变量。二选一：varNames=[...] 删除指定名字；thresholdBytes>0 删除占用超过阈值的共享变量
+// @params varNames:vector:optional, thresholdBytes:long:optional
+// @permission danger
+def undefSharedVars(varNames=NULL, thresholdBytes=0) {
+    targets = array(STRING, 0)
+    if (!isNull(varNames) and size(varNames) > 0) {
+        targets = varNames
+    } else if (thresholdBytes > 0) {
+        targets = exec name from objs(true) where shared == true and bytes > thresholdBytes
+    } else {
+        throw "must specify at least one of varNames / thresholdBytes>0"
+    }
+
+    if (size(targets) == 0) {
+        return "no matching shared variables"
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(targets)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+    if (thresholdBytes > 0) { results["threshold_bytes"] = thresholdBytes }
+
+    for (varName in targets) {
+        try {
+            undef(varName, SHARED)
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + varName)
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + varName + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    return results
+}

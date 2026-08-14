@@ -1,0 +1,23 @@
+{
+  "id": "getAvailableCash",
+  "name": "查询可用现金",
+  "signature": "Backtest::getAvailableCash(engine)",
+  "description": "在回调函数中调用该接口查询账户当前可用现金，适用于在下单前判断资金是否充足或据此控制仓位。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常从 context[\"engine\"] 读取"
+    }
+  ],
+  "constraints": [
+    "当前阶段仅在该接口被启用时允许使用。",
+    "只有当用户需求、配置或策略描述中明确存在查询可用现金的需求时，才允许生成该接口调用。",
+    "如果只是进行买卖信号判断而不依赖资金约束，不要主动调用该接口。"
+  ],
+  "returns": {
+    "type": "DOUBLE",
+    "description": "返回账户当前可用现金，可用于后续资金约束判断或下单数量控制。"
+  },
+  "examples": ["Backtest::getAvailableCash(context[\"engine\"])"]
+}

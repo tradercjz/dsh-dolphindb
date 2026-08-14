@@ -1,0 +1,40 @@
+{
+    "name": "macd",
+    "desc": "MACD 函数基于 向量序列 X 计算异同移动平均线，返回与 X 等长的向量组合 DIF DEA MACD",
+    "syntax": "mytt::MACD(X, SHORT_, LONG_, M)",
+    "parameters": {
+        "X": {
+            "type": "VECTOR",
+            "desc": "需要计算的数值型序列"
+        },
+        "SHORT_": {
+            "type": "INT",
+            "desc": "短期指数移动平均（EMA）的窗口长度。用于计算快速线，反映价格近期变动"
+        },
+        "LONG_": {
+            "type": "INT",
+            "desc": "长期指数移动平均（EMA）的窗口长度。用于计算慢速线，体现价格较长期趋势。"
+        },
+        "M": {
+            "type": "INT",
+            "desc": "信号线（DEA）的指数移动平均窗口长度。用于对 DIF 线进行平滑处理，产生交易信号参考。"
+        }
+    },
+    "results": {
+        "DIF": {
+            "type": "VECTOR",
+            "desc": "快速线与慢速线的差值"
+        },
+        "DEA": {
+            "type": "VECTOR",
+            "desc": "DIF 的讯号线"
+        },
+        "MACD": {
+            "type": "VECTOR",
+            "desc": "柱状线。计算 DIF 与 DEA 之差的倍数，通常为 (DIF - DEA) * 2"
+        }
+    },
+    "example": [
+        "mytt::MACD(close, SHORT_=12, LONG_=26, M=9)[0]"
+    ]
+}

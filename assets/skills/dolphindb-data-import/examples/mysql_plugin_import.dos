@@ -1,0 +1,26 @@
+// Example: Import data from MySQL using plugin
+
+// Step 1: Safe load plugin
+try { loadPlugin("mysql") } catch(ex) {
+    if (strpos(string(ex[1]), "already in use") == -1) {
+        installPlugin("mysql"); loadPlugin("mysql")
+    }
+}
+
+// Step 2: Connect to MySQL
+conn = mysql::connect("host", port, "username", "password", "employees")    // ▶ 替换为实际的连接参数
+
+// Step 3: Preview schema
+schema = mysql::extractSchema(conn, "employees")
+
+// Step 4: Create DolphinDB database
+db = database("dfs://mysql_import", VALUE, `F`M)
+
+// Step 5: Import directly to distributed table
+pt = mysql::loadEx(conn, db, "employees", "gender", "employees")
+
+// Step 6: Close connection
+mysql::close(conn)
+
+// Step 7: Verify
+select count(*) from loadTable("dfs://mysql_import", "employees")

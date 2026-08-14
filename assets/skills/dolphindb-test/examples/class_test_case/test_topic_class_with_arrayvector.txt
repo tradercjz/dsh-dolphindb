@@ -1,0 +1,465 @@
+#include "setup/settings.txt"
+//#include "clearAll.txt"
+
+try{
+	rmdir(WORK_DIR+"/snapshotDir", true)
+}catch(ex){print ex}
+
+@testing:case="test_topic_class_attribute_BOOL[]"
+class Foo{
+                id :: int
+                value :: BOOL[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(false true, 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST BOOL[] VECTOR"
+
+@testing:case="test_topic_class_attribute_INT[]"
+class Foo{
+                id :: int
+                value :: INT[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(int(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST INT[] VECTOR"
+
+@testing:case="test_topic_class_attribute_DOUBLE[]"
+class Foo{
+                id :: int
+                value :: DOUBLE[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(double(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST DOUBLE[] VECTOR"
+
+@testing:case="test_topic_class_attribute_FLOAT[]"
+class Foo{
+                id :: int
+                value :: FLOAT[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(float(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST FLOAT[] VECTOR"
+
+@testing:case="test_topic_class_attribute_CHAR[]"
+class Foo{
+                id :: int
+                value :: CHAR[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(char(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST CHAR[] VECTOR"
+
+@testing:case="test_topic_class_attribute_SHORT[]"
+class Foo{
+                id :: int
+                value :: SHORT[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(short(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST SHORT[] VECTOR"
+
+@testing:case="test_topic_class_attribute_LONG[]"
+class Foo{
+                id :: int
+                value :: LONG[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(long(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST LONG[] VECTOR"
+
+@testing:case="test_topic_class_attribute_DATE[]"
+class Foo{
+                id :: int
+                value :: DATE[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(date(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST DATE[] VECTOR"
+
+@testing:case="test_topic_class_attribute_DATETIME[]"
+class Foo{
+                id :: int
+                value :: DATETIME[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(datetime(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST DATETIME[] VECTOR"
+
+@testing:case="test_topic_class_attribute_TIME[]"
+class Foo{
+                id :: int
+                value :: TIME[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(time(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST TIME[] VECTOR"
+
+@testing:case="test_topic_class_attribute_MINUTE[]"
+class Foo{
+                id :: int
+                value :: MINUTE[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(minute(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST MINUTE[] VECTOR"
+
+@testing:case="test_topic_class_attribute_TIMESTAMP[]"
+class Foo{
+                id :: int
+                value :: TIMESTAMP[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(timestamp(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST TIMESTAMP[] VECTOR"
+
+@testing:case="test_topic_class_attribute_DATEHOUR[]"
+class Foo{
+                id :: int
+                value :: DATEHOUR[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(datehour(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST DATEHOUR[] VECTOR"
+
+@testing:case="test_topic_class_attribute_MONTH[]"
+class Foo{
+                id :: int
+                value :: MONTH[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(month(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST MONTH[] VECTOR"
+
+@testing:case="test_topic_class_attribute_SECOND[]"
+class Foo{
+                id :: int
+                value :: SECOND[] VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+val = arrayVector(take(1 3 5, 10).cumsum().int(), take(second(1..10), 28))
+f1 = Foo(1,val)
+assert 1, each(eqObj, f1.getVal(), val)
+assert 2, (typestr f1.value) == "FAST SECOND[] VECTOR"
+
+@testing:case="test_topic_class_inherit_with_DOUBLE[]"
+class F1{
+	id :: INT
+	name :: STRING
+	value :: DOUBLE[] VECTOR
+	def F1(id_, name_){
+		id ,name = id_,name_
+	}	
+	def setVal(value_){
+		value = value_
+	}
+	def getFlag(){
+		if(value.isNull().all()){
+			return false
+		}else{
+			return true	
+		}
+	}
+}
+
+class F2 : F1{
+	position  :: POINT
+	val :: DOUBLE[] VECTOR
+	def F2(position_){
+		F1(int(1), string(1))
+		position = position_
+	}
+
+	def getPosition(){
+		return position	
+	}
+	def setVal2(id){
+		position = point(id,id)
+	}
+	def setVal(val_){
+		val = val_		
+	}
+}
+
+f1 = F1(11, "ttdfa")
+f = F2(point(1,1))
+assert 1, f.id == 1
+assert 2, f.name == "1"
+assert 3,  f1.id == 11
+assert 4, f1.name == "ttdfa"
+f.setVal(arrayVector(take(1 3 5, 10).cumsum().int(), take(double(1..10), 28)))
+assert 5, f.position == point(1,1)
+assert 6, each(eqObj,f.val, arrayVector(take(1 3 5, 10).cumsum().int(), take(double(1..10), 28)))
+
+@testing:case="test_topic_class_with_persional_function_DOUBLE[]_error", exception=1
+def f1(val,value){
+	return each(x->sum(x), val) + value
+}
+
+class F1{
+	val :: DOUBLE[] VECTOR
+	def F1(val_){
+		val = val_	
+	}
+	def getval(value){
+		val = each(x->sum(x), val) + value
+		return val	
+	}		
+}
+val = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), rand(100.0, 68))
+f = F1(val)
+f.getval(10.0)
+
+@testing:case="test_topic_class_with_persional_function_DOUBLE[]"
+def f1(val){
+	return val * 0.56
+}
+
+class F1{
+	val :: DOUBLE[] VECTOR
+	def F1(val_){
+		val = val_	
+	}
+	def getval(value){
+		val = f1(value) +val
+		return val	
+	}		
+}
+val = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), rand(100.0, 68))
+f = F1(val)
+assert 1, each(eqObj,f.getval(10.0), f1(10.0)+val)
+assert 2, each(eqObj,f.getval(f.val), (f1(10.0)+val+f1(f1(10.0)+val)))
+
+@testing:case="test_topic_class_with_presional_function_use_class_with_double[]"
+class F1{
+	name :: DOUBLE[] VECTOR
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return array(DOUBLE[],0,0).append!([[1.0,2.0],[3.0,4.0]])
+	}	
+}
+
+def speak(mutable F){
+	str = F.getS()
+	return str
+}
+f = F1(arrayVector(take(2 3 5 2 5, 20).cumsum().int(), rand(100.0, 68)))
+assert 1, each(eqObj, speak(f) , array(DOUBLE[],0,0).append!([[1.0,2.0],[3.0,4.0]]))
+
+@testing:case="test_topic_class_with_presional_function_with_rpc"
+class F1{
+	name :: DOUBLE[] VECTOR
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+	def setName(name_){
+		name = name_	
+	}
+	def getName(){
+		return name	
+	}
+}
+def getName(name){
+	f = F1(name)
+	return f.getS()
+}
+nodes = exec node from pnodeRun(getNodeAlias) where node != getNodeAlias()
+val = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(11..20, 68))
+assert 1, rpc(nodes[0], getName, val) == "all"
+
+@testing:case="test_topic_class_defined_class_other_node_2"
+script = "class F1{ name::DOUBLE[] VECTOR\n def F1(name_){name= name_}\n }\nval = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(11..20, 68))\nf=F1(val)\nf.name"
+nodes = exec node from pnodeRun(getNodeAlias) where node != getNodeAlias()
+h = xdb(nodes[0], "admin","123456")
+str = remoteRun(h, script)
+val = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(double(11..20), 68))
+assert 1, each(eqObj,str , val)
+
+@testing:case="test_topic_class_inhert_as_dict_value_INT[]"
+class F {
+	buySignalRSI :: INT[] VECTOR
+	
+	def F() {
+		buySignalRSI = arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(double(11..20), 68))
+	}
+}
+class Context : F {
+	def Context() {
+		F()
+	}
+}
+
+d=dict(STRING,ANY)
+c = Context()
+d["c"] = c
+assert 1,  each(eqObj,d["c"].buySignalRSI , arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(11..20, 68)))
+for(i in 0:10){
+	d[string(i)] = c
+	assert 2, eqObj(d[string(i)].buySignalRSI ,arrayVector(take(2 3 5 2 5, 20).cumsum().int(), take(11..20, 68)))
+}
+assert 3, d.size() == 11
+
+@testing:case="test_topic_class_with_isInstanceOf_arrayvector"
+class Data {
+    id :: INT
+    val :: INT[] VECTOR
+
+    def Data(id_, val_) {
+        id = id_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+}
+a = Data(1, arrayVector(take(5, 10).cumsum().int(), 1..50))
+assert 1, isInstanceOf(a, Data) == true
+
+@testing:case="test_topic_class_with_NULL"
+class Data {
+    id :: INT
+    val :: INT[] VECTOR
+
+    def Data(id_, val_) {
+        id = id_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+}
+a = Data(1, arrayVector(take(5, 10).cumsum().int(), take(int(), 50)))
+assert 1, each(eqObj, a.getVal() ,arrayVector(take(5, 10).cumsum().int(), take(int(), 50)))
+assert 2, not false  in  matrix(a.getVal())
+
+
+
+
+
+
+

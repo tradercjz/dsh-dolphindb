@@ -1,0 +1,91 @@
+﻿// ============================================================
+// Tushare data import dispatcher for DolphinDB Web.
+// Edit the user parameters below, then run this whole script.
+// ============================================================
+
+// ===== User parameters =====
+token = "YOUR_TUSHARE_TOKEN"
+dataDomains = ["stock"]        // Example: ["stock", "index", "fund"].
+startDate = 2026.01.01
+endDate = 2026.01.02
+
+// Optional per-domain table mapping. Empty mapping means all supported tables for every selected domain.
+// Example:
+// tableNamesByDomain = dict(STRING, ANY)
+// tableNamesByDomain["stock"] = ["stock_basic", "daily"]
+// tableNamesByDomain["index"] = ["index_basic", "index_daily"]
+tableNamesByDomain = dict(STRING, ANY)
+
+// ===== Dispatcher =====
+def normalizeTableNames(tableNames){
+    if(tableNames.isVoid() or size(tableNames) == 0) return []
+    return string(tableNames)
+}
+
+def normalizeDataDomains(dataDomains){
+    if(dataDomains.isVoid() or size(dataDomains) == 0) return []
+    if(typestr(dataDomains) == "STRING") return [dataDomains]
+    return string(dataDomains)
+}
+
+def validateDomain(dataDomain){
+    validDomains = ["stock", "index", "fund", "bond", "futures", "options", "etf", "spot", "fx", "llm"]
+    if(not dataDomain in validDomains){
+        throw "dataDomain must be one of: " + concat(validDomains, ", ")
+    }
+}
+
+def getDomainTableNames(tableNamesByDomain, dataDomain){ // dataDomain = 'stock'
+    if(tableNamesByDomain.isVoid() or size(tableNamesByDomain) == 0) return []
+    if(typestr(tableNamesByDomain) != "DICTIONARY"){
+        return normalizeTableNames(tableNamesByDomain)
+    }
+    names = tableNamesByDomain[dataDomain]
+    if(names.isVoid()) return []
+    return normalizeTableNames(names)
+}
+
+def loadDomainModule(dataDomain){
+    validateDomain(dataDomain)
+    runScript("use easy_tushare::" + dataDomain + "_init")
+}
+
+def runTushareImportByDomain(token, dataDomain, startDate, endDate, tableNames=[]){
+    validateDomain(dataDomain)
+    if(token == "" or token == "YOUR_TUSHARE_TOKEN"){
+        throw "Please set token to your Tushare API token before running import_data.dos."
+    }
+    if(endDate < startDate){
+        throw "endDate must be greater than or equal to startDate."
+    }
+
+    names = normalizeTableNames(tableNames)
+    loadDomainModule(dataDomain)
+    funcByName("easy_tushare::" + dataDomain + "_init::" + dataDomain + "_init_tables")(names)
+    funcByName("easy_tushare::" + dataDomain + "_init::" + dataDomain + "_history_data_load")(token, startDate, endDate, names)
+
+    print("[TUSHARE-IMPORT] SUBMITTED_DOMAIN=" + dataDomain)
+    print("[TUSHARE-IMPORT] START_DATE=" + string(startDate))
+    print("[TUSHARE-IMPORT] END_DATE=" + string(endDate))
+    print("[TUSHARE-IMPORT] TABLE_NAMES=" + string(names))
+    print("[TUSHARE-IMPORT] DOMAIN_STATUS=SUBMITTED")
+}
+
+def runTushareImport(token, dataDomains, startDate, endDate, tableNamesByDomain=NULL){
+    domains = normalizeDataDomains(dataDomains)
+    if(size(domains) == 0){
+        throw "dataDomains must contain at least one domain."
+    }
+
+    runScript("use easy_tushare::ts_init")
+    funcByName("easy_tushare::ts_init::create_db")()
+    for(dataDomain in domains){
+        names = getDomainTableNames(tableNamesByDomain, dataDomain)
+        runTushareImportByDomain(token, dataDomain, startDate, endDate, names)
+    }
+
+    print("[TUSHARE-IMPORT] SUBMITTED_DOMAINS=" + string(domains))
+    print("[TUSHARE-IMPORT] STATUS=SUBMITTED")
+}
+
+runTushareImport(token, dataDomains, startDate, endDate, tableNamesByDomain)

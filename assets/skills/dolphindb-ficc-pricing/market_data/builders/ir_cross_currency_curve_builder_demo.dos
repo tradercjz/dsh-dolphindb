@@ -1,0 +1,49 @@
+// irCrossCurrencyCurveBuilder demo: infer USD curve from USDCNY FX swap points.
+
+refDate = 2025.08.18
+spotDate1 = temporalAdd(refDate, 2, "XNYS")
+spotDate2 = temporalAdd(refDate, 2, "CFET")
+spotDate = max(spotDate1, spotDate2)
+
+terms = ["1d", "1w", "2w", "1M", "3M", "6M"]
+curveDates = array(DATE)
+for(term in terms){
+    dur = duration(term)
+    date1 = transFreq(temporalAdd(spotDate, dur), "XNYS", "right", "right")
+    date2 = transFreq(temporalAdd(spotDate, dur), "CFET", "right", "right")
+    curveDates.append!(max(date1, date2))
+}
+
+cnyDict = dict(STRING, ANY)
+cnyDict["mktDataType"] = "Curve"
+cnyDict["curveType"] = "IrYieldCurve"
+cnyDict["referenceDate"] = refDate
+cnyDict["currency"] = "CNY"
+cnyDict["curveName"] = "CNY_SHIBOR_3M"
+cnyDict["dayCountConvention"] = "Actual365"
+cnyDict["compounding"] = "Continuous"
+cnyDict["interpMethod"] = "Linear"
+cnyDict["extrapMethod"] = "Flat"
+cnyDict["dates"] = curveDates
+cnyDict["values"] = [1.5113, 1.5402, 1.5660, 1.5556, 1.5703, 1.5934] / 100
+cnyDict["settlement"] = spotDate
+cnyCurve = parseMktData(cnyDict)
+
+instNames = take("USDCNY", size(terms))
+instTypes = take("FxSwap", size(terms))
+quotes = [-5.54, -39.00, -75.40, -177.00, -466.00, -898.50] / 10000
+spot = 7.1627
+
+usdCurve = irCrossCurrencyCurveBuilder(refDate, "USD", instNames, instTypes,
+                                       terms, quotes, "USDCNY", spot,
+                                       "Actual365", cnyCurve,
+                                       "Continuous", "Annual", "USD")
+
+curveDict = extractMktData(usdCurve)
+values = curveDict["values"]
+
+table([curveDict["curveName"]] as curveName,
+      [refDate] as referenceDate,
+      [values.size()] as curvePoints,
+      [round(values[0] * 100, 4)] as firstRatePercent,
+      [round(values[values.size() - 1] * 100, 4)] as lastRatePercent)

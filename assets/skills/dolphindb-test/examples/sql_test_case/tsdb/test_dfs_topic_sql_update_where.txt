@@ -1,0 +1,241 @@
+
+@testing:case="test_functions"
+def createTsdbDB(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db=database(dbName, VALUE, 2012.01.01..2012.01.30,  ,"TSDB")
+}
+
+def createTsdbPartTable1(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createPartitionedTable(t, tableName, "date", , ["date"],sortKeyMappingFunction=[hashBucket{,10}])
+}
+
+def createTsdbPartTable2(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createPartitionedTable(t, tableName, "date", , ["sym","date"],sortKeyMappingFunction=[hashBucket{,10}])
+}
+
+def createTsdbPartTable3(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createPartitionedTable(t, tableName, "date", , ["sym","price","date"],sortKeyMappingFunction=[hashBucket{,10},hashBucket{,10}])
+}
+
+def createTsdbTable1(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createTable(t, tableName, , ["date"])
+}
+
+def createTsdbTable2(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createTable(t, tableName,  , ["sym","date"])
+}
+
+def createTsdbTable3(dbName, tableName){
+	db=database(dbName)
+	t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+	db.createTable(t, tableName,  , ["sym","price","date"])
+}
+
+@testing:case="test_dfs_topic_sql_update_where_one_sortkey"
+dbName="dfs://test_dfs_topic_sql_update_where"
+tableName=`pt1
+tableName1=`dt1
+createTsdbDB(dbName)
+createTsdbPartTable1(dbName, tableName)
+createTsdbTable1(dbName, tableName1)
+n=50000
+date=take(2012.01.01..2012.01.30,n).sort()
+time=second(now())+1..n
+sym=rand("v"+string(1..40),n)
+price=rand(20,n)
+val=rand(20.0,n)
+t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+insert into t values(date,time,sym,price,val)
+pt=loadTable(dbName,tableName)
+pt.append!(t)
+dt=loadTable(dbName,tableName1)
+dt.append!(t)
+update pt set val=0 where date>2012.01.20
+update dt set val=0 where date>2012.01.20
+update t set val=0 where date>2012.01.20
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 1,each(eqObj,resp.values(),ex.values())
+assert 2,each(eqObj,resd.values(),ex.values())
+
+update pt set val=1 where date==2012.01.10
+update dt set val=1 where date==2012.01.10
+update t set val=1 where date==2012.01.10
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 3,each(eqObj,resp.values(),ex.values())
+assert 4,each(eqObj,resd.values(),ex.values())
+
+update pt set val=2 where date in 2012.01.10..2012.01.12
+update dt set val=2 where date in 2012.01.10..2012.01.12
+update t set val=2 where date in 2012.01.10..2012.01.12
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 5,each(eqObj,resp.values(),ex.values())
+assert 6,each(eqObj,resd.values(),ex.values())
+
+update pt set val=3 where date between 2012.01.20:2012.01.22
+update dt set val=3 where date between 2012.01.20:2012.01.22
+update t set val=3 where date between 2012.01.20:2012.01.22
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 7,each(eqObj,resp.values(),ex.values())
+assert 8,each(eqObj,resd.values(),ex.values())
+
+update pt set val=3 where date <2011.01.20
+update dt set val=3 where date < 2011.01.20
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 9,each(eqObj,resp.values(),ex.values())
+assert 10,each(eqObj,resd.values(),ex.values())
+
+@testing:case="test_dfs_topic_sql_update_where_two_sortkey"
+dbName="dfs://test_dfs_topic_sql_update_where"
+tableName=`pt1
+tableName1=`dt1
+createTsdbDB(dbName)
+createTsdbPartTable2(dbName, tableName)
+createTsdbTable2(dbName, tableName1)
+n=50000
+date=take(2012.01.01..2012.01.30,n).sort()
+time=second(now())+1..n
+sym=rand("v"+string(1..40),n)
+price=rand(20,n)
+val=rand(20.0,n)
+t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+insert into t values(date,time,sym,price,val)
+pt=loadTable(dbName,tableName)
+pt.append!(t)
+dt=loadTable(dbName,tableName1)
+dt.append!(t)
+update pt set val=0 where sym=="v10"
+update dt set val=0 where sym=="v10"
+update t set val=0 where sym=="v10"
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 1,each(eqObj,resp.values(),ex.values())
+assert 2,each(eqObj,resd.values(),ex.values())
+
+update pt set val=1 where date==2012.01.10,sym=="v10"
+update dt set val=1 where date==2012.01.10,sym=="v10"
+update t set val=1 where date==2012.01.10,sym=="v10"
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 3,each(eqObj,resp.values(),ex.values())
+assert 4,each(eqObj,resd.values(),ex.values())
+
+update pt set val=2 where date in 2012.01.10..2012.01.12,sym!="v10"
+update dt set val=2 where date in 2012.01.10..2012.01.12,sym!="v10"
+update t set val=2 where date in 2012.01.10..2012.01.12,sym!="v10"
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 5,each(eqObj,resp.values(),ex.values())
+assert 6,each(eqObj,resd.values(),ex.values())
+
+update pt set val=2 where date in 2012.01.10..2012.01.12 or sym=="v10"
+update dt set val=2 where date in 2012.01.10..2012.01.12 or sym=="v10"
+update t set val=2 where date in 2012.01.10..2012.01.12 or sym=="v10"
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 7,each(eqObj,resp.values(),ex.values())
+assert 8,each(eqObj,resd.values(),ex.values())
+
+@testing:case="test_dfs_topic_sql_update_where_three_sortkey"
+dbName="dfs://test_dfs_topic_sql_update_where"
+tableName=`pt1
+tableName1=`dt1
+createTsdbDB(dbName)
+createTsdbPartTable3(dbName, tableName)
+createTsdbTable3(dbName, tableName1)
+n=50000
+date=take(2012.01.01..2012.01.30,n).sort()
+time=second(now())+1..n
+sym=rand("v"+string(1..40),n)
+price=rand(20,n)
+val=rand(20.0,n)
+t=table(1:0, `date`time`sym`price`val, [DATE, SECOND, SYMBOL, INT, DOUBLE])
+insert into t values(date,time,sym,price,val)
+pt=loadTable(dbName,tableName)
+pt.append!(t)
+dt=loadTable(dbName,tableName1)
+dt.append!(t)
+update pt set val=0 where price<20 and price>12
+update t set val=0 where price<20 and price>12
+update dt set val=0 where price<20 and price>12
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 1,each(eqObj,resp.values(),ex.values())
+assert 2,each(eqObj,resd.values(),ex.values())
+
+update pt set val=1 where price==12,sym=="v10"
+update dt set val=1 where price==12,sym=="v10"
+update t set val=1 where price==12,sym=="v10"
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 3,each(eqObj,resp.values(),ex.values())
+assert 4,each(eqObj,resd.values(),ex.values())
+
+update pt set val=2 where date in 2012.01.10..2012.01.12,sym!="v10",price>=10
+update dt set val=2 where date in 2012.01.10..2012.01.12,sym!="v10",price>=10
+update t set val=2 where date in 2012.01.10..2012.01.12,sym!="v10",price>=10
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 5,each(eqObj,resp.values(),ex.values())
+assert 6,each(eqObj,resd.values(),ex.values())
+
+update pt set val=3 where date between 2012.01.20:2012.01.22,sym!="v10",price<=10
+update dt set val=3 where date between 2012.01.20:2012.01.22,sym!="v10",price<=10
+update t set val=3 where date between 2012.01.20:2012.01.22,sym!="v10",price<=10
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 7,each(eqObj,resp.values(),ex.values())
+assert 8,each(eqObj,resd.values(),ex.values())
+
+update pt set val=4 where sym=="v1000",date between 2012.02.20:2012.02.22,price<=0
+update dt set val=4 where sym=="v1000",date between 2012.02.20:2012.02.22,price<=0
+update t set val=4 where sym=="v1000",date between 2012.02.20:2012.02.22,price<=0
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 9,each(eqObj,resp.values(),ex.values())
+assert 10,each(eqObj,resd.values(),ex.values())
+
+update pt set val=count(price) where sym=="v100",price==10 context by date
+update dt set val=count(price) where sym=="v100",price==10 context by date
+update t set val=count(price) where sym=="v100",price==10 context by date
+resp=select * from loadTable(dbName,tableName) order by date,time,sym,price,val
+resd=select * from loadTable(dbName,tableName1) order by date,time,sym,price,val
+ex=select * from t order by date,time,sym,price,val
+assert 11,each(eqObj,resp.values(),ex.values())
+assert 12,each(eqObj,resd.values(),ex.values())
+
+
+@testing:case="dropDB"
+if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}

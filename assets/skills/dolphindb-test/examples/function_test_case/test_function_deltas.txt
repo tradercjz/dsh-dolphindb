@@ -1,0 +1,725 @@
+//param checking
+@testing:case='test_function_deltas_paramchecking_x_STRING', exception=1
+deltas(`stringtype`aaabbb)
+
+@testing:case="function_deltas_scalar"
+//Usage:deltas X or deltas (X) or (X).deltas()
+assert 1, eqObj(deltas(6), [00i]);
+assert 2, deltas(1b)==NULL
+assert 3,deltas(1c) == NULL
+assert 4,deltas(22l)==NULL
+assert 5,deltas(2013.06.12)==NULL
+assert 6,deltas(2012.06M)==NULL
+assert 7,deltas(13:30:10.008)==NULL
+assert 8,deltas(13:30m)==NULL
+assert 9,deltas(13:30:10)==NULL
+assert 10,deltas(2012.06.13 13:30:10)==NULL
+assert 11,deltas(2012.06.13 13:30:10.008)==NULL
+assert 12,deltas(13:30:10.008007006)==NULL
+assert 13,deltas(2012.06.13 13:30:10.008007006)==NULL
+assert 14,deltas(2.1f)==NULL
+assert 15,deltas(2.1F)==NULL
+assert 16,deltas(2h)==NULL
+
+@testing:case="function_deltas"
+x=7 4 5 8 9 3 3 5 2 6 12 1 0 -5 32;
+assert 2, eqObj(deltas x, [NULL,-3,1,3,1,-6,0,2,-3,4,6,-11,-1,-5,37])
+x=1.1 2.1 NULL 3
+assert 3, eqObj(deltas x, NULL 1.0 NULL NULL)
+x=1.1f 2.1f NULL 3f
+assert 4, eqObj(deltas x, NULL 1.0 NULL NULL,6)
+x=1l*(7 4 5 8 9 3 3 5 2 6 12 1 0 -5 32);
+assert 5, eqObj(deltas x, 1l*[NULL,-3,1,3,1,-6,0,2,-3,4,6,-11,-1,-5,37])
+x=1c 2c 3c;
+assert 6, eqObj(deltas x, [NULL,1,1])
+x=1h 2h 3h;
+assert 7, eqObj(deltas x, [NULL,1,1])
+x= 1b 0b 1b 
+assert 8, eqObj(deltas x,[NULL,-1,1],1)
+x=  552152523l 23239128l 23243455l 17263236577812l NULL 23626192l
+assert 9,eqObj(deltas x,[NULL,-528913395,4327,17263213334357,NULL,NULL])
+x = 2019.12.12 2020.08.30 2021.09.12
+assert 10,eqObj(deltas x,[NULL,262,378])
+x = 2011.08M 1978.09M 2017.03M
+assert 11,eqObj(deltas x,[NULL,-395,462])
+x = 12:30:10.008 11:20:21.000 13:12:09.000
+assert 12 ,eqObj(deltas x,[NULL,-4189008,6708000])
+ x = 13:30m 11:20m 15:06m
+assert 13,eqObj(deltas x,[NULL,-130,226])
+x = 14:09:00 07:20:00 16:00:09
+assert 14,eqObj(deltas x,[NULL,-24540,31209])
+x = 2012.06.13T12:30:10 2015.07.12T13:09:24 1999.08.07T01:02:03
+assert 15,eqObj(deltas x,[NULL,97115954,-502718841])
+x = 13:30:10.008007006 13:30:10.008007005 13:30:10.008007006
+assert 16,eqObj(deltas x,[NULL,-1,1])
+x =2012.06.13T13:30:10.008007006 2012.06.13T13:30:10.008007005 2012.06.13T13:30:10.008007006
+assert 17,eqObj(deltas x,[NULL,-1,1])
+x = (2,[3,5],10)
+assert 18,eqObj(deltas x,(NULL,[1,3],[7,5]))
+
+@testing:case="function_deltas_array_and_subarray"
+x = take(1,3000)
+x[1022 1023 1024] = NULL 1 NULL
+assert 1,deltas(x)[0]==NULL
+assert 2,eqObj(deltas(x)[1021:1024],[0,NULL,NULL])
+x[1022 1023 1024] = 1 NULL 1
+assert 3,eqObj(deltas(x)[1021:1024],[0,0,NULL])
+x[1022 1023 1024] = NULL 1 1
+assert 3,eqObj(deltas(x)[1021:1025],[0,,,0])
+assert 4,eqObj(deltas(x.subarray(1022:1025)),[,,0])
+assert 5,deltas(x.subarray(1000:2000))[22]==NULL
+x[1022 1023 1024] = 1 1 1
+y= take(0,1049)
+y[0]=NULL
+assert 6,deltas(x.subarray(1000:2049))==y
+x = 1..5000
+x[1024:2047]=NULL
+y = take(1,5000)
+y[1024:2048] = NULL
+y[0]=NULL
+assert 7,eqObj(deltas(x),y)
+
+@testing:case="function_deltas_bigarray_int"
+ x = 1..10000000
+ y = bigarray(int,1,10000000,NULL)
+ y.append!(take(1,9999999))
+assert 1,eqObj(deltas x,y)
+x = bigarray(int,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=NULL 1 NULL
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=1 NULL 1
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL 1 1
+ assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+
+@testing:case="function_deltas_subarray_int"
+x = bigarray(int,0,20000000).append!(take(1,3000000))
+y = bigarray(int,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=NULL 1 1
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_double"
+x = bigarray(double, 0, 10000000).append!(double(1..10000000))
+y = bigarray(double, 0,10000000).append!(NULL).append!(take(1.0,9999999))
+assert 1,eqObj(deltas x,y)
+x = bigarray(double,0,20000000).append!(take(1.0,3000000))
+x[1048574 1048575 1048576]=NULL 1.0 NULL
+assert 2,deltas(x)[1048573..1048576] == [0,NULL,NULL,NULL]
+x[1048574 1048575 1048576]=1.0 NULL 1.0
+assert 3,deltas(x)[1048573..1048576] == [0,0,NULL,NULL]
+ x[1048574 1048575 1048576]=NULL 1.0 1.0
+assert 4,deltas(x)[1048573..1048576] == [0,NULL,NULL,0]
+
+@testing:case="function_deltas_bigarray_bool"
+x = bigarray(bool, 0, 10000000).append!(bool(1..10000000))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(0,9999999))
+assert 1,eqObj(deltas x,y)
+x = bigarray(bool,0,20000000).append!(take(true,3000000))
+x[1048574 1048575 1048576]=NULL true NULL
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=true NULL true
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL false false
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_char"
+x = bigarray(char, 0, 10000000).append!(take('A', 10000000))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(0,9999999))
+assert 1,eqObj(deltas x,y)
+x = bigarray(char,0,20000000).append!(take('A',3000000))
+x[1048574 1048575 1048576]=NULL 'A' NULL
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]='A' NULL 'A'
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL 'A' 'A'
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_short"
+x = bigarray(short, 0, 10000000).append!(short(1..32768))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(1,32766)).append!(00h)
+assert 1, (deltas x) == y
+x = bigarray(long,0,20000000).append!(take(1h,3000000))
+x[1048574 1048575 1048576]=NULL 1h NULL
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=1h NULL 1h
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL 1h 1h
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_long"
+x = bigarray(long, 0, 10000000).append!(long(1..10000000))
+y = bigarray(long, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1,eqObj(deltas x, y)
+x = bigarray(long,0,20000000).append!(take(1l,3000000))
+x[1048574 1048575 1048576]=NULL 1l NULL
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=1.0 NULL 1l
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL 1l 1l
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_date"
+x = bigarray(date, 0, 10000000).append!(date(1..10000000))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1,eqObj(deltas x, y)
+x = bigarray(date,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=date(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=date(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=date(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_month"
+x = bigarray(month, 0, 10000000).append!(month(1..10000000))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1,eqObj(deltas x, y)
+x = bigarray(month,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=month(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=month(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=month(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_time"
+x = bigarray(time, 0, 10000000).append!(time(1..10000000))
+y = bigarray(int, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1,eqObj(deltas x, y)
+x = bigarray(double,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=time(NULL 1 NULL)
+assert 2, deltas(x)[1048573..1048576] == [0,NULL,NULL,NULL]
+x[1048574 1048575 1048576]=time(1 NULL 1)
+assert 3, deltas(x)[1048573..1048576] == [0,0,NULL,NULL]
+ x[1048574 1048575 1048576]= time(NULL 1 1)
+assert 4, deltas(x)[1048573..1048576] == [0,NULL,NULL,0]
+
+@testing:case="function_deltas_bigarray_minute"
+x = bigarray(minute, 0, 10000000).append!(minute(1..1439))
+y = bigarray(int, 0, 10000000).append!(NULL).append!(take(1,1438))
+assert 1,deltas(x) ==  y
+x = bigarray(minute,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=minute(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=1 NULL 1
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=NULL 1 1
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_second"
+x = bigarray(second, 0, 10000000).append!(second(1..80000))
+y = bigarray(second, 0, 10000000).append!(NULL).append!(take(1,79999))
+assert 1, deltas(x) ==  y
+x = bigarray(second,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]= second(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=second(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=second(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+second(80000)
+@testing:case="function_deltas_bigarray_datetime"
+x = bigarray(datetime, 0, 10000000).append!(datetime(1..10000000))
+y = bigarray(datetime, 0, 10000000).append!(NULL).append!(take(1,9999999))
+assert 1, deltas(x) == y
+x = bigarray(datetime, 0, 20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=datetime(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=datetime(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=datetime(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+
+@testing:case="function_deltas_bigarray_timestamp"
+x = bigarray(timestamp, 0, 10000000).append!(double(1..10000000))
+y = bigarray(timestamp, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1, deltas(x) == y
+x = bigarray(timestamp,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=timestamp(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=timestamp(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=timestamp(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_nanotime"
+x = bigarray(nanotime, 0, 10000000).append!(double(1..10000000))
+y = bigarray(nanotime, 0,10000000).append!(NULL).append!(take(1.0,9999999))
+assert 1, deltas(x) == y
+x = bigarray(nanotime,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=nanotime(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=nanotime(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=nanotime(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_nanotimestamp"
+x = bigarray(nanotimestamp, 0, 10000000).append!(nanotimestamp(1..10000000))
+y = bigarray(nanotimestamp, 0,10000000).append!(NULL).append!(take(1,9999999))
+assert 1,deltas(x) == y
+x = bigarray(nanotimestamp,0,20000000).append!(take(1,3000000))
+x[1048574 1048575 1048576]=nanotimestamp(NULL 1 NULL)
+assert 2,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,NULL])
+x[1048574 1048575 1048576]=nanotimestamp(1 NULL 1)
+assert 3,eqObj(deltas(x)[1048573..1048576],[0,0,NULL,NULL])
+ x[1048574 1048575 1048576]=nanotimestamp(NULL 1 1)
+assert 4,eqObj(deltas(x)[1048573..1048576],[0,NULL,NULL,0])
+
+@testing:case="function_deltas_bigarray_float"
+x = bigarray(float, 0, 10000000).append!(float(1..10000000))
+y = bigarray(float, 0,10000000).append!(NULL).append!(take(1f,9999999))
+assert 1,eqObj(deltas(x), y)
+x = bigarray(float,0,20000000).append!(take(1f,3000000))
+x[1048574 1048575 1048576]=NULL 1f NULL
+assert 2,deltas(x)[1048573..1048576] == [0,NULL,NULL,NULL]
+x[1048574 1048575 1048576]=1f NULL 1f
+assert 3,deltas(x)[1048573..1048576] == [0,0,NULL,NULL]
+ x[1048574 1048575 1048576]=NULL 1f 1f
+assert 4,deltas(x)[1048573..1048576] ==  [0,NULL,NULL,0]
+
+@testing:case="function_deltas_subarray_bool"
+x = bigarray(bool,0,20000000).append!(take(1,3000000))
+y = bigarray(bool,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=bool(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_char"
+x = bigarray(char,0,20000000).append!(take(1,3000000))
+y = bigarray(char,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=char(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_short"
+x = bigarray(short,0,20000000).append!(take(1,3000000))
+y = bigarray(short,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=short(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_long"
+x = bigarray(long,0,20000000).append!(take(1,3000000))
+y = bigarray(long,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=long(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_date"
+x = bigarray(char,0,20000000).append!(take(1,3000000))
+y = bigarray(char,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=date(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_month"
+x = bigarray(char,0,20000000).append!(take(1,3000000))
+y = bigarray(char,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=month(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_time"
+x = bigarray(time,0,20000000).append!(take(1,3000000))
+y = bigarray(time,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=time(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_minute"
+x = bigarray(minute,0,20000000).append!(take(1,3000000))
+y = bigarray(minute,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=minute(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_second"
+x = bigarray(second,0,20000000).append!(take(1,3000000))
+y = bigarray(second,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=second(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_datetime"
+x = bigarray(datetime,0,20000000).append!(take(1,3000000))
+y = bigarray(datetime,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=datetime(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_timestamp"
+x = bigarray(timestamp,0,20000000).append!(take(1,3000000))
+y = bigarray(timestamp,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=timestamp(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_nanotime"
+x = bigarray(nanotime,0,20000000).append!(take(1,3000000))
+y = bigarray(nanotime,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=nanotime(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_nanotimestamp"
+x = bigarray(nanotimestamp,0,20000000).append!(take(1,3000000))
+y = bigarray(nanotimestamp,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=nanotimestamp(NULL 1 1)
+assert 6,eqObj(deltas(x.subarray(1048574:1048577)),[NULL,NULL,0])
+
+@testing:case="function_deltas_subarray_float"
+x = bigarray(float,0,20000000).append!(take(1,3000000))
+y = bigarray(float,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=float(NULL 1 1)
+assert 6,deltas(x.subarray(1048574:1048577)) == [NULL,NULL,0]
+
+@testing:case="function_deltas_subarray_double"
+x = bigarray(double,0,20000000).append!(take(1,3000000))
+y = bigarray(double,1,20000000,NULL).append!(take(0,999999))
+assert 5,deltas(x.subarray(1000000:2000000))==y
+x[1048574 1048575 1048576]=double(NULL 1 1)
+assert 6, deltas(x.subarray(1048574:1048577)) == [NULL,NULL,0]
+
+@testing:case="funtion_deltas_matrix"
+data=matrix([12,34,25],[1.1,0,-1],[30,25,53])
+assert 1,deltas(data)==matrix([NULL,22,-9],[NULL,-1.1,-1],[NULL,-5,28])
+data=matrix([1,2,3],[4,5,6],[7,8,9])
+assert 2,deltas(data)==matrix([NULL,1,1],[NULL,1,1],[NULL,1,1])
+
+@testing:case="deltas_matrix_only_zero_col",exception=1
+n=6000
+m = matrix(`DOUBLE, n, 0);
+deltas(m)
+
+@testing:case="deltas_matrix_only_zero_row"
+n=6000
+m = matrix(`DOUBLE, 0, n);
+assert 1, deltas(m)
+
+@testing:case="deltas_table"
+data_str = string(`a`b`c`d`e)
+data_bool = [true, true, false, false, true]
+data_int = int(1 3 2 5 6)
+data_short = short(1 3 2 5 6)
+data_long = long(5 6 10 11 23)
+data_char = char(94 95 98 100 102)
+data_double = double(10.9 8.9 1.3 2.0 1.6)
+data_date = date(2011.10.12..2011.10.16)
+data_datetime = datetime(2011.10.12..2011.10.16)
+data_timestamp = timestamp(2011.10.12..2011.10.16)
+data_symbol = symbol(`dk`cd`jkl`io`pl)
+data_uuid = rand(uuid(), 5)
+data_ipaddr = rand(ipaddr(), 5)
+m = table(data_str as t_str, data_bool as t_bool, data_int as t_int, data_short as t_short, data_long as t_long, data_char as t_char, data_double as t_double,
+data_date as t_date, data_datetime as t_datetime, data_timestamp as t_timestamp, data_symbol as t_symbol, data_uuid as t_uuid, data_ipaddr as t_ipaddr)
+table_ans = deltas(m)
+col_ans = select t_str, deltas(t_bool), deltas(t_int), deltas(t_short), deltas(t_long), deltas(t_char), deltas(t_double), t_date, t_datetime, t_timestamp, t_symbol, t_uuid, t_ipaddr from  m
+assert 1, each(eqObj, table_ans.values(), col_ans.values())
+
+@testing:case="test_deltas_matrix_label"
+a = matrix(1 2 3, 4 5 6).rename!(2020.01.01..2020.01.03,`a1`a2)
+a2 = matrix(1 2 3, 4 5 6).rename!(2020.01.04..2020.01.06,`a1`a2)
+b = matrix(1 2 3, 4 5 6).rename!(2020.01.01..2020.01.03,`b1`b2)
+c  = matrix(1 2 3, 4 5 6).rename!(`a`b)
+d = matrix(1 2 3, 4 5 6)
+
+re1 = deltas(a)
+assert 1,re1.colNames() == `a1`a2
+assert 2,re1.rowNames() == 2020.01.01..2020.01.03
+
+re2 = deltas(c)
+assert 1,re2.colNames() == `a`b
+assert 2,isNull(re2.rowNames())
+
+@testing:case="function_deltas_decimal_prepare"
+types = [decimal32, decimal64, decimal128]
+def checkDecimalArray(dtype, n, data, expectedData){
+	actData=take(data, n)
+	re = deltas(dtype(actData, 3))
+	return eqObj(dtype(expectedData, 3), re, 3)
+}
+
+def checkDecimalSubarray(dtype, n, data){
+	decimal_data = dtype(data, 3)
+	range1 = rand(1..size(data), 1)[0]
+	range2 = rand(range1..size(data), 1)[0]
+	re = deltas(subarray(decimal_data, range1:range2))
+	ex = dtype(deltas(subarray(data, range1:range2)), 3)
+	return eqObj(ex, re, 2)
+}
+
+def checkDecimalBigarray(dtype1, n, data, dtype2){
+	re_data = bigarray(dtype1, 0, n).append!(take(data, n))
+	ex_data = bigarray(DOUBLE, 0, n).append!(take(data, n))
+	re = deltas(re_data)
+	ex = dtype2(deltas(ex_data), 3)
+	return eqObj(ex, re, 1)
+}
+
+@testing:case="function_deltas_array_decimal"
+data = rand(-100..100, 10)
+assert 1, ploop(checkDecimalArray{, 10, data, deltas(take(data, 10))}, types)
+assert 2, ploop(checkDecimalArray{, 1023, data, deltas(take(data, 1023))}, types)
+assert 3, ploop(checkDecimalArray{, 1025, data, deltas(take(data, 1025))}, types)
+assert 4, ploop(checkDecimalArray{, 1048570, data, deltas(take(data, 1048570))}, types)
+assert 5, ploop(checkDecimalArray{, 1048580, data, deltas(take(data, 1048580))}, types)
+assert 6, ploop(checkDecimalArray{, 3000000, data, deltas(take(data, 3000000))}, types)
+
+@testing:case="function_deltas_subarray_decimal"
+data = rand(-100..100, 10)
+assert 1, ploop(checkDecimalSubarray{, 10, data}, types)
+assert 2, ploop(checkDecimalSubarray{, 1023, data}, types)
+assert 3, ploop(checkDecimalSubarray{, 1025, data}, types)
+assert 4, ploop(checkDecimalSubarray{, 1048570, data}, types)
+assert 5, ploop(checkDecimalSubarray{, 1048580, data}, types)
+assert 6, ploop(checkDecimalSubarray{, 3000000, data}, types)
+
+@testing:case="function_deltas_bigarray_decimal"
+data = rand(-100..100, 10)
+types = [DECIMAL32(3), DECIMAL64(3), DECIMAL128(3)]
+assert 1, ploop(checkDecimalBigarray{, 3000000, data, }, types, [decimal32, decimal64, decimal128])
+
+@testing:case="deltas_0_arg",exception=1
+deltas()
+
+@testing:case="deltas_n_vec_exception",exception=1
+deltas([1,2,3,4],[1])
+
+@testing:case="deltas_n_pair_exception",exception=1
+deltas([1,2,3,4],2:3)
+
+@testing:case="deltas_n_matrix_exception",exception=1
+deltas([1,2,3,4],matrix(1..10,2..11))
+
+@testing:case="deltas_n_string_exception",exception=1
+deltas([1,2,3,4],"20")
+
+@testing:case="deltas_n_float_exception",exception=1
+deltas([1,2,3,4],1.1)
+
+@testing:case="deltas_n_char_exception"
+deltas([1,2,3,4],'a')
+
+@testing:case="deltas_n_bool_exception",exception=1
+deltas([1,2,3,4],true)
+
+@testing:case="deltas_n_timestamp_exception",exception=1
+deltas([1,2,3,4],now())
+
+@testing:case="deltas_n_uuid_exception",exception=1
+deltas([1,2,3,4],uuid())
+
+@testing:case="deltas_n_complex_exception",exception=1
+deltas([1,2,3,4],complex(1,2))
+
+@testing:case="deltas_n_point_exception",exception=1
+deltas([1,2,3,4],point(3,4))
+
+@testing:case="deltas_n_decimal_exception",exception=1
+deltas([1,2,3,4],decimal32(2.0,2))
+
+@testing:case="deltas_n_NULL_exception",exception=1
+deltas([1,2,3,4],NULL)
+
+@testing:case="deltas_arrayVector_bool[]_n_not_zero_exception",exception=1
+array1=array(BOOL[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_char[]_n_not_zero_exception",exception=1
+array1=array(CHAR[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_short[]_n_not_zero_exception",exception=1
+array1=array(SHORT[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_int[]_n_not_zero_exception",exception=1
+array1=array(INT[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_long[]_n_not_zero_exception",exception=1
+array1=array(LONG[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_date[]_n_not_zero_exception",exception=1
+array1=array(DATE[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_month[]_n_not_zero_exception",exception=1
+array1=array(MONTH[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_time[]_n_not_zero_exception",exception=1
+array1=array(TIME[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_minute[]_n_not_zero_exception",exception=1
+array1=array(MINUTE[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_second[]_n_not_zero_exception",exception=1
+array1=array(SECOND[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_datetime[]_n_not_zero_exception",exception=1
+array1=array(DATETIME[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_timestamp[]_n_not_zero_exception",exception=1
+array1=array(TIMESTAMP[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_nanotime[]_n_not_zero_exception",exception=1
+array1=array(NANOTIME[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_nanotimestamp[]_n_not_zero_exception",exception=1
+array1=array(NANOTIMESTAMP[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_datehour[]_n_not_zero_exception",exception=1
+array1=array(DATEHOUR[])
+array1.append!([[1,2],[3,4,5],[6,7,8,9]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_float[]_n_not_zero_exception",exception=1
+array1=array(FLOAT[])
+array1.append!([[1.1,2.1],[3.1,4.1,5.1],[6.1,7.3,8.1,9.1]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_double[]_n_not_zero_exception",exception=1
+array1=array(DOUBLE[])
+array1.append!([[1.1,2.1],[3.1,4.1,5.1],[6.1,7.3,8.1,9.1]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_decimal32[]_n_not_zero_exception",exception=1
+array1=array(DECIMAL32(3)[])
+array1.append!([[1.1,2.1],[3.1,4.1,5.1],[6.1,7.3,8.1,9.1]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_decimal64[]_n_not_zero_exception",exception=1
+array1=array(DECIMAL64(4)[])
+array1.append!([[1.1,2.1],[3.1,4.1,5.1],[6.1,7.3,8.1,9.1]])
+deltas(array1,2)
+
+@testing:case="deltas_arrayVector_decimal128[]_n_not_zero_exception",exception=1
+array1=array(DECIMAL128(5)[])
+array1.append!([[1.1,2.1],[3.1,4.1,5.1],[6.1,7.3,8.1,9.1]])
+deltas(array1,2)
+
+@testing:case="deltas_X_size_0"
+assert 1, deltas([],1)==NULL
+assert 2, deltas([],0)==NULL
+assert 3, deltas([],-1)==NULL
+
+@testing:case="deltas_X_scalar"
+assert 1, deltas(12)==NULL
+assert 2, deltas(12,1)==NULL
+assert 3, deltas(12,-1)==NULL
+assert 4, deltas(12,0) == 0
+
+@testing:case="deltas_n_0"
+def apply_types(input,types){
+    return call{,input}:E(funcByName:E(types))
+}
+types=`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double
+for (len in [200,1024,2000]){
+    assert 1, apply_types(take(0,len),types)==call{deltas,,0}:E(apply_types(rand(100,len),types))
+}
+
+@testing:case="deltas_X_types"
+def apply_types(input,types){
+    return call{,input}:E(funcByName:E(types))
+}
+types=`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double
+for (len in [200,1024,2000]){
+    vec=rand(100,len)
+    narray=(-10..10).join([size(vec)-1,size(vec),size(vec)+1])
+    for (n in narray){
+        assert 1,apply_types(vec,types)-apply_types(move(vec,n),types)==call{deltas,,n}:E(apply_types(vec,types))
+    }
+    mat=vec$(len/8):8
+    for (n in narray){
+        assert 2,apply_types(mat,types)-apply_types(move(mat,n),types)==call{deltas,,n}:E(apply_types(mat,types))
+    }
+    t=table(apply_types(vec,types))
+    assert 3, each(eq,values(deltas(t,n)),values(t-(move(t,n))))
+}
+
+@testing:case="deltas_with_NULL"
+def apply_types(input,types){
+    return call{,input}:E(funcByName:E(types))
+}
+types=`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double
+for (len in [200,1024,2000]){
+    vec=rand(rand(100,len).join(take(00i,len/8)),len)
+    narray=(-10..10).join([size(vec)-1,size(vec),size(vec)+1])
+    for (n in narray){
+        assert 1,apply_types(vec,types)-apply_types(move(vec,n),types)==call{deltas,,n}:E(apply_types(vec,types))
+    }
+    mat=vec$(len/8):8
+    for (n in narray){
+        assert 2,apply_types(mat,types)-apply_types(move(mat,n),types)==call{deltas,,n}:E(apply_types(mat,types))
+    }
+    t=table(apply_types(vec,types))
+    assert 3, each(eq,values(deltas(t,n)),values(t-(move(t,n))))
+}
+
+@testing:case="deltas_subarray"
+for (len in [210,1034,2010]){
+    vec=rand(rand(100,len).join(take(00i,len/10)),len)
+    narray=(-10..10).join([size(vec[10:])-1,size(vec[10:]),size(vec[10:])+1])
+    for (n in narray){
+        assert 1,apply_types(vec[10:],types)-apply_types(move(vec[10:],n),types)==call{deltas,,n}:E(apply_types(vec[10:],types))
+    }
+}
+
+@testing:case="deltas_bigarray"
+vec = bigarray(INT,10000000)
+narray=([size(vec)-1,size(vec),size(vec)+1])
+for (n in narray){
+    assert 1,apply_types(vec,types)-apply_types(move(vec,n),types)==call{deltas,,n}:E(apply_types(vec,types))
+}
+
+@testing:case="deltas_decimal"
+vec=rand(100.0,1024)
+types=[FLOAT,DECIMAL32(5)]
+narray=(-10..10).join([size(vec)-1,size(vec),size(vec)+1])
+for (ty in types){
+    assert 1,sum(1-eqFloat(deltas{cast(vec,ty)}:E(narray),cast(vec-move{vec,}:E(narray),ty),1))<4
+}
+types=[DOUBLE,DECIMAL64(10),DECIMAL128(20)]
+narray=(-10..10).join([size(vec)-1,size(vec),size(vec)+1])
+for (ty in types){
+    assert 2, eqFloat(deltas{cast(vec,ty)}:E(narray),cast(vec-move{vec,}:E(narray),ty),4)
+}
+
+@testing:case="deltas_arrayVector_n_is_0"
+array_type=[BOOL[],CHAR[],SHORT[],INT[],LONG[],DATE[],MONTH[],TIME[],MINUTE[],SECOND[],DATETIME[],TIMESTAMP[],NANOTIME[],NANOTIMESTAMP[],DATEHOUR[],FLOAT[],DOUBLE[],DECIMAL32(4)[],DECIMAL64(6)[],DECIMAL128(8)[]]
+for (ar in array_type){
+    vec = array(ar)
+    vec.append!([rand(100,1024),rand(100,10)])
+    res = deltas(vec,0)
+    assert 1, table(res as v)[0][`v]==take(0,1024)
+    assert 2, table(res as v)[1][`v]==take(0,10)
+}

@@ -1,0 +1,4241 @@
+@testing:case = "test_cumavgTopN_X_scalar_1",exception = 1
+cumavgTopN(1,1,2,true)
+
+@testing:case = "test_cumavgTopN_X_scalar_2",exception = 1
+cumavgTopN(1,1,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_scalar_3",exception = 1
+cumavgTopN(1,1,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_ArrayVector_1",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(a,a,2,true)
+
+@testing:case = "test_cumavgTopN_X_ArrayVector_2",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(a,a,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_ArrayVector_3",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(a,a,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_set_1",exception = 1
+cumavgTopN(set(1 2 3 3),1..4,2,true)
+
+@testing:case = "test_cumavgTopN_X_set_2",exception = 1
+cumavgTopN(set(1 2 3 3),1..4,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_set_3",exception = 1
+cumavgTopN(set(1 2 3 3),1..4,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_dir_1",exception = 1
+cumavgTopN(dict(1 2 3,1 2 3),1..3,2,true)
+
+@testing:case = "test_cumavgTopN_X_dir_2",exception = 1
+cumavgTopN(dict(1 2 3,1 2 3),1..3,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_dir_3",exception = 1
+cumavgTopN(dict(1 2 3,1 2 3),1..3,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_string_vector_1",exception = 1
+cumavgTopN(`a`b`c`d,1..4,2,true)
+
+@testing:case = "test_cumavgTopN_X_string_vector_2",exception = 1
+cumavgTopN(`a`b`c`d,1..4,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_string_vector_3",exception = 1
+cumavgTopN(`a`b`c`d,1..4,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_table_1",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(a,1..10,2,true)
+
+@testing:case = "test_cumavgTopN_X_table_2",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(a,1..10,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_table_3",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(a,1..10,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_scalar_1",exception = 1
+cumavgTopN(1 2,1,2,true)
+
+@testing:case = "test_cumavgTopN_S_scalar_2",exception = 1
+cumavgTopN(1 2,1,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_scalar_3",exception = 1
+cumavgTopN(1 2,1,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_ArrayVector_1",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(1..5,a,1,true)
+
+@testing:case = "test_cumavgTopN_S_ArrayVector_2",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(1..5,a,1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_ArrayVector_3",exception = 1
+a = array(INT[],0).append!([[1,2],[1,2],[1,2],[1,2],[1,2]])
+cumavgTopN(1..5,a,1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_set_1",exception = 1
+cumavgTopN(1..4,set(1 2 3 3),1,true)
+
+@testing:case = "test_cumavgTopN_S_set_2",exception = 1
+cumavgTopN(1..4,set(1 2 3 3),1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_set_3",exception = 1
+cumavgTopN(1..4,set(1 2 3 3),1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_dir_1",exception = 1
+cumavgTopN(1..3,dict(1 2 3,1 2 3),1,true)
+
+@testing:case = "test_cumavgTopN_S_dir_2",exception = 1
+cumavgTopN(1..3,dict(1 2 3,1 2 3),1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_dir_3",exception = 1
+cumavgTopN(1..3,dict(1 2 3,1 2 3),1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_string_vector_1",exception = 1
+cumavgTopN(1..4,`a`b`c`d,1,true)
+
+@testing:case = "test_cumavgTopN_S_string_vector_2",exception = 1
+cumavgTopN(1..4,`a`b`c`d,1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_string_vector_3",exception = 1
+cumavgTopN(1..4,`a`b`c`d,1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_S_table_1",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(1..10,a,1,true)
+
+@testing:case = "test_cumavgTopN_S_table_2",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(1..10,a,1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_S_table_3",exception = 1
+a = table(1..10 as id,1..10 as price)
+cumavgTopN(1..10,a,1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_X_S_length_mismatch_X_1",exception = 1
+cumavgTopN(1..4,1..2,2,true)
+
+@testing:case = "test_cumavgTopN_X_S_length_mismatch_X_2",exception = 1
+cumavgTopN(1..4,1..2,2,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_X_S_length_mismatch_X_3",exception = 1
+cumavgTopN(1..4,1..2,2,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_double_1",exception = 1
+cumavgTopN(1..4,1..4,1.1,true)
+
+@testing:case = "test_cumavgTopN_top_double_2",exception = 1
+cumavgTopN(1..4,1..4,1.1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_double_3",exception = 1
+cumavgTopN(1..4,1..4,1.1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_float_1",exception = 1
+cumavgTopN(1..4,1..4,1.1f,true)
+
+@testing:case = "test_cumavgTopN_top_float_2",exception = 1
+cumavgTopN(1..4,1..4,1.1f,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_float_3",exception = 1
+cumavgTopN(1..4,1..4,1.1f,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_string_1",exception = 1
+cumavgTopN(1..4,1..4,`a,true)
+
+@testing:case = "test_cumavgTopN_top_string_2",exception = 1
+cumavgTopN(1..4,1..4,`a,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_string_3",exception = 1
+cumavgTopN(1..4,1..4,`a,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_0_1",exception = 1
+cumavgTopN(1..4,1..4,0,true)
+
+@testing:case = "test_cumavgTopN_top_0_2",exception = 1
+cumavgTopN(1..4,1..4,0,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_0_3",exception = 1
+cumavgTopN(1..4,1..4,0,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_-1_1",exception = 1
+cumavgTopN(1..4,1..4,-1,true)
+
+@testing:case = "test_cumavgTopN_top_-1_2",exception = 1
+cumavgTopN(1..4,1..4,-1,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_-1_3",exception = 1
+cumavgTopN(1..4,1..4,-1,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_top_duration_1",exception = 1
+cumavgTopN(1..4,1..4,3d,true)
+
+@testing:case = "test_cumavgTopN_top_duration_2",exception = 1
+cumavgTopN(1..4,1..4,3d,true,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_top_duration_3",exception = 1
+cumavgTopN(1..4,1..4,3d,true,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_ascending_float_1",exception = 1
+cumavgTopN(1..4,1..4,1,1.1)
+
+@testing:case = "test_cumavgTopN_ascending_float_2",exception = 1
+cumavgTopN(1..4,1..4,1,1.1,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_ascending_float_3",exception = 1
+cumavgTopN(1..4,1..4,1,1.1,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_ascending_string_1",exception = 1
+cumavgTopN(1..4,1..4,1,`a)
+
+@testing:case = "test_cumavgTopN_ascending_string_2",exception = 1
+cumavgTopN(1..4,1..4,1,`a,tiesMethod='oldest')
+
+@testing:case = "test_cumavgTopN_ascending_string_3",exception = 1
+cumavgTopN(1..4,1..4,1,`a,tiesMethod='all')
+
+@testing:case = "test_cumavgTopN_tiesMethod_int",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = 1)
+
+@testing:case = "test_cumavgTopN_tiesMethod_double",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = 1.1)
+
+@testing:case = "test_cumavgTopN_tiesMethod_date",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = 2021.01.01)
+
+@testing:case = "test_cumavgTopN_tiesMethod_error_string",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = "error")
+
+@testing:case = "test_cumavgTopN_tiesMethod_vector",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = ["latest","oldest"])
+
+@testing:case = "test_cumavgTopN_tiesMethod_matrix",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = 1..10$2:5)
+
+@testing:case = "test_cumavgTopN_tiesMethod_dict",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = {1:"latest"})
+
+@testing:case = "test_cumavgTopN_tiesMethod_table",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,true,tiesMethod = table(["latest"] as a))
+
+@testing:case = "test_cumavgTopN_tiesMethod_int",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = 1)
+
+@testing:case = "test_cumavgTopN_tiesMethod_double",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = 1.1)
+
+@testing:case = "test_cumavgTopN_tiesMethod_date",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = 2021.01.01)
+
+@testing:case = "test_cumavgTopN_tiesMethod_error_string",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = "error")
+
+@testing:case = "test_cumavgTopN_tiesMethod_vector",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = ["latest","oldest"])
+
+@testing:case = "test_cumavgTopN_tiesMethod_matrix",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = 1..10$2:5)
+
+@testing:case = "test_cumavgTopN_tiesMethod_dict",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = {1:"latest"})
+
+@testing:case = "test_cumavgTopN_tiesMethod_table",exception = 1 
+cumavgTopN(1..6, 3 0 2 2 1 3, 3,false,tiesMethod = table(["latest"] as a))
+
+@testimg:case = "test_cumavgTopN_X_decimal32_S_decimal32"
+cumavgTopN(decimal32(1..10, 5), decimal32(1..10, 5),3, true)
+
+@testimg:case = "test_cumavgTopN_X_decimal64_S_decimal64"
+cumavgTopN(decimal64(1..10, 5), decimal64(1..10, 5),3, true)
+
+@testimg:case = "test_cumavgTopN_X_decimal128_S_decimal128"
+cumavgTopN(decimal128(1..10, 5), decimal128(1..10, 5),3, true)
+
+
+@testing:case="test_prepare_vector"
+defg mavgTN_true(a, b,top_num,ascending,tiesMethod){
+	x = array(type(a[0])).append!(a)
+	z = b
+	if(ascending)
+		cur = z.size()-z.count()
+	else 
+		cur= 0
+	//z = nullFill(z, min(z)-1 )
+	if (tiesMethod=='oldest')
+		return avg(x[isort(z,ascending)[cur:(cur+min(top_num,z.count() ))]] )
+	else if(tiesMethod=='latest' ){
+		x=x[size(x):0]
+		z=z[size(z):0]
+		return avg(x[isort(z,ascending)[cur:(cur+min(top_num,z.count() ))]] )
+		}
+	else if(tiesMethod=='all'){
+		rank_z = rank(z,ascending)
+		rank_z = rank_z[rank_z<top_num]
+		get_number = count(rank_z)
+		if(get_number>top_num)
+			top_num_all = get_number
+		else
+			top_num_all = top_num
+		return avg(x[isort(z,ascending)[cur:(cur+min(top_num_all,z.count() )) ]] )
+		}
+	else{throw('error')}
+}
+
+def my_cumavgTopN(a, b,top_num,ascending=true,tiesMethod='latest'){
+	res = []
+	for (i in 1..a.size()){
+		res.append!(mavgTN_true( a[0:i], b[0:i],top_num,ascending,tiesMethod ) )	
+	}
+	return res
+}
+
+@testing:case = "test_cumavgTopN_X_array_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(10,10)
+b1 = rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_one_has_null_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(10,3) join NULL join rand(10,2) join take(int(),2) join rand(20,2)
+b1 = rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_one_has_null_S_array_normal_double/float"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`float,`double]
+a1 =( rand(10,3) join NULL join rand(10,2) join take(int(),2) join rand(20,2))/10.0
+b1 = rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_one_has_null_S_array_normal_double/float_Decimal32"
+type1 = [`short,`char,`int,`long,`double]
+type2 =[`char,`short,`int,`long,`float,`double]
+a1 = (rand(10,3) join NULL join rand(10,2) join take(int(),2) join rand(20,2))/10.0
+b1 = rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_one_has_null_S_array_normal_double/float_Decimal64"
+type1 = [`short,`char,`int,`long,`double]
+type2 =[`char,`short,`int,`long,`float,`double]
+a1 = (rand(10,3) join NULL join rand(10,2) join take(int(),2) join rand(20,2))/10.0
+b1 = rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_one_has_null_S_array_normal_double/float_Decimal128"
+type1 = [`short,`char,`int,`long,`double]
+type2 =[`char,`short,`int,`long,`float,`double]
+a1 = (rand(10,3) join NULL join rand(10,2) join take(int(),2) join rand(20,2))/10.0
+b1 = rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_all_null_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),10)
+b1 = rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_all_null_S_array_normal_has_null"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),10)
+b1 = 1 2 3 join NULL join 5 6 join take(int(),2) join 9 10
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_all_null_S_array_normal_all_null"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),10)
+b1 = take(int(),10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumsavgTopN_X_array_S_array_normal_has_duplicate"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(10,10)
+b1 = take(rand(10,1)[0],3) join take(rand(10,1)[0],2) join take(rand(10,1)[0],3) join take(rand(10,1)[0],2)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_S_array_<1_has_duplicate"
+type1 = [`bool,`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`short,`char,`int,`long,`float,`double]
+a1 = rand(10,10)
+b1 = (take(rand(10,1)[0],3) join take(rand(10,1)[0],2) join take(rand(10,1)[0],3) join take(rand(10,1)[0],2))\10
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_S_array_<1"
+type1 = [`bool,`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`short,`char,`int,`long,`float,`double]
+a1 = rand(10,10)
+b1 =rand(10,10)\10
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_S_array_<0_has_duplicate"
+type1 = [`bool,`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`short,`char,`int,`long,`float,`double]
+a1 = rand(10,10)
+b1  = -(take(rand(10,1)[0],3) join take(rand(10,1)[0],2) join take(rand(10,1)[0],3) join take(rand(10,1)[0],2))
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_S_array_<0"
+type1 = [`bool,`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`short,`char,`int,`long,`float,`double]
+a1 = rand(10,10)
+b1 =-rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_S_array_normal"
+type1 = [`short,`int,`long,`float,`double]
+type2 =[`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(1000,1070)
+b1 =rand(1070,1070)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 =take(int(),3)  join rand(1000,1065)  join take(1,2) 
+b1 =  rand(1070,1070)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal_double/float"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`short,`int,`long,`float,`double]
+a1 =(take(int(),3)  join rand(1000,1065)  join take(1,2) )/10.0
+b1 =  (rand(1070,1070))/1070.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2,4)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7,4)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2,4)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6,4)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7,4)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal_double/float_subarray"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`short,`int,`long,`float,`double]
+a1 =(take(int(),3)  join rand(1000,1065)  join take(1,2) )/10.0
+b1 =  (rand(1070,1070))/1070.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7,4)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2,4)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,3,false,'latest')
+		re_6= cumavgTopN(a, b,3,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7,4)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal_double/float_Decimal32"
+type1 = [`short,`int,`long]
+type2 = [`short,`int,`long,`float,`double]
+a1 =(take(int(),3)  join rand(1000,1065)  join take(1,2) )/1000.0
+b1 =  (rand(1070,1070))/1070.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal_double/float_Decimal64"
+type1 = [`short,`int,`long]
+type2 = [`short,`int,`long,`float,`double]
+a1 =(take(int(),3)  join rand(1000,1065)  join take(1,2) )/1000.0
+b1 =  (rand(1070,1070))/1070.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_has_null_S_array_normal_double/float_Decimal128"
+type1 = [`short,`int,`long]
+type2 = [`short,`int,`long,`float,`double]
+a1 =(take(int(),3)  join rand(1000,1065)  join take(1,2) )/1000.0
+b1 =  (rand(1070,1070))/1070.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1024_all_null_S_array_normal"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),1070)
+b1 =rand(1000,1070)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		ex_1 = my_cumavgTopN(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'oldest')
+		re_3 = cumavgTopN(a, b,10,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'oldest')
+		re_4= cumavgTopN(a, b,11,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'oldest')
+		re_5= cumavgTopN(a, b,11,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'oldest')
+		re_6= cumavgTopN(a, b,2,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'oldest')
+		re_8 = cumavgTopN (a, b,10,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'latest')
+		re_3 = cumavgTopN(a, b,10,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'latest')
+		re_4= cumavgTopN(a, b,11,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'latest')
+		re_5= cumavgTopN(a, b,11,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'latest')
+		re_6= cumavgTopN(a, b,2,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'latest')
+		re_8 = cumavgTopN (a, b,10,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN(a, b,10,true,'all')
+		re_3 = cumavgTopN(a, b,10,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN(a, b,11,true,'all')
+		re_4= cumavgTopN(a, b,11,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN(a, b,11,false,'all')
+		re_5= cumavgTopN(a, b,11,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN(a, b,2,false,'all')
+		re_6= cumavgTopN(a, b,2,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN(a, b,10,false,'all')
+		re_8 = cumavgTopN (a, b,10,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)	
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_array_over_1048580_S_array_normal"
+a = 1..10 join take(0,1048570)
+b= 1..1048580
+
+ex_1 = 1 join take(1.5,1048579)
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(eqObj,re_1_old,ex_1,4) and each(eqObj,re_1_late,ex_1,4) and each(eqObj,re_1_all,ex_1,4)
+
+ex_2 = 1  1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 5 join take(0,1048569)
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(eqObj,re_2_old,ex_2,4) and each(eqObj,re_2_late,ex_2,4) and each(eqObj,re_2_all,ex_2,4)
+
+@testing:case = "test_cumavgTopN_X_array_over_1048580_has_null_S_array_normal"
+a = take(int(),3) join 4..10 join take(0,1048570)
+b= 1..1048580
+
+ex_1 = take(double() ,1048580)
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(eq,re_1_old,ex_1) and each(eq,re_1_late,ex_1) and each(eq,re_1_all,ex_1)
+
+ex_2 =  take(double(),3) join (4 4.5 5.5 6.5 7.5 8.5 9.5 5)join take(0 ,1048569)
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(eqObj,re_2_old,ex_2,4) and each(eqObj,re_2_late,ex_2,4) and each(eqObj,re_2_all,ex_2,4)
+
+@testing:case = "test_cumavgTopN_X_array_over_1048580_all_null_S_array_normal"
+a = take(int(),1048580)
+b = rand(1000,1048580)
+
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(isNull,re_1_old)  and  each(isNull,re_1_late)  and each(isNull, re_1_all)   
+
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(isNull,re_2_old)  and  each(isNull,re_2_late)  and each(isNull, re_2_all)   
+
+@testing:case = "test_cumavgTopN_X_array_bigArray_S_array_normal"
+a = bigarray(int,0,10000000).append!(1..10 join take(0,1048570) )
+b = bigarray(int,0,10000000).append!(1..1048580)
+
+ex_1  = 1  join take(1.5,1048579)
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(eqObj,re_1_old,ex_1,4) and each(eqObj,re_1_late,ex_1,4) and each(eqObj,re_1_all,ex_1,4)
+
+ex_2 = (1 1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 5 )  join take(0,1048569)
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(eqObj,re_2_old,ex_2,4) and each(eqObj,re_2_late,ex_2,4) and each(eqObj,re_2_all,ex_2,4)
+
+@testing:case = "test_cumavgTopN_X_array_bigArray_has_null_S_array_normal"
+a = bigarray(int,0,10000000).append!(take(int(),3) join 4..10 join take(0,1048570))
+b = bigarray(int,0,10000000).append!(1..1048580) 
+
+ex_1 = take(double() ,1048580)
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(eq,re_1_old,ex_1) and each(eq,re_1_late,ex_1) and each(eq,re_1_all,ex_1)
+
+ex_2 =  take(double(),3) join (4 4.5 5.5 6.5 7.5 8.5 9.5 5)join take(0 ,1048569)
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(eqObj,re_2_old,ex_2,4) and each(eqObj,re_2_late,ex_2,4) and each(eqObj,re_2_all,ex_2,4)
+
+@testing:case = "test_cumavgTopN_X_array_bigArray_all_null_S_array_normal"
+a = bigarray(int,0,10000000).append!(take(int(),1048580))
+b = bigarray(int,0,10000000).append!(1..1048580)
+
+re_1_old = cumavgTopN(a, b,2,true,'oldest')
+re_1_late= cumavgTopN(a, b,2,true,'latest')
+re_1_all = cumavgTopN(a, b,2,true,'all')
+assert 1,each(isNull,re_1_old)  and  each(isNull,re_1_late)  and each(isNull, re_1_all)   
+
+re_2_old = cumavgTopN(a, b,2,false,'oldest')
+re_2_late= cumavgTopN(a, b,2,false,'latest')
+re_2_all = cumavgTopN(a, b,2,false,'all')
+assert 2,each(isNull,re_2_old)  and  each(isNull,re_2_late)  and each(isNull, re_2_all)   
+
+re_3_old = cumavgTopN(a, b,1048580,true,'oldest')
+re_3_late= cumavgTopN(a, b,1048580,true,'latest')
+re_3_all = cumavgTopN(a, b,1048580,true,'all')
+assert 3, each(isNull,re_3_old)  and  each(isNull,re_3_late)  and each(isNull, re_3_all) 
+
+re_4_old = cumavgTopN(a, b,1048580,false,'oldest')
+re_4_late= cumavgTopN(a, b,1048580,false,'latest')
+re_4_all = cumavgTopN(a, b,1048580,false,'all')
+assert 4, each(isNull,re_4_old)  and  each(isNull,re_4_late)  and each(isNull, re_4_all) 
+
+
+//---------------------------------    support matrix-------------------------------------------------------------
+
+def my_cumavgTopN_matrix(a, b,top_num,ascending=true,tiesMethod='latest'){
+	res = []
+	for (i in 0..(a.cols()-1) ){
+		a_0 =a[i]
+		sub_res = []
+		for (j in 1..a_0.size() ){
+			sub_res.append!(mavgTN_true( a_0[0:j],b[0:j],top_num,ascending,tiesMethod ) )
+			}
+		res.append!(cast(sub_res,DOUBLE))	
+	}
+	return matrix(res)
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 = [`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(10,30)$10:3 
+b1 =  rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_has_null_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(1..10 join take(int(),5),30)$10:3
+b1 =  rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_has_null_S_array_normal_double/float"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`float,`double]
+a1 = (rand(1..10 join take(int(),5),30)$10:3)/10.0
+b1 =  rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_has_null_S_array_normal_double/float_fromLoc_view"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`float,`double]
+a1 = (rand(1..10 join take(int(),5),30)$10:3)/10.0
+b1 =  rand(10,10)/10.0
+		
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_has_null_S_array_normal_double/float_fromLoc_copy"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`float,`double]
+a1 = (rand(1..10 join take(int(),5),30)$10:3)/10.0
+b1 =  rand(10,10)/10.0
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_all_null_S_array_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),30)$10:3
+b1 =rand(10,10)
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_matrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_matrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_matrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_matrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_matrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_matrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_matrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_matrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+//S is matrix
+def my_cumavgTopN_Xmatrix_Smatrix(a, b,top_num,ascending=true,tiesMethod='latest'){
+	res = []
+	for (i in 0..(a.cols()-1) ){
+		a_0 =a[i]
+		b_0 = b[i]
+		sub_res = []
+		for (j in 1..a_0.size() ){
+			sub_res.append!(mavgTN_true( a_0[0:j],b_0[0:j],top_num,ascending,tiesMethod ) )
+			}
+		res.append!(cast(sub_res,DOUBLE))	
+	}
+	return matrix(res)
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_S_matrix_normal"
+type1 = [`short,`int,`long,`float,`double]
+type2 =  [`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(10,30)$10:3
+b1 = rand(10,30)$10:3
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumstpdTopN_X_matrix_has_null_S_matrix_normal"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = rand(1..10 join take(int(),5),30)$10:3
+b1 = rand(10,30)$10:3
+
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_matrix_has_null_S_matrix_normal_double/folat"
+type1 = [`short,`int,`long,`float,`double]
+type2 = [`bool,`char,`short,`int,`long,`float,`double]
+a1 = (rand(1..10 join take(int(),5),30)$10:3)/10.0
+b1 = (rand(10,30)$10:3)/10.0
+
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumstpdTopN_X_matrix_all_null_S_matrix_normal"
+type1 = [`short,`char,`int,`long,`float,`double]
+type2 =[`bool,`char,`short,`int,`long,`date,`month,`time,`minute,`second,`datetime,`timestamp,`nanotime,`nanotimestamp,`float,`double]
+a1 = take(int(),30)$10:3
+b1 = rand(10,30)$10:3
+
+
+for(a_type in type1){
+	for(b_type in type2){	
+		a = funcByName(a_type)(a1)
+		b = funcByName(b_type)(b1)
+		
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'oldest')
+		re_1 = cumavgTopN(a, b,3,true,'oldest')
+		assert 1,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'oldest')
+		re_2 = cumavgTopN(a, b,1,true,'oldest')
+		assert 2,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'oldest')
+		re_3 = cumavgTopN(a, b,1070,true,'oldest')
+		assert 3,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'oldest')
+		re_4= cumavgTopN(a, b,1071,true,'oldest')
+		assert 4,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'oldest')
+		re_5= cumavgTopN(a, b,1071,false,'oldest')
+		assert 5,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'oldest')
+		re_6= cumavgTopN(a, b,20,false,'oldest')
+		assert 6,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'oldest')
+		re_7 = cumavgTopN(a, b,1,false,'oldest')
+		assert 7,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'oldest')
+		re_8 = cumavgTopN (a, b,1070,false,'oldest')
+		assert 8,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'latest')
+		re_1 = cumavgTopN(a, b,3,true,'latest')
+		assert 10,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'latest')
+		re_2 = cumavgTopN(a, b,1,true,'latest')
+		assert 11,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'latest')
+		re_3 = cumavgTopN(a, b,1070,true,'latest')
+		assert 12,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'latest')
+		re_4= cumavgTopN(a, b,1071,true,'latest')
+		assert 13,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'latest')
+		re_5= cumavgTopN(a, b,1071,false,'latest')
+		assert 14,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'latest')
+		re_6= cumavgTopN(a, b,20,false,'latest')
+		assert 15,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'latest')
+		re_7 = cumavgTopN(a, b,1,false,'latest')
+		assert 16,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'latest')
+		re_8 = cumavgTopN (a, b,1070,false,'latest')
+		assert 17,each(eqObj,re_8,ex_8)
+
+		ex_1 = my_cumavgTopN_Xmatrix_Smatrix(a, b,3,true,'all')
+		re_1 = cumavgTopN(a, b,3,true,'all')
+		assert 19,each(eqObj,re_1,ex_1)
+
+		ex_2 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1,true,'all')
+		re_2 = cumavgTopN(a, b,1,true,'all')
+		assert 20,each(eqObj,re_2,ex_2)
+
+		ex_3 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,true,'all')
+		re_3 = cumavgTopN(a, b,1070,true,'all')
+		assert 21,each(eqObj,re_3,ex_3)
+
+		ex_4 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,true,'all')
+		re_4= cumavgTopN(a, b,1071,true,'all')
+		assert 22,each(eqObj,re_4,ex_4)
+
+		ex_5 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1071,false,'all')
+		re_5= cumavgTopN(a, b,1071,false,'all')
+		assert 23,each(eqObj,re_5,ex_5)
+
+		ex_6 = my_cumavgTopN_Xmatrix_Smatrix(a, b,20,false,'all')
+		re_6= cumavgTopN(a, b,20,false,'all')
+		assert 24,each(eqObj,re_6,ex_6)
+
+		ex_7 =my_cumavgTopN_Xmatrix_Smatrix(a, b,1,false,'all')
+		re_7 = cumavgTopN(a, b,1,false,'all')
+		assert 25,each(eqObj,re_7,ex_7)
+
+		ex_8 = my_cumavgTopN_Xmatrix_Smatrix(a, b,1070,false,'all')
+		re_8 = cumavgTopN (a, b,1070,false,'all')
+		assert 26,each(eqObj,re_8,ex_8)
+	}
+}
+
+@testing:case = "test_cumavgTopN_X_setIndexedMatrix"
+m=matrix(shuffle(1..5), shuffle(6..10))
+n = m
+m.rename!(2020.01.01..2020.01.05, `A`B)
+m.setIndexedMatrix!()
+re_old = cumavgTopN(m,1..5,3,true,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,true,'oldest')
+assert 1,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,true,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,true,'latest')
+assert 2,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,true,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,true,'all')
+assert 3,each(eqObj,re_all,ex_all)
+re_old = cumavgTopN(m,1..5,3,false,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,false,'oldest')
+assert 4,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,false,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,false,'latest')
+assert 5,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,false,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,false,'all')
+assert 6,each(eqObj,re_all,ex_all)
+
+@testing:case = "test_cumavgTopN_X_matrix_rename1"
+m=matrix(shuffle(1..5), shuffle(6..10))
+n = m
+m.rename!(2020.01.01..2020.01.05, `A`B)
+re_old = cumavgTopN(m,1..5,3,true,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,true,'oldest')
+assert 1,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,true,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,true,'latest')
+assert 2,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,true,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,true,'all')
+assert 3,each(eqObj,re_all,ex_all)
+re_old = cumavgTopN(m,1..5,3,false,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,false,'oldest')
+assert 4,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,false,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,false,'latest')
+assert 5,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,false,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,false,'all')
+assert 6,each(eqObj,re_all,ex_all)
+
+@testing:case = "test_cumavgTopN_X_indexedSeries1"
+a = indexedSeries(1..10,1..10)
+b = shuffle(1..10)
+re_old = cumavgTopN(a,b,3,true,'oldest')
+ex_old = my_cumavgTopN(a[0],b,3,true,'oldest')
+assert 1,each(eqObj,re_old[0],ex_old)
+re_late = cumavgTopN(a,b,3,true,'latest')
+ex_late = my_cumavgTopN(a[0],b,3,true,'latest')
+assert 2,each(eqObj,re_late[0],ex_late)
+re_all = cumavgTopN(a,b,3,true,'all')
+ex_all = my_cumavgTopN(a[0],b,3,true,'all')
+assert 3,each(eqObj,re_all[0],ex_all)
+re_old = cumavgTopN(a,b,3,false,'oldest')
+ex_old = my_cumavgTopN(a[0],b,3,false,'oldest')
+assert 4,each(eqObj,re_old[0],ex_old)
+re_late = cumavgTopN(a,b,3,false,'latest')
+ex_late = my_cumavgTopN(a[0],b,3,false,'latest')
+assert 5,each(eqObj,re_late[0],ex_late)
+re_all = cumavgTopN(a,b,3,false,'all')
+ex_all = my_cumavgTopN(a[0],b,3,false,'all')
+assert 6,each(eqObj,re_all[0],ex_all)
+
+@testing:case = "test_cumavgTopN_S_setIndexedMatrix1"
+m=shuffle(matrix(1..5, 11..15))
+n = m
+m.rename!(2020.01.01..2020.01.05, `A`B)
+m.setIndexedMatrix!()
+
+re_old = cumavgTopN(m,1..5,3,true,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,true,'oldest')
+assert 1,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,true,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,true,'latest')
+assert 2,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,true,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,true,'all')
+assert 3,each(eqObj,re_all,ex_all)
+re_old = cumavgTopN(m,1..5,3,false,'oldest')
+ex_old = my_cumavgTopN_matrix(n,1..5,3,false,'oldest')
+assert 4,each(eqObj,re_old,ex_old)
+re_late = cumavgTopN(m,1..5,3,false,'latest')
+ex_late = my_cumavgTopN_matrix(n,1..5,3,false,'latest')
+assert 5,each(eqObj,re_late,ex_late)
+re_all = cumavgTopN(m,1..5,3,false,'all')
+ex_all = my_cumavgTopN_matrix(n,1..5,3,false,'all')
+assert 6,each(eqObj,re_all,ex_all)
+
+@testing:case = "test_cumavgTopN_X_matrix_rename2"
+m=shuffle(matrix(1..5, 11..15))
+n = m
+m.rename!(2020.01.01..2020.01.05, `A`B)
+re_old = cumavgTopN(a,b,3,true,'oldest')
+ex_old = my_cumavgTopN(a[0],b,3,true,'oldest')
+assert 1,each(eqObj,re_old[0],ex_old)
+re_late = cumavgTopN(a,b,3,true,'latest')
+ex_late = my_cumavgTopN(a[0],b,3,true,'latest')
+assert 2,each(eqObj,re_late[0],ex_late)
+re_all = cumavgTopN(a,b,3,true,'all')
+ex_all = my_cumavgTopN(a[0],b,3,true,'all')
+assert 3,each(eqObj,re_all[0],ex_all)
+re_old = cumavgTopN(a,b,3,false,'oldest')
+ex_old = my_cumavgTopN(a[0],b,3,false,'oldest')
+assert 4,each(eqObj,re_old[0],ex_old)
+re_late = cumavgTopN(a,b,3,false,'latest')
+ex_late = my_cumavgTopN(a[0],b,3,false,'latest')
+assert 5,each(eqObj,re_late[0],ex_late)
+re_all = cumavgTopN(a,b,3,false,'all')
+ex_all = my_cumavgTopN(a[0],b,3,false,'all')
+assert 6,each(eqObj,re_all[0],ex_all)
+
+@testing:case = "test_cumavgTopN_in_memory_table"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+t = table(ids as id,dates as date,prices as price,vals as val)
+re = select cumavgTopN(price,id,5,true,"oldest") from t 
+ex = cumavgTopN(prices,ids,5,true,"oldest")
+assert 1,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,true,"latest") from t 
+ex = cumavgTopN(prices,ids,5,true,"latest")
+assert 2,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,true,"all") from t 
+ex = cumavgTopN(prices,ids,5,true,"all")
+assert 3,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"oldest") from t 
+ex = cumavgTopN(prices,ids,5,false,"oldest")
+assert 4,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"latest") from t 
+ex = cumavgTopN(prices,ids,5,false,"latest")
+assert 5,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"all") from t 
+ex =cumavgTopN(prices,ids,5,false,"all")
+assert 6,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_memory_table_where"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+t = table(ids as id,dates as date,prices as price,vals as val)
+re = select cumavgTopN(price,id,5,true,"oldest") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,true,"oldest")
+assert 1,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,true,"latest") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,true,"latest")
+assert 2,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,true,"all") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,true,"all")
+assert 3,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"oldest") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,false,"oldest")
+assert 4,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"latest") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,false,"latest")
+assert 5,each(eqObj,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false,"all") from t where date>2021.05.01 
+tmp = select * from t where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,false,"all")
+assert 6,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_memory_table_context_by"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+syms = take(`a`b,n)
+t = table(ids as id,dates as date,prices as price,vals as val,syms as sym)
+re = select cumavgTopN(price,id,5,true) from t context by sym
+tmp_a = select * from t where sym = `a
+prices_a = exec price from tmp_a
+ids_a = exec id from tmp_a
+ex_a = cumavgTopN(prices_a,ids_a,5,true)
+
+tmp_b = select * from t where sym = `b
+prices_b = exec price from tmp_b
+ids_b = exec id from tmp_b
+ex_b= cumavgTopN(prices_b,ids_b,5,true)
+
+ex = ex_a.append!(ex_b)
+assert 1,each(eqObj,re.values()[0],ex)
+
+
+@testing:case = "test_cumavgTopN_in_memory_table_context_by_where"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+syms = take(`a`b,n)
+t = table(ids as id,dates as date,prices as price,vals as val,syms as sym)
+re = select cumavgTopN(price,id,5,true) from t where date>2021.05.01 context by sym
+tmp_a = select * from t where sym = `a and date>2021.05.01
+prices_a = exec price from tmp_a
+ids_a = exec id from tmp_a
+ex_a = cumavgTopN(prices_a,ids_a,5,true)
+
+tmp_b = select * from t where sym = `b and date>2021.05.01
+prices_b = exec price from tmp_b
+ids_b = exec id from tmp_b
+ex_b= cumavgTopN(prices_b,ids_b,5,true)
+
+ex = ex_a.append!(ex_b)
+assert 1,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_partitioned_table"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+t = table(ids as id,dates as date,prices as price,vals as val)
+dbName = "dfs://test_cumavgTopN_1"
+if(existsDatabase(dbName))dropDB(dbName)
+db = database(dbName,VALUE,1..5000)
+pt = db.createPartitionedTable(t,"pt",`id).append!(t)
+re = select cumavgTopN(price,id,5,true) from pt 
+ex = cumavgTopN(prices,ids,5,true)
+assert 1,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_partitioned_table_where"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+t = table(ids as id,dates as date,prices as price,vals as val)
+dbName = "dfs://test_cumavgTopN_2"
+if(existsDatabase(dbName))dropDB(dbName)
+db = database(dbName,VALUE,1..5000)
+pt = db.createPartitionedTable(t,"pt",`id).append!(t)
+re = select cumavgTopN(price,id,5,true) from pt where date>2021.05.01 
+tmp = select * from pt where date>2021.05.01
+prices = exec price from tmp
+ids = exec id from tmp
+ex = cumavgTopN(prices,ids,5,true)
+assert 1,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_partitioned_table_context_by"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+syms = take(`a`b,n)
+t = table(ids as id,dates as date,prices as price,vals as val,syms as sym)
+dbName = "dfs://test_cumavgTopN_3"
+if(existsDatabase(dbName))dropDB(dbName)
+db = database(dbName,VALUE,1..5000)
+pt = db.createPartitionedTable(t,"pt",`id).append!(t)
+re = select cumavgTopN(price,id,5,true) from pt context by sym
+tmp_a = select * from pt where sym = `a
+prices_a = exec price from tmp_a
+ids_a = exec id from tmp_a
+ex_a = cumavgTopN(prices_a,ids_a,5,true)
+
+tmp_b = select * from t where sym = `b
+prices_b = exec price from tmp_b
+ids_b = exec id from tmp_b
+ex_b= cumavgTopN(prices_b,ids_b,5,true)
+
+ex = ex_a.append!(ex_b)
+assert 1,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_partitioned_table_context_by_where"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+syms = take(`a`b,n)
+t = table(ids as id,dates as date,prices as price,vals as val,syms as sym)
+dbName = "dfs://test_cumavgTopN_4"
+if(existsDatabase(dbName))dropDB(dbName)
+db = database(dbName,VALUE,1..5000)
+pt = db.createPartitionedTable(t,"pt",`id).append!(t)
+re = select cumavgTopN(price,id,5,true) from pt where date>2021.05.01 context by sym
+tmp_a = select * from pt where sym = `a and date>2021.05.01
+prices_a = exec price from tmp_a
+ids_a = exec id from tmp_a
+ex_a = cumavgTopN(prices_a,ids_a,5,true)
+
+tmp_b = select * from t where sym = `b and date>2021.05.01
+prices_b = exec price from tmp_b
+ids_b = exec id from tmp_b
+ex_b= cumavgTopN(prices_b,ids_b,5,true)
+
+ex = ex_a.append!(ex_b)
+assert 1,each(eqObj,re.values()[0],ex)
+
+@testing:case = "test_cumavgTopN_in_memory_table"
+n = 3000
+ids = 1..3000 
+dates = take(2021.01.01..2021.10.01,n)
+prices = rand(1000,n)
+vals = rand(1000,n)
+t = table(ids as id,dates as date,prices as price,vals as val)
+re = select cumavgTopN(price,id,5,true) from t 
+ex = cumavgTopN(prices,ids,5,true)
+assert 1,each(eq,re.values()[0],ex)
+
+re = select cumavgTopN(price,id,5,false) from t 
+ex = cumavgTopN(prices,ids,5,false)
+assert 2,each(eqObj,re.values()[0],ex)

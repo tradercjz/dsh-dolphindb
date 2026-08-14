@@ -1,0 +1,427 @@
+#include "setup/settings.txt"
+@testing:case="function_corr"
+//Usage:X corr Y or corr(X,Y)  or (X).corr(Y)
+
+/*pandas script:
+import pandas as pd
+x=pd.Series([7,4,5,8,9,3,3,5,2,6,12,1,0,-5,32])
+y=pd.Series([1.1,7,8,9,9,5,4,8.6,2,1,-9,-3,5,8,13])
+x.corr(y)
+*/
+x=7 4 5 8 9 3 3 5 2 6 12 1 0 -5 32;
+y=1.1 7 8 9 9 5 4 8.6 2 1 -9 -3 5 8 13;
+assert 1, eqObj(corr(x,y), 0.2387686, 6)
+
+/*pandas script:
+import pandas as pd
+x=pd.Series([1,2,3])
+y=pd.Series([1,0,1])
+x.corr(y)
+*/
+x=1c 2c 3c
+y=1c 0c 1c
+assert 2, eqObj(corr(x,y), 0.0, 1)
+x=1c 2c 3c
+y=1h 0h 1h
+assert 3, eqObj(corr(x,y), 0.0, 1)
+x=1 2 3
+y=1 0 1
+assert 4, eqObj(corr(x,y), 0.0, 1)
+assert 5, 1..3 corr 1 1 1==00F
+
+x=7 4 5 8 9 3 3 5 2 6 12 1 0 -5 32;
+y=1.1 7 8 9 9 5 4 8.6 2 1 -9 -3 5 8 13;
+/*
+x=pd.Series([7,4,5,8,9,3,3,5,2,6,12,1,0,-5,32])
+y=pd.Series([1.1,7,8,9,9,5,4,8.6,2,1,-9,-3,5,8,13])
+a=pd.Series(np.repeat(0,1000)).append(x)
+b=pd.Series(np.repeat(0,1000)).append(y)
+a.corr(b)
+*/
+rs=0.5596380719192391
+precision=1
+assert 6, eqObj(corr(bigarray(char,1000,100000000,0).append!(x), bigarray(char,1000,100000000,0).append!(y)), rs, precision)
+assert 7, eqObj(corr(bigarray(long,1000,100000000,0).append!(x), bigarray(long,1000,100000000,0).append!(y)), rs, precision)
+assert 8, eqObj(corr(bigarray(short,1000,100000000,0).append!(x), bigarray(short,1000,100000000,0).append!(y)), rs, precision)
+assert 9, eqObj(corr(bigarray(float,1000,100000000,0).append!(x), bigarray(float,1000,100000000,0).append!(y)), rs, precision)
+assert 10, eqObj(corr(bigarray(double,1000,100000000,0).append!(x), bigarray(double,1000,100000000,0).append!(y)),rs, precision)
+
+@testing:case="function_corr_more_types_and_nulls"
+/*pandas script:
+import pandas as pd
+import numpy as np
+x=pd.Series([1,np.nan,3])
+y=pd.Series([2,np.nan,4])
+x.corr(y)
+*/
+x=1 NULL 3
+y=2 NULL 4
+assert 1, eqObj(x corr y, 1.0, 1)
+assert 2, eqObj(x corr 2..4, 1.0,1)
+assert 3, eqObj(x corr float(y), 1.0, 1)
+assert 4, eqObj(float(1 NULL 2) corr float( 1 2 NULL), double())
+assert 5, eqObj(double(1 NULL 2) corr double( 1 2 NULL), double())
+assert 6, eqObj(2 corr float(x), double())
+assert 7, eqObj(float(x) corr float(2.5 3 7.8), 1.0, 1)
+assert 8, eqObj(double(x) corr double(2.5 3 7.8), 1.0, 1)
+assert 9, eqObj(float(1 NULL 2) corr 1 2 NULL, double())
+assert 10, eqObj(float(1 1 2) corr 1 2 3, 0.866025, 6)
+assert 11, eqObj(float(1 1 2) corr float(1 2 3), 0.866025, 6)
+
+@testing:case="function_corr_bigarray"
+/*pandas script:
+import pandas as pd
+import numpy as np
+vec=pd.Series(np.arange(1,101,1))
+x1=list(np.arange(11,101,1))*188888
+a=pd.Series(x1).append(pd.Series(np.arange(11,91,1)))
+x=a.append(vec)
+y1=list(np.arange(31,121,1))*188888
+b=pd.Series(y1).append(pd.Series(np.arange(31,111,1)))
+y=vec.append(b)
+x.corr(y)
+# note that the result of funcion corr() in pandas is inconsistent with that in dolphindb
+*/
+vec=1..100
+a=take(11..100, 17000000)
+b=take(31..120, 17000000)
+
+x=bigarray(int,0,17500000,0).append!(a).append!(vec)
+y=bigarray(int,0,17500000,0).append!(vec).append!(b)
+/*compare with excel:
+saveText(table(x as col1,y as col2),WORK_DIR+"/corr.csv")
+call function CORREL in excel:
+e.g. =CORREL(A:A,B:B)
+*/
+rs=0.407363798
+precision=4
+assert 1, eqObj(corr(x,y), rs, precision)
+assert 2, eqObj(corr(short(x), short(y)), rs, precision)
+assert 3, eqObj(corr(char(x), char(y)), rs, precision)
+assert 4, eqObj(corr(long(x), long(y)), rs, precision)
+assert 5, eqObj(corr(float(x),float(y)), rs, precision)
+assert 6, eqObj(corr(double(x),double(y)), rs, precision)
+
+@testing:case="function_corr_bigarray_null"
+/*pandas script:
+vec=pd.Series(np.arange(1,101,1)).append(pd.Series([np.nan]))
+x1=list(np.arange(11,101,1))*188888
+a=pd.Series(x1).append(pd.Series(np.arange(11,91,1))).append(pd.Series([2]))
+x=a.append(vec)
+y1=list(np.arange(31,121,1))*188888
+b=pd.Series(y1).append(pd.Series(np.arange(31,111,1))).append(pd.Series([np.nan]))
+y=vec.append(b)
+x.corr(y)
+# note that the result of funcion corr() in pandas is inconsistent with that in dolphindb
+*/
+vec=(1..100).append!(NULL)
+a=take(11..100, 17000000).append!(2)
+b=take(31..120, 17000000).append!(NULL)
+
+x=bigarray(int,0,17500000,0).append!(a).append!(vec)
+y=bigarray(int,0,17500000,0).append!(vec).append!(b)
+/*compare with excel:
+saveText(table(x as col1,y as col2),WORK_DIR+"/corr.csv")
+call function CORREL in excel:
+e.g. =CORREL(A:A,B:B)
+*/
+rs=0.356254857
+precision=3
+assert 1, eqObj(corr(x,y), rs, precision)
+assert 2, eqObj(corr(short(x), short(y)), rs, precision)
+assert 3, eqObj(corr(char(x), char(y)), rs, precision)
+assert 4, eqObj(corr(long(x), long(y)), rs, precision)
+assert 5, eqObj(corr(float(x),float(y)), rs, precision)
+assert 6, eqObj(corr(double(x),double(y)), rs, precision)
+
+/*-------------------------------select from table-------------------------------*/
+xi=take(1 9 10 25 1 2 15 2 3 6 2 1 9 5 2 3 48 2 13 5, 10000)
+yi=take(9 8 93 1 5 4 2 3 5 6 2 1 9 5 2 3 48 2 6 99, 10000)
+/*pandas sript:
+import pandas as pd
+x=pd.Series([1,9,10,25,1,2,15,2,3,6,2,1,9,5,2,3,48,2,13,5]*500)
+y=pd.Series([9,8,93,1,5,4,2,3,5,6,2,1,9,5,2,3,48,2,6,99]*500)
+x.corr(y)
+Out[6]: 0.2536080698805421
+*/
+rs=0.2536080698805421
+precision=3
+
+@testing:case="function_corr_select_corr_from_table_short"
+t=table(short(xi) as value1, short(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision) 
+
+@testing:case="function_corr_select_corr_from_table_char"
+t=table(char(xi) as value1, char(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision) 
+
+@testing:case="function_corr_select_corr_from_table_int"
+t=table(int(xi) as value1, int(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision) 
+
+@testing:case="function_corr_select_corr_from_table_long"
+t=table(long(xi) as value1, long(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision)
+
+@testing:case="function_corr_select_corr_from_table_float"
+t=table(float(xi) as value1, float(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision)
+
+@testing:case="function_corr_select_corr_from_table_double"
+t=table(double(xi) as value1, double(yi) as value2)
+assert 1, eqObj(exec corr(value1,value2) from t, rs, precision)
+
+@testing:case="test_function_matrix"
+m1=matrix(1 2 3,4 5 6)
+m2=matrix(7 8 9,10 11 12)
+assert 1,eqObj(corr(m1,m2),each(corr,m1,m2))
+
+@testing:case="test_function_corr_bug"
+x=take(26.28, 10)
+y=1..10
+assert 1, eqObj(corr(x, y), double())
+
+x=take(26.28, 1000)
+y=1..1000
+assert 2, eqObj(corr(x, y), 0.0, 1)
+
+@testing:case="function_corr_same_table"
+t = table(1 2 3 as id,4 5 6 as val)
+t2 = table(4 5 6 as id,1 2 3 as val)
+re = corr(t,t2)
+ex = select corr(id,val),corr(val,id) from t 
+assert 1,each(eqObj,re.values(),ex.values())
+
+@testing:case="function_corr_col_not_same_table",exception = 1
+t = table(1 2 3 as id,4 5 6 as val)
+t2 = table(1 2 3 as id,4 5 6 as val,7 8 9 as val2,10 11 12 as val3,13 14 15 as val4)
+corr(t,t2)
+
+@testing:case="function_corr_row_not_same_table",exception = 1
+t = table(1 2 3 as id,4 5 6 as val)
+t2 = table(1 2 3 3 3 3 as id,4 5 6 6 6 6 as val)
+corr(t,t2)
+
+@testing:case="function_corr_all_col_type_not_same_table",exception = 1
+t = table(1 2 3 as id,`a`b`c as val)
+t2 = table(`a`b`c as id,1 2 3 as val)
+re = corr(t,t2)
+ex = select corr(id,val) from t 
+
+@testing:case="function_corr_all_col_type_not_same_table"
+t = table(1 2 3 as id,`a`b`c as val,4 5 6 as val2)
+t2 = table(`a`b`c as id,1 2 3 as val,4 5 6 as val2)
+re = corr(t,t2)
+assert 1, re[`id].isNull()
+assert 2, re[`val].isNull()
+assert 3, eqObj(re[`val2], [corr(t[`val2], t2[`val2])])
+
+@testing:case="function_corr_null_table"
+re = corr(table(take(int(),3) as id,take(int(),3) as val),table(take(int(),3) as id,take(int(),3) as val))
+assert 1,each(isNull,re.values())
+assert 2,re.typestr() == "IN-MEMORY TABLE"
+
+@testing:case="function_corr_table_has_null"
+t = table(1..10 join take(int(),5) as id,1..10 join take(int(),5) as val)
+t2 = table(1..10 join take(int(),5) as val,1..10 join take(int(),5) as id)
+re = corr(t,t2)
+ex = select corr(id,val),corr(val,id) from t 
+assert 1,each(eqObj,re.values(),ex.values())
+
+@testing:case="function_corr_table_one_col"
+t = table(1 2 3 as id)
+t2 = table(1 2 3 as id)
+re = corr(t,t2)
+ex = select corr(id,id) from t 
+assert 1,each(eqObj,re.values(),ex.values())
+
+@testing:case="function_corr_table_one_row"
+t = table([1] as id,[2] as values)
+t2 = table([2] as id,[1] as values)
+re = corr(t,t2)
+ex = select corr(id,values),corr(values,id) from t 
+assert 1,each(eqObj,re.values(),ex.values())
+
+@testing:case="test_function_corr_table_has_support_and_time_column"
+def createT(n) {
+    return table(rand(10,n) as id ,rand(10,n) as value,take(true false,n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415f+1..10, n) as float, take(3.1415+1..10, n) as double,take(string(`a`b`c`d),n) as string,take(symbol(`a`b`c`d),n) as symbol,take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"),n) as uuid,take(ipaddr("192.168.1.1"),n) as ipaddr,take(int128("e1671797c52e15f763380b45e841ec32"),n) as int128)
+}
+t1 = createT(100)
+re = corr(t1,t1)
+for(i in 0..(t1.cols()-1)){
+	typeInt = type(t1.col(i))
+	if(i in [0,1,2,3,4,5,6,16,17]){
+		assert 1, re.col(i)==corr(t1.col(i), t1.col(i))
+	}
+}
+assert 2, re[`date]==date()
+assert 3, re[`month]==month()
+assert 4, re[`time]==time()
+assert 5, re[`minute]==minute()
+assert 6, re[`second]==second()
+assert 7, re[`datetime]==datetime()
+assert 8, re[`timestamp]==timestamp()
+assert 9, re[`nanotime]==nanotime()
+assert 10, re[`nanotimestamp]==nanotimestamp()
+assert 11, re[`string]==string()
+assert 12, re[`symbol].isNull()
+assert 13, re[`uuid]==uuid()
+assert 14, re[`ipaddr]==ipaddr()
+assert 15, re[`int128]==int128()
+
+@testing:case="test_function_corr_table_not_match",exception =1
+corr(table(1 2 3 4 as a),table(1 2 3 as b))
+
+@testing:case="test_function_corr_table_not_match_type"
+re = corr(table(1 2 3 4 as a),table(`a`b`c`d as b))
+assert 1,re[`a].isNull()
+
+@testing:case="function_corr_table_vector"
+t = table(1 2 3 as id, `A`B`C as sym,10 11 55 as id2)
+index = [1, 2, 3]
+re = corr(t,index)
+assert 1, eqObj(re[`id][0], corr(t[`id], index))
+assert 2, eqObj(re[`sym][0], NULL)
+assert 3, eqObj(re[`id2][0], corr(t[`id2], index))
+
+@testing:case="function_corr_vector_table"
+t = table(1 2 3 as id, `A`B`C as sym,10 11 55 as id2)
+index = [3, 4, 7]
+re = corr(index,t)
+assert 1, eqObj(re[`id][0], corr(index, t[`id]))
+assert 2, eqObj(re[`sym][0], NULL)
+assert 3, eqObj(re[`id2][0], corr(index, t[`id2]))
+
+@testing:case="function_corr_in_sql_D20-11649_bug"
+t = table(take(2021.01.06, 686) as time, take(16.62, 686) as value, take(11.002, 686) as qty)
+re = select corr(value, qty) as corr from t group by time
+assert 1, re["corr"] == NULL
+
+t = table(take(2021.01.06, 686) as time, take(decimal32(16.62, 2), 686) as value, take(decimal32(11.002, 3), 686) as qty)
+re = select corr(value, qty) as corr from t group by time
+assert 2, re["corr"] == NULL
+
+@testing:case="function_corr_salar_and_empty_vector"
+dtypes = [INT,SHORT,LONG,DOUBLE,FLOAT,CHAR,BOOL,DECIMAL32(3),INT[],DOUBLE[]]
+for(dtype in dtypes){
+	print(dtype)
+	arr = array(dtype,0,10)
+	re = corr(arr,1)
+	assert 1,isNull(re)
+	corr(1,arr)
+	assert 2,isNull(re)
+	arr = bigarray(dtype,0,10000000)
+	corr(arr,1)
+	assert 3,isNull(re)
+	corr(1,arr)
+	assert 4,isNull(re)
+}
+
+@testing:case="function_corr_salar_and_empty_any_vector", exception  =1
+arr = array(ANY,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_string_vector", exception  =1
+arr = array(STRING,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_symbol_vector", exception  =1
+arr = array(SYMBOL,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_date_vector", exception  =1
+arr = array(DATE,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_month_vector", exception  =1
+arr = array(MONTH,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_timestamp_vector", exception  =1
+arr = array(TIMESTAMP,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_blob_vector", exception  =1
+arr = array(BLOB,0,10)
+corr(arr,1)
+
+@testing:case="function_corr_salar_and_empty_date_array_vector", exception  =1
+arr = array(DATE[],0,10)
+corr(arr,1)
+
+// https://dolphindb1.atlassian.net/browse/D20-21655
+@testing:case="test_function_corr_two_tables_with_different_number_of_col", exception = 1
+login(`admin,`123456)
+tb1 = table(1..100 as col1, 1..100 as col2 )
+tb2 = table(1..100  as val)
+res = corr(tb1, tb2)
+
+@testing:case="test_function_corr_two_matrix_with_different_number_of_col"
+login(`admin,`123456)
+m1=matrix(1 2 3)
+m2=matrix(7 8 9,10 11 12)
+res = corr(m1, m2)
+
+assert 1, eqObj(res, [1.0000, 1.0000], 4)
+
+@testing:case="test_function_corr_two_matrix_with_different_rows", exception = 1
+m1=matrix(1 2 3 7, 4 6 2 7)
+m2=matrix(7 8 9,10 11 12)
+
+corr(m1, m2)
+
+@testing:case="test_function_corr_x_dict", exception = 1
+corr({1:1}, [1, 2])
+
+@testing:case="test_function_corr_y_dict"//, exception = 1
+assert 1, eqObj(corr({1:1}, {1:1}), corr([1], [1]))
+
+@testing:case="test_function_corr_x_y_any_vector"//, exception = 1
+re = corr([], [])
+assert 1, eqObj(re, [])
+
+@testing:case="test_function_corr_x_y_same_value"
+re = corr([1, 1, 1], [1, 1, 1])
+
+assert 1, isNull(re)
+
+@testing:case="test_function_corr_x_y_bigarray_subarray"
+x = bigarray(INT,0,10000000).append!([1, 3, 3, 5, 7, 8, 4] join rand(1000, 1000000)).subarray(0:5)
+y = bigarray(INT,0,10000000).append!([2, 4, 7, 5, 7, 8, 4] join rand(1000, 1000000)).subarray(0:5)
+
+re = corr(x, y)
+
+assert 1, eqObj(re, 0.7235, 4)
+
+@testing:case="test_function_corr_x_y_view_of_matrix"
+m1=matrix(1 2 3,4 5 6)
+m2=matrix(7 8 9,10 11 12)
+
+x = m1.loc([true, false, true], view=true)
+y = m2.loc([false, true, true], view=true)
+
+
+re = corr(x, y)
+
+assert 1, eqObj(re, [1.0000, 1.0000], 4)
+
+@testing:case="test_function_corr_x_y_arrayVector", exception = 1
+x = arrayVector([4, 10], 0..9)
+y = arrayVector([4, 10], [4, 3, 6, 7] join 1..6)
+
+corr(x, y)
+
+// https://dolphindb1.atlassian.net/browse/D20-21655
+@testing:case="test_function_corr_x_y_out_of_range"
+re = corr([2147483650, 2147483648], [1000, 56])
+
+assert 1, isNull(re)
+
+// https://dolphindb1.atlassian.net/browse/D20-26859
+@testing:case="test_function_corr_precision"
+x = [96539,80978,48894,4076,83725,59230,32397,37866,32803,36737]
+y = [39007838422, 39007853983, 39007886067, 39007930885, 39007851236, 
+ 39007875731, 39007902564, 39007897095, 39007902158, 39007898224]
+re = corr(x, y)
+
+assert 1, re == -1

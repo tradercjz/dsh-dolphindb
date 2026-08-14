@@ -1,0 +1,176 @@
+// DolphinDB 作业管理脚本
+// 包含作业监控和管理操作
+
+// @description 作业总览：最近批处理作业（错误数按"窗内/历史"分桶）+ 当前同步作业 + 定时作业 + 全局作业统计
+// @params recentMinutes:int:optional
+// @collect async-replication, crash, disk-full, metadata-repair, node-down, oom, slow-query, stream-delay, system-hang, execution-failure, job-issues
+// @permission readonly
+def checkJobs(recentMinutes=30) {
+    d = dict(STRING, ANY)
+    windowMinutes = recentMinutes
+    if (windowMinutes <= 0) { windowMinutes = 30 }
+    windowStart = temporalAdd(now(), -windowMinutes, 'm')
+    d["recent_minutes_window"] = windowMinutes
+
+    // ── 最近批处理作业（含正在跑 + 错误） ──
+    rj = getRecentJobs()
+    recent = dict(STRING, ANY)
+    recent["running_total"] = (exec count(*) from rj where endTime == NULL)
+    recent["running_by_user"] = (select count(*) from rj where endTime == NULL group by userID as user_id, clientIp as client_ip)
+    // 错误数按时间窗分桶：避免把昨天/前天的失败任务当成"现场"问题
+    recent["errors_in_window"] = (exec count(*) from rj where errorMsg != NULL and (receivedTime >= windowStart or (endTime != NULL and endTime >= windowStart)))
+    recent["errors_total_in_recent_jobs"] = (exec count(*) from rj where errorMsg != NULL)
+    recent["errors_in_window_by_user"] = (select count(*) from rj
+        where errorMsg != NULL and (receivedTime >= windowStart or (endTime != NULL and endTime >= windowStart))
+        group by userID as user_id, clientIp as client_ip)
+    recent["running_jobs"] = select * from rj where isNull(endTime)
+    recent["failed_jobs_in_window"] = select * from rj
+        where errorMsg != NULL and (receivedTime >= windowStart or (endTime != NULL and endTime >= windowStart))
+        order by receivedTime desc
+    d["recent_batch_jobs"] = recent
+
+    // ── 同步（前台）作业 ──
+    cj = getConsoleJobs()
+    console = dict(STRING, ANY)
+    console["total_count"] = cj.size()
+    console["count"] = (select count(*) from cj group by userID as user_id, remoteIP as remote_ip)
+    console["jobs"] = select * from cj where sessionId != getCurrentSessionAndUser()[0]
+    d["console_jobs"] = console
+
+    // ── 定时作业 ──
+    d["scheduled_jobs"] = getScheduledJobs()
+
+    // ── 作业统计（性能分析用）──
+    try { d["job_stat"] = getJobStat() } catch(ex) { d["job_stat"] = "error: " + concat(string(ex), ": ") }
+
+    return d
+}
+
+// @description 单个批处理作业的完整诊断：状态 + 中间消息 + 返回对象
+// @params jobId:str:required
+// @collect job-issues
+// @permission readonly
+def checkJobDetail(jobId) {
+    if (strlen(jobId) == 0) { throw "jobId cannot be empty" }
+    d = dict(STRING, ANY)
+    d["job_id"] = jobId
+
+    try { d["status"] = getJobStatus(jobId) } catch(ex) { d["status"] = "error: " + concat(string(ex), ": ") }
+    try { d["message"] = getJobMessage(jobId) } catch(ex) { d["message"] = "error: " + concat(string(ex), ": ") }
+    try { d["return_value"] = getJobReturn(jobId) } catch(ex) { d["return_value"] = "error: " + concat(string(ex), ": ") }
+
+    return d
+}
+
+// @description 取消后台作业。三选一：jobIds=[...] 取消指定 ID；targetUser="..." 取消该用户所有运行中作业；all=true 取消全部运行中作业。wait=true 时单 ID 模式下等待最多 30 秒确认取消
+// @params jobIds:vector:optional, targetUser:str:optional, all:bool:optional, wait:bool:optional
+// @permission danger
+def cancelJobs(jobIds=NULL, targetUser="", all=false, wait=false) {
+    // 注意：参数名特意避开 getRecentJobs() 列名 userID（DDB SQL 大小写不敏感会与列冲突，
+    // 导致 where userID == <param> 退化为 column==column 永真）
+    targets = array(STRING, 0)
+    if (!isNull(jobIds) and size(jobIds) > 0) {
+        targets = jobIds
+    } else if (strlen(targetUser) > 0) {
+        targets = exec jobId from getRecentJobs() where endTime == NULL and userID == targetUser
+    } else if (all) {
+        targets = exec jobId from getRecentJobs() where endTime == NULL
+    } else {
+        throw "must specify at least one of jobIds / targetUser / all=true"
+    }
+
+    if (size(targets) == 0) {
+        return "no matching running jobs"
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(targets)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+    if (strlen(targetUser) > 0) { results["user_id"] = targetUser }
+
+    for (jobId in targets) {
+        try {
+            cancelJob(jobId)
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + jobId)
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + jobId + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    // 等待确认：单 ID + wait=true 才生效（all/userId 批量等待意义不大）
+    if (wait and size(targets) == 1) {
+        jobId = targets[0]
+        maxWait = 30
+        waited = 0
+        do {
+            running = exec count(*) from getRecentJobs() where jobid == jobId and endTime == NULL
+            if (running[0] == 0) { break }
+            sleep(1000)
+            waited = waited + 1
+        } while (waited < maxWait)
+        results["waited_seconds"] = waited
+        if (waited >= maxWait) {
+            results["details"].append!("STILL_RUNNING_AFTER_30S: " + jobId)
+        }
+    }
+
+    // 全量场景：再扫一轮做兜底
+    if (all) {
+        do {
+            stragglers = exec jobId from getRecentJobs() where endTime == NULL
+            if (size(stragglers) == 0) { break }
+            cancelJob(stragglers)
+            sleep(1000)
+        } while (size(stragglers) > 0)
+    }
+
+    return results
+}
+
+// @description 取消前台同步（console）作业。jobIds=[...] 必填
+// @params jobIds:vector:required
+// @permission danger
+def cancelConsoleJobs(jobIds) {
+    if (isNull(jobIds) or size(jobIds) == 0) {
+        throw "jobIds cannot be empty"
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(jobIds)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+
+    for (jobId in jobIds) {
+        try {
+            cancelConsoleJob(jobId)
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + jobId)
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + jobId + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    return results
+}
+
+// @description 设置指定用户的最高作业优先级（0-9，数值越高优先级越高）
+// @params userId:str:required, maxPriority:int:required
+// @permission danger
+def setMaxJobPriority1(userId, maxPriority) {
+    if (strlen(userId) == 0) {
+        throw "userId cannot be empty"
+    }
+    if (maxPriority < 0 or maxPriority > 9) {
+        throw "maxPriority must be between 0 and 9"
+    }
+    try {
+        setMaxJobPriority(userId, maxPriority)
+        return "setMaxJobPriority done: user=" + userId + " maxPriority=" + string(maxPriority)
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}

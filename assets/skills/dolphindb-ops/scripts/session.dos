@@ -1,0 +1,104 @@
+// DolphinDB 会话管理脚本
+// 包含会话监控和管理操作
+
+// @description 会话/查询/共享内存一站式查询：会话内存详情 + 当前运行查询 + 共享变量内存
+// @collect oom, slow-query, system-hang
+// @permission readonly
+def checkSessions() {
+    d = dict(STRING, ANY)
+
+    // ── 会话内存（按 userId 聚合 + 完整列表）──
+    sm = getSessionMemoryStat()
+    olapCapacity = long(NULL)
+    if (defs("getOLAPCacheEngineSize").size() > 0 and getNodeType() == 0) {
+        olapCapacity = funcByName("getOLAPCacheEngineSize")()[3]
+    }
+    tsdbCapacity = long(NULL)
+    if (defs("getTSDBCacheEngineSize").size() > 0 and getNodeType() == 0) {
+        tsdbCapacity = funcByName("getTSDBCacheEngineSize")()
+    }
+    userMem = select sum(memSize) as user_mem_bytes from sm where !userId.startsWith("__") group by userId as user_id, remoteIp as ip
+
+    sessionMem = dict(STRING, ANY)
+    sessionMem["dimensional_table_bytes"] = (exec first(memSize) from sm where userId == "__DimensionalTable__")
+    sessionMem["shared_table_bytes"] = (exec first(memSize) from sm where userId == "__SharedTable__")
+    sessionMem["olap_tablet_bytes"] = (exec first(memSize) from sm where userId == "__OLAPTablet__")
+    sessionMem["olap_cache_engine_bytes"] = (exec first(memSize) from sm where userId == "__OLAPCacheEngine__")
+    sessionMem["olap_cached_symbol_base_bytes"] = (exec first(memSize) from sm where userId == "__OLAPCachedSymbolBase__")
+    sessionMem["dfs_metadata_bytes"] = (exec first(memSize) from sm where userId == "__DFSMetadata__")
+    sessionMem["tsdb_cache_engine_bytes"] = (exec first(memSize) from sm where userId == "__TSDBCacheEngine__")
+    sessionMem["tsdb_level_file_index_bytes"] = (exec first(memSize) from sm where userId == "__TSDBLevelFileIndex__")
+    sessionMem["tsdb_cached_symbol_base_bytes"] = (exec first(memSize) from sm where userId == "__TSDBCachedSymbolBase__")
+    sessionMem["iotdb_latest_key_cache_bytes"] = (exec first(memSize) from sm where userId == "__IOTDBLatestKeyCache__")
+    sessionMem["iotdb_static_table_cache_bytes"] = (exec first(memSize) from sm where userId == "__IOTDBStaticTableCache__")
+    sessionMem["streaming_pub_queue_bytes"] = (exec first(memSize) from sm where userId == "__StreamingPubQueue__")
+    sessionMem["streaming_sub_queue_bytes"] = (exec first(memSize) from sm where userId == "__StreamingSubQueue__")
+    sessionMem["olap_cache_engine_capacity_bytes"] = olapCapacity
+    sessionMem["tsdb_cache_engine_capacity_bytes"] = tsdbCapacity
+    sessionMem["user_mem_bytes"] = userMem
+    sessionMem["sessions"] = select * from sm order by memSize desc
+    d["session_memory"] = sessionMem
+
+    // ── 当前运行查询 ──
+    rq = getRunningQueries()
+    runningQueries = dict(STRING, ANY)
+    runningQueries["total_count"] = exec count(*) from rq
+    runningQueries["count"] = select count(*) as count from rq group by userId as user_id, remoteIP as remote_ip
+    runningQueries["queries"] = rq
+    d["running_queries"] = runningQueries
+
+    // ── 共享变量 ──
+    d["shared_variables"] = select name, type, form, bytes from objs(true) where shared == true order by bytes desc
+
+    return d
+}
+
+// @description 关闭会话。四选一：sessionIds=[...] 关闭指定 ID；targetUser="..." 关闭该用户所有会话；thresholdBytes>0 关闭内存超过阈值的会话；all=true 关闭全部会话。所有模式都会自动排除当前会话
+// @params sessionIds:vector:optional, targetUser:str:optional, thresholdBytes:long:optional, all:bool:optional
+// @permission danger
+def closeSessions1(sessionIds=NULL, targetUser="", thresholdBytes=0, all=false) {
+    // 注意：参数名特意避开 getSessionMemoryStat() 列名 userId（DDB SQL 大小写不敏感会与列冲突，
+    // 导致 where userID == <param> 退化为 column==column 永真）
+    selfSession = getCurrentSessionAndUser()[0]
+
+    targets = array(LONG, 0)
+    if (!isNull(sessionIds) and size(sessionIds) > 0) {
+        targets = each(long, sessionIds)
+    } else if (strlen(targetUser) > 0) {
+        targets = exec sessionId from getSessionMemoryStat()
+                  where userID == targetUser and sessionId != NULL and sessionId != selfSession
+    } else if (thresholdBytes > 0) {
+        targets = exec sessionId from getSessionMemoryStat()
+                  where memSize > thresholdBytes and sessionId != NULL and sessionId != selfSession
+    } else if (all) {
+        targets = exec sessionId from getSessionMemoryStat()
+                  where sessionId != NULL and sessionId != selfSession
+    } else {
+        throw "must specify at least one of sessionIds / targetUser / thresholdBytes>0 / all=true"
+    }
+
+    if (size(targets) == 0) {
+        return "no matching sessions"
+    }
+
+    results = dict(STRING, ANY)
+    results["total"] = size(targets)
+    results["succeeded"] = 0
+    results["failed"] = 0
+    results["details"] = array(STRING, 0)
+    if (strlen(targetUser) > 0) { results["user_id"] = targetUser }
+    if (thresholdBytes > 0) { results["threshold_bytes"] = thresholdBytes }
+
+    for (sessionId in targets) {
+        try {
+            closeSessions(long(sessionId))
+            results["succeeded"] += 1
+            results["details"].append!("SUCCESS: " + string(sessionId))
+        } catch(ex) {
+            results["failed"] += 1
+            results["details"].append!("FAILED: " + string(sessionId) + " - " + concat(string(ex), ": "))
+        }
+    }
+
+    return results
+}

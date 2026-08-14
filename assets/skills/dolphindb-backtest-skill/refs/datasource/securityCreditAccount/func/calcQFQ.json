@@ -1,0 +1,81 @@
+{
+    "name": "calcQFQ",
+    "desc": "用于基于复权因子表计算股票日线或者分钟行情的前复权价格，按每只股票最新复权因子将 open、low、high、close、upLimitPrice、downLimitPrice、prevClosePrice 统一换算为前复权口径。",
+    "syntax": "calcQFQ(priceTbl, factorTbl)",
+    "notes": [
+        "该函数用于对股票日线或者分钟行情行情表执行前复权处理。",
+        "priceTbl 必须包含字段：symbol, tradeTime, open, low, high, close, volume, amount, upLimitPrice, downLimitPrice, prevClosePrice。",
+        "priceTbl 可以额外包含 signal 列；若存在，该列会在返回结果中原样保留。",
+        "factorTbl 必须包含字段：code, trade_date, adj_factor。",
+        "函数会根据 priceTbl 的 tradeTime 自动推导查询日期区间，并仅加载该区间内的复权因子。",
+        "函数会按 symbol 计算区间内最新的复权因子 latest_adj_factor，并使用 adj_factor / latest_adj_factor 对价格字段进行前复权换算。",
+        "若某条记录缺少 adj_factor 或 latest_adj_factor，则对应价格字段保持原值，不做复权换算。",
+        "volume 与 amount 不做复权换算，保持原值返回。",
+        "返回结果字段顺序与 priceTbl 保持一致；若输入存在 signal 列，输出也包含 signal 列。"
+    ],
+    "args": {
+        "priceTbl": {
+            "type": "TABLE",
+            "desc": "待复权的行情表，需包含字段：symbol, tradeTime, open, low, high, close, volume, amount, upLimitPrice, downLimitPrice, prevClosePrice；可选包含 signal"
+        },
+        "factorTbl": {
+            "type": "TABLE",
+            "desc": "复权因子表，需包含字段：code, trade_date, adj_factor, update_time"
+        }
+    },
+    "return": {
+        "type": "TABLE",
+        "desc": "返回按最新复权因子折算后的前复权行情表，结构与 priceTbl 一致；若输入包含 signal 列则输出也包含该列",
+        "columns": {
+            "symbol": {
+                "type": "SYMBOL",
+                "desc": "股票代码"
+            },
+            "tradeTime": {
+                "type": "TIMESTAMP",
+                "desc": "交易时间"
+            },
+            "open": {
+                "type": "DOUBLE",
+                "desc": "前复权开盘价"
+            },
+            "low": {
+                "type": "DOUBLE",
+                "desc": "前复权最低价"
+            },
+            "high": {
+                "type": "DOUBLE",
+                "desc": "前复权最高价"
+            },
+            "close": {
+                "type": "DOUBLE",
+                "desc": "前复权收盘价"
+            },
+            "volume": {
+                "type": "LONG",
+                "desc": "成交量"
+            },
+            "amount": {
+                "type": "DOUBLE",
+                "desc": "成交额"
+            },
+            "upLimitPrice": {
+                "type": "DOUBLE",
+                "desc": "前复权涨停价"
+            },
+            "downLimitPrice": {
+                "type": "DOUBLE",
+                "desc": "前复权跌停价"
+            },
+            "prevClosePrice": {
+                "type": "DOUBLE",
+                "desc": "前复权昨收价"
+            },
+            "signal": {
+                "type": "ANY",
+                "desc": "可选列；若输入 priceTbl 包含 signal，则原样透传"
+            }
+        }
+    },
+    "body": "def calcQFQ(priceTbl, factorTbl){\n\n    p = select *,date(tradeTime) as trade_date from priceTbl\n\n    dateRange = exec trade_date from p\n    startDate = dateRange.min()\n    endDate = dateRange.max()\n\n    cols = schema(priceTbl)[\"colDefs\"][\"name\"]\n    hassignal = `signal in cols\n\n    f = select\n            code,\n            trade_date,\n            adj_factor\n        from factorTbl\n        where trade_date between startDate : endDate\n\n    j = lj(\n            p,\n            f,\n            `symbol`trade_date,\n            `code`trade_date)\n\n    latestFactor = select\n                        symbol,\n                        last(adj_factor) as latest_adj_factor\n                   from (\n                        select\n                            symbol,\n                            trade_date,\n                            adj_factor\n                        from j\n                        where not isNull(adj_factor)\n                        order by symbol, trade_date\n                   )\n                   group by symbol\n\n    // 7. 合并最新复权因子\n    t = lj(j, latestFactor, `symbol, `symbol)\n\n    // 8. 分支返回：有 signal 和无 signal 两种情况\n    if(hassignal){\n        return select\n                    symbol,\n                    tradeTime,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), open, open * adj_factor / latest_adj_factor) as open,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), low, low * adj_factor / latest_adj_factor) as low,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), high, high * adj_factor / latest_adj_factor) as high,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), close, close * adj_factor / latest_adj_factor) as close,\n                    volume,\n                    amount,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), upLimitPrice, upLimitPrice * adj_factor / latest_adj_factor) as upLimitPrice,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), downLimitPrice, downLimitPrice * adj_factor / latest_adj_factor) as downLimitPrice,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), prevClosePrice, prevClosePrice * adj_factor / latest_adj_factor) as prevClosePrice,\n                    signal\n               from t\n    }else{\n        return select\n                    symbol,\n                    tradeTime,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), open, open * adj_factor / latest_adj_factor) as open,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), low, low * adj_factor / latest_adj_factor) as low,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), high, high * adj_factor / latest_adj_factor) as high,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), close, close * adj_factor / latest_adj_factor) as close,\n                    volume,\n                    amount,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), upLimitPrice, upLimitPrice * adj_factor / latest_adj_factor) as upLimitPrice,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), downLimitPrice, downLimitPrice * adj_factor / latest_adj_factor) as downLimitPrice,\n                    iif(isNull(adj_factor) or isNull(latest_adj_factor), prevClosePrice, prevClosePrice * adj_factor / latest_adj_factor) as prevClosePrice\n               from t\n    }\n}"
+}

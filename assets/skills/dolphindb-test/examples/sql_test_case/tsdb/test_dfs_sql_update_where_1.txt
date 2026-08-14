@@ -1,0 +1,262 @@
+#include "checkChunk.txt"
+
+//where makeKey(col1,col2,…) in makeKey(a,b))
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_prepare"
+login("admin","123456")
+def nodeCompaction(dbName){
+	 suffix = substr(dbName, 5)
+	 chunkIds = exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	 for(x in chunkIds){
+	 	triggerIotCompaction(x)
+	 }
+}
+
+def waitChunkCompaction(dbName){
+	allChunks = exec chunkId from rpc(getControllerAlias(),getClusterChunksStatus) where like(file,"%/"+substr(dbName,6)+"/%")
+	do{
+		unable_compaction = exec count(*) from pnodeRunAllNodes(getTSDBCompactionTaskStatus) where isNull(endTime) and chunkId in allChunks
+		if(unable_compaction==0){
+			print("All Chunks Finish")
+			break	
+		}else{
+			print(unable_compaction+ " chunks are waiting")
+			sleep(1000)	
+		}
+	}while(true)
+	errorMessageNum = exec count(*) from pnodeRunAllNodes(getTSDBCompactionTaskStatus) where chunkId in allChunks and isNull(errorMessage)==false
+	if(errorMessageNum!=0){
+		throw "some chunks merge fail,please check"
+	}else{
+		print "merge successful"
+	}
+}
+def checkMerge(dbName,tableName,exLevel){
+	waitChunkCompaction(dbName)
+	allChunks = exec chunkId from pnodeRunAllNodes(getAllChunks) where like(dfsPath,"%/"+substr(dbName, 6, dbName.strlen())+"/%") and like(dfsPath,"%.tbl")==false and like(dfsPath,"%domain")==false
+	chunkNum = ((exec distinct(chunkId) from pnodeRunAllNodes(getTSDBMetaData) where like(chunkPath,"%/"+substr(dbName, 6, dbName.strlen())+"/%") and like(table,tableName+"%")).size())*2
+	for(i in 1..20){
+	 	levelFileNum = exec count(*) from pnodeRunAllNodes(getTSDBMetaData) where like(chunkPath,"%/"+substr(dbName, 6, dbName.strlen())+"/%") and like(table,tableName+"%") and level							=exLevel
+		 if(levelFileNum == chunkNum){
+	 		print("levelFilesNum is expected")
+	 		break
+		 }else{
+	 		if(i == 20){
+	 			throw "levelFilesNum is not expected after " +string(i)+ "seconds"
+	 		}
+	 		print("levelFilesNum is not expected,wiat one second")
+	 		sleep(1000)
+		 }
+	}
+	ex1 = take(string(exLevel),chunkNum)
+	for(i in 1..60){
+		levels = exec left(files,1) from pnodeRunAllNodes(getTSDBMetaData) where like(chunkPath,"%/"+substr(dbName, 6, dbName.strlen())+"/%") and like(table,tableName+"%") and level=exLevel
+		if((levels==ex1).all()){
+			print "merge to "+exLevel+" level successful"
+			break
+		}else{
+			if(i == 60){
+				throw "merge to "+exLevel+" level fail after "+string(i)+" seconds"
+			}
+			sleep(1000)
+		}
+	}
+}
+
+def createTableData(n){
+    dates=rand(2012.01.01..2012.01.10, n)
+    syms=rand(symbol("A"+string(1..10)), n)
+    ints=rand(1..10, n)
+    boolv=rand([true, false, NULL], n)
+    charv=char(rand(rand(-100..100, 10) join take(char(), 10), n))
+    shortv=short(rand(rand(-100..100, 10) join take(short(), 10), n))
+    intv=int(rand(rand(-100..100, 10) join take(int(), 10), n))
+    longv=long(rand(rand(-100..100, 10) join take(long(), 10), n))
+    datev=date(date(0)+rand(rand(-100..100, 10) join take(date(), 10), n))
+    monthv=month(2012.01M+rand(rand(-100..100, 10) join take(month(), 10), n))
+    timev=time(12:23:56.489+rand(rand(-100..100, 10) join take(time(), 10), n))
+    minutev=minute(12:23m+rand(rand(-100..100, 10) join take(minute(), 10), n))
+    secondv=second(11:23:56+rand(rand(-100..100, 10) join take(second(), 10), n))
+    datetimev=datetime(datetime(take(2012.01.01..2012.01.10, n))+rand(rand(-100..100, 10) , n))
+    timestampv=timestamp(timestamp(0)+rand(rand(-100..100, 10) join take(timestamp(), 10), n))
+    nanotimev=nanotime(nanotime(0)+rand(rand(-100..100, 10) join take(nanotime(), 10), n))
+    nanotimestampv=nanotimestamp(nanotimestamp(0)+rand(rand(-100..100, 10) join take(nanotimestamp(), 10), n))
+    doublev=rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n)
+    floatv=rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00f, 10), n)
+    symbolv=symbol(string(rand(("A"+string(rand(100, 10))) join take("", 10), n)))
+    stringv=string(rand(("AMPL"+string(rand(100, 10))) join take("", 10), n))
+    uuidv=rand(rand(uuid(), 10) join take(uuid(), 10), n)
+    int128v=rand(rand(int128(), 10) join take(int128(), 10), n)
+    ipaddrv=rand(rand(ipaddr(), 10) join take(ipaddr(), 10), n)
+    datehourv=datehour(rand(temporalAdd(timestamp(0), rand(-100..100, 10), "H") join take(date(), 10), n))
+    blobv=blob(string(rand(("snkan"+string(rand(100, 10))) join take("", 10), n)))
+    complexv=complex(rand(rand(-100..100, 10) join take(int(), 4), n), rand(rand(-100..100, 10) join take(int(), 4), n))
+    pointv=point(rand(rand(-100..100, 10) join take(int(), 3), n), rand(rand(-100..100, 10) join take(int(), 3), n))
+    decimal32v=decimal32(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 5)
+    decimal64v=decimal64(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 15)
+    decimal128v=decimal128(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 25)
+    arrayv=array(DOUBLE[])
+    for(i in 0:n){
+    	arrayv.append!([rand(10.0,10)])
+    }
+    return table(dates,syms,ints,boolv,charv,shortv,intv,longv,datev,monthv,secondv,datetimev,timestampv,nanotimev,nanotimestampv,floatv,doublev,symbolv,stringv,uuidv,int128v,datehourv,ipaddrv,blobv,complexv,pointv,decimal32v,decimal64v,decimal128v,1..n as sortv,arrayv)
+}
+
+def createSch(){
+    colNameList = [`dates,`syms,`ints,`boolv,`charv,`shortv,`intv,`longv,`datev,`monthv,`secondv,`datetimev,`timestampv,`nanotimev,`nanotimestampv,`floatv,`doublev,`symbolv,`stringv,`uuidv,`int128v,`datehourv,`ipaddrv,`blobv,`complexv,`pointv,`decimal32v,`decimal64v,`decimal128v,`sort,`arrayv]
+    colTypeList = [DATE, SYMBOL, INT, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, UUID, INT128, DATEHOUR, IPADDR, BLOB, COMPLEX, POINT, DECIMAL32(6), DECIMAL64(15), DECIMAL128(25),INT,DOUBLE[]]
+    return table(100:0, colNameList, colTypeList)
+}
+
+def createDB(dbName,  partitionType, partitionSchemeList) {
+	if (existsDatabase(dbName)){
+       		 dropDatabase(dbName)
+  	  }
+	db = database(dbName, partitionType, partitionSchemeList, engine='TSDB')
+	return db
+}
+
+def createDB2(dbName, partitionType1,partitionType2, partitionSchemeList1, partitionSchemeList2) {
+	if (existsDatabase(dbName)){
+       		 dropDatabase(dbName)
+  	  }
+	db1 = database("", partitionType1, partitionSchemeList1)
+	db2 = database("", partitionType2, partitionSchemeList2)
+	db = database(dbName, COMPO, [db1,db2], engine='TSDB')
+	return db
+}
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_error_Colname",exception =1
+dbName = "dfs://test1"
+tbName = "pt"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 2012.01.01..2012.01.10, , "TSDB")
+t = table(1:0, `timestamp`sym`str`date`time, [TIMESTAMP, SYMBOL, SYMBOL,DATE,TIME])
+pt1 = db.createPartitionedTable(t, `pt1, `timestamp, , `sym)
+d = 2012.01.01
+batch = 10000
+data = table(batch:batch, `timestamp`sym`str`date`time, [TIMESTAMP, SYMBOL, SYMBOL,DATE,TIME])
+data[`timestamp] = concatDateTime(d, rand(09:00:00.000..15:59:59.999, batch))
+data[`sym] = decimalFormat(take(1..100, batch), "000000")+".SH"
+data[`str] = take("A"+string(1..10), batch)
+pt1.append!(data)
+s1 = decimalFormat(5..10, "000000")+".SH"
+s2 = "A"+string(5..10)
+update  loadTable(dbName, "pt1") set str=st+""  where makeKey(sym1, str) in makeKey(s1, s2) 
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_makeKey_not_def",exception =1
+update  loadTable(dbName, "pt1") set str=st+""   where makeKey(sym, str) in makeKey(s11, s2) 
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_makeKey_not_def_table",exception =1
+try{undef(`t)}catch(ex){}
+go
+update  loadTable(dbName, "pt1")  set str=st+""  where makeKey(sym, str) in makeKey(t[`s1], t[`s2]) 
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_makeKey_different_types"
+update  loadTable(dbName, "pt1")  set str=st+""  where makeKey(date, time) in makeKey(`2012.01.01, `11)
+
+@testing:case="test_dfs_partition_update_where_makeKey_in_partitionCol_SortKey_same"
+tableSchema = createSch()
+n=10000
+t = createTableData(n)
+tableSchema.append!(t)
+dbName1 = "dfs://delete_where_makeKey_in_range"
+dbName2 = "dfs://delete_where_makeKey_in_value"
+dbName3 = "dfs://delete_where_makeKey_in_hash"
+dbName4 = "dfs://delete_where_makeKey_in_list"
+dbName5 = "dfs://delete_where_makeKey_in_compo"
+db1 =createDB(dbName1,  RANGE, [2012.01.01, 2012.01.05, 2012.01.11])
+db2 =createDB(dbName2,  VALUE, 2012.01.01..2012.01.11)
+db3=createDB(dbName3,  HASH, [DATE,5])
+db4=createDB(dbName4,  LIST, [2012.01.01..2012.01.05, 2012.01.06..2012.01.11])
+db5 =createDB2(dbName5,  RANGE,VALUE, [2012.01.01, 2012.01.05, 2012.01.11],symbol("A"+string(1..10)))
+for(db in [db1,db2,db3,db4]){
+	db.createPartitionedTable(tableSchema, `pt1, `dates, , `dates).append!(tableSchema)	
+	db.createPartitionedTable(tableSchema, `pt2, `dates, , `dates`datetimev, FIRST).append!(tableSchema)
+	db.createPartitionedTable(tableSchema, `pt3, `dates, , `dates`datetimev, LAST).append!(tableSchema)
+	db.createPartitionedTable(tableSchema, `pt4, `dates, {"datetimev":"delta"}, `dates`datetimev, LAST, [hashBucket{, 7}]).append!(tableSchema)
+	db.createPartitionedTable(tableSchema, `pt5, `dates, {"dates":"delta"}, `dates`datetimev, ALL, [hashBucket{, 7}]).append!(tableSchema)
+	db.createPartitionedTable(tableSchema, `pt6, `dates, , `dates`datetimev, LAST,softDelete=true).append!(tableSchema)
+	db.createPartitionedTable(tableSchema, `pt7, `dates, {"datetimev":"delta"}, `dates`datetimev, LAST, [hashBucket{, 7}],softDelete=true).append!(tableSchema)
+}
+
+db5.createPartitionedTable(tableSchema, `pt1, `dates`syms, , `syms`dates`datetimev).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt2, `dates`syms, , `syms`dates`datetimev, FIRST).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt3, `dates`syms, , `syms`dates`datetimev, LAST).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt4, `dates`syms, {"datetimev":"delta"}, `dates`syms`datetimev, LAST, [hashBucket{, 7},hashBucket{, 7}]).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt5, `dates`syms, {"dates":"delta"}, `dates`syms`datetimev, ALL, [hashBucket{, 7},hashBucket{, 7}]).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt6, `dates`syms, , `dates`syms`datetimev, LAST,softDelete=true).append!(tableSchema)
+db5.createPartitionedTable(tableSchema, `pt7, `dates`syms, {"datetimev":"delta"}, `syms`dates`datetimev, LAST, [hashBucket{, 7},hashBucket{, 7}],softDelete=true).append!(tableSchema)
+
+dbNames= [dbName1,dbName2,dbName3,dbName4,dbName5]
+tbNames="pt"+string(1..7)
+dbName=dbName1
+tbName="pt2"
+def readData(dbName,tbName){
+	t = select * from loadTable(dbName,tbName)
+	return t
+}
+def checkmakeKey(dbName,tbName){
+	dataNode = (exec name from rpc(getControllerAlias(), getClusterPerf) where mode=0)[0]
+	t = rpc(dataNode, readData{dbName,tbName})
+	pt=loadTable(dbName,tbName)
+	re = select * from pt 
+	ex = select * from t
+	result=array(BOOL)
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	result.append!(all(each(eqObj,re.values(), ex.values())))
+	//context by 
+	update  pt  set  shortv=mavg(shortv,4)+1   where  makeKey(syms,datetimev) in  makeKey(t[`syms][0:10],t[`datetimev][0:10]) context by dates,syms
+	update  t  set   shortv=mavg(shortv,4)+1   where  makeKey(syms,datetimev) in  makeKey(t[`syms][0:10],t[`datetimev][0:10]) context by dates,syms
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	t=select * from pt
+	//partition col
+	update  pt set  nanotimestampv=concatDateTime(dates,nanotimev) where makeKey(dates,secondv) in  makeKey(t[`dates][0:5],t[`secondv][0:5])
+	update  t set  nanotimestampv=concatDateTime(dates,nanotimev)  where makeKey(dates,secondv) in  makeKey(t[`dates][0:5],t[`secondv][0:5])
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt set  nanotimestampv=concatDateTime(dates,nanotimev), shortv=intv+shortv where makeKey(dates,secondv,ints) in   makeKey(t[`dates][0:5],t[`secondv][0:5],t[`ints][0:5])
+	update  t set  nanotimestampv=concatDateTime(dates,nanotimev), shortv=intv+shortv where makeKey(dates,secondv,ints) in   makeKey(t[`dates][0:5],t[`secondv][0:5],t[`ints][0:5])
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:5],t[`dates][0:5]) and makeKey(syms,symbolv) in  makeKey(t[`syms][0:5],t[`symbolv][0:5]) 
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:5],t[`dates][0:5]) and makeKey(syms,symbolv) in  makeKey(t[`syms][0:5],t[`symbolv][0:5]) 
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:50],t[`dates][0:50]) and syms in  "A"+string(1..5) 
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:50],t[`dates][0:50]) and syms in  "A"+string(1..5)
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:200],t[`dates][0:200])and dates between 2012.01.05 and 2012.01.15
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(secondv,dates) in  makeKey(t[`secondv][0:200],t[`dates][0:200]) and dates between 2012.01.05 and 2012.01.15  
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in  makeKey(t[`dates][0:200],t[`secondv][0:200]) and ints>4 and ints<9
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in  makeKey(t[`dates][0:200],t[`secondv][0:200])  and ints>4 and ints<9  
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in makeKey(t[`dates][0:200],t[`secondv][0:200]) and ints>=4 and dates<=2012.01.05
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in  makeKey(t[`dates][0:200],t[`secondv][0:200]) and ints>=4 and dates<=2012.01.05  
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in  makeKey(t[`dates][0:200],t[`secondv][0:200]) and (syms=="A1" or dates==2012.01.05)
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv)  in  makeKey(t[`dates][0:200],t[`secondv][0:200])  and (syms=="A1" or dates==2012.01.05)  
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,dates) in  makeKey(t[`dates][0:20],t[`dates][10:30])
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,dates) in  makeKey(t[`dates][0:20],t[`dates][10:30]) 
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	//where empty	
+	update  pt  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv) in  makeKey(2012.01.11..2012.01.20,11:23:56+second(take(-100..100, 10)))
+	update  t  set  nanotimestampv=concatDateTime(dates,nanotimev) , shortv=shortv+1  where  makeKey(dates,secondv) in  makeKey(2012.01.11..2012.01.20,11:23:56+second(take(-100..100, 10))) 
+	result.append!(all(each(eqObj,(select * from pt order by sort).values(),(select * from t order by sort).values())))
+	return result
+}
+assert 1,cross(checkmakeKey{,},dbNames,tbNames)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(100)
+assert 2,cross(checkmakeKey{,},dbNames,tbNames)
+

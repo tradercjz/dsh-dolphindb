@@ -1,0 +1,34 @@
+// ============================================================
+// IrFixedFloatingSwap — parseInstrument 构建示例
+// 构建一笔 5Y FR007 利率互换（IRS）
+// ============================================================
+// 金融含义：
+//   利率互换是场外利率衍生品的核心。交易双方约定：一方支付固定利率
+//   (fixedRate)，另一方支付浮动利率（挂钩 iborIndex 如 FR007）。
+//   payReceive = "Pay" 表示支付固定利率（做空利率）。
+//   定价需要三条曲线：贴现曲线、远期曲线、资产价格曲线(定盘利率)。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]                = "Swap"                // 互换类产品
+instDict["swapType"]                   = "IrSwap"              // 利率互换
+instDict["irSwapType"]                 = "IrFixedFloatingSwap"  // 固定-浮动互换
+
+// --- 互换要素 ---
+instDict["start"]                      = 2026.01.06            // 起息日（须为 CFET 工作日）
+instDict["maturity"]                   = 2031.01.06            // 到期日（5Y）
+instDict["frequency"]                  = "Quarterly"           // 付息频率：季度
+instDict["fixedRate"]                  = 0.018                 // 固定端利率 1.8%
+instDict["calendar"]                   = "CFET"                // 中国外汇交易中心日历
+instDict["fixedDayCountConvention"]    = "Actual365"           // 固定端计息惯例
+instDict["floatingDayCountConvention"] = "Actual365"           // 浮动端计息惯例
+instDict["payReceive"]                 = "Pay"                 // 支付固定利率（接收浮动）
+instDict["iborIndex"]                  = "FR_007"              // 浮动端挂钩指数
+instDict["spread"]                     = 0.0                   // 浮动端加点
+instDict["notionalCurrency"]           = "CNY"
+instDict["notionalAmount"]             = 10000000.0            // 名义本金 1千万
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

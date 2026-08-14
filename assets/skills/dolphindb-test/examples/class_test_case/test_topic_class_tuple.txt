@@ -1,0 +1,226 @@
+//https://dolphindb1.atlassian.net/browse/D20-19981
+@testing:case="test_topic_class_with_tuple1"
+
+class Cls {
+	vec :: INT VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(n) {
+		vec.append!(n)
+	}
+}
+
+o = Cls()
+a = [1,2,3,4]
+o["vec"] = a
+o.pushback(5)
+assert 1,eqObj(o.vec, [1,2,3,4,5])
+assert 2,eqObj(a,[1,2,3,4])
+
+o = Cls()
+a = [1,2,3,4]
+o["vec"] = a
+o.vec.append!(5)
+assert 3,eqObj(o.vec, [1,2,3,4,5])
+assert 4,eqObj(a ,[1,2,3,4])
+
+@testing:case="test_topic_class_with_tuple2"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(n) {
+		vec[0].append!(n)
+	}
+}
+
+o = Cls()
+a = [1,2,3,4]
+b =  [6, 7, 8]
+o["vec"] = [a,b]
+o.pushback(5)
+assert 1,eqObj(o.vec[0], [1,2,3,4,5])
+assert 2,eqObj(a,[1,2,3,4])
+
+o = Cls()
+o["vec"] =[[1,2,3,4],[6, 7, 8]]
+o.pushback(5)
+assert 3,eqObj(o.vec[0],[1,2,3,4,5])
+
+@testing:case="test_topic_class_memberModify"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(n) {
+		vec.memberModify!(append!, 0, 5)
+	}
+}
+
+o = Cls()
+a = [1,2,3,4]
+b =  [6, 7, 8]
+o["vec"] = [a,b]
+o.pushback(5)
+assert 1,eqObj(o.vec[0], [1,2,3,4,5])
+
+@testing:case="test_topic_class_setColumnarTuple"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(a,n) {
+		vec.setColumnarTuple!()
+		vec[a]=n
+	}
+}
+
+o = Cls()
+o["vec"] = (1 2 3,1 2 3,1 2 3)
+t = (1 2 3,1 2 3,1 2 3).setColumnarTuple!()
+t[1]=10
+o.pushback(1,10)
+assert 1,eqObj(o.vec, t)
+t[1:2] = 20
+o.pushback(1:2,20)
+assert 2,eqObj(o.vec, t)
+t[1:3] = 10 20
+o.pushback(1:3,10 20)
+assert 3,eqObj(o.vec, t)
+t[1:3] =(5 6, 7 8, 10 11)
+o.pushback(1:3,(5 6, 7 8, 10 11))
+assert 4,eqObj(o.vec, t)
+t[0 2] =(1, 4 5)
+o.pushback(0 2,(1, 4 5))
+assert 5,eqObj(o.vec, t)
+t[[0]] = [1 2]
+o.pushback([0],[1 2])
+assert 6,eqObj(o.vec, t)
+
+@testing:case="test_topic_class_Tuple3"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(a,n) {
+		vec[a]=n
+	}
+}
+
+o = Cls()
+o["vec"] = (1 2 3,1 2 3,1 2 3)
+t = (1 2 3,1 2 3,1 2 3)
+t[1]=4 5
+o.pushback(1,4 5)
+assert 1,eqObj(o.vec, t)
+t[1:3] =(4 5, 6 7)
+o.pushback(1:3,(4 5, 6 7))
+assert 3,eqObj(o.vec, t)
+t[3:1] =(4 5, 6 7)
+o.pushback(3:1,(4 5, 6 7))
+assert 4,eqObj(o.vec, t)
+t[1 2] =(4 5, 6 7)
+o.pushback(1 2,(4 5, 6 7))
+assert 5,eqObj(o.vec, t)
+t[[0]] = [1 2]
+o.pushback([0],[1 2])
+assert 6,eqObj(o.vec, t)
+
+@testing:case="test_topic_class_Tuple4"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(a,n) {
+		vec[a][1]=n
+	}
+}
+
+o = Cls()
+o["vec"] = (1 2 3,1 2 3,1 2 3)
+t = (1 2 3,1 2 3,1 2 3)
+t[1][1]=4
+o.pushback(1,4)
+assert 1,eqObj(o.vec, t)
+
+@testing:case="test_topic_copy_on_write_isNull"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(a,n) {
+		vec.setColumnarTuple!()
+		vec[a]=n
+	}
+}
+
+o = Cls()
+o["vec"]   = (1 2 3,1 2 3,1 2 3)
+o.pushback(0, NULL)
+assert 1, eqObj(isNull(o.vec), (true false false, true false false, true false false))
+o["vec"]   = (NULL 2 3,NULL 2 3,NULL 2 3)
+o.pushback(0, 100)
+assert 2, eqObj(isNull(o.vec), (false false false, false false false, false false false))
+
+@testing:case="test_topic_copy_on_write_columnar_tuple_support_boolean"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback(n) {
+		vec.setColumnarTuple!()
+		vec[true false true] =n
+	}
+}
+
+o = Cls()
+o["vec"]   = (1 2 3,1 2 3,1 2 3)
+o.pushback((100, 200))
+assert 1, eqObj(o.vec,  (100,1 2 3,200).setColumnarTuple!())
+
+@testing:case="test_share_table"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback() {
+		vec[0].append!(table(1 2 3 4 as x))
+	}
+}
+o=Cls()
+t = table(1 2 3 4 as x)
+ex = table(1 2 3 4 1 2 3 4 as x)
+share t as st
+tp = [st, [6, 7, 8]]
+o["vec"] = [st, [6, 7, 8]]
+o.pushback()
+tp[0].append!(table(1 2 3 4 as x))
+assert 1, each(eqObj, tp[0].values(), o.vec[0].values())
+
+@testing:case="test_syncDict_1"
+class Cls {
+	vec :: ANY VECTOR
+	def Cls() {
+		vec = []
+	}
+	def pushback() {
+		vec[0].erase!("a")
+	}
+}
+o=Cls()
+dc = syncDict(`a`b, [[1, 2, 3, 4], [6,7,8]])
+tp = [dc, [6, 7, 8]]
+o["vec"] = [dc, [6, 7, 8]]
+o.pushback()
+tp[0].erase!("a")
+assert 1, eqObj(tp[0].keys(),o.vec[0].keys())
+assert 2, eqObj(o.vec[1],  [6,7,8])

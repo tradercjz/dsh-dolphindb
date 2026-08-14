@@ -1,0 +1,460 @@
+@testing:case="dropTable_ex1", exception=1
+db=database("")
+dropTable(db,"dfs://dfs_testing123")
+
+@testing:case="dropTable_ex2", exception=1
+db = database("")
+dropTable(db,1)
+@testing:case="dropTable_ex3", exception=1
+dropTable(1,`Table)
+
+@testing:case="test_one_db_one_table_drop_empty_partitionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+t1=table(1:0, `timestamp`sym`price`val, [TIMESTAMP, SYMBOL, DOUBLE, INT])
+pt=db.createPartitionedTable(t1, `pt, `timestamp, , `sym`timestamp)
+assert 1, existsTable(dbName, `pt)==true
+dropTable(db, `pt)
+assert 2, existsTable(dbName, `pt)==false
+
+n=1000000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt=db.createPartitionedTable(t2, `pt, `date, , `sym`date).append!(t2)
+assert 3, existsTable(dbName, `pt)==true
+assert 4, each(eqObj, (select * from pt order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_one_table_drop_empty_dimensionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+t1=table(1:0, `timestamp`sym`price`val, [TIMESTAMP, SYMBOL, DOUBLE, INT])
+pt=db.createTable(t1, `pt, ,`sym`timestamp)
+assert 1, existsTable(dbName, `pt)==true
+dropTable(db, `pt)
+assert 2, existsTable(dbName, `pt)==false
+
+n=1000000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt=db.createTable(t2, `pt, , `sym`date).append!(t2)
+assert 3, existsTable(dbName, `pt)==true
+assert 4, each(eqObj, (select * from pt order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_one_table_drop_partitionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+n=10000
+t1=table(concatDateTime(rand(2012.01.01..2012.01.10, n), 00:00:00.000) as timestamp, rand("A"+string(1..3000), n) as sym, (1..n)+0.1 as price, 1..n as val )
+pt=db.createPartitionedTable(t1, `pt, `timestamp, , `sym`timestamp).append!(t1)
+assert 1, existsTable(dbName, `pt)==true
+dropTable(db, `pt)
+assert 2, existsTable(dbName, `pt)==false
+
+n=100000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt=db.createPartitionedTable(t2, `pt, `date, , `sym`date).append!(t2)
+assert 3, existsTable(dbName, `pt)==true
+assert 4, each(eqObj, (select * from pt order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_one_table_drop_dimensionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+n=10000
+t1=table(concatDateTime(rand(2012.01.01..2012.01.10, n), 00:00:00.000) as timestamp, rand("A"+string(1..3000), n) as sym, (1..n)+0.1 as price, 1..n as val )
+pt=db.createTable(t1, `pt, , `sym`timestamp).append!(t1)
+assert 1, existsTable(dbName, `pt)==true
+dropTable(db, `pt)
+assert 2, existsTable(dbName, `pt)==false
+
+n=100000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt=db.createTable(t2, `pt, , `sym`date).append!(t2)
+assert 3, existsTable(dbName, `pt)==true
+assert 4, each(eqObj, (select * from pt order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_empty_partitionedTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+t1=table(1:0, `timestamp`sym`price`val, [TIMESTAMP, SYMBOL, DOUBLE, INT])
+pt1=db.createPartitionedTable(t1, `pt1, `timestamp, , `sym`timestamp)
+pt2=db.createPartitionedTable(t1, `pt2, `timestamp, , `sym`timestamp)
+pt3=db.createPartitionedTable(t1, `pt3, `timestamp, , `sym`timestamp)
+pt4=db.createPartitionedTable(t1, `pt4, `timestamp, , `sym`timestamp)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=10000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createPartitionedTable(t2, `pt1, `date, , `sym`date).append!(t2)
+pt2=db.createPartitionedTable(t2, `pt2, `date, , `sym`date).append!(t2)
+pt3=db.createPartitionedTable(t2, `pt3, `date, , `sym`date).append!(t2)
+pt4=db.createPartitionedTable(t2, `pt4, `date, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt1)==true
+assert 23, existsTable(dbName, `pt1)==true
+assert 24, existsTable(dbName, `pt1)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_empty_dimensionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+t1=table(1:0, `timestamp`sym`price`val, [TIMESTAMP, SYMBOL, DOUBLE, INT])
+pt1=db.createTable(t1, `pt1, , `sym`timestamp)
+pt2=db.createTable(t1, `pt2, , `sym`timestamp)
+pt3=db.createTable(t1, `pt3, , `sym`timestamp)
+pt4=db.createTable(t1, `pt4, , `sym`timestamp)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=10000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createTable(t2, `pt1, , `sym`date).append!(t2)
+pt2=db.createTable(t2, `pt2, , `sym`date).append!(t2)
+pt3=db.createTable(t2, `pt3, , `sym`date).append!(t2)
+pt4=db.createTable(t2, `pt4, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt1)==true
+assert 23, existsTable(dbName, `pt1)==true
+assert 24, existsTable(dbName, `pt1)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_empty_tables"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+t1=table(1:0, `timestamp`sym`price`val, [TIMESTAMP, SYMBOL, DOUBLE, INT])
+pt1=db.createPartitionedTable(t1, `pt1, `timestamp, , `sym`timestamp)
+pt2=db.createPartitionedTable(t1, `pt2, `timestamp, , `sym`timestamp)
+pt3=db.createTable(t1, `pt3, , `sym`timestamp)
+pt4=db.createTable(t1, `pt4, , `sym`timestamp)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=10000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createPartitionedTable(t2, `pt1, `date, , `sym`date).append!(t2)
+pt2=db.createPartitionedTable(t2, `pt2, `date, , `sym`date).append!(t2)
+pt3=db.createTable(t2, `pt3, , `sym`date).append!(t2)
+pt4=db.createTable(t2, `pt4, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt1)==true
+assert 23, existsTable(dbName, `pt1)==true
+assert 24, existsTable(dbName, `pt1)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_partitionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+n=10000
+t1=table(concatDateTime(rand(2012.01.01..2012.01.10, n), 00:00:00.000) as timestamp, rand("A"+string(1..3000), n) as sym, (1..n)+0.1 as price, 1..n as val )
+pt1=db.createPartitionedTable(t1, `pt1, `timestamp, , `sym`timestamp).append!(t1)
+pt2=db.createPartitionedTable(t1, `pt2, `timestamp, , `sym`timestamp).append!(t1)
+pt3=db.createPartitionedTable(t1, `pt3, `timestamp, , `sym`timestamp).append!(t1)
+pt4=db.createPartitionedTable(t1, `pt4, `timestamp, , `sym`timestamp).append!(t1)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=100000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createPartitionedTable(t2, `pt1, `date, , `sym`date).append!(t2)
+pt2=db.createPartitionedTable(t2, `pt2, `date, , `sym`date).append!(t2)
+pt3=db.createPartitionedTable(t2, `pt3, `date, , `sym`date).append!(t2)
+pt4=db.createPartitionedTable(t2, `pt4, `date, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt2)==true
+assert 23, existsTable(dbName, `pt3)==true
+assert 24, existsTable(dbName, `pt4)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_dimensionTable"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+n=10000
+t1=table(concatDateTime(rand(2012.01.01..2012.01.10, n), 00:00:00.000) as timestamp, rand("A"+string(1..3000), n) as sym, (1..n)+0.1 as price, 1..n as val )
+pt1=db.createTable(t1, `pt1, , `sym`timestamp).append!(t1)
+pt2=db.createTable(t1, `pt2, , `sym`timestamp).append!(t1)
+pt3=db.createTable(t1, `pt3, , `sym`timestamp).append!(t1)
+pt4=db.createTable(t1, `pt4, , `sym`timestamp).append!(t1)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=100000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createTable(t2, `pt1, , `sym`date).append!(t2)
+pt2=db.createTable(t2, `pt2, , `sym`date).append!(t2)
+pt3=db.createTable(t2, `pt3, , `sym`date).append!(t2)
+pt4=db.createTable(t2, `pt4, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt2)==true
+assert 23, existsTable(dbName, `pt3)==true
+assert 24, existsTable(dbName, `pt4)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+@testing:case="test_one_db_multiple_tables_drop_tables"
+login("admin", "123456")
+dbName="dfs://test_dropTable"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2012.01.01..2012.01.10, engine="TSDB")
+n=10000
+t1=table(concatDateTime(rand(2012.01.01..2012.01.10, n), 00:00:00.000) as timestamp, rand("A"+string(1..3000), n) as sym, (1..n)+0.1 as price, 1..n as val )
+pt1=db.createPartitionedTable(t1, `pt1, `timestamp, , `sym`timestamp).append!(t1)
+pt2=db.createPartitionedTable(t1, `pt2, `timestamp, , `sym`timestamp).append!(t1)
+pt3=db.createTable(t1, `pt3, , `sym`timestamp).append!(t1)
+pt4=db.createTable(t1, `pt4, , `sym`timestamp).append!(t1)
+assert 1, existsTable(dbName, `pt1)==true
+assert 2, existsTable(dbName, `pt2)==true
+assert 3, existsTable(dbName, `pt3)==true
+assert 4, existsTable(dbName, `pt4)==true
+dropTable(db, `pt1)
+assert 5, existsTable(dbName, `pt1)==false
+assert 6, existsTable(dbName, `pt2)==true
+assert 7, existsTable(dbName, `pt3)==true
+assert 8, existsTable(dbName, `pt4)==true
+dropTable(db, `pt2)
+assert 9, existsTable(dbName, `pt1)==false
+assert 10, existsTable(dbName, `pt2)==false
+assert 11, existsTable(dbName, `pt3)==true
+assert 12, existsTable(dbName, `pt4)==true
+dropTable(db, `pt3)
+assert 13, existsTable(dbName, `pt1)==false
+assert 14, existsTable(dbName, `pt2)==false
+assert 15, existsTable(dbName, `pt3)==false
+assert 16, existsTable(dbName, `pt4)==true
+dropTable(db, `pt4)
+assert 17, existsTable(dbName, `pt1)==false
+assert 18, existsTable(dbName, `pt2)==false
+assert 19, existsTable(dbName, `pt3)==false
+assert 20, existsTable(dbName, `pt4)==false
+
+n=100000
+t2=table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..3000), n) as sym, 1..n as val)
+pt1=db.createPartitionedTable(t2, `pt1, `date, , `sym`date).append!(t2)
+pt2=db.createPartitionedTable(t2, `pt2, `date, , `sym`date).append!(t2)
+pt3=db.createTable(t2, `pt3, , `sym`date).append!(t2)
+pt4=db.createTable(t2, `pt4, , `sym`date).append!(t2)
+assert 21, existsTable(dbName, `pt1)==true
+assert 22, existsTable(dbName, `pt2)==true
+assert 23, existsTable(dbName, `pt3)==true
+assert 24, existsTable(dbName, `pt4)==true
+assert 25, each(eqObj, (select * from pt1 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 26, each(eqObj, (select * from pt2 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 27, each(eqObj, (select * from pt3 order by date, val).values(), (select * from t2 order by date, val).values())
+assert 28, each(eqObj, (select * from pt4 order by date, val).values(), (select * from t2 order by date, val).values())
+
+//https://dolphindb1.atlassian.net/browse/D20-8225
+@testing:case="test_dropTable_and_operate_another_one"
+login("admin","123456")
+count=10
+existTb = table("pt" + string(1..count) as name,take(0,count) as state)
+share existTb as tableLists
+
+dbName = "dfs://tableTest"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, `A`B,engine='TSDB')
+def myCreateTable(dbName, count){
+	id=`XOM`GS`AAPL
+	val = 1 2 3
+	x=102.1 33.4 73.6
+	t = table(id, val, x)
+	db = database(dbName)
+	for(id in 1..count){
+		tbName = "pt" + string(id)
+		db.createPartitionedTable(t, tbName, `id,,`id)
+		print "create table : " + tbName
+		try{
+			pt=loadTable(dbName, tbName)
+			loadTable(dbName, tbName).append!(t)
+			update pt set val=0
+			delete  from pt 
+			update tableLists set state=1 where  name==tbName
+		}catch(ex){
+			update tableLists set state=0 where  name==tbName
+			print "faied to load "  + tbName +  " : " + ex
+			throw ex
+		}
+	}
+}
+
+def myDropTable(dbName){
+	db = database(dbName)
+	do{		
+		tbNames  = exec name from tableLists where state==1
+		for(tbName in tbNames){	
+			print("try drop " + tbName)
+			dropTable(db, tbName)
+			update tableLists set state=2 where  name== tbName	
+		}
+		if((tableLists[`state]==2).all()){
+			break;
+		}
+		
+	}
+	while(1)
+}
+job=submitJob("dropTb", "", myDropTable, dbName)
+myCreateTable(dbName,10)
+getJobReturn(job,1)
+assert 1,getTables(db).size()==0
+undef(`tableLists,SHARED)

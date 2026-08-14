@@ -1,0 +1,232 @@
+
+#include "setup/settings.txt"
+login(`admin, `123456)
+
+@testing:case = "update_dfs_columns_prepare"
+if(existsDatabase("dfs://hashdb101")){
+	dropDatabase("dfs://hashdb101")
+}
+ID = 1..10
+x = 1..10+0.5
+y = [`A, `B, `C, `D, `E, `F, `G, `H, `I, `G]
+timev=2012.01.01+1..10
+db = database("dfs://hashdb101", HASH,  [INT, 2], , "TSDB")
+t = table(ID, x, y, timev)
+pt = db.createPartitionedTable(t, `pt, `ID, , `ID`timev)
+pt.append!(t)
+renameTable(db, `pt, `pt1)
+if(!existsTable("dfs://hashdb101", `dt)){
+	dt = db.createTable(t, `dt, , `timev)
+}
+dt.append!(t)
+if(!existsTable("dfs://hashdb101", `dt1)){
+	renameTable(db, `dt, `dt1)
+}
+
+@testing:case = "update_dfs_one_column_number"
+pt1 = loadTable(db, `pt1)
+delete from loadTable(db, `pt1)
+loadTable(db, `pt1).append!(t)
+update pt1 set x = 1.0
+pt1_test = (select x from pt1).x
+assert 1, pt1_test == take(1.0, 10)
+
+@testing:case = "update_dfs_columns_null"
+pt1 = loadTable(db, `pt1)
+update pt1 set y = NULL, x = NULL
+pt1_test1 = (select x from pt1).x
+pt1_test2 = (select y from pt1).y
+assert 1, pt1_test1 == double()
+assert 2, pt1_test2 == string()
+
+@testing:case = "update_dfs_where_equal_single"
+pt1 = loadTable(db, `pt1)
+pt1.append!(t)
+loadTable(db, `pt1).append!(t)
+update pt1 set x = 100 where y == "A"
+pt1_test1 = (select x from pt1 where y ==`A).x
+assert 1, pt1_test1 == 100
+
+@testing:case = "update_dfs_where_equal_or"
+delete from loadTable(db, `pt1)
+loadTable(db, `pt1).append!(t)
+update loadTable(db, `pt1) set x = 100 where y == "A" or y == "B"
+pt1_test1 = (select x from loadTable(db, `pt1) where y == "A").x
+pt1_test2 = (select x from loadTable(db, `pt1) where y == "B").x
+assert 1, pt1_test1 == 100
+assert 2, pt1_test2 == 100
+
+@testing:case = "update_dfs_where_equal_and"
+update loadTable(db, `pt1) set x = 200 where x == 100 and y == "A"
+select * from loadTable(db, `pt1)
+pt1_test1 = (select x from loadTable(db, `pt1) where ID=1).x
+assert 1, pt1_test1 == 200
+
+@testing:case = "update_dfs_where_equal_in"
+update loadTable(db, `pt1) set x = 500 where ID in 4 6
+pt1_test1 = (select x from loadTable(db, `pt1) where ID=4).x
+assert 1, pt1_test1 == 500
+
+@testing:case = "update_dfs_context_by"
+ID1 = [1, 1, 2, 2, 3, 4, 5, 6, 7, 8]
+x1 = [12.1, 13.1, 14.1, 15.1, 16.1, 17.1, 30.1, 31.1, 32.1, 34.1]
+y1 = `Z`X`C`V`B`N`M`L`L`L
+timev1=2022.01.01+1..10
+t1 = table(ID1, x1, y1, timev1)
+delete from loadTable(db, `pt1)
+loadTable(db, `pt1).append!(t1)
+select * from loadTable(db, `pt1)
+update loadTable(db, `pt1) set x = sum(x) context by ID, y
+assert 1, size(select ID from loadTable(db, `pt1) where ID = 2) == 2
+
+@testing:case = "update_dfs_join_table", exception = 1
+t2 = table(1 11 as ID, 14.1 32.7 as x, `C`V as y)
+pt2 = db.createPartitionedTable(t2, `pt2, `ID, , `y`ID)
+loadTable(db, `pt2).append!(t1)
+update loadTable(db, `pt1) set pt1.x = pt2.x from ej(loadTable(db, `pt1), loadTable(db, `pt2), `ID)
+pt1_test1 = (select x from loadTable(db, `pt1) where ID=2).x
+assert 1, eqObj(pt1_test1, [15.1, 15.1], 1)
+
+@testing:case = "update_one_column_number"
+dt1 = loadTable(db, `dt1)
+update dt1 set x = 1.0
+assert 1, (exec x from dt1) == take(1.0, 10)
+
+@testing:case = "update_two_column_number"
+dt1 = loadTable(db, `dt1)
+update dt1 set y = `Z, x = 2.0
+assert 1, (exec x from dt1) == take(2.0, 10)
+assert 2, (exec y from dt1) == take(`Z, 10)
+
+@testing:case = "update_columns_null"
+dt1 = loadTable(db, `dt1)
+update dt1 set y = NULL, x = NULL
+assert 1, (exec x from dt1) == NULL
+assert 2, (exec y from dt1) == NULL
+
+@testing:case = "update_where_equal_single"
+dt1 = loadTable(db, `dt1)
+dt1.append!(t)
+loadTable(db, `dt1).append!(t)
+update dt1 set x = 100 where y == "A"
+assert 1, (exec x from dt1 where y ==`A) == 100
+
+@testing:case = "update_where_equal_or"
+dt1 = loadTable(db, `dt1)
+delete from dt1
+dt1.append!(t)
+update dt1 set x = 100 where y == "A" or y == "B"
+assert 1, (exec x from dt1 where y == "A") == 100
+assert 2, (exec x from dt1 where y == "B") == 100
+
+@testing:case = "update_where_equal_and"
+delete from loadTable(db, `dt1)
+loadTable(db, `dt1).append!(t)
+dt1 = loadTable(db, `dt1)
+select * from dt1
+update dt1 set x = 200 where ID = 1 and y == `Z
+assert 1, (exec x from dt1 where ID = 1 and y == `Z) == 200
+
+@testing:case = "update_where_equal_in"
+dt1 = loadTable(db, `dt1)
+update dt1 set x = 500 where ID in 4 6
+assert 1, (exec x from dt1 where ID=4) == 500
+
+@testing:case = "update_context_by"
+dt1 = loadTable(db, `dt1)
+ID1 = [1, 1, 2, 2, 3, 4, 5, 6, 7, 8]
+x1 = [12.1, 13.1, 14.1, 15.1, 16.1, 17.1, 30.1, 31.1, 32.1, 34.1]
+y1 = `Z`X`C`V`B`N`M`L`L`L
+timev1 = 2012.01.01+1..10
+t1 = table(ID1, x1, y1, timev1)
+delete from dt1
+dt1.append!(t1)
+update dt1 set x = sum(x) context by ID, y
+assert 1, size(select ID from dt1 where ID = 2) == 2
+
+@testing:case = "update_join_table", exception=1
+if(existsTable("dfs://hashdb101", `dt2)){
+	dropTable(db, `dt2)
+}
+dt1 = loadTable(db, `dt1)
+t2 = table(1 11 as ID, 14.1 32.7 as x, `C`V as y, [2012.01.01, 2012.01.02] as timev)
+dt2 = db.createPartitionedTable(t2, `dt2, `ID, , `y`timev)
+dt2.append!(t2)
+dt2 = loadTable(db, `dt2)
+update dt1 set dt1.ID = dt2.ID from ej(dt1, dt2, `ID)
+//assert 1, (exec y from dt1 where ID = 2) == `C`V
+
+//https://dolphindb1.atlassian.net/browse/D20-19887
+@testing:case = "update_bug"
+dbName = "dfs://testUpdate"
+if(existsDatabase(dbName)){
+ dropDatabase(dbName) 
+}
+db = database(dbName, VALUE, 1..10)
+t1 = table(1..10 as id,rand(10.0, 10) as value)
+t2 = table(5..15 as id, rand(10, 11) as value, take(`CC`SS`EE,11) as name)
+pt1 = db.createPartitionedTable(t1, "table1", `id).append!(t1)
+pt2 = db.createPartitionedTable(t2, "table2", `id).append!(t2)
+update pt1 set value=t2.value from ej(pt1,t2,`id) where pt1.id>4 
+update t1 set value=t2.value from ej(t1,t2,`id) where t1.id>4 
+res=select * from pt1
+res.sortBy!(res.colNames())
+t1.sortBy!(t1.colNames())
+assert 1,each(eqObj,res.values(),t1.values())
+
+//https://dolphindb1.atlassian.net/browse/D20-20295
+@testing:case="topic_update_bug"
+// 创建数据库
+def createSingleModeFactorTB(dbname, tbname, initialdb=false, initialtb=false){
+    // initialdb=true 会删库
+    if(initialdb==true){
+        try{dropDatabase(dbname)}catch(ex){print(ex)}
+    }
+
+    if(existsDatabase(dbname)){     // 如果有同名数据库，直接使用已有的数据库
+        db = database(dbname)
+    }else{                          // 如果没有同名数据库，创建一个
+        db1 = database(, VALUE, 2020.01M + 3 * (0..20)) // 分区的第一个规则采用股票月份分区，这里的2020.01M..2020.12M只是一个案例，未来新的数据会按照这个案例插入tb
+        db2 = database(, VALUE, [`demo])   //用因子symbol分区，其目的是构造因子窄表，便于后续的增删因子，以及加速因子查询
+        db = database(dbname, COMPO, [db1, db2], , "TSDB", atomic='CHUNK') // 采用TSDB记录数据，分区规则按TradeTime按月分区 + factorName按值分区的方式
+    }
+
+    // intialtb=true 会删表
+    if(initialtb==true){
+        try{dropTable(db, tbname)}catch(ex){print(ex)}
+    }
+
+    if(existsTable(dbname, tbname)){    // 如果有同名表，直接使用已有的表
+        pt = loadTable(dbname, tbname)
+    }else{
+        colname = ['time','securityCode','factorName','factorValue']
+        coltype = ['TIMESTAMP','SYMBOL','SYMBOL','DOUBLE']
+        schematb = table(1:0, colname, coltype)
+        pt = db.createPartitionedTable(schematb, tbname, partitionColumns=`time`factorName, sortcolumns=`securityCode`time, sortKeyMappingFunction=[hashBucket{,500}])
+    }
+    return pt
+}
+
+dbname, tbname = "dfs://test", "test"
+createSingleModeFactorTB(dbname, tbname, initialdb=true, initialtb=false)
+
+// 写入任务：写入 11 月的分区
+def myFuncInsert(n){
+    for(i in 0:n){
+        t = table(2024.11.08T00:00:00 as time, `A as securityCode, `f1 as factorName, i as factorValue)
+        loadTable("dfs://test", "test").append!(t)
+    }
+}
+
+def myFuncUpdate(n){
+    for(i in 0:n){
+        print(i)
+        update loadTable("dfs://test", "test") set factorValue=i  where date(time)=2024.09.08 and securityCode in [`A,`B,`C]
+    }
+}
+
+job1=submitJob("insertTest", "insert", myFuncInsert{200})
+job2=submitJob("updateTest", "update", myFuncUpdate{50})
+getRecentJobs()
+getJobReturn(job1,1)
+getJobReturn(job2,1)

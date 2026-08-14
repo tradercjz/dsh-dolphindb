@@ -1,0 +1,143 @@
+/**
+修正日模糊价差因子 — Adjust High-Frequency Factor Example
+
+- 日模糊价差：日模糊金额比 - 日模糊数量比
+- 修正日模糊价差：将横截面上值为负的日模糊价差求和，记为 s1；将负的日模糊价差除以其过去 10 日日模糊价差的标准差，值为正的日模糊价差不变
+- 调整数量级：将横截面上值为负的修正日模糊价差求和，记为 s2；将值为负的修正日模糊价差除以 s2 后乘以 s1
+
+Data source: dfs://stockMinKSH / stockMinKSH (minute K-line)
+Factor type: Adjust (down-frequency + local post-processing)
+
+DolphinDB server version: 2.00.15 / 3.00.2.5
+Storage engine: TSDB
+*/
+
+//自定义因子计算函数（分布式计算，生成日频结果）
+def fuzzinessDiff(minKTB){
+    /*@test 少量数据临时调试
+    minKTB = 
+        select SecurityID, date(DateTime) as TradeDate, time(DateTime) as TradeTime, LastPx, Volume, Amount
+        from loadTable("dfs://stockMinKSH", "stockMinKSH")
+        where date(DateTime) between 2021.01.04 and 2021.01.31, SecurityID in `603189`000001 and LastPx>0
+    */
+    //计算模糊性
+    fuzziness = 
+        select
+            SecurityID,
+            TradeDate,
+            TradeTime,
+            Volume,
+            Amount,
+            mstd(mstd(percentChange(LastPx), 5, 5), 5, 5) as fuzziness
+        from minKTB
+        context by SecurityID, TradeDate
+    //计算每日起雾时刻模糊性阈值及成交量均值、成交金额均值
+    threshold = 
+        select 
+            SecurityID,
+            TradeDate,
+            avg(Volume) as avgVolume,
+            avg(Amount) as avgAmount,
+            avg(fuzziness) as thresholdFuzzy
+        from fuzziness
+        group by SecurityID, TradeDate
+    //日模糊价差 = 日模糊金额比 - 日模糊数量比
+    res = 
+        select 
+            SecurityID,
+            TradeDate,
+            avg(Volume)\first(avgVolume)-avg(Amount)\first(avgAmount) as Value,
+            "fuzzinessDiff" as factorName,
+            now() as updateTime
+        from lj(fuzziness, threshold, `SecurityID`TradeDate)
+        where fuzziness > thresholdFuzzy
+        group by SecurityID, TradeDate
+    return res
+}
+
+//调整因子函数（本地计算，在日频结果上进一步加工）
+def adjFuzzinessDiff(diffTB){
+    /*@test
+    diffTB = select * from res
+    */
+    //修正日模糊价差：将横截面上值为负的日模糊价差求和，记为 s1；将负的日模糊价差除以其过去 10 日日模糊价差的标准差，值为正的日模糊价差不变
+    s1 = 
+        select 
+            TradeDate,
+            sum(Value) as s1 
+        from diffTB 
+        where Value<0 
+        group by TradeDate
+    adjDiff = 
+        select 
+            SecurityID,
+            TradeDate,
+            iif(Value<0, Value\mstd(Value, 10), Value) as adjFuzzDiff
+        from diffTB
+        context by SecurityID
+    //调整数量级：将横截面上值为负的修正日模糊价差求和，记为 s2；将值为负的修正日模糊价差除以 s2 后乘以 s1
+    s2 = 
+        select 
+            TradeDate,
+            sum(adjFuzzDiff) as s2
+        from adjDiff 
+        where adjFuzzDiff<0 
+        group by TradeDate
+    s = 
+        select 
+            TradeDate,
+            s1\s2 as s
+        from ej(s1, s2, `TradeDate)
+    res = 
+        select 
+            SecurityID,
+            TradeDate,
+            iif(adjFuzzDiff<0, adjFuzzDiff*s, adjFuzzDiff) as Value,
+            "adjFuzzinessDiff" as factorName,
+            now() as updateTime
+        from lj(adjDiff, s, `TradeDate)
+        context by SecurityID, TradeDate
+    return res
+}
+
+//后台任务计算函数模版（调整因子路径）
+def factorjob(conf){
+    dataTB = loadTable(conf[`dataDB], conf[`dataTB])
+    days = conf[`startDay]..conf[`endDay]
+    startTime = 09:30:00.000
+    endTime = 14:57:00.000
+    //提取计算所需数据，sqlDS生成元代码
+    ds = sqlDS(<select SecurityID, date(DateTime) as TradeDate, time(DateTime) as TradeTime, LastPx, Volume, Amount
+        from dataTB
+        where date(DateTime) in days and (time(DateTime) between startTime and endTime) and (SecurityID like "00%" or SecurityID like "30%" or SecurityID like "6%") and LastPx>0>)
+    //第一步：分布式计算日频因子
+    diffTB = mr(ds, conf[`func]).unionAll()
+    //第二步：本地调整因子（非分布式）
+    res = conf[`funcsec](diffTB)
+    //写入因子库
+    loadTable(conf[`factorDB], conf[`factorTB]).append!(select * from res)
+}
+
+//计算模版配置参数（调整因子路径）
+conf = {
+    func : fuzzinessDiff,
+    funcsec : adjFuzzinessDiff,
+    factorName : "fuzzinessDiff",
+    dataDB : "dfs://stockMinKSH",
+    dataTB : "stockMinKSH",
+    factorDB : "dfs://factor_day",
+    factorTB : "factor_day",
+    startDay : 2021.01.01,
+    endDay : 2021.01.31
+}
+
+//提交计算和存储因子的任务到服务器
+id = submitJob("factorjob", conf[`factorName], factorjob, conf)
+
+//查看任务完成情况
+getJobStatus(id)
+
+//因子数据查看
+// data = select * from loadTable("dfs://factor_day","factor_day") where TradeDate=2021.01.04, SecurityID in `603189, factorName="adjFuzzinessDiff"
+// select count(*) from loadTable("dfs://factor_day","factor_day") where factorName="adjFuzzinessDiff" group by TradeDate
+// select (endTime-startTime)\1000 from getJobStatus(id)

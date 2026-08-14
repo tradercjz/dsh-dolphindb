@@ -1,0 +1,27 @@
+// ============================================================
+// Bond — parseInstrument 构建示例
+// 构建一只固定利率债券（FixedRateBond）
+// ============================================================
+// 金融含义：
+//   固息债券在发行时确定票面利率(coupon)，按约定频率(frequency)付息，
+//   到期归还本金。现金流在发行日即可完全确定，是最基础的固收品种。
+//   定价的核心是将未来每笔现金流用贴现曲线折现求和。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Cash"           // 现金类产品
+instDict["assetType"]          = "Bond"            // 债券
+instDict["bondType"]           = "FixedRateBond"   // 固定利率债券（另有 FloatingRateBond / ZeroCouponBond）
+
+// --- 债券要素 ---
+instDict["instrumentId"]       = "240025.IB"       // 债券代码：24附息国债25
+instDict["start"]              = 2024.10.24        // 起息日
+instDict["maturity"]           = 2031.10.24        // 到期日（7年期）
+instDict["coupon"]             = 0.0200            // 票面利率 2.00%（年化）
+instDict["frequency"]          = "Semiannual"      // 付息频率：半年付息
+instDict["dayCountConvention"] = "ActualActualISDA" // 日期计数惯例
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

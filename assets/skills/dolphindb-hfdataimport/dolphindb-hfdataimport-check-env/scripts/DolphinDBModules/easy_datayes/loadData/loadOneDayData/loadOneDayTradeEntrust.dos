@@ -1,0 +1,67 @@
+module easy_datayes::loadData::loadOneDayData::loadOneDayTradeEntrust
+
+
+
+/*
+ * @FunctionName: transformTradeSH
+ * @Brief: Transforms the trade data for the Shanghai market into a standardized format.
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag indicating whether to merge the data from different exchanges.
+ * @Param: t: The input data table containing the original trade data.
+ * @Return: A table containing transformed trade data in the specified format.
+ */
+def transformTradeSH(t, day){
+	tmpData = select Channel as ChannelNo, 
+						BizIndex as ApplSeqNum, 
+						"" as MDStreamID, 
+						BuyOrderNO as BidApplSeqNum, 
+						SellOrderNO as OfferApplSeqNum, 
+						SecurityID + ".SH" as SecurityID, 
+						"" as SecurityIDSource, 
+						Price as TradPrice, 
+						Qty as TradeQty, 
+						"" as ExecType, 
+						day as TradeDate, 
+						TickTime as TradeTime, 
+						LocalTime as LocalTime, 
+						SeqNo as SeqNo, 
+						int(NULL) as DataStatus, 
+						TradeMoney as TradeMoney, 
+						TickBSFlag as TradeBSFlag, 
+						BizIndex as BizIndex, 
+						"" as OrderKind, 
+						"SH" as Market 
+					from t 
+					where Type="T"
+	return tmpData
+}
+
+/*
+ * @FunctionName: transformEntrustSH
+ * @Brief: Transforms the entrust data for the Shanghai market into a standardized format.
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag indicating whether to merge the data from different exchanges.
+ * @Param: t: The input data table containing the original entrust data.
+ * @Return: A table containing transformed entrust data in the specified format.
+ */
+def transformEntrustSH(t, day){
+	tmpData = select Channel as ChannelNo, 
+					BizIndex as ApplSeqNum, 
+					"" as MDStreamID, 
+					SecurityID + ".SH" as SecurityID, 
+					"" as SecurityIDSource, 
+					Price as Price, 
+					Qty as OrderQty, 
+					TickBSFlag as Side, 
+					day as TradeDate, 
+					TickTime as TradeTime, 
+					Type as OrderType, 
+					LocalTime as LocalTime, 
+					SeqNo as SeqNo, 
+					iif(BuyOrderNO>SellOrderNO, BuyOrderNO, SellOrderNO) as OrderNO, 
+					int(NULL) as DataStatus, 
+					BizIndex as BizIndex, 
+					"SH" as Market 
+				from t where Type!="T"
+	return tmpData
+}

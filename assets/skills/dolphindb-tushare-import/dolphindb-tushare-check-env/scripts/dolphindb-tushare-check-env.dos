@@ -1,0 +1,104 @@
+// ============================================================
+// Tushare data import - environment check script
+//
+// Edit dataDomains before running. The script checks only:
+//   1. httpClient plugin.
+//   2. py plugin (optional, only prompt when unavailable).
+//   3. easy_tushare::ts_init and the 4 modules for each selected domain.
+//
+// Output markers:
+//   [CHECK-ENV] HTTPCLIENT_STATUS: OK | FIXED | FAILED
+//   [CHECK-ENV] PY_STATUS: OK | FAILED
+//   [CHECK-ENV] MODULE_STATUS: OK | MISSING
+//   [CHECK-ENV] REQUIRED_MODULES: [...]
+//   [CHECK-ENV] ERROR: <detail>
+// ============================================================
+
+// ===== User parameters =====
+dataDomains = ["stock"]        // Example: ["stock", "index", "fund"].
+
+def checkPluginStatus(pluginName) {
+    statusPrefix = stringFormat("[CHECK-ENV] %W_STATUS: ", upper(pluginName))
+    try {
+        loadPlugin(pluginName)
+        print(statusPrefix + "OK")
+    } catch(ex1) {
+        errorMsg = lower(string(ex1[1]))
+        if(errorMsg.regexFind("already in use") > -1){
+            print(statusPrefix + "OK")
+        } else {
+            if (pluginName like "%py%") {
+                print(stringFormat("[CHECK-ENV] ERROR: Please refer to https://docs.dolphindb.cn/zh/plugins/py/py_3_9.html to manually install the plugin: %W. Please install version 3.9 or higher!", pluginName))
+                print(statusPrefix + "FAILED")
+            } else {
+                try {
+                    installPlugin(pluginName)
+                    loadPlugin(pluginName)
+                    print(statusPrefix + "FIXED")
+                } catch(ex2) {
+                    print(statusPrefix + "FAILED")
+                    print(stringFormat("[CHECK-ENV] ERROR: %W plugin auto install/load failed. %W - %W", pluginName, string(ex2[0]), string(ex2[1])))
+                    print(stringFormat("[CHECK-ENV] Please download the %W plugin from https://marketplace.dolphindb.cn/ and put it under: %W", pluginName, getPluginDir()))
+                }
+            }
+        }
+    }
+}
+
+def normalizeDataDomains(dataDomains){
+    if(dataDomains.isVoid() or size(dataDomains) == 0) return []
+    if(typestr(dataDomains) == "STRING") return [dataDomains]
+    return string(dataDomains)
+}
+
+def validateDomain(dataDomain){
+    validDomains = ["stock", "index", "fund", "bond", "futures", "options", "etf", "spot", "fx", "llm"]
+    if(not dataDomain in validDomains){
+        throw "dataDomains must only contain: " + concat(validDomains, ", ")
+    }
+}
+
+def getDomainModulePrefix(dataDomain){
+    validateDomain(dataDomain)
+    return dataDomain
+}
+
+def getRequiredModules(dataDomains){
+    domains = normalizeDataDomains(dataDomains)
+    if(size(domains) == 0){
+        throw "dataDomains must contain at least one domain."
+    }
+
+    modules = ["easy_tushare::ts_init"]
+    for(dataDomain in domains){
+        prefix = getDomainModulePrefix(dataDomain)
+        modules.append!("easy_tushare::" + prefix + "_init")
+        modules.append!("easy_tushare::" + prefix + "_create_table")
+        modules.append!("easy_tushare::" + prefix + "_load_data")
+        modules.append!("easy_tushare::" + prefix + "_schedulejob")
+    }
+    return distinct(modules)
+}
+
+def checkModuleStatus(moduleName, statusLabel="MODULE") {
+    print("[CHECK-ENV] MODULE_NAME: " + moduleName)
+    try {
+        runScript("use " + moduleName)
+        print("[CHECK-ENV] " + statusLabel + "_STATUS: OK")
+    } catch(ex) {
+        print("[CHECK-ENV] " + statusLabel + "_STATUS: MISSING")
+        print("[CHECK-ENV] ERROR: " + string(ex[0]) + " - " + string(ex[1]))
+    }
+}
+
+checkPluginStatus("httpClient")
+checkPluginStatus("py")
+
+
+clearCachedModules()
+requiredModules = getRequiredModules(dataDomains)
+print("[CHECK-ENV] REQUIRED_DOMAINS: " + string(normalizeDataDomains(dataDomains)))
+print("[CHECK-ENV] REQUIRED_MODULES: " + string(requiredModules))
+for(moduleName in requiredModules){
+    checkModuleStatus(moduleName)
+}

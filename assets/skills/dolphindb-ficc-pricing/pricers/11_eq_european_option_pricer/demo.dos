@@ -1,0 +1,114 @@
+// ============================================================
+// eqEuropeanOptionPricer — 完整定价示例
+// 50ETF 欧式期权定价 + Greeks
+// ============================================================
+// 定价方法：
+//   基于 BSM (Black-Scholes-Merton) 模型，考虑连续股息收益率 q：
+//   Call = S·e^(-q·T)·N(d1) − K·e^(-r·T)·N(d2)
+//   与 FxOption (Garman-Kohlhagen) 的区别：外币利率 → 股息收益率。
+//   需要 4 类市场数据：贴现曲线 + 股息率曲线 + 现货价格(标量) + 波动率曲面。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/11_eq_european_option/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]        = "Option"
+instDict["optionType"]         = "EuropeanOption"
+instDict["assetType"]          = "EqEuropeanOption"
+instDict["instrumentId"]       = "50ETF_C_3200"
+instDict["notionalCurrency"]   = "CNY"
+instDict["notionalAmount"]     = 10000.0            // 合约单位
+instDict["maturity"]           = 2026.03.18
+instDict["strike"]             = 3.2
+instDict["payoffType"]         = "Call"
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "50ETF"
+inst = parseInstrument(instDict)
+
+// --- Step 2: 贴现曲线 ---
+pricingDate = 2025.08.18
+discDict = dict(STRING, ANY)
+discDict["mktDataType"]         = "Curve"
+discDict["curveType"]           = "IrYieldCurve"
+discDict["referenceDate"]       = pricingDate
+discDict["currency"]            = "CNY"
+discDict["curveName"]           = "CNY"
+discDict["dayCountConvention"]  = "Actual365"
+discDict["compounding"]         = "Continuous"
+discDict["interpMethod"]        = "Linear"
+discDict["extrapMethod"]        = "Flat"
+discDict["dates"]   = [2025.09.18, 2025.11.18, 2026.02.18, 2026.08.18]
+discDict["values"]  = [0.013, 0.0137, 0.014, 0.0139]
+discountCurve = parseMktData(discDict)
+
+// --- Step 3: 股息率曲线（见 market_data/dividend_curve/demo.dos）---
+divDict = dict(STRING, ANY)
+divDict["mktDataType"]         = "Curve"
+divDict["curveType"]           = "DividendCurve"
+divDict["referenceDate"]       = pricingDate
+divDict["curveName"]           = "50ETF_DIV"
+divDict["dayCountConvention"]  = "Actual365"
+divDict["compounding"]         = "Continuous"
+divDict["interpMethod"]        = "Linear"
+divDict["extrapMethod"]        = "Flat"
+divDict["dates"]   = [2025.09.18, 2026.03.18, 2026.08.18]
+divDict["values"]  = [0.02, 0.02, 0.02]            // 年化股息率 2%
+divCurve = parseMktData(divDict)
+
+// --- Step 4: 波动率曲面（见 market_data/vol_surface/demo.dos）---
+volDict = dict(STRING, ANY)
+volDict["mktDataType"]    = "Surface"
+volDict["surfaceType"]    = "VolatilitySurface"
+volDict["referenceDate"]  = pricingDate
+volDict["surfaceName"]    = "50ETF_VOL"
+volDict["smileMethod"]    = "Linear"
+volDict["termDates"]      = [2025.11.18, 2026.03.18, 2026.08.18]
+s1 = dict(STRING, ANY)
+s1["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s1["vols"]    = [0.22, 0.20, 0.19, 0.21, 0.25]     // 近月 smile
+s2 = dict(STRING, ANY)
+s2["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s2["vols"]    = [0.24, 0.22, 0.21, 0.23, 0.27]
+s3 = dict(STRING, ANY)
+s3["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s3["vols"]    = [0.26, 0.24, 0.23, 0.25, 0.29]     // 远月 smile
+volDict["volSmiles"] = [s1, s2, s3]
+volSurf = parseMktData(volDict)
+
+// --- Step 5: 定价 ---
+spotPrice = 3.15                                    // 50ETF 现价
+npv = eqEuropeanOptionPricer(inst, pricingDate, spotPrice, discountCurve, divCurve, volSurf)
+// npv > 0 → 期权权利金
+
+// --- Step 6: 带 Greeks 定价 ---
+setting = dict(STRING, ANY)
+setting["calcDelta"] = true                         // Delta: 标的价格变动的敏感度
+setting["calcGamma"] = true                         // Gamma: Delta 的变化率
+setting["calcVega"]  = true                         // Vega: 波动率的敏感度
+result = eqEuropeanOptionPricer(inst, pricingDate, spotPrice, discountCurve, divCurve, volSurf, setting)
+// result["npv"]   — 期权价值
+// result["delta"] — Call delta ∈ (0, 1)，strike=3.2 > spot=3.15 → delta 略 < 0.5
+// result["gamma"] — 总为正值
+// result["vega"]  — 总为正值
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [无 setting 结果]
+//   npv = 1,717.15                 — BSM 期权权利金（CNY）
+//
+// [带 setting 结果]
+//   npv   = 1,717.15
+//   delta = 4,783.74               — ∂NPV/∂S
+//   gamma = 7,815.61               — ∂²NPV/∂S²
+//   vega  = 9,459.02               — ∂NPV/∂σ
+//
+// [金融解释]
+//   50ETF Call, K=3.2, S=3.15, T≈7M, vol≈21%, notional=10000 份。
+//   K > S → 略微虚值。
+//   单位期权值 = 1717.15/10000 = 0.1717 CNY/份，占 spot 的 5.5%。
+//   对 7M、21% vol 的略 OTM call，5-6% 的溢价合理。
+//   单位 delta = 4783.74/10000 = 0.478 < 0.5 → 与 OTM Call 一致。
+//   gamma > 0, vega > 0，方向正确。
+//
+// [合理性] ✓ BSM 定价及 Greeks 均符合预期。
+// ============================================================

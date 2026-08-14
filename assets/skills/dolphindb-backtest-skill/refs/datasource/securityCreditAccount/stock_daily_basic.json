@@ -1,0 +1,83 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "stock_daily_basic",
+    "desc": "存放A股市场股票每日基础指标数据，包含收盘价、换手率、量比、市盈率、市净率、市销率、股息率、股本、市值和数据更新时间。",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "TS股票代码"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "close": {
+            "type": "DOUBLE",
+            "desc": "当日收盘价"
+        },
+        "turnover_rate": {
+            "type": "DOUBLE",
+            "desc": "换手率（%）"
+        },
+        "turnover_rate_f": {
+            "type": "DOUBLE",
+            "desc": "换手率（自由流通股）"
+        },
+        "volume_ratio": {
+            "type": "DOUBLE",
+            "desc": "量比"
+        },
+        "pe": {
+            "type": "DOUBLE",
+            "desc": "市盈率（总市值/净利润，亏损的PE为空）"
+        },
+        "pe_ttm": {
+            "type": "DOUBLE",
+            "desc": "市盈率（TTM，亏损的PE为空）"
+        },
+        "pb": {
+            "type": "DOUBLE",
+            "desc": "市净率（总市值/净资产）"
+        },
+        "ps": {
+            "type": "DOUBLE",
+            "desc": "市销率"
+        },
+        "ps_ttm": {
+            "type": "DOUBLE",
+            "desc": "市销率（TTM）"
+        },
+        "dv_ratio": {
+            "type": "DOUBLE",
+            "desc": "股息率（%）"
+        },
+        "dv_ttm": {
+            "type": "DOUBLE",
+            "desc": "股息率（TTM）（%）"
+        },
+        "total_share": {
+            "type": "DOUBLE",
+            "desc": "总股本（万股）"
+        },
+        "float_share": {
+            "type": "DOUBLE",
+            "desc": "流通股本（万股）"
+        },
+        "free_share": {
+            "type": "DOUBLE",
+            "desc": "自由流通股本（万）"
+        },
+        "total_mv": {
+            "type": "DOUBLE",
+            "desc": "总市值（万元）"
+        },
+        "circ_mv": {
+            "type": "DOUBLE",
+            "desc": "流通市值（万元）"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "数据更新时间"
+        }
+    }
+}

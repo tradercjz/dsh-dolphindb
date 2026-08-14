@@ -1,0 +1,23 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "stock_adj_factor",
+    "desc": "存放A股市场股票每日复权因子数据，包含股票代码、交易日期、复权因子和更新时间。",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "股票代码"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "adj_factor": {
+            "type": "DOUBLE",
+            "desc": "复权因子"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "更新时间"
+        }
+    }
+}

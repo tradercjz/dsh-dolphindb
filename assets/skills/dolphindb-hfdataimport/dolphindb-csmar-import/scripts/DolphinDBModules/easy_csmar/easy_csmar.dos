@@ -1,0 +1,23 @@
+module easy_csmar::easy_csmar
+
+/* 
+*  @ brief  
+*  csmar 数据导入模块
+*  @ Author: DolphinDB
+*  @ Last modification time: 2026.05.25
+*  @ DolphinDB server version: 3.00.4.2 2025.11.28 LINUX x86_64
+*/
+
+/*
+*  @FunctionName: module_info
+*  @Brief: 获取模块信息
+*  @SampleUsage: module_info()
+*/
+def module_info(){
+    res = dict(STRING,ANY)
+    res["isFree"] = true
+    res["devDolphinDBVersion"] = "3.00.4.2 2025.11.28 LINUX x86_64"
+    res["moduleName"] = "easy_csmar"
+    res["moduleVersion"] = "1.0.0"
+    return res
+}

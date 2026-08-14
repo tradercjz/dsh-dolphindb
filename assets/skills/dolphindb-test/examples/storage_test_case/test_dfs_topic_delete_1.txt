@@ -1,0 +1,396 @@
+
+@testing:case="dfs_topic_delete_all_value"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+    dropDatabase(dbPath)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("", VALUE, symbol("A"+string(1..10)))
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `timev`sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev`sym, , `sym`timev).append!(t)
+delete from pt
+re = select * from loadTable(dbPath, `pt)
+ex = table(4:0, [`time, `sym, `price, `volume], [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+delete from pt1
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_range"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, RANGE, 2012.01.01 + 0..10 * 3, , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `timev, , `timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev, , `timev).append!(t)
+delete from pt 
+re = select * from loadTable(dbPath, `pt)
+ex = table(4:0,`time`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1,each(eqObj, re.values(), ex.values())
+delete from pt1
+re = select * from loadTable(dbPath, `pt1)
+assert 2,each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_hash"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db=database(dbPath, HASH, [SYMBOL, 100], , "TSDB")
+n=50000
+t=table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as timev, rand("A"+string(1..100), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`timev).append!(t)
+delete from pt
+delete from pt1
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `time`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_list"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db=database(dbPath, LIST, ["A"+string(1..20),"A"+string(21..40),"A"+string(41..60),"A"+string(61..80),"A"+string(81..100)], , "TSDB")
+n=500000
+t=table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as time, rand("A"+string(1..100), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`time).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`time).append!(t)
+delete from pt
+delete from pt1 
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `time`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_compo"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+n=1000000
+db1 = database("", VALUE, 2020.02.01 .. 2020.03.31)
+db2 = database("", HASH, [STRING, 10])
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+t = table(timestamp(rand(2020.02.01..2020.03.31,n))+rand(10,n) as timestamp, rand("id" +string(1..50), n) as id, rand(1.0, n) as value)
+pt = db.createPartitionedTable(t, "pt", `timestamp`id, , `id`timestamp).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timestamp`id, , `id`timestamp).append!(t)
+delete from pt 
+delete from pt1 
+re = select * from loadTable(dbPath, `pt)
+ex = table(4:0,`timestamp`id`value, [TIMESTAMP, SYMBOL, DOUBLE])
+assert 1, each(eqObj, re.values(), ex.values())
+re = select * from loadTable(dbPath,`pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_partition_value"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+    dropDatabase(dbPath)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("", VALUE, symbol("A"+string(1..10)))
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `timev`sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev`sym, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `timev`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+delete from pt1 where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_partition_range"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db=database(dbPath, RANGE, 2012.01.01 + 0..10 * 3, , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `timev, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `timev`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+delete from pt1 where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_partition_all_hash"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db=database(dbPath, HASH, [SYMBOL, 100], , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `timev`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+delete from pt1 where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_partition_all_list"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, LIST, ["A"+string(1..20),"A"+string(21..40),"A"+string(41..60),"A"+string(61..80),"A"+string(81..100)], , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt)
+ex = table(4: 0, `timev`sym`price`volume, [DATETIME, SYMBOL, DOUBLE, INT])
+assert 1, each(eqObj, re.values(), ex.values())
+delete from pt1 where timev between 2012.01.01T00:00:00:2012.01.10T23:59:59
+re = select * from loadTable(dbPath, `pt1)
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_all_partition_all_compo"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+n = 1000000
+db1 = database("", VALUE, 2020.02.01..2020.03.31)
+db2 = database("", HASH, [STRING, 10])
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+t = table(timestamp(rand(2020.02.01..2020.03.31, n))+rand(10,n) as timestampv, rand("id" +string(1..50), n) as id, rand(1.0, n) as value)
+pt = db.createPartitionedTable(t, "pt", `timestampv`id, , `id`timestampv).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timestampv`id, , `id`timestampv).append!(t)
+delete from pt where timestampv >= 2020.02.01T00:00:00.000 and timestampv <= 2020.04.01T00:00:00.000
+delete from pt1 where timestampv >= 2020.02.01T00:00:00.000 and timestampv <= 2020.04.01T00:00:00.000
+re = select * from loadTable(dbPath,`pt) 
+ex = table(4:0,`timestampv`id`value, [TIMESTAMP, SYMBOL, DOUBLE])
+assert 1,each(eqObj, re.values(),ex.values())
+re = select * from loadTable(dbPath,`pt1)
+assert 2,each(eqObj, re.values(),ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_all_data_value"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db1=database("", VALUE, 2012.01.01..2012.01.10)
+db2=database("", VALUE, symbol("A"+string(1..10)))
+db=database(dbPath, COMPO, [db1, db2], , "TSDB")
+n=50000
+t=table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `timev`sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev`sym, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+delete from tem where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+ex = select * from tem order by timev, sym
+ex1 = select * from t order by timev, sym
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+assert 1, each(eqObj, re.values(), ex.values())
+assert 2, each(eqObj, re1.values(), ex1.values())
+
+delete from pt1 where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+assert 3, each(eqObj, re.values(), ex.values())
+assert 4, each(eqObj, re1.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_all_data_range"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, RANGE, 2012.01.01 + 0..10 * 3, , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.30T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `timev, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.02T00:00:00:2012.01.19T23:59:59
+delete from tem where timev between 2012.01.02T00:00:00:2012.01.19T23:59:59
+ex = select * from tem order by timev, sym
+ex1 = select * from t order by timev, sym
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+assert 1, each(eqObj, re.values(), ex.values())
+assert 2, each(eqObj, re1.values(), ex1.values())
+
+delete from pt1 where timev between 2012.01.02T00:00:00:2012.01.19T23:59:59
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+assert 3, each(eqObj, re.values(), ex.values())
+assert 4, each(eqObj, re1.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_all_data_hash"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, HASH, [SYMBOL, 100], , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as timev, rand("A"+string(1..100), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`timev).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", `sym, , `sym`timev).append!(t)
+delete from pt where sym in "A"+string(50..80)
+delete from pt1 where sym in "A"+string(50..80)
+delete from tem where sym in "A"+string(50..80)
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+ex = select * from tem order by timev, sym
+assert 1, each(eqObj, re.values(), ex.values())
+re = select * from (select * from loadTable(dbPath, `pt2)) order by timev, sym
+ex = select * from t order by timev, sym
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_all_data_list"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, LIST, ["A"+string(1..20),"A"+string(21..40),"A"+string(41..60),"A"+string(61..80),"A"+string(81..100)], , "TSDB")
+n = 500000
+t = table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as timev, rand("A"+string(1..100), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `sym, , `sym`timev).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", `sym, , `sym`timev).append!(t)
+delete from pt where sym in "A"+string(1..40)
+delete from pt1 where sym in "A"+string(1..40)
+delete from tem where sym in "A"+string(1..40)
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+ex = select * from tem order by timev, sym
+assert 1, each(eqObj, re.values(), ex.values())
+re = select * from (select * from loadTable(dbPath, `pt2)) order by timev, sym
+ex = select * from t order by timev, sym
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_all_data_compo"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+n = 1000000
+db1 = database("", VALUE, 2020.02.01..2020.03.31)
+db2 = database("", HASH, [STRING, 10])
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+t = table(timestamp(rand(2020.02.01..2020.03.31, n))+rand(10, n) as timestampv, rand("id" + string(1..50), n) as sym, rand(1.0, n) as value)
+tem = t
+pt = db.createPartitionedTable(t, "pt", `timestampv`sym, , `sym`timestampv).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timestampv`sym, , `sym`timestampv).append!(t)
+delete from pt where timestampv >= 2020.02.10T00:00:00.000 and timestampv <= 2020.02.20T23:59:59.999
+delete from tem where timestampv >= 2020.02.10T00:00:00.000 and timestampv <= 2020.02.20T23:59:59.999
+re = select * from (select * from loadTable(dbPath, `pt)) order by timestampv, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timestampv, sym
+ex = select * from tem order by timestampv, sym
+ex1 = select * from t order by timestampv, sym
+assert 1, each(eqObj, re.values(), ex.values())
+assert 2, each(eqObj, re1.values(), ex1.values())
+delete from pt1 where timestampv > 2020.02.10T00:00:00.000 and timestampv < 2020.02.20T23:59:59.999
+delete from t where timestampv > 2020.02.10T00:00:00.000 and timestampv < 2020.02.20T23:59:59.999
+re3 = select * from (select * from loadTable(dbPath, `pt1)) order by timestampv, sym
+ex3 = select * from t order by timestampv, sym
+assert 3, each(eqObj, re3.values(), ex3.values())
+re = select * from (select * from loadTable(dbPath, `pt)) order by timestampv, sym
+assert 4, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_part_data_value"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("", VALUE, symbol("A"+string(1..10)))
+db = database(dbPath, COMPO, [db1, db2], , "TSDB")
+n = 500000
+t = table(rand(2012.01.01T00:00:00..2012.01.10T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+tem1 = t
+pt = db.createPartitionedTable(t, "pt", `timev`sym, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev`sym, , `sym`timev).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", `timev`sym, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.02T00:01:00:2012.01.08T20:59:59 and volume > 200
+delete from tem where timev between 2012.01.02T00:01:00:2012.01.08T20:59:59 and volume > 200
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re1 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+ex = select * from tem order by timev, sym
+ex1 = select * from t order by timev, sym
+assert 1, each(eqObj, re.values(), ex.values())
+assert 2, each(eqObj, re1.values(), ex1.values())
+
+delete from pt1 where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+delete from tem1 where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+re2 = select * from (select * from loadTable(dbPath, `pt1)) order by timev, sym
+ex2 = select * from tem1 order by timev, sym
+re = select * from (select * from loadTable(dbPath, `pt)) order by timev, sym
+re3 = select * from (select * from loadTable(dbPath, `pt2)) order by timev, sym
+assert 3, each(eqObj, re2.values(), ex2.values())
+assert 4, each(eqObj, re.values(), ex.values())
+assert 5, each(eqObj, re3.values(), ex1.values())
+
+delete from pt2 where sym = "A1" or volume > 100
+delete from t where sym = "A1" or volume > 100
+re3 = select * from (select * from loadTable(dbPath, `pt2)) order by timev, sym
+ex3 = select * from t order by timev, sym
+assert 6, each(eqObj, re.values(), ex.values())
+
+@testing:case="dfs_topic_delete_part_partition_part_data_range"
+dbPath = "dfs://delete_test"
+if(existsDatabase(dbPath)){
+	dropDatabase(dbPath)
+}
+db = database(dbPath, RANGE, 2012.01.01 + 0..11 * 3, , "TSDB")
+n = 50000
+t = table(rand(2012.01.01T00:00:00..2012.01.31T23:59:59, n) as timev, rand("A"+string(1..10), n) as sym, rand(100.0, n) as price, rand(1000, n) as volume)
+tem = t
+tem1 = t
+pt = db.createPartitionedTable(t, "pt", `timev, , `sym`timev).append!(t)
+pt1 = db.createPartitionedTable(t, "pt1", `timev, , `sym`timev).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", `timev, , `sym`timev).append!(t)
+delete from pt where timev between 2012.01.02T00:01:00:2012.01.19T20:59:59 and volume > 200
+delete from tem where timev between 2012.01.02T00:01:00:2012.01.19T20:59:59 and volume > 200
+re = select * from (select * from loadTable(dbPath,`pt)) order by sym, timev
+re1 = select * from (select * from loadTable(dbPath,`pt1)) order by sym, timev
+ex = select * from tem order by sym, timev
+ex1 = select * from t order by sym, timev
+assert 1, each(eqObj, re.values(), ex.values())
+assert 2, each(eqObj, re1.values(), ex1.values())
+
+delete from pt1 where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+delete from tem1 where timev between 2012.01.02T00:00:00:2012.01.08T23:59:59
+ex2 = select * from tem1 order by sym, timev
+re2 = select * from (select * from loadTable(dbPath, `pt1)) order by sym, timev
+re = select * from (select * from loadTable(dbPath, `pt)) order by sym, timev
+re3 = select * from (select * from loadTable(dbPath, `pt2)) order by sym, timev
+assert 3, each(eqObj, re2.values(), ex2.values())
+assert 4, each(eqObj, re.values(), ex.values())
+assert 5, each(eqObj, re3.values(), ex1.values())
+
+delete from pt2 where sym = "A1" or volume > 100
+delete from t where sym = "A1" or volume > 100
+re3 = select * from (select * from loadTable(dbPath, `pt2)) order by sym, timev
+ex3 = select * from t order by timev, sym
+assert 6, each(eqObj, re.values(), ex.values())
+

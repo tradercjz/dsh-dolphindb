@@ -1,0 +1,84 @@
+// ============================================================
+// Tushare incremental data schedule dispatcher for DolphinDB Web.
+// Edit the user parameters below, then run this whole script.
+//
+// This script assumes dolphindb-tushare-check-env has already uploaded:
+//   easy_tushare::ts_init and the selected domains' schedule modules.
+// ============================================================
+
+// ===== User parameters =====
+token = "YOUR_TUSHARE_TOKEN"
+dataDomains = ["stock"]        // Example: ["stock", "index", "fund"].
+
+// Optional per-domain table mapping. Empty mapping means all supported tables for every selected domain.
+// Example:
+// tableNamesByDomain = dict(STRING, ANY)
+// tableNamesByDomain["stock"] = ["stock_basic", "daily"]
+// tableNamesByDomain["index"] = ["index_basic", "index_daily"]
+tableNamesByDomain = dict(STRING, ANY)
+
+// ===== Dispatcher =====
+def normalizeTableNames(tableNames){
+    if(tableNames.isVoid() or size(tableNames) == 0) return []
+    return string(tableNames)
+}
+
+def normalizeDataDomains(dataDomains){
+    if(dataDomains.isVoid() or size(dataDomains) == 0) return []
+    if(typestr(dataDomains) == "STRING") return [dataDomains]
+    return string(dataDomains)
+}
+
+def validateDomain(dataDomain){
+    validDomains = ["stock", "index", "fund", "bond", "futures", "options", "etf", "spot", "fx", "llm"]
+    if(not dataDomain in validDomains){
+        throw "dataDomain must be one of: " + concat(validDomains, ", ")
+    }
+}
+
+def getDomainTableNames(tableNamesByDomain, dataDomain){
+    if(tableNamesByDomain.isVoid() or size(tableNamesByDomain) == 0) return []
+    if(typestr(tableNamesByDomain) != "DICTIONARY"){
+        return normalizeTableNames(tableNamesByDomain)
+    }
+    names = tableNamesByDomain[dataDomain]
+    if(names.isVoid()) return []
+    return normalizeTableNames(names)
+}
+
+def loadScheduleModule(dataDomain){
+    validateDomain(dataDomain)
+    runScript("use easy_tushare::" + dataDomain + "_schedulejob")
+}
+
+def scheduleTushareImportByDomain(token, dataDomain, tableNames=[]){
+    validateDomain(dataDomain)
+    if(token == "" or token == "YOUR_TUSHARE_TOKEN"){
+        throw "Please set token to your Tushare API token before running schedule_data.dos."
+    }
+
+    names = normalizeTableNames(tableNames)
+    loadScheduleModule(dataDomain)
+    funcByName("easy_tushare::" + dataDomain + "_schedulejob::scheduleJob_" + dataDomain + "_data_daily")(token, names)
+
+    print("[TUSHARE-SCHEDULE] SCHEDULED_DOMAIN=" + dataDomain)
+    print("[TUSHARE-SCHEDULE] TABLE_NAMES=" + string(names))
+    print("[TUSHARE-SCHEDULE] DOMAIN_STATUS=SCHEDULED")
+}
+
+def scheduleTushareImport(token, dataDomains, tableNamesByDomain=NULL){
+    domains = normalizeDataDomains(dataDomains)
+    if(size(domains) == 0){
+        throw "dataDomains must contain at least one domain."
+    }
+
+    for(dataDomain in domains){
+        names = getDomainTableNames(tableNamesByDomain, dataDomain)
+        scheduleTushareImportByDomain(token, dataDomain, names)
+    }
+
+    print("[TUSHARE-SCHEDULE] SCHEDULED_DOMAINS=" + string(domains))
+    print("[TUSHARE-SCHEDULE] STATUS=SCHEDULED")
+}
+
+scheduleTushareImport(token, dataDomains, tableNamesByDomain)

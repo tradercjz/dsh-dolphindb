@@ -1,0 +1,31 @@
+// ============================================================
+// FxNonDeliverableForward (NDF) — parseInstrument 构建示例
+// 构建一笔 USDCNY 无本金交割远期
+// ============================================================
+// 金融含义：
+//   NDF 与普通外汇远期(FxForward)定价逻辑一致（利率平价），区别在
+//   于到期时不做本金交割，而是按到期日即期汇率与执行价的差额以
+//   settlementCurrency 进行净额结算。主要用于离岸不可自由兑换货币。
+//   使用 fxForwardPricer 定价。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]          = "Forward"                       // 远期类
+instDict["forwardType"]          = "FxNonDeliverableForward"        // NDF（全名，非缩写）
+
+// --- NDF 要素 ---
+instDict["expiry"]               = 2026.09.20                     // 到期日
+instDict["delivery"]             = 2026.09.22                     // 交割日
+instDict["currencyPair"]         = "USDCNY"                       // 货币对
+instDict["direction"]            = "Buy"                          // 方向：买入 USD
+instDict["notionalCurrency"]     = "USD"
+instDict["notionalAmount"]       = 1000000.0                      // 名义本金
+instDict["strike"]               = 7.30                           // 远期执行价
+instDict["domesticCurve"]        = "CNY"
+instDict["foreignCurve"]         = "USD"
+instDict["settlementCurrency"]   = "USD"                          // 净额结算货币
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

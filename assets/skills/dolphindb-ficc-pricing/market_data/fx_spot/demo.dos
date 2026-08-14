@@ -1,0 +1,21 @@
+// ============================================================
+// FxSpotRate — parseMktData 构建示例
+// 构建外汇即期汇率
+// ============================================================
+// 金融含义：
+//   FxSpotRate 是所有 FX 衍生品的定价锚点。外汇市场惯例中，
+//   "即期(spot)"通常指 T+2 交割（spotDate = 成交日 + 2个工作日）。
+//   value 是一个标量——不是曲线——表示每单位外币兑换多少本币。
+//   例如 USDCNY = 7.25 表示 1 USD = 7.25 CNY。
+//   FxForward / FxSwap / FxOption 定价时都需要此锚点。
+// ============================================================
+
+spotDict = dict(STRING, ANY)
+spotDict["mktDataType"]   = "Price"               // 价格类市场数据
+spotDict["priceType"]     = "FxSpotRate"           // 外汇即期汇率
+spotDict["referenceDate"] = 2026.03.20             // 报价日期
+spotDict["spotDate"]      = 2026.03.22             // 即期交割日（T+2）
+spotDict["value"]         = 7.25                   // 即期汇率：1 USD = 7.25 CNY
+spotDict["unit"]          = "USDCNY"               // 货币对
+
+fxSpot = parseMktData(spotDict)

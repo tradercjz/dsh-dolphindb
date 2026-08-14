@@ -1,0 +1,40 @@
+{
+  "id": "subscribeIndicator",
+  "name": "订阅指标",
+  "signature": "Backtest::subscribeIndicator(engine, marketDataType, metrics)",
+  "description": "用于为回测引擎订阅指标表达式。metrics 是 dict(STRING,ANY)，key 为订阅别名，value 为尖括号包裹的 DolphinDB 表达式。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄"
+    },
+    {
+      "name": "marketDataType",
+      "type": "STRING",
+      "description": "要订阅指标的行情类型"
+    },
+    {
+      "name": "metrics",
+      "type": "DICT(STRING,ANY)",
+      "description": "指标订阅字典，key 为别名，value 为尖括号包裹的 DolphinDB 表达式"
+    }
+  ],
+  "constraints": [
+    "当前阶段仅在被启用时允许使用该接口。",
+    "若使用该接口，marketDataType 必须使用运行时上下文提供的 resolvedMarketDataType。不要自己推断当前的数据频率",
+    "metrics 必须使用 dict(STRING,ANY) 构造。",
+    "metrics 中的表达式必须来自已确认的 indicator_plan_config。",
+    "不要发明 indicator_plan_config 之外的新指标表达式。",
+    "表达式中的字段，只能使用可用字段，先前生成的指标不可使用，需要从基础字段开始构造"
+  ],
+  "returns": {
+    "type": "VOID",
+    "description": "该接口不返回值。"
+  },
+  "examples": [
+    "d=dict(STRING,ANY)",
+    "d[\"mavg\"]=<mavg(close,20)>",
+    "Backtest::subscribeIndicator(context[\"engine\"], \"kline\", d)"
+  ]
+}

@@ -1,0 +1,281 @@
+module easy_csmar::stock::stock_load_data::load_one_day_entrust
+/*
+*  @ brief  
+*  导入1天逐笔委托数据
+*/
+
+//引用其他module的函数
+use easy_csmar::utils
+use easy_csmar::stock::stock_csv_schema::entrust_csv_schema
+
+/*
+*  @FunctionName: transform_entrust_sh
+*  @Brief: 上交所逐笔委托csv数据读取到内存后的转换函函数
+*  @Param: day: 交易日
+*  @Param: t: 按照csv指定schema读取到内存中的表
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = entrust_csv_schema_sh(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDER/600008.csv", schema=schema_tb)
+tmp_data = transform_entrust_sh(day=2026.04.29, t=tb)
+*/
+def transform_entrust_sh(day, t){
+	/*@test
+	day = 2026.04.29
+	schema_tb = entrust_csv_schema_sh(day)
+	t= loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDER/600008.csv", schema=schema_tb)
+	*/
+	if(day< 2024.03.01){
+		tmp_data =
+			select
+				Symbol+".SH" as code,
+				"SH" as exchange,
+				TradingDate as trade_date,
+				time(TradingTime) as trade_time,
+				SetID as channel_no,
+				RecNO as appl_seq,
+				OrderPrice as order_price,
+				Balance as order_qty,
+				OrderType as order_type,
+				OrderCode as side,
+				OrderID as order_no,
+				RecID as rec_id,
+				double(NULL) as trade_qty,
+				now() as update_time
+			from t
+	}else{
+		// 2024.03.01 后新增字段TradeVolume
+		tmp_data =
+			select
+				Symbol+".SH" as code,
+				"SH" as exchange,
+				TradingDate as trade_date,
+				time(TradingTime) as trade_time,
+				SetID as channel_no,
+				RecNO as appl_seq,
+				OrderPrice as order_price,
+				Balance as order_qty,
+				OrderType as order_type,
+				OrderCode as side,
+				OrderID as order_no,
+				RecID as rec_id,
+				TradeVolume as trade_qty,
+				now() as update_time
+			from t
+	}
+	return tmp_data
+}
+
+/*
+*  @FunctionName: transform_entrust_sz
+*  @Brief: 深交所逐笔委托csv数据读取到内存后的转换函数
+*  @Param: day: 交易日
+*  @Param: t: 按照csv指定schema读取到内存中的表
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = entrust_csv_schema_sz(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/ORDER/000572.csv", schema=schema_tb)
+tmp_data = transform_entrust_sz(day=2026.04.29, t=tb)
+*/
+def transform_entrust_sz(day, t){
+	tmp_data =
+		select
+			Symbol+".SZ" as code,
+			"SZ" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			SetID as channel_no,
+			RecID as appl_seq,
+			OrderPrice as order_price,
+			OrderVolume as order_qty,
+			OrderType as order_type,
+			OrderCode as side,
+			long(NULL) as order_no,
+			long(NULL) as rec_id,
+			double(NULL) as trade_qty,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: load_one_day_entrust_sh
+*  @Brief: 一天上交所逐笔委托数据导入数据
+*  @Param: day: 交易日
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @Param: is_need_etf: 是否需要导入ETF数据
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDER/"
+is_need_etf = true
+load_one_day_entrust_sh(csv_zip_dir, 2026.04.29, "dfs://level2_stock_db", "entrust", is_need_etf)
+*/
+def load_one_day_entrust_sh(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="entrust", is_need_etf = false){
+	update_task_status([day], ["entrust"], ["SH"], ["progress"], [""])
+	if (!exists(csv_zip_dir)){
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["entrust"], ["SH"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+		return false
+	}
+	
+	csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+	// 设置初始的 csv 文件目录为 csv_zip_dir
+	unziped_csv_dir = csv_zip_dir
+	// 判断是否存在zip压缩数据
+	if (size(csv_zip_files)>0) {
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+		msg = write_log(msg, level="info")
+		// 解压到临时目录
+		try{
+			unziped_path = csv_zip_dir + "csv_temp_dir"
+			if (exists(unziped_path)) {
+				rmdir(unziped_path,true)
+			}
+			mkdir(unziped_path)
+			for(csv_zip_file in csv_zip_files){
+				zip::unzip(csv_zip_file, unziped_path)
+			}
+		}catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["entrust"], ["SH"], ["failed"], ["Data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip completed, start importing data")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		unziped_csv_dir = unziped_path + "/"
+	}
+	
+	pt = loadTable(db_name, tb_name)
+	//csmar数据一个证券一个csv，可以先读取多个小的csv到内存，然后批量写入数据
+	tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+	schema_tb = entrust_csv_schema_sh(day)
+	csv_files = unziped_csv_dir + exec filename from files(unziped_csv_dir) where filename like "%.csv"
+	// 没有csv文件
+    if (size(csv_files)==0) {
+        update_task_status([day], ["entrust"], ["SH"], ["failed"], [unziped_csv_dir + " is empty, please check!"])
+        return false
+    }
+	try{
+		for(csv_file in csv_files){
+			one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+			one_code_tb = transform_entrust_sh(day, one_code_tb_tmp)
+			tmp_mem_tb.append!(one_code_tb)
+			// 每攒200MB写一次数据库
+			if(memSize(tmp_mem_tb)\1024\1024 >=200){ 
+				pt.append!(tmp_mem_tb)
+				tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+			}
+		}
+		pt.append!(tmp_mem_tb)
+	} catch(ex){
+		msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["entrust"], ["SH"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+		return false
+	}
+	msg = stringFormat("%W", "[" + csv_zip_dir + "] Data import completed")
+	msg = write_log(msg, level="info")
+	update_task_status([day], ["entrust"], ["SH"], ["completed"], [""])
+	// 删除解压的目录	
+	try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+	// 导入ETF数据
+	if (is_need_etf){
+		csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+		load_one_day_entrust_sh(csv_zip_dir_etf, day, db_name, tb_name, false)
+	}
+}
+
+/*
+*  @FunctionName: load_one_day_entrust_sz
+*  @Brief: 一天深交所逐笔委托数据导入数据
+*  @Param: day: 交易日
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @Param: is_need_etf: 是否需要导入ETF数据
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/ORDER/"
+is_need_etf = true
+load_one_day_entrust_sz(csv_zip_dir, day, "dfs://level2_stock_db", "entrust", is_need_etf)
+*/
+def load_one_day_entrust_sz(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="entrust",is_need_etf = false){
+
+    update_task_status([day], ["entrust"], ["SZ"], ["progress"], [""])
+    if (!exists(csv_zip_dir)){
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["entrust"], ["SZ"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+        return false
+    }
+
+    csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+	unziped_csv_dir = csv_zip_dir
+	if (size(csv_zip_files)>0) {
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+		msg = write_log(msg, level="info")
+		try{
+			unziped_path = csv_zip_dir + "csv_temp_dir"
+			if (exists(unziped_path)) {
+				rmdir(unziped_path,true)
+			}
+			mkdir(unziped_path)
+			
+			for(csv_zip_file in csv_zip_files){
+				zip::unzip(csv_zip_file, unziped_path)
+			}
+		}catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["entrust"], ["SZ"], ["failed"], ["unzip failed: " + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip done, start load data")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		unziped_csv_dir = unziped_path + "/"
+	}
+    
+    pt = loadTable(db_name, tb_name)
+    // csmar data is one csv per symbol; load in memory first then batch append to db
+    tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+    schema_tb = entrust_csv_schema_sz(day)
+    csv_files = unziped_csv_dir + exec filename from files(unziped_csv_dir) where filename like "%.csv"
+	// 没有csv文件
+    if (size(csv_files)==0) {
+        update_task_status([day], ["entrust"], ["SZ"], ["failed"], [unziped_csv_dir + " is empty, please check!"])
+        return false
+    }
+    try{
+        for(csv_file in csv_files){
+            one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+            one_code_tb = transform_entrust_sz(day, one_code_tb_tmp)
+            tmp_mem_tb.append!(one_code_tb)
+            // 每攒200MB写一次数据库
+            if(memSize(tmp_mem_tb)\1024\1024 >=200){
+                pt.append!(tmp_mem_tb)
+                tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+            }
+        }
+        pt.append!(tmp_mem_tb)
+    } catch(ex){
+        msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["entrust"], ["SZ"], ["failed"], ["Data import failed: " + string(ex[0])+":"+string(ex[1])])
+        return false
+    }
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] Data load completed")
+    msg = write_log(msg, level="info")
+    update_task_status([day], ["entrust"], ["SZ"], ["completed"], [""])
+	// 只删除临时创建的解压csv目录
+	try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+    // load ETF data
+    if (is_need_etf){
+        csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+        load_one_day_entrust_sz(csv_zip_dir_etf, day, db_name, tb_name, false)
+    }
+}
+

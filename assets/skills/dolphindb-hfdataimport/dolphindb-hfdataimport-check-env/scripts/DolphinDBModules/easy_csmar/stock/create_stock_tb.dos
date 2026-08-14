@@ -1,0 +1,426 @@
+module easy_csmar::stock::create_stock_tb
+/*
+*  @ brief  
+*  创建分布式表
+*/
+
+//引用其他module的函数
+use easy_csmar::utils
+
+/*
+*  @FunctionName: create_stock_entrust
+*  @Brief: 创建存储沪深股票和ETF逐笔委托的分布式表
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage: create_stock_entrust(db_name="dfs://level2_stock_db", tb_name="entrust")
+*/
+def create_stock_entrust(db_name="dfs://level2_stock_db", tb_name="entrust"){
+    if(existsDatabase(db_name)){
+        db = database(db_name)
+        if(existsTable(db_name, tb_name)){
+			msg = stringFormat("%W", "[" + tb_name + "] 分区表已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+        }
+        schema_tb = table(
+            array(SYMBOL, 0) as code,
+            array(SYMBOL, 0) as exchange,
+            array(DATE, 0) as trade_date,
+            array(TIME, 0) as trade_time,
+            array(INT, 0) as channel_no,
+            array(LONG, 0) as appl_seq,
+            array(DOUBLE, 0) as order_price,
+            array(DOUBLE, 0) as order_qty,
+            array(SYMBOL, 0) as order_type,
+            array(SYMBOL, 0) as side,
+            array(LONG, 0) as order_no,
+            array(LONG, 0) as rec_id,
+            array(DOUBLE, 0) as trade_qty,
+            array(TIMESTAMP, 0) as update_time
+        )
+        db.createPartitionedTable(
+            table = schema_tb,
+            tableName = tb_name,
+            partitionColumns = `trade_date`code,
+            sortColumns=`code`trade_time
+        )
+        msg = stringFormat("%W", "[" + tb_name + "] 分区表已经成功创建")
+        msg = write_log(msg, level="info")
+        column_comments = dict(STRING, STRING)
+        column_comments["code"] = "证券代码"
+        column_comments["exchange"] = "交易所代码"
+        column_comments["trade_date"] = "交易日期"
+        column_comments["trade_time"] = "委托时间"
+        column_comments["channel_no"] = "频道代码"
+        column_comments["appl_seq"] = "消息记录号"
+        column_comments["order_price"] = "委托价格"
+        column_comments["order_qty"] = "委托数量"
+        column_comments["order_type"] = "委托类别"
+        column_comments["side"] = "买卖方向"
+        column_comments["order_no"] = "委托订单号"
+        column_comments["rec_id"] = "委托序号"
+        column_comments["trade_qty"] = "已成交的委托数量"
+        column_comments["update_time"] = "数据写入数据库时间"
+        setColumnComment(loadTable(db_name, tb_name), column_comments)
+		return true
+    }else{
+		msg = stringFormat("%W", "[" + db_name + "] 数据库不存在，请调用create_stock_db()函数创建数据库")
+		msg = write_log(msg, level="error")
+		return false
+    }
+}
+
+
+/*
+*  @FunctionName: create_stock_trade
+*  @Brief: 创建存储沪深股票和ETF逐笔成交的分布式表
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage: create_stock_trade(db_name="dfs://level2_stock_db", tb_name="trade")
+*/
+def create_stock_trade(db_name="dfs://level2_stock_db", tb_name="trade"){
+    if(existsDatabase(db_name)){
+        db = database(db_name)
+        if(existsTable(db_name, tb_name)){
+			msg = stringFormat("%W", "[" + tb_name + "] 分区表已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+        }
+        schema_tb = table(
+            array(SYMBOL, 0) as code,
+            array(SYMBOL,0) as exchange,
+            array(DATE, 0) as trade_date,
+            array(TIME, 0) as trade_time,
+            array(INT, 0) as channel_no,
+            array(LONG, 0) as appl_seq,
+            array(DOUBLE, 0) as trade_price,
+            array(DOUBLE, 0) as trade_qty,
+            array(DOUBLE, 0) as trade_amt,
+            array(LONG, 0) as buy_no,
+            array(LONG, 0) as sell_no,
+            array(SYMBOL, 0) as side,
+            array(SYMBOL, 0) as trade_type,
+            array(LONG, 0) as trade_no,
+            array(TIMESTAMP, 0) as update_time
+           
+        )
+        db.createPartitionedTable(
+            table = schema_tb,
+            tableName = tb_name,
+            partitionColumns = `trade_date`code,
+            sortColumns=`code`trade_time
+        )
+        msg = stringFormat("%W", "[" + tb_name + "] 分区表已经成功创建")
+        msg = write_log(msg, level="info")
+        column_comments = dict(STRING, STRING)
+        column_comments["code"] = "证券代码"
+        column_comments["exchange"] = "交易所代码"
+        column_comments["trade_date"] = "交易日期"
+        column_comments["trade_time"] = "交易时间"
+        column_comments["channel_no"] = "交易频道"
+        column_comments["appl_seq"] = "记录ID"
+        column_comments["trade_price"] = "成交价格"
+        column_comments["trade_qty"] = "成交数量"
+        column_comments["trade_amt"] = "成交金额"
+        column_comments["buy_no"] = "买入订单号"
+        column_comments["sell_no"] = "卖出订单号"
+        column_comments["side"] = "买卖方向"
+        column_comments["trade_type"] = "成交类型"
+        column_comments["trade_no"] = "成交序号"
+        column_comments["update_time"] = "数据写入数据库时间"
+        setColumnComment(loadTable(db_name, tb_name), column_comments)
+		return true
+    }else{
+		msg = stringFormat("%W", "[" + db_name + "] 数据库不存在，请调用create_stock_db()函数创建数据库")
+		msg = write_log(msg, level="error")
+		return false
+    }
+}
+
+
+/*
+*  @FunctionName: create_stock_snapshot
+*  @Brief: 创建存储沪深股票和ETF快照数据的分布式表
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage: create_stock_snapshot(db_name="dfs://level2_stock_db", tb_name="snapshot")
+*/
+def create_stock_snapshot(db_name="dfs://level2_stock_db", tb_name="snapshot"){
+    if(existsDatabase(db_name)){
+        db = database(db_name)
+        if(existsTable(db_name, tb_name)){
+			msg = stringFormat("%W", "[" + tb_name + "] 分区表已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+        }
+        // 沪深交易所Level-2行情快照标准Schema
+        schema_tb = table(
+            array(SYMBOL, 0) as code,             // 证券代码 例：000001.SZ/600676.SH
+            array(SYMBOL, 0) as exchange,         // 交易所代码 例：SZ/SH
+            array(DATE, 0) as trade_date,         // 交易日期 例：2025.08.18
+            array(TIME, 0) as trade_time,         // 交易时间 例：09:30:00.000
+            array(DOUBLE, 0) as pre_close,        // 昨日收盘价
+            array(DOUBLE, 0) as open_price,       // 开盘价
+            array(DOUBLE, 0) as high_price,       // 最高价
+            array(DOUBLE, 0) as low_price,        // 最低价
+            array(DOUBLE, 0) as last_price,       // 最新价
+            array(DOUBLE, 0) as price_up,         // 涨停价
+            array(DOUBLE, 0) as price_down,       // 跌停价
+            array(DOUBLE, 0) as dif_price1,       // 涨跌1（最新价-昨收）
+            array(DOUBLE, 0) as dif_price2,       // 涨跌2（最新价-上一最新价）
+            array(DOUBLE, 0) as close_price,      // 今日收盘价（盘中=0，盘后填充）
+            array(INT, 0) as total_num,           // 成交总笔数（累计）
+            array(DOUBLE, 0) as total_qty,          // 成交总量（累计）
+            array(DOUBLE, 0) as total_amt,        // 成交总额（累计）
+            array(DOUBLE, 0) as peratio1,         // 市盈率1
+            array(DOUBLE, 0) as peratio2,         // 市盈率2
+            array(INT, 0) as sell_level_num,      // 卖盘显示档位数
+            array(DOUBLE, 0) as total_sell_qty,   // 委托卖出总量
+            array(DOUBLE, 0) as wtavg_sell_price, // 加权平均委卖价
+            array(DOUBLE[], 0) as sell_price,     // 申卖价1-10
+            array(DOUBLE[], 0) as sell_qty,       // 申卖量1-10
+            array(INT[], 0) as sell_num, // 最优十档委卖笔数
+            array(INT, 0) as buy_level_num,       // 买盘显示档位数
+            array(DOUBLE, 0) as total_buy_qty,    // 委托买入总量
+            array(DOUBLE, 0) as wtavg_buy_price,  // 加权平均买入价
+            array(DOUBLE[], 0) as buy_price,      // 申买价1-10
+            array(DOUBLE[], 0) as buy_qty,        // 申买量1-10
+            array(INT[], 0) as buy_num,  // 最优十档委买笔数
+            array(SYMBOL, 0) as phase_code,       // 交易状态代码
+            array(DOUBLE, 0) as nav,              // 基金T-1日净值
+            array(DOUBLE, 0) as iopv,             // 基金实时参考净值
+            array(DOUBLE, 0) as premium_rate,     // 权证溢价率
+            array(INT, 0) as trade_num,        // 分笔期间成交笔数
+            array(DOUBLE, 0) as trade_qty,        // 分笔期间成交量
+            array(DOUBLE, 0) as trade_amt,        // 分笔期间成交金额
+            array(INT, 0) as etf_buy_num,
+            array(DOUBLE, 0) as etf_buy_qty,
+            array(DOUBLE, 0) as etf_buy_amt,
+            array(INT, 0) as etf_sell_num,
+            array(DOUBLE, 0) as etf_sell_qty,
+            array(DOUBLE, 0) as etf_sell_amt,
+            array(DOUBLE, 0) as ytm,
+            array(LONG, 0) as total_buy_num,
+            array(LONG, 0) as total_sell_num,
+            array(INT, 0) as withdraw_buy_num,
+            array(DOUBLE, 0) as withdraw_buy_qty,
+            array(DOUBLE, 0) as withdraw_buy_amt,
+            array(INT, 0) as withdraw_sell_num,
+            array(DOUBLE, 0) as withdraw_sell_qty,
+            array(DOUBLE, 0) as withdraw_sell_amt,
+            array(DOUBLE, 0) as max_buy_duration,
+            array(DOUBLE, 0) as max_sell_duration,
+            array(INT,0) as buy_order_num,
+            array(INT,0) as sell_order_num,
+            array(LONG, 0) as total_warrant_exec_vol,
+            array(DOUBLE, 0) as warrant_down_limit,
+            array(DOUBLE, 0) as warrant_up_limit,
+            array(TIMESTAMP, 0) as update_time     // 数据写入数据库时间
+        )
+        db.createPartitionedTable(
+            table = schema_tb,
+            tableName = tb_name,
+            partitionColumns = `trade_date`code,
+            sortColumns=`code`trade_time
+        )
+        msg = stringFormat("%W", "[" + tb_name + "] 分区表已经成功创建")
+        msg = write_log(msg, level="info")
+        column_comments = dict(STRING, STRING)
+        column_comments["code"] = "证券代码"
+        column_comments["exchange"] = "交易所代码"
+        column_comments["trade_date"] = "交易日期"
+        column_comments["trade_time"] = "交易时间"
+        column_comments["pre_close"] = "昨日收盘价"
+        column_comments["open_price"] = "开盘价"
+        column_comments["high_price"] = "最高价"
+        column_comments["low_price"] = "最低价"
+        column_comments["last_price"] = "最新价"
+        column_comments["price_up"] = "涨停价"
+        column_comments["price_down"] = "跌停价"
+        column_comments["dif_price1"] = "涨跌1（最新价-昨收）"
+        column_comments["dif_price2"] = "涨跌2（最新价-上一最新价）"
+        column_comments["close_price"] = "今日收盘价（盘中=0，盘后填充）"
+        column_comments["total_num"] = "成交总笔数（累计）"
+        column_comments["total_qty"] = "成交总量（累计）"
+        column_comments["total_amt"] = "成交总额（累计）"
+        column_comments["peratio1"] = "市盈率1"
+        column_comments["peratio2"] = "市盈率2"
+        column_comments["sell_level_num"] = "卖盘显示档位数"
+        column_comments["total_sell_qty"] = "委托卖出总量"
+        column_comments["wtavg_sell_price"] = "加权平均委卖价"
+        column_comments["sell_price"] = "申卖价1-10"
+        column_comments["sell_qty"] = "申卖量1-10"
+        column_comments["sell_num"] = "最优十档委卖笔数"
+        column_comments["buy_level_num"] = "买盘显示档位数"
+        column_comments["total_buy_qty"] = "委托买入总量"
+        column_comments["wtavg_buy_price"] = "加权平均买入价"
+        column_comments["buy_price"] = "申买价1-10"
+        column_comments["buy_qty"] = "申买量1-10"
+        column_comments["buy_num"] = "最优十档委买笔数"
+        column_comments["phase_code"] = "交易状态代码"
+        column_comments["nav"] = "基金T-1日净值"
+        column_comments["iopv"] = "基金实时参考净值"
+        column_comments["premium_rate"] = "权证溢价率"
+        column_comments["trade_num"] = "分笔期间成交笔数"
+        column_comments["trade_qty"] = "分笔期间成交量"
+        column_comments["trade_amt"] = "分笔期间成交金额"
+        column_comments["etf_buy_num"] = "ETF申购笔数"
+        column_comments["etf_buy_qty"] = "ETF申购数量"
+        column_comments["etf_buy_amt"] = "ETF申购金额"
+        column_comments["etf_sell_num"] = "ETF赎回笔数"
+        column_comments["etf_sell_qty"] = "ETF赎回数量"
+        column_comments["etf_sell_amt"] = "ETF赎回金额"
+        column_comments["ytm"] = "到期收益率"
+        column_comments["total_buy_num"] = "买单总笔数"
+        column_comments["total_sell_num"] = "卖单总笔数"
+        column_comments["withdraw_buy_num"] = "买单撤单笔数"
+        column_comments["withdraw_buy_qty"] = "买单撤单数量"
+        column_comments["withdraw_buy_amt"] = "买单撤单金额"
+        column_comments["withdraw_sell_num"] = "卖单撤单笔数"
+        column_comments["withdraw_sell_qty"] = "卖单撤单数量"
+        column_comments["withdraw_sell_amt"] = "卖单撤单金额"
+        column_comments["max_buy_duration"] = "买入委托成交最大等待时间"
+        column_comments["max_sell_duration"] = "卖出委托成交最大等待时间"
+        column_comments["buy_order_num"] = "买入委托笔数"
+        column_comments["sell_order_num"] = "卖出委托笔数"
+        column_comments["total_warrant_exec_vol"] = "权证总行权数量"
+        column_comments["warrant_down_limit"] = "权证跌停价"
+        column_comments["warrant_up_limit"] = "权证涨停价"
+        column_comments["update_time"] = "数据写入数据库时间"
+        setColumnComment(loadTable(db_name, tb_name), column_comments)
+		return true
+    }else{
+		msg = stringFormat("%W", "[" + db_name + "] 数据库不存在，请调用create_stock_db()函数创建数据库")
+		msg = write_log(msg, level="error")
+		return false
+    }
+}
+
+/*
+*  @FunctionName: create_stock_orderqueue
+*  @Brief: 创建存储沪深股票和ETF委托队列数据的分布式表
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage: create_stock_orderqueue(db_name="dfs://level2_stock_db", tb_name="orderqueue")
+*/
+def create_stock_orderqueue(db_name="dfs://level2_stock_db", tb_name="orderqueue"){
+     if(existsDatabase(db_name)){
+        db = database(db_name)
+        if(existsTable(db_name, tb_name)){
+			msg = stringFormat("%W", "[" + tb_name + "] 分区表已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+        }
+        schema_tb = table(
+           array(SYMBOL,0) as code,
+           array(SYMBOL,0) as exchange,
+           array(DATE,0) as trade_date,
+           array(TIME,0) as trade_time,
+           array(DOUBLE,0) as last_price,
+           array(SYMBOL,0) as side,
+           array(DOUBLE,0) as order_price,
+           array(DOUBLE,0) as order_qty1,
+           array(INT,0) as order_num,
+           array(INT,0) as order_no,
+           array(DOUBLE[],0) as order_qtys,
+           array(INT,0) as level_num,
+           array(TIMESTAMP,0) as update_time
+        )
+        db.createPartitionedTable(
+            table = schema_tb,
+            tableName = tb_name,
+            partitionColumns = `trade_date`code,
+            sortColumns=`code`trade_time
+        )
+        msg = stringFormat("%W", "[" + tb_name + "] 分区表已经成功创建")
+        msg = write_log(msg, level="info")
+        column_comments = dict(STRING, STRING)
+        column_comments["code"] = "证券代码"
+        column_comments["exchange"] = "交易所代码"
+        column_comments["trade_date"] = "交易日期"
+        column_comments["trade_time"] = "委托时间"
+        column_comments["last_price"] = "最新成交价"
+        column_comments["side"] = "买卖方向"
+        column_comments["order_price"] = "委托价格"
+        column_comments["order_qty1"] = "委买（卖）价 1 上的委托总量"
+        column_comments["order_num"] = "委买（卖）价 1 上总委托笔数（可以超过 50）"
+        column_comments["order_no"] = "委托价格上揭示的委托量队列数"
+        column_comments["order_qtys"] = "在委买（卖）价 1 上，还未成交的前50笔委托的委托量"
+        column_comments["level_num"] = "买卖盘价位数量"
+        column_comments["update_time"] = "数据写入数据库时间"
+        setColumnComment(loadTable(db_name, tb_name), column_comments)
+		return true
+    }else{
+		msg = stringFormat("%W", "[" + db_name + "] 数据库不存在，请调用create_stock_db()函数创建数据库")
+		msg = write_log(msg, level="error")
+		return false
+    }
+}
+
+/*
+*  @FunctionName: create_stock_tick
+*  @Brief: 创建存储沪深股票tick逐笔合并数据的分布式表
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage: create_stock_tick(db_name="dfs://level2_stock_db", tb_name="tick")
+*/
+def create_stock_tick(db_name="dfs://level2_stock_db", tb_name="tick"){
+     if(existsDatabase(db_name)){
+        db = database(db_name)
+        if(existsTable(db_name, tb_name)){
+			msg = stringFormat("%W", "[" + tb_name + "] 分区表已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+        }
+        schema_tb = table(
+           array(SYMBOL,0) as code,
+           array(SYMBOL,0) as exchange,
+           array(DATE,0) as trade_date,
+           array(TIME,0) as trade_time,
+           array(INT,0) as msg_type,
+           array(INT,0) as data_type,
+           array(INT,0) as channel_no,
+           array(LONG,0) as appl_seq,
+           array(DOUBLE,0) as price,
+           array(LONG,0) as qty,
+           array(LONG,0) as buy_order,
+           array(LONG,0) as sell_order,
+           array(INT,0) as side,
+           array(TIMESTAMP,0) as update_time
+        )
+        db.createPartitionedTable(
+            table = schema_tb,
+            tableName = tb_name,
+            partitionColumns = `trade_date`code,
+            sortColumns=`code`trade_time
+        )
+        msg = stringFormat("%W", "[" + tb_name + "] 分区表已经成功创建")
+        msg = write_log(msg, level="info")
+        column_comments = dict(STRING, STRING)
+        column_comments["code"] = "证券代码"
+        column_comments["exchange"] = "交易所代码"
+        column_comments["trade_date"] = "交易日期"
+        column_comments["trade_time"] = "交易时间"
+        column_comments["msg_type"] = "消息类型"
+        column_comments["data_type"] = "数据类型"
+        column_comments["channel_no"] = "频道代码"
+        column_comments["appl_seq"] = "消息记录号"
+        column_comments["price"] = "价格"
+        column_comments["qty"] = "数量"
+        column_comments["buy_order"] = "买方订单号"
+        column_comments["sell_order"] = "卖方订单号"
+        column_comments["side"] = "买卖方向"
+        column_comments["update_time"] = "数据写入数据库时间"
+        setColumnComment(loadTable(db_name, tb_name), column_comments)
+		return true
+    }else{
+		msg = stringFormat("%W", "[" + db_name + "] 数据库不存在，请调用create_stock_db()函数创建数据库")
+		msg = write_log(msg, level="error")
+		return false
+    }
+}
+
+// dropTable(database("dfs://level2_stock_db"), "snapshot")
+// dropTable(database("dfs://level2_stock_db"), "trade")
+// dropTable(database("dfs://level2_stock_db"), "entrust")
+// truncate("dfs://level2_stock_db", "entrust")

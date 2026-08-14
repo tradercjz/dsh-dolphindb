@@ -1,0 +1,88 @@
+{
+  "signature": "def onBar(mutable context, msg, indicator){}",
+  "purpose": "中低频行情回调函数。用于在 onBar 触发时基于当前行情、指标和上下文状态执行策略逻辑。",
+  "allowed_actions": [
+    "读取当前 bar 的行情数据 msg",
+    "读取 initialize 中准备好的 context 全局状态",
+    "读取与 msg 同结构的 indicator 数据",
+    "基于当前策略逻辑执行买卖判断",
+    "更新策略在后续回调中要复用的 context 状态"
+  ],
+  "forbidden": [
+    "不要访问未在文档或可用字段说明中声明的数据字段",
+    "不要臆造 msg 或 indicator 中不存在的字段",
+    "不要把 initialize 阶段的一次性准备逻辑重复写入 onBar"
+  ],
+  "parameters": {
+    "context": {
+      "type": "DICT",
+      "meaning": "策略全局变量，数据类型为字典，可读写后续回调共享状态",
+      "usage": "赋值方式 context[\"xxxx\"]=xxx, 取值方式 context[\"xxxx\"]，不存在 key 时返回 NULL"
+    },
+    "msg": {
+      "type": "DICT(STRING,DICT)",
+      "meaning": "中低频行情数据，第一层 key 是标的名，第二层是该标的对应字段值，表示当前bar所有的标的行情",
+      "usage": "外层按 symbol 索引，内层读取 open、high、low、close、volume 等字段",
+      "fields": {
+        "symbol": {
+          "type": "STRING",
+          "desc": "股票代码，上交所以\".XSHG\"结尾，深交所以\".XSHE\"结尾"
+        },
+        "tradeTime": {
+          "type": "TIMESTAMP",
+          "desc": "交易日"
+        },
+        "open": {
+          "type": "DOUBLE",
+          "desc": "开盘价"
+        },
+        "low": {
+          "type": "DOUBLE",
+          "desc": "最低价"
+        },
+        "high": {
+          "type": "DOUBLE",
+          "desc": "最高价"
+        },
+        "close": {
+          "type": "DOUBLE",
+          "desc": "收盘价"
+        },
+        "volume": {
+          "type": "LONG",
+          "desc": "成交量"
+        },
+        "amount": {
+          "type": "DOUBLE",
+          "desc": "成交额"
+        },
+        "upLimitPrice": {
+          "type": "DOUBLE",
+          "desc": "涨停价"
+        },
+        "downLimitPrice": {
+          "type": "DOUBLE",
+          "desc": "跌停价"
+        },
+        "prevClosePrice": {
+          "type": "DOUBLE",
+          "desc": "前收盘价"
+        },
+        "signal": {
+          "type": "DOUBLE[]",
+          "desc": "其他"
+        }
+      }
+    },
+    "indicator": {
+      "type": "DICT(STRING,DICT)",
+      "meaning": "行情指标数据，数据类型与相应行情 msg 保持一致",
+      "usage": "结构与 msg 对齐，用于读取已订阅指标和派生指标结果",
+      "fields": "与 msg.fields 保持一致，外层 key 同样是标的名，内层 key 为指标名"
+    }
+  },
+  "notes": [
+    "msg 是双层字典，第一层 key 是标的名，第二层 key 是字段名。",
+    "indicator 的结构与 msg 对齐，第一层 key 也是标的名。"
+  ]
+}

@@ -1,0 +1,30 @@
+module easy_datayes::createDbAndTb::createDB
+
+use easy_datayes::utils
+use easy_datayes::setconfig
+
+/*
+ * @FunctionName: createDB
+ * @Brief: Main function to create a database.
+ * @Param: dbName: The name of the database to be created.
+ * @Param: dataSource: The type of data to be stored in the database.(e.g., TLSnapshot, TLEntrust, TLTrade)
+ */
+def createDB(dbName, dataSource){
+    // Check if the database already exists
+	if(existsDatabase(dbName)){
+        msg = stringFormat("[%W] 数据库已经存在，如果要删除数据库，可以执行 dropDatabase('%W')。请谨慎操作 dropDatabase", dbName, dbName)
+        msg = write_log(msg)
+        return false
+	}
+    // Create the database
+	data_type_map = set_data_type()
+    partition_schema = set_partition_schema()
+    // 组合分区
+    compo_schema = partition_schema["compo"]
+    if(dataSource in flatten(data_type_map[compo_schema["dtype"]])){
+        hashNum = compo_schema["hash"]
+        db1 = database(, VALUE, 2021.01.01..2021.01.03)
+        db2 = database(, HASH, [SYMBOL, hashNum])
+        db = database(dbName, COMPO, [db1, db2], , "TSDB")
+    }
+}

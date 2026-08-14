@@ -1,0 +1,41 @@
+// ============================================================
+// VolatilitySurface — parseMktData 构建示例
+// 构建通用波动率曲面（商品期货 / 权益期权共用）
+// ============================================================
+// 金融含义：
+//   VolatilitySurface 是商品期货期权和权益期权共用的波动率曲面类型。
+//   与 FxVolatilitySurface 的区别：VolatilitySurface 使用 volSmiles
+//   格式（每个期限一组 strike-vol 对），适用于 CmFutEuropeanOption、
+//   CmFutAmericanOption、EqEuropeanOption、EqAmericanOption。
+//   构建时也可通过 cmFutVolatilitySurfaceBuilder 从期权价格反推。
+// ============================================================
+
+volDict = dict(STRING, ANY)
+volDict["mktDataType"]    = "Surface"                // 曲面类市场数据
+volDict["surfaceType"]    = "VolatilitySurface"       // 通用波动率曲面
+volDict["referenceDate"]  = 2025.08.18
+volDict["surfaceName"]    = "50ETF_VOL"               // 曲面名称
+volDict["smileMethod"]    = "Linear"                  // smile 内插方法
+
+// --- 期限维度 ---
+volDict["termDates"]      = [2025.11.18, 2026.03.18, 2026.08.18]
+
+// --- 各期限的 smile ---
+// 3M smile (50ETF)
+s1 = dict(STRING, ANY)
+s1["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]           // 执行价（元）
+s1["vols"]    = [0.22, 0.20, 0.19, 0.21, 0.25]       // 隐含波动率
+
+// 7M smile
+s2 = dict(STRING, ANY)
+s2["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s2["vols"]    = [0.24, 0.22, 0.21, 0.23, 0.27]       // 期限越长 vol 越高
+
+// 1Y smile
+s3 = dict(STRING, ANY)
+s3["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s3["vols"]    = [0.26, 0.24, 0.23, 0.25, 0.29]
+
+volDict["volSmiles"] = [s1, s2, s3]                   // 与 termDates 一一对应
+
+volSurf = parseMktData(volDict)

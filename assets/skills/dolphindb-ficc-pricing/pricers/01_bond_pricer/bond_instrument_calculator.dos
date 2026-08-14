@@ -1,0 +1,102 @@
+// ============================================================
+// bondInstrumentCalculator — 债券价格/收益率互算示例
+// ============================================================
+// 与 bondPricer 的区别：
+//   bondPricer             → 曲线折现 → NPV（净现值标量）
+//   bondInstrumentCalculator → 价格 ↔ 收益率互算，拆分 cleanPrice/dirtyPrice/应计利息
+// ============================================================
+
+// ============================================================
+// 场景 1: 普通固定利率债 — 已知 YTM，求净价/全价/应计利息
+// ============================================================
+ins = parseInstrument(dict(
+    `productType`assetType`bondType`instrumentId`start`maturity`coupon`frequency`issuePrice`dayCountConvention,
+    ["Cash","Bond","FixedRateBond","240025.IB",2024.10.24,2031.10.24,0.0200,"Semiannual",100.0,"ActualActualISDA"]
+))
+
+res1 = bondInstrumentCalculator(ins, settlement=2026.03.20, price=0.0185, priceType="YTM", calcRisk=false, benchmark="CSI")
+print("=== 场景1: 已知 YTM=1.85% ===")
+print("cleanPrice:      " + string(res1["cleanPrice"]))
+print("dirtyPrice:      " + string(res1["dirtyPrice"]))
+print("accruedInterest: " + string(res1["accruedInterest"]))
+
+// ============================================================
+// 场景 2: 已知净价，反算 YTM + 风险指标
+// ============================================================
+res2 = bondInstrumentCalculator(ins, settlement=2026.03.20, price=101.00, priceType="CleanPrice", calcRisk=true, benchmark="CSI")
+print("\n=== 场景2: 已知净价=101.00，反算 YTM ===")
+print("ytm:             " + string(res2["ytm"]))
+print("modifiedDuration:" + string(res2["modifiedDuration"]))
+print("convexity:       " + string(res2["convexity"]))
+print("pvbp:            " + string(res2["pvbp"]))
+
+// ============================================================
+// 场景 3: 含权债（OptionBond）— 行权收益率 + 全量风险指标
+// ============================================================
+optionBond = dict(STRING, ANY)
+optionBond["productType"]        = "Cash"
+optionBond["assetType"]          = "Bond"
+optionBond["bondType"]           = "OptionBond"
+optionBond["version"]            = 0
+optionBond["instrumentId"]       = "242659.SH"
+optionBond["nominal"]            = 100.0
+optionBond["start"]              = 2025.03.26
+optionBond["maturity"]           = 2030.03.26
+optionBond["coupon"]             = 0.0207
+optionBond["frequency"]          = "Annual"
+optionBond["exerciseDates"]      = [2028.03.26]
+optionBond["hasCallOption"]      = true
+optionBond["hasPutOption"]       = true
+optionBond["hasCouponAdjust"]    = true
+optionBond["dayCountConvention"] = "ActualActualISMA"
+insOpt = parseInstrument(optionBond)
+
+res3 = bondInstrumentCalculator(insOpt, settlement=2025.12.19, price=0.0195216, priceType="YTM", calcRisk=true)
+print("\n=== 场景3: 含权债 242659.SH，YTM=1.95216% ===")
+print("dirtyPrice:       " + string(res3["dirtyPrice"]))
+print("cleanPrice:       " + string(res3["cleanPrice"]))
+print("accruedInterest:  " + string(res3["accruedInterest"]))
+print("ytm:              " + string(res3["ytm"]))
+print("yte:              " + string(res3["yte"]))
+print("macaulayDuration: " + string(res3["macaulayDuration"]))
+print("modifiedDuration: " + string(res3["modifiedDuration"]))
+print("convexity:        " + string(res3["convexity"]))
+print("pvbp:             " + string(res3["pvbp"]))
+
+// ============================================================
+// 场景 4: 与 bondPricer 配合 — 曲线定价后拆分净价/YTM
+// ============================================================
+mktDict = dict(STRING, ANY)
+mktDict["mktDataType"]        = "Curve"
+mktDict["curveType"]          = "IrYieldCurve"
+mktDict["referenceDate"]      = 2026.03.20
+mktDict["currency"]           = "CNY"
+mktDict["curveName"]          = "CNY_TREASURY_BOND"
+mktDict["dayCountConvention"] = "Actual365"
+mktDict["compounding"]        = "Continuous"
+mktDict["interpMethod"]       = "CubicSpline"
+mktDict["extrapMethod"]       = "Flat"
+mktDict["dates"]  = [2026.06.20, 2027.03.20, 2028.03.20, 2029.03.20, 2031.03.20, 2036.03.20]
+mktDict["values"] = [0.0148, 0.0155, 0.0165, 0.0172, 0.0185, 0.0210]
+curve = parseMktData(mktDict)
+
+npv = bondPricer(ins, 2026.03.20, curve)   // Step 1: 曲线折现 → NPV
+res4 = bondInstrumentCalculator(ins, settlement=2026.03.20, price=npv, priceType="DirtyPrice", benchmark="CSI")
+print("\n=== 场景4: bondPricer NPV → 拆分净价/YTM ===")
+print("npv(dirtyPrice):  " + string(npv))
+print("cleanPrice:       " + string(res4["cleanPrice"]))
+print("accruedInterest:  " + string(res4["accruedInterest"]))
+print("ytm:              " + string(res4["ytm"]))
+
+// ============================================================
+// [场景3 实测结果（DolphinDB 3.00.5）]
+//   dirtyPrice       = 101.993837
+//   cleanPrice       = 100.468275
+//   accruedInterest  = 1.525562
+//   ytm              = 0.0195216
+//   yte              = 0.018528
+//   macaulayDuration = 2.205531
+//   modifiedDuration = 2.165411
+//   convexity        = 6.908517
+//   pvbp             = 0.022086
+// ============================================================

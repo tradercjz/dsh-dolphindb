@@ -1,0 +1,472 @@
+module easy_csmar::stock::stock_load_data::load_one_day_tick
+/*
+*  @ brief
+*  导入1天tick逐笔合并数据（逐笔成交 + 逐笔委托）
+*/
+
+// 引用其他module的函数
+use easy_csmar::utils
+use easy_csmar::stock::stock_csv_schema::entrust_csv_schema
+use easy_csmar::stock::stock_csv_schema::trade_csv_schema
+
+/*
+*  @FunctionName: transform_tick_entrust_sh
+*  @Brief: 上交所逐笔委托csv数据转换为tick统一结构
+*  @param: day: 交易日
+*  @param: t: 按照csv指定schema读取到内存中的表
+*  t = loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDER/900948.csv",schema=entrust_csv_schema_sh(2026.04.29))
+*/
+def transform_tick_entrust_sh(day, t){
+    // 指定枚举值的映射关系
+	orderTypeMap = dict(["S", "A", "D"], [-1, 2, 10])
+
+	tmp_data =
+		select
+			Symbol + ".SH" as code,
+			"SH" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			iif(OrderType=="S", -1, 0) as msg_type,                               
+			orderTypeMap[OrderType] as data_type,                     
+			SetID as channel_no,
+			RecNO as appl_seq,
+			OrderPrice as price,
+			long(Balance) as qty,
+			OrderID as buy_order,
+			OrderID as sell_order,
+			iif(OrderCode=="B", 1, iif(OrderCode=="S", 2, int(NULL))) as side,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: transform_tick_entrust_sz
+*  @param: day : 交易日
+*  @param: t : 按照csv指定schema读取到内存中的表
+*  @Brief: 深交所逐笔委托csv数据转换为tick统一结构
+*  
+*/
+def transform_tick_entrust_sz(day, t){
+    if (day < 2016.05.09) {
+        // tmp_data =
+        //     select
+        //         Symbol + ".SZ" as code,
+        //         "SZ" as exchange,
+        //         TradingDate as trade_date,
+        //         time(TradingTime) as trade_time,
+        //         0 as msg_type,   
+		// 		iif(OrderCode in ['B','S'],
+		// 			iif(OrderType == '0', 1, 
+        //             	iif(OrderType in ['7','X'], 3, 
+        //                 iif(OrderType in ['2','V','W','Y'], 2, int(NULL))))) as data_type,                     
+        //         SetID as channel_no,
+        //         RecID as appl_seq,
+        //         OrderPrice as price,
+        //         long(OrderVolume) as qty,
+        //         0 as buy_order,
+        //         0 as sell_order,
+        //         iif(OrderCode=="B", 1, iif(OrderCode=='S',2, int(NULL))) as side,
+        //         now() as update_time
+        //     from t
+    } else {
+        orderTypeMap = dict(["1", "2", "U"], [1, 2, 3])
+        tmp_data =
+            select
+                Symbol + ".SZ" as code,
+                "SZ" as exchange,
+                TradingDate as trade_date,
+                time(TradingTime) as trade_time,
+                0 as msg_type,                               
+                orderTypeMap[OrderType] as data_type,                     
+                SetID as channel_no,
+                RecID as appl_seq,
+                OrderPrice as price,
+                long(OrderVolume) as qty,
+                0 as buy_order,
+                0 as sell_order,
+                iif(OrderCode=="1", 1,  2) as side,
+                now() as update_time
+            from t
+    }
+	return tmp_data
+}
+
+/*
+*  @FunctionName: transform_tick_trade_sh
+*  @Brief: 上交所逐笔成交csv数据转换为tick统一结构
+*  @param: day: 交易日
+*  @param: t: 按照csv指定schema读取到内存中的表
+*/
+def transform_tick_trade_sh(day, t){
+	tmp_data =
+		select
+			Symbol + ".SH" as code,
+			"SH" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			1 as msg_type,                             
+			0 as data_type,                    
+			TradeChannel as channel_no,
+			RecNO as appl_seq,
+			TradePrice as price,
+			long(TradeVolume) as qty,
+			long(BuyRecID) as buy_order,
+			long(SellRecID) as sell_order,
+			iif(BuySellFlag=="B", 1, iif(BuySellFlag=="S", 2, int(NULL))) as side,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: transform_tick_trade_sz
+*  @Brief: 深交所逐笔成交csv数据转换为tick统一结构
+*  @param: day: 交易日
+*  @param: t: 按照csv指定schema读取到内存中的表
+*/
+def transform_tick_trade_sz(day, t){
+	tmp_data =
+		select
+			Symbol + ".SZ" as code,
+			"SZ" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			1 as msg_type,                               
+			iif(TradeType in ["0","F"],0,iif(TradeType in ["C","4"],1,int(NULL))) as data_type,                     
+			SetID as channel_no,
+			RecID as appl_seq,
+			TradePrice as price,
+			long(TradeVolume) as qty,
+			BuyOrderID as buy_order,
+			SellOrderID as sell_order,
+			iif(BuyOrderID > SellOrderID, 1, 2) as side,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: load_one_day_tick_sh
+*  @Brief: 一天上交所tick逐笔合并数据导入数据库
+*  @Param: csv_zip_dir: TRADE 和 ORDER 目录路径
+*  @Param: db_name: 数据库名称
+*  @Param: tb_name: 表名称
+*  @Param: is_need_etf: 是否导入ETF(FUND)数据
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/"
+load_one_day_tick_sh(csv_zip_dir, "dfs://level2_stock_db", "tick", true)
+*/
+def load_one_day_tick_sh(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="tick", is_need_etf=false){
+	// 更新任务状态为进行中
+	update_task_status([day], ["tick"], ["SH"], ["progress"], [""])
+
+	entrust_csv_zip_dir =csv_zip_dir + "ORDER/"
+    trade_csv_zip_dir = csv_zip_dir + "TRADE/"
+    if(!exists(trade_csv_zip_dir)){        
+        msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] 上交所逐笔成交数据路径不存在")
+        msg = write_log(msg, level="error")
+        return false
+    }
+	if(!exists(entrust_csv_zip_dir)){
+		msg = stringFormat("%W", "[" + entrust_csv_zip_dir + "] 上交所逐笔委托数据路径不存在")
+		msg = write_log(msg, level="error")
+		return false
+	}
+	
+	// 判断是否解压order数据
+	entrust_csv_zip_files = entrust_csv_zip_dir + exec filename from files(entrust_csv_zip_dir) where filename like "%.zip"
+	entrust_unziped_csv_path = entrust_csv_zip_dir
+	if (size(entrust_csv_zip_files) >0) {
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data: ORDER")
+		msg = write_log(msg, level="info")
+		try{
+			entrust_unziped_path = entrust_csv_zip_dir + "csv_temp_dir_tick"
+			if (exists(entrust_unziped_path)) {
+				rmdir(entrust_unziped_path,true)
+			}
+			mkdir(entrust_unziped_path)
+			for(csv_zip_file in entrust_csv_zip_files){
+				zip::unzip(csv_zip_file, entrust_unziped_path)
+			}
+		} catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["tick"], ["SH"], ["failed"], ["Order data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + entrust_csv_zip_dir + "] unzip completed")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		entrust_unziped_csv_path = entrust_unziped_path + "/"
+	}
+
+	// 判断是否解压trade数据
+	trade_csv_zip_files = trade_csv_zip_dir + exec filename from files(trade_csv_zip_dir) where filename like "%.zip"
+	trade_unziped_csv_path = trade_csv_zip_dir
+	if (size(trade_csv_zip_files)>0){
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data: TRADE")
+		msg = write_log(msg, level="info")
+		try{
+			trade_unziped_path = trade_csv_zip_dir + "csv_temp_dir_tick"
+			if (exists(trade_unziped_path)) {
+				rmdir(trade_unziped_path,true)
+			}
+			mkdir(trade_unziped_path)
+			for(csv_zip_file in trade_csv_zip_files){
+				zip::unzip(csv_zip_file, trade_unziped_path)
+			}
+		} catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["tick"], ["SH"], ["failed"], ["Trade data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] unzip completed")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		trade_unziped_csv_path = trade_unziped_path + "/"
+	}
+	
+	// 加载库表schema
+	pt = loadTable(db_name, tb_name)
+	order_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+	trade_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+	schema_trade_tb = trade_csv_schema_sh(day)
+	schema_entrust_tb = entrust_csv_schema_sh(day)
+
+	msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] start importing data")
+	msg = write_log(msg, level="info")
+	// 导入order 数据
+	entrust_csv_files = entrust_unziped_csv_path + exec filename from files(entrust_unziped_csv_path) where filename like "%.csv"
+	// 没有csv文件
+	if (size(entrust_csv_files)==0) {
+		update_task_status([day], ["tick"], ["SH"], ["failed"], [entrust_unziped_csv_path + " is empty, please check!"])
+		return false
+	}
+	try {
+		for(entrust_csv_file in entrust_csv_files){
+			one_code_tick_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+
+			entrust_tmp_tb = loadText(filename=entrust_csv_file, schema=schema_entrust_tb)
+			one_code_tick_tb.append!(transform_tick_entrust_sh(day, entrust_tmp_tb))
+
+			one_code_tick_tb = select * from one_code_tick_tb order by channel_no, appl_seq
+			one_code_tick_tb.reorderColumns!(pt.schema().colDefs.name)
+			order_tmp_mem_tb.append!(one_code_tick_tb)
+			if(memSize(order_tmp_mem_tb)\1024\1024 >=200){
+				pt.append!(order_tmp_mem_tb)
+				order_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+			}
+		}
+		pt.append!(order_tmp_mem_tb)
+	} catch(ex){
+		msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["tick"], ["SH"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+		return false
+	}
+
+	// 导入 trade 数据
+	trade_csv_files = trade_unziped_csv_path + exec filename from files(trade_unziped_csv_path) where filename like "%.csv"
+	// 没有csv文件
+	if (size(trade_csv_files)==0) {
+		update_task_status([day], ["tick"], ["SH"], ["failed"], [trade_unziped_csv_path + " is empty, please check!"])
+		return false
+	}
+	try {
+		for(trade_csv_file in trade_csv_files){
+			one_code_tick_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+
+			trade_tmp_tb = loadText(filename=trade_csv_file, schema=schema_trade_tb)
+			one_code_tick_tb.append!(transform_tick_trade_sh(day, trade_tmp_tb))
+			
+			one_code_tick_tb = select * from one_code_tick_tb order by channel_no, appl_seq
+			one_code_tick_tb.reorderColumns!(pt.schema().colDefs.name)
+			trade_tmp_mem_tb.append!(one_code_tick_tb)
+			if(memSize(trade_tmp_mem_tb)\1024\1024 >=200){
+				pt.append!(trade_tmp_mem_tb)
+				trade_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+			}
+		}
+		pt.append!(trade_tmp_mem_tb)
+	} catch(ex){
+		msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["tick"], ["SH"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+		return false
+	}
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] data import completed")
+    msg = write_log(msg, level="info")
+	update_task_status([day], ["tick"], ["SH"], ["completed"], [""])
+	try{rmdir(trade_csv_zip_dir+"csv_temp_dir_tick", true)}catch(ex) {}
+	try{rmdir(entrust_csv_zip_dir+"csv_temp_dir_tick", true)}catch(ex) {}
+	// 是否需要ETF数据
+	if (is_need_etf){
+		csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+		load_one_day_tick_sh(csv_zip_dir_etf, day, db_name, tb_name, false)
+	}
+}
+
+/*
+*  @FunctionName: load_one_day_tick_sz
+*  @Brief: 一天深交所tick逐笔合并数据导入数据库
+*  @Param: csv_zip_dir: ORDER 和 TRADE 目录路径
+*  @Param: db_name: 数据库名称
+*  @Param: tb_name: 表名称
+*  @Param: is_need_etf: 是否导入ETF(FUND)数据
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/"
+load_one_day_tick_sz(csv_zip_dir, "dfs://level2_stock_db", "tick", true)
+*/
+def load_one_day_tick_sz(csv_zip_dir,day, db_name="dfs://level2_stock_db", tb_name="tick", is_need_etf=false){
+
+	// 更新任务状态为进行中
+	update_task_status([day], ["tick"], ["SZ"], ["progress"], [""])
+
+	entrust_csv_zip_dir =csv_zip_dir + "ORDER/"
+    trade_csv_zip_dir = csv_zip_dir + "TRADE/"
+    if(!exists(trade_csv_zip_dir)){        
+        msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] 上交所逐笔成交数据路径不存在")
+        msg = write_log(msg, level="error")
+        return false
+    }
+	if(!exists(entrust_csv_zip_dir)){
+		msg = stringFormat("%W", "[" + entrust_csv_zip_dir + "] 上交所逐笔委托数据路径不存在")
+		msg = write_log(msg, level="error")
+		return false
+	}
+	
+	// 判断是否解压order数据
+	entrust_csv_zip_files = entrust_csv_zip_dir + exec filename from files(entrust_csv_zip_dir) where filename like "%.zip"
+	entrust_unziped_csv_path = entrust_csv_zip_dir
+	if (size(entrust_csv_zip_files) >0) {
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data: ORDER")
+		msg = write_log(msg, level="info")
+		try{
+			entrust_unziped_path = entrust_csv_zip_dir + "csv_temp_dir_tick"
+			if (exists(entrust_unziped_path)) {
+				rmdir(entrust_unziped_path,true)
+			}
+			mkdir(entrust_unziped_path)
+			for(csv_zip_file in entrust_csv_zip_files){
+				zip::unzip(csv_zip_file, entrust_unziped_path)
+			}
+		} catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["tick"], ["SZ"], ["failed"], ["Order data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + entrust_csv_zip_dir + "] unzip completed")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		entrust_unziped_csv_path = entrust_unziped_path + "/"
+	}
+
+	// 判断是否解压trade数据
+	trade_csv_zip_files = trade_csv_zip_dir + exec filename from files(trade_csv_zip_dir) where filename like "%.zip"
+	trade_unziped_csv_path = trade_csv_zip_dir
+	if (size(trade_csv_zip_files)>0){
+		msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data: TRADE")
+		msg = write_log(msg, level="info")
+		try{
+			trade_unziped_path = trade_csv_zip_dir + "csv_temp_dir_tick"
+			if (exists(trade_unziped_path)) {
+				rmdir(trade_unziped_path,true)
+			}
+			mkdir(trade_unziped_path)
+			for(csv_zip_file in trade_csv_zip_files){
+				zip::unzip(csv_zip_file, trade_unziped_path)
+			}
+		} catch(ex){
+			msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+			msg = write_log(msg, level="error")
+			update_task_status([day], ["tick"], ["SZ"], ["failed"], ["Trade data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+			return false
+		}
+		msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] unzip completed")
+		msg = write_log(msg, level="info")
+		// 解压完成
+		trade_unziped_csv_path = trade_unziped_path + "/"
+	}
+	
+	// 加载库表schema
+	pt = loadTable(db_name, tb_name)
+	order_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+	trade_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+	schema_trade_tb = trade_csv_schema_sz(day)
+	schema_entrust_tb = entrust_csv_schema_sz(day)
+
+	msg = stringFormat("%W", "[" + trade_csv_zip_dir + "] start importing data")
+	msg = write_log(msg, level="info")
+	// 导入order 数据
+	entrust_csv_files = entrust_unziped_csv_path + exec filename from files(entrust_unziped_csv_path) where filename like "%.csv"
+	// 没有csv文件
+	if (size(entrust_csv_files)==0) {
+		update_task_status([day], ["tick"], ["SZ"], ["failed"], [entrust_unziped_csv_path + " is empty, please check!"])
+		return false
+	}
+	try {
+		for(entrust_csv_file in entrust_csv_files){
+			one_code_tick_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+
+			entrust_tmp_tb = loadText(filename=entrust_csv_file, schema=schema_entrust_tb)
+			one_code_tick_tb.append!(transform_tick_entrust_sz(day, entrust_tmp_tb))
+
+			one_code_tick_tb = select * from one_code_tick_tb order by channel_no, appl_seq
+			one_code_tick_tb.reorderColumns!(pt.schema().colDefs.name)
+			order_tmp_mem_tb.append!(one_code_tick_tb)
+			if(memSize(order_tmp_mem_tb)\1024\1024 >=200){
+				pt.append!(order_tmp_mem_tb)
+				order_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+			}
+		}
+		pt.append!(order_tmp_mem_tb)
+	} catch(ex){
+		msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["tick"], ["SZ"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+		return false
+	}
+
+	// 导入 trade 数据
+	trade_csv_files = trade_unziped_csv_path + exec filename from files(trade_unziped_csv_path) where filename like "%.csv"
+	// 没有csv文件
+	if (size(trade_csv_files)==0) {
+		update_task_status([day], ["tick"], ["SZ"], ["failed"], [trade_unziped_csv_path + " is empty, please check!"])
+		return false
+	}
+	try {
+		for(trade_csv_file in trade_csv_files){
+			one_code_tick_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+
+			trade_tmp_tb = loadText(filename=trade_csv_file, schema=schema_trade_tb)
+			one_code_tick_tb.append!(transform_tick_trade_sz(day, trade_tmp_tb))
+			
+			one_code_tick_tb = select * from one_code_tick_tb order by channel_no, appl_seq
+			one_code_tick_tb.reorderColumns!(pt.schema().colDefs.name)
+			trade_tmp_mem_tb.append!(one_code_tick_tb)
+			if(memSize(trade_tmp_mem_tb)\1024\1024 >=200){
+				pt.append!(trade_tmp_mem_tb)
+				trade_tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+			}
+		}
+		pt.append!(trade_tmp_mem_tb)
+	} catch(ex){
+		msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+		msg = write_log(msg, level="error")
+		update_task_status([day], ["tick"], ["SZ"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+		return false
+	}
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] data import completed")
+    msg = write_log(msg, level="info")
+	update_task_status([day], ["tick"], ["SZ"], ["completed"], [""])
+	try{rmdir(trade_csv_zip_dir+"csv_temp_dir_tick", true)}catch(ex) {}
+	try{rmdir(entrust_csv_zip_dir+"csv_temp_dir_tick", true)}catch(ex) {}
+	// 是否需要ETF数据
+	if (is_need_etf){
+		csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+		load_one_day_tick_sz(csv_zip_dir_etf, day, db_name, tb_name, false)
+	}
+}

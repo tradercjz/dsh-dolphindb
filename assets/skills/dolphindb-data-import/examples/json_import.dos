@@ -1,0 +1,15 @@
+// Example: Import JSON data
+
+// Method 1: fromStdJson — parse standard JSON string
+jsonStr = '[{"id":1,"sym":"AAPL","price":150.5},{"id":2,"sym":"GOOG","price":2800.0}]'
+t = parseJsonTable(jsonStr)
+
+// Method 2: Read JSON file and parse
+// First read file as string, then parse
+jsonContent = readLines("/data/records.json").concat()
+t = parseJsonTable(jsonContent)
+
+// Write to database
+db = database("dfs://jsondb", VALUE, `AAPL`GOOG`MSFT)
+pt = db.createPartitionedTable(t, "records", `sym)
+pt.append!(t)

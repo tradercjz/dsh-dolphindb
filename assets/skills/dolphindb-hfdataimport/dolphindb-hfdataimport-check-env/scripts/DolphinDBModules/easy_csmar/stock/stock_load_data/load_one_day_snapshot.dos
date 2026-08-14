@@ -1,0 +1,355 @@
+module easy_csmar::stock::stock_load_data::load_one_day_snapshot
+/*
+*  @ brief  
+*  导入1天快照数据
+*/
+
+//引用其他module的函数
+// clearCachedModules()
+use easy_csmar::utils
+use easy_csmar::stock::stock_csv_schema::snapshot_csv_schema
+
+
+/*
+*  @FunctionName: transform_snapshot_sh
+*  @Brief: 上交所行情快照csv数据读取到内存后的转换函数
+*  @Param: day: 交易日
+*  @Param: t: 按照csv指定schema读取到内存中的表
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = snapshot_csv_schema_sh(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/TAQ/600008.csv", schema=schema_tb)
+tmp_data = transform_snapshot_sh(day=2026.04.29, t=tb)
+*/
+def transform_snapshot_sh(day, t){
+    /*@test
+	day = 2026.04.29
+	schema_tb = snapshot_csv_schema_sh(day)
+	t= loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/TAQ/600008.csv", schema=schema_tb)
+	*/
+	tmpData = 
+		select 
+			Symbol + ".SH" as code, 
+            'SH' as exchange,
+            TradingDate as trade_date,
+            time(TradingTime) as trade_time,
+            PreClosePrice as pre_close,
+            OpenPrice as open_price,
+            HighPrice as high_price,
+            LowPrice as low_price,
+            LastPrice as last_price,
+            double(NULL) as price_up,
+            double(NULL) as price_down,
+            iif(time(TradingTime)>=09:25:00,LastPrice - PreClosePrice,0) as dif_price1,
+            double(NULL) as dif_price2, //最新价-上一最新价;对于当天的第一笔成交，该字段=最新价-昨收价
+            ClosePrice as close_price,
+            TotalNO as total_num,
+            TotalVolume as total_qty,
+            TotalAmount as total_amt,
+            double(NULL) as peratio1,
+            double(NULL) as peratio2,
+            SellLevelNo as sell_level_num,
+            TotalSellOrderVolume as total_sell_qty,
+            WtAvgSellPrice as wtavg_sell_price,
+            fixedLengthArrayVector(SellPrice01,SellPrice02,SellPrice03,SellPrice04,SellPrice05,SellPrice06,SellPrice07,SellPrice08,SellPrice09,SellPrice10) as sell_price,
+            fixedLengthArrayVector(SellVolume01,SellVolume02,SellVolume03,SellVolume04,SellVolume05,SellVolume06,SellVolume07,SellVolume08,SellVolume09,SellVolume10) as sell_qty,
+            fixedLengthArrayVector(TotalSellOrderNo01,TotalSellOrderNo02,TotalSellOrderNo03,TotalSellOrderNo04,TotalSellOrderNo05,TotalSellOrderNo06,TotalSellOrderNo07,TotalSellOrderNo08,TotalSellOrderNo09,TotalSellOrderNo10) as sell_num,
+            BuyLevelNo as buy_level_num,
+            TotalBuyOrderVolume as total_buy_qty,
+            WtAvgBuyPrice as wtavg_buy_price,
+            fixedLengthArrayVector(BuyPrice01,BuyPrice02,BuyPrice03,BuyPrice04,BuyPrice05,BuyPrice06,BuyPrice07,BuyPrice08,BuyPrice09,BuyPrice10) as buy_price,
+			fixedLengthArrayVector(BuyVolume01,BuyVolume02,BuyVolume03,BuyVolume04,BuyVolume05,BuyVolume06,BuyVolume07,BuyVolume08,BuyVolume09,BuyVolume10) as buy_qty,
+            fixedLengthArrayVector(TotalBuyOrderNo01,TotalBuyOrderNo02,TotalBuyOrderNo03,TotalBuyOrderNo04,TotalBuyOrderNo05,TotalBuyOrderNo06,TotalBuyOrderNo07,TotalBuyOrderNo08,TotalBuyOrderNo09,TotalBuyOrderNo10) as buy_num,
+            TradeStatus as phase_code,
+            double(NULL) as nav,
+            IOPV as iopv,
+            double(NULL) as premium_rate,
+            iif(prev(TotalNO)==NULL,TotalNO,TotalNO - prev(TotalNO)) as trade_num, // 首条记录取当前成交总笔数
+            iif(prev(TotalVolume)==NULL,TotalVolume,TotalVolume - prev(TotalVolume)) as trade_qty, // 首条记录取当前成交总量
+            iif(prev(TotalAmount)==NULL,TotalAmount,TotalAmount - prev(TotalAmount)) as trade_amt, // 首条记录取当前成交总额
+            ETFBuyNo as etf_buy_num,
+            ETFBuyVolume as etf_buy_qty,
+            ETFBuyAmount as etf_buy_amt,
+            ETFSellNo as etf_sell_num,
+            ETFSellVolume as etf_sell_qty,
+            ETFSellAmount as etf_sell_amt,
+            YTM as ytm, 
+            TotalBuyNo as total_buy_num,
+            TotalSellNo as total_sell_num,
+            WithdrawBuyNo as withdraw_buy_num,
+            WithdrawBuyVolume as withdraw_buy_qty,
+            WithdrawBuyAmount as withdraw_buy_amt,
+            WithdrawSellNo as withdraw_sell_num,
+            WithdrawSellVolume as withdraw_sell_qty,
+            WithdrawSellAmount as withdraw_sell_amt,
+            MaxBuyDuration as max_buy_duration,
+            MaxSellDuration as max_sell_duration,
+            BuyOrderNo as buy_order_num,
+            SellOrderNo as sell_order_num,
+            long(NULL) as total_warrant_exec_vol,
+            double(NULL) as warrant_down_limit, 
+            double(NULL) as warrant_up_limit,
+            now() as update_time
+		from t
+
+	return tmpData
+}
+
+
+/*
+*  @FunctionName: transform_snapshot_sz
+*  @Brief: 深交所快照csv数据读取到内存后的转换函数
+*  @Param: day: 交易日
+*  @Param: t: 按照csv指定schema读取到内存中的表
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = snapshot_csv_schema_sz(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/TAQ/000572.csv", schema=schema_tb)
+tmp_data = transform_snapshot_sz(day=2026.04.29, t=tb)
+*/
+def transform_snapshot_sz(day, t){
+    /*@test
+	day = 2026.04.29
+	schema_tb = trade_csv_schema_sz(day)
+	t= loadText("/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/TAQ/000572.csv", schema=schema_tb)
+	*/
+    tmpData = 
+        select 
+            Symbol + ".SZ" as code,
+            "SZ" as exchange,
+            TradingDate as trade_date,
+            time(TradingTime) as trade_time,
+            PreClosePrice as pre_close,
+            OpenPrice as open_price,
+            HighPrice as high_price,
+            LowPrice as low_price,
+            LastPrice as last_price,
+            PriceUpLimit as price_up,
+            PriceDownLimit as price_down,
+            PriceUpdown1 as dif_price1,
+            PriceUpdown2 as dif_price2,
+            ClosePrice as close_price,
+            TotalNo as total_num,
+            TotalVolume as total_qty,
+            TotalAmount as total_amt,
+            PERatio1 as peratio1,
+            PERatio2 as peratio2,
+            SellLevelNo as sell_level_num,
+            TotalSellOrderVolume as total_sell_qty,
+            WtAvgSellPrice as wtavg_sell_price,
+            fixedLengthArrayVector(SellPrice01,SellPrice02,SellPrice03,SellPrice04,SellPrice05,SellPrice06,SellPrice07,SellPrice08,SellPrice09,SellPrice10) as sell_price,
+            fixedLengthArrayVector(SellVolume01,SellVolume02,SellVolume03,SellVolume04,SellVolume05,SellVolume06,SellVolume07,SellVolume08,SellVolume09,SellVolume10) as sell_qty,
+            fixedLengthArrayVector(TotalSellOrderNo01,TotalSellOrderNo02,TotalSellOrderNo03,TotalSellOrderNo04,TotalSellOrderNo05,TotalSellOrderNo06,TotalSellOrderNo07,TotalSellOrderNo08,TotalSellOrderNo09,TotalSellOrderNo10) as sell_num,
+            BuyLevelNo as buy_level_num,
+            TotalBuyOrderVolume as total_buy_qty,
+            WtAvgBuyPrice as wtavg_buy_price,
+            fixedLengthArrayVector(BuyPrice01,BuyPrice02,BuyPrice03,BuyPrice04,BuyPrice05,BuyPrice06,BuyPrice07,BuyPrice08,BuyPrice09,BuyPrice10) as buy_price,
+            fixedLengthArrayVector(BuyVolume01,BuyVolume02,BuyVolume03,BuyVolume04,BuyVolume05,BuyVolume06,BuyVolume07,BuyVolume08,BuyVolume09,BuyVolume10) as buy_qty,
+            fixedLengthArrayVector(TotalBuyOrderNo01,TotalBuyOrderNo02,TotalBuyOrderNo03,TotalBuyOrderNo04,TotalBuyOrderNo05,TotalBuyOrderNo06,TotalBuyOrderNo07,TotalBuyOrderNo08,TotalBuyOrderNo09,TotalBuyOrderNo10) as buy_num,
+            SecurityPhaseTag as phase_code,
+            NAV as nav,
+            IOPV as iopv,
+            PremiumRate as premium_rate,
+            TradeNo as trade_num,
+            TradeVolume as trade_qty,
+            TradeAmount as trade_amt,
+            int(NULL) as etf_buy_num,
+            double(NULL) as etf_buy_qty,
+            double(NULL) as etf_buy_amt,
+            int(NULL) as etf_sell_num,
+            double(NULL) as etf_sell_qty,
+            double(NULL) as etf_sell_amt,
+            double(NULL) as ytm,
+            long(NULL) as total_buy_num,
+            long(NULL) as total_sell_num,
+            int(NULL) as withdraw_buy_num,
+            double(NULL) as withdraw_buy_qty,
+            double(NULL) as withdraw_buy_amt,
+            int(NULL) as withdraw_sell_num,
+            double(NULL) as withdraw_sell_qty,
+            double(NULL) as withdraw_sell_amt,
+            double(NULL) as max_buy_duration,
+            double(NULL) as max_sell_duration,
+            int(NULL) as buy_order_num,
+            int(NULL) as sell_order_num,
+            long(NULL) as total_warrant_exec_vol,
+            double(NULL) as warrant_down_limit,
+            double(NULL) as warrant_up_limit,
+            now() as update_time
+        from t
+	return tmpData
+}
+
+
+/*
+*  @FunctionName: load_one_day_snapshot_sh
+*  @Brief: 一天上交所快照数据导入数据库
+*  @Param: day: 交易日
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/TAQ/"
+is_need_etf = true
+load_one_day_snapshot_sh(csv_zip_dir, 2026.04.29, "dfs://level2_stock_db", "snapshot",is_need_etf)
+*/
+def load_one_day_snapshot_sh(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="snapshot",is_need_etf = false){
+    update_task_status([day], ["snapshot"], ["SH"], ["progress"], [""])
+    if (!exists(csv_zip_dir)){
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["snapshot"], ["SH"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+        return false
+    }
+
+    csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+    unziped_csv_path = csv_zip_dir
+    if (size(csv_zip_files)>0) {
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+        msg = write_log(msg, level="info")
+        try{
+            unziped_path = csv_zip_dir + "csv_temp_dir"
+            if (exists(unziped_path)) {
+                rmdir(unziped_path,true)
+            }
+            mkdir(unziped_path)
+            for(csv_zip_file in csv_zip_files){
+                zip::unzip(csv_zip_file, unziped_path)
+            }
+        }catch(ex){
+            msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+            msg = write_log(msg, level="error")
+            update_task_status([day], ["snapshot"], ["SH"], ["failed"], ["Data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+            return false
+        }
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip completed, start importing data")
+        msg = write_log(msg, level="info")
+        // 解压完成
+        unziped_csv_path = unziped_path + "/"
+    }
+    
+    pt = loadTable(db_name, tb_name)
+    tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+    schema_tb = snapshot_csv_schema_sh(day)
+    csv_files = unziped_csv_path + exec filename from files(unziped_csv_path) where filename like "%.csv"
+    // 没有csv文件
+    if (size(csv_files)==0) {
+        update_task_status([day], ["snapshot"], ["SH"], ["failed"], [unziped_csv_path + " is empty, please check!"])
+        return false
+    }
+    try{
+        for(csv_file in csv_files){
+            one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+            one_code_tb = transform_snapshot_sh(day, one_code_tb_tmp)
+            one_code_tb.reorderColumns!(pt.schema().colDefs.name)
+            tmp_mem_tb.append!(one_code_tb)
+            if(memSize(tmp_mem_tb)\1024\1024 >=200){
+                pt.append!(tmp_mem_tb)
+                tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+            }
+        }
+        pt.append!(tmp_mem_tb)
+    }catch(ex){
+        msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["snapshot"], ["SH"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+        return false
+    }
+
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] Data import completed")
+    msg = write_log(msg, level="info")
+    update_task_status([day], ["snapshot"], ["SH"], ["completed"], [""])
+    // 删除解压的目录	
+    try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+    // load ETF data
+    if (is_need_etf){
+        csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+        load_one_day_snapshot_sh(csv_zip_dir_etf, day, db_name, tb_name, false)
+    }
+}
+/*
+*  @FunctionName: load_one_day_snapshot_sz
+*  @Brief: 一天深交所快照数据导入数据库
+*  @Param: day: 交易日
+*  @Param: db_name: 数据库的名称
+*  @Param: tb_name: 表的名称
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/TAQ/"
+is_need_etf = true
+load_one_day_snapshot_sz(csv_zip_dir, 2026.04.29, "dfs://level2_stock_db", "snapshot",is_need_etf)
+*/
+def load_one_day_snapshot_sz(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="snapshot",is_need_etf = false){
+    update_task_status([day], ["snapshot"], ["SZ"], ["progress"], [""])
+    if (!exists(csv_zip_dir)){
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["snapshot"], ["SZ"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+        return false
+    }
+
+    csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+    unziped_csv_path = csv_zip_dir
+    if (size(csv_zip_files) > 0) {
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+        msg = write_log(msg, level="info")
+        try{
+            unziped_path = csv_zip_dir + "csv_temp_dir"
+            if (exists(unziped_path)) {
+                rmdir(unziped_path,true)
+            }
+            mkdir(unziped_path)
+            for(csv_zip_file in csv_zip_files){
+                zip::unzip(csv_zip_file, unziped_path)
+            }
+        }catch(ex){
+            msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+            msg = write_log(msg, level="error")
+            update_task_status([day], ["snapshot"], ["SZ"], ["failed"], ["Data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+            return false
+        }
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip completed, start importing data")
+        msg = write_log(msg, level="info")
+        // 解压完成
+        unziped_csv_path = unziped_path + "/"
+    }
+    
+    pt = loadTable(db_name, tb_name)
+    tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+    schema_tb = snapshot_csv_schema_sz(day)
+    csv_files = unziped_csv_path + exec filename from files(unziped_csv_path) where filename like "%.csv"
+    // 没有csv文件
+	if (size(csv_files)==0) {
+		update_task_status([day], ["snapshot"], ["SZ"], ["failed"], [unziped_csv_path + " is empty, please check!"])
+		return false
+	}
+    try{
+        for(csv_file in csv_files){
+            one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+            one_code_tb = transform_snapshot_sz(day, one_code_tb_tmp)
+            one_code_tb.reorderColumns!(pt.schema().colDefs.name)
+            tmp_mem_tb.append!(one_code_tb)
+            if(memSize(tmp_mem_tb)\1024\1024 >=200){
+                pt.append!(tmp_mem_tb)
+                tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+            }
+        }
+        pt.append!(tmp_mem_tb)
+    }catch(ex){
+        msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["snapshot"], ["SZ"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+        return false
+    }
+
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] Data import completed")
+    msg = write_log(msg, level="info")
+    update_task_status([day], ["snapshot"], ["SZ"], ["completed"], [""])
+    // 删除解压的目录	
+	try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+    // load ETF data
+    if (is_need_etf){
+        csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+        load_one_day_snapshot_sz(csv_zip_dir_etf, day, db_name, tb_name, false)
+    }
+}

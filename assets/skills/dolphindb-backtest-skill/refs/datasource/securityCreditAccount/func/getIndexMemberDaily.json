@@ -1,0 +1,95 @@
+{
+    "name": "getIndexMemberDaily",
+    "desc": "用于获取在某段时间的某个指数的所有成分股的日线行情（基于调仓日全量快照，自动匹配每个交易日对应的有效成分）",
+    "syntax": "getIndexMemberDaily(stockDaily, indexWeight, indexCode, startDate, endDate)",
+    "notes": [
+        "该函数用于获取指定指数在指定时间区间内的成分股日线行情。",
+        "调用时必须显式提供 indexCode",
+        "沪深300 取值为 000300.SH",
+        "中证500 取值为 000905.SH",
+        "上证50 取值为 000016.SH",
+        "中证1000 取值为 000852.SZ",
+        "返回结果已经根据指数调仓日快照完成成分股过滤。",
+        "返回数据仅包含在对应交易日属于该指数成分股的股票。",
+        "调用该函数后，不需要再使用 indexWeight 表进行成分过滤。",
+        "返回结果不再是全市场股票日线数据，而是指数股票池子集。",
+        "后续 join、select、update 操作必须基于该已过滤股票池进行。",
+        "如果策略依赖指数成分股股票池，应优先使用该函数表达股票池约束。",
+        "如果策略依赖用户自定义股票池，则不需要使用此函数",
+        "不得在脚本中再次推断或构造指数成分过滤逻辑。",
+        "一旦使用 getIndexMemberDaily，signal_fields 中不应再包含任何用于判断是否属于指数成分股的字段，因为成分过滤已在函数内部完成。"
+    ],
+    "args": {
+        "stockDaily": {
+            "type": "TABLE",
+            "desc": "日线行情表，需包含字段：code, trade_date, open, high, low, close, pre_close, change, pct_chg, vol, amount"
+        },
+        "indexWeight": {
+            "type": "TABLE",
+            "desc": "指数成分表（调仓日全量快照），需包含字段：index_code, con_code, trade_date"
+        },
+        "indexCode": {
+            "type": "STRING",
+            "desc": "指数代码"
+        },
+        "startDate": {
+            "type": "DATE",
+            "desc": "开始日期，格式 YYYY.MM.DD"
+        },
+        "endDate": {
+            "type": "DATE",
+            "desc": "结束日期，格式 YYYY.MM.DD"
+        }
+    },
+    "return": {
+        "type": "TABLE",
+        "desc": "返回指定时间区间内属于该指数成分股的日线行情数据",
+        "columns": {
+            "code": {
+                "type": "SYMBOL",
+                "desc": "股票代码"
+            },
+            "trade_date": {
+                "type": "DATE",
+                "desc": "交易日期"
+            },
+            "open": {
+                "type": "DOUBLE",
+                "desc": "开盘价"
+            },
+            "high": {
+                "type": "DOUBLE",
+                "desc": "最高价"
+            },
+            "low": {
+                "type": "DOUBLE",
+                "desc": "最低价"
+            },
+            "close": {
+                "type": "DOUBLE",
+                "desc": "收盘价"
+            },
+            "pre_close": {
+                "type": "DOUBLE",
+                "desc": "昨收价"
+            },
+            "change": {
+                "type": "DOUBLE",
+                "desc": "涨跌额"
+            },
+            "pct_chg": {
+                "type": "DOUBLE",
+                "desc": "涨跌幅"
+            },
+            "vol": {
+                "type": "DOUBLE",
+                "desc": "成交量（手）"
+            },
+            "amount": {
+                "type": "DOUBLE",
+                "desc": "成交额（千元）"
+            }
+        }
+    },
+    "body": "def getIndexMemberDaily(stockDaily, indexWeight, indexCode, startDate, endDate){\n\n    // 1. 获取该指数截止 endDate 的所有调仓日\n    rebalanceDays = select distinct trade_date\n                    from indexWeight\n                    where index_code = indexCode\n                      and trade_date <= endDate\n                    order by trade_date\n\n    // 2. 获取行情区间内实际存在的交易日\n    dailyDates = select distinct trade_date\n                 from stockDaily\n                 where trade_date between startDate : endDate\n                 order by trade_date\n\n    // 3. 每个交易日映射到最近一次调仓日\n    dateMap = aj(dailyDates, rebalanceDays, `trade_date)\n    dateMap.rename!(`trade_date`rebalance_date)\n\n    dateMap = select trade_date, rebalance_date\n              from dateMap\n              where not isNull(rebalance_date)\n\n    // 4. 仅保留本次查询涉及到的调仓日快照\n    validRebalanceDates = exec distinct rebalance_date from dateMap\n\n    members = select\n                con_code,\n                trade_date as rebalance_date\n              from indexWeight\n              where index_code = indexCode\n                and trade_date in validRebalanceDates\n\n    // 5. 构造候选股票池以减少行情扫描范围\n    candidateCodes = exec distinct con_code from members\n\n    dailySub = select\n                  code,\n                  trade_date,\n                  open,\n                  high,\n                  low,\n                  close,\n                  pre_close,\n                  change,\n                  pct_chg,\n                  vol,\n                  amount\n               from stockDaily\n               where trade_date between startDate : endDate\n                 and code in candidateCodes\n\n    // 6. 给行情挂上 rebalance_date\n    dailyWithRebalance = select\n                            a.code,\n                            a.trade_date,\n                            a.open,\n                            a.high,\n                            a.low,\n                            a.close,\n                            a.pre_close,\n                            a.change,\n                            a.pct_chg,\n                            a.vol,\n                            a.amount,\n                            d.rebalance_date\n                         from dailySub a\n                         join dateMap d\n                         on a.trade_date = d.trade_date\n\n    // 7. 精确过滤属于该调仓快照的股票\n    return select\n              s.code,\n              s.trade_date,\n              s.open,\n              s.high,\n              s.low,\n              s.close,\n              s.pre_close,\n              s.change,\n              s.pct_chg,\n              s.vol,\n              s.amount\n           from dailyWithRebalance s\n           join members m\n           on s.code = m.con_code\n          and s.rebalance_date = m.rebalance_date\n           order by s.trade_date, s.code\n}"
+}

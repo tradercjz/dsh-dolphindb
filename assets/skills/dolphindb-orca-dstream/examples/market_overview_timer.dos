@@ -1,0 +1,98 @@
+// ============================================================
+// 定时输出市场概览快照 —— Orca DStream API 完整示例
+// ============================================================
+if(!existsCatalog("orcaMktDemo")) createCatalog("orcaMktDemo")
+go
+use catalog orcaMktDemo
+
+// ---------- 0) 清理环境：销毁流图，并连带清理其流表/引擎 ----------
+try{ dropStreamGraph("orcaMktDemo.orca_graph.marketOverview", true) } catch(ex){ print("cleanup: " + ex) }
+go
+
+// ---------- 1) 创建流图 ----------
+g = createStreamGraph("marketOverview")
+
+// ---------- 2) 数据源：逐笔成交流（含昨收价 prevClose 作为涨跌基准）----------
+src = g.source("trade",
+    `securityID`tradeTime`tradePrice`tradeQty`tradeAmount`prevClose,
+    [SYMBOL, TIMESTAMP, DOUBLE, LONG, DOUBLE, DOUBLE])
+
+// ---------- 3) 每只股票最新状态 ----------
+// 最新价 / 累计成交量 / 累计成交额 / 最后更新时间 / 涨跌方向(对比昨收价)
+stockState = src.reactiveStateEngine(
+    metrics = [
+        <tradeTime as lastUpdateTime>,
+        <tradePrice as lastPrice>,
+        <cumsum(tradeQty) as cumVolume>,
+        <cumsum(tradeAmount) as cumAmount>,
+        <iif(tradePrice > prevClose, 1, iif(tradePrice < prevClose, -1, 0)) as changeFlag>
+    ],
+    keyColumn = `securityID
+)
+
+// 旁路输出每只股票最新状态，便于核对
+stockState.sink("stockStateTable")
+
+// ---------- 4) 横截面引擎：每 10 秒定时输出一次全市场概览 ----------
+// 股票数 / 总成交额 / 上涨股票数 / 下跌股票数 / 平均成交额
+stockState.crossSectionalEngine(
+    metrics = [
+        <count(securityID) as stockCount>,
+        <sum(cumAmount) as totalAmount>,
+        <sum(changeFlag > 0) as risingCount>,
+        <sum(changeFlag < 0) as fallingCount>,
+        <avg(cumAmount) as avgAmount>
+    ],
+    keyColumn = `securityID,
+    triggeringPattern = 'interval',   // 按系统时间间隔触发
+    triggeringInterval = 10000,       // 每 10 秒一次
+    useSystemTime = true
+).sink("marketOverviewTable")
+
+// ---------- 5) 提交流图 ----------
+g.submit()
+
+// ============================================================
+// mock 数据：6 只股票，分多批写入，跨越多个 10 秒窗口
+// ============================================================
+use catalog orcaMktDemo
+
+syms = `600000`600519`000001`000858`300750`002594
+prevCloseMap = dict(syms, [10.0, 1700.0, 12.0, 150.0, 200.0, 250.0])
+
+def genBatch(syms, prevCloseMap, n, drift){
+    secs = rand(syms, n)
+    base = prevCloseMap[secs]
+    px   = round(base * (1 + drift + rand(0.02, n) - 0.01), 2)
+    qty  = rand(1000..5000, n)$LONG
+    amt  = round(px * qty, 2)
+    t    = now() + 0..(n-1)
+    return table(secs as securityID, t as tradeTime, px as tradePrice,
+                 qty as tradeQty, amt as tradeAmount, base as prevClose)
+}
+
+// 不同 drift 让每批整体涨跌方向变化，定时快照结果随之变化
+drifts = [0.01, -0.008, 0.015, -0.02, 0.006, 0.012]
+for(d in drifts){
+    b = genBatch(syms, prevCloseMap, 10, d)
+    appendOrcaStreamTable("orcaMktDemo.orca_table.trade", b)
+    sleep(6000)   // 每 6 秒一批，约覆盖 2-3 个定时窗口
+}
+
+// ============================================================
+// 查看结果
+// ============================================================
+use catalog orcaMktDemo
+
+// 每只股票最新状态（reactiveStateEngine 输出，逐笔追加）
+select * from orcaMktDemo.orca_table.stockStateTable order by securityID, lastUpdateTime
+
+// 全市场概览（每 10 秒一条）
+select system_timestamp as snapshotTime,
+       stockCount       as `股票数,
+       round(totalAmount, 2) as `总成交额,
+       risingCount      as `上涨数,
+       fallingCount     as `下跌数,
+       round(avgAmount, 2)   as `平均成交额
+from orcaMktDemo.orca_table.marketOverviewTable
+order by system_timestamp

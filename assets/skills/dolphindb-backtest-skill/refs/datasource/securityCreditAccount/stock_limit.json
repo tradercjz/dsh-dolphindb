@@ -1,0 +1,31 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "stock_limit",
+    "desc": "存放A股市场股票每日涨跌停价格数据，包含交易日期、股票代码、昨日收盘价、涨停价、跌停价和数据更新时间。",
+    "columns": {
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "code": {
+            "type": "SYMBOL",
+            "desc": "TS股票代码"
+        },
+        "pre_close": {
+            "type": "DOUBLE",
+            "desc": "昨日收盘价"
+        },
+        "up_limit": {
+            "type": "DOUBLE",
+            "desc": "涨停价"
+        },
+        "down_limit": {
+            "type": "DOUBLE",
+            "desc": "跌停价"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "数据更新时间"
+        }
+    }
+}

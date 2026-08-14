@@ -1,0 +1,349 @@
+#include "checkChunk.txt"
+//update context by having
+login("admin", "123456")
+
+def nodeCompaction(dbName){
+	suffix=substr(dbName, 5)
+	chunkIds=exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	for(x in chunkIds){
+		  triggerIotCompaction(x)
+	}
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_prepare"
+dbName = "dfs://update_context_by_having"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+t = table(1:0, [`symbolv, `name, `ID, `price1, `price2, `timestampv,`sort,`datev], [SYMBOL, STRING, INT, FLOAT, DOUBLE, TIMESTAMP,INT,DATE])
+db = database(directory=dbName, partitionType=RANGE, partitionScheme=2020.01.01 2020.02.01 2020.03.01, engine="TSDB")
+pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`timestampv, sortColumns=`ID`timestampv, keepDuplicates=FIRST,compressMethods={"datev":"delta"})
+pt2 = db.createPartitionedTable(table=t, tableName=`pt2, partitionColumns=`timestampv, sortColumns=`name`ID`timestampv, keepDuplicates=LAST,sortKeyMappingFunction= [hashBucket{, 7},hashBucket{, 7}],compressMethods={"timestampv":"delta"})
+pt3 = db.createPartitionedTable(table=t, tableName=`pt3, partitionColumns=`timestampv, sortColumns=`name`ID, keepDuplicates=LAST)
+pt4 = db.createPartitionedTable(table=t, tableName=`pt4, partitionColumns=`timestampv, sortColumns=`ID`timestampv)
+pt5 = db.createPartitionedTable(table=t, tableName=`pt5, partitionColumns=`timestampv, sortColumns=`ID)
+pt6 = db.createPartitionedTable(table=t, tableName=`pt6, partitionColumns=`timestampv, sortColumns=`ID`timestampv, keepDuplicates=LAST,softDelete=true)
+dt1 = db.createTable(table=t, tableName=`dt1,  sortColumns=`ID`timestampv, keepDuplicates=FIRST)
+dt2 = db.createTable(table=t, tableName=`dt2,  sortColumns=`name`ID`timestampv, keepDuplicates=LAST)
+dt3 = db.createTable(table=t, tableName=`dt3,  sortColumns=`name`ID, keepDuplicates=LAST,compressMethods={"timestampv":"delta"})
+dt4 = db.createTable(table=t, tableName=`dt4,  sortColumns=`ID`timestampv)
+dt5 = db.createTable(table=t, tableName=`dt5,  sortColumns=`ID)
+dt6 = db.createTable(table=t, tableName=`dt6,  sortColumns=`ID`timestampv, keepDuplicates=LAST,softDelete=true,compressMethods={"timestampv":"delta"})
+
+//empty table
+tableNames="pt"+string(1..6)
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	update pt set price1 = cumsum(price1) context by timestampv having sum(price2) > 60
+}
+
+n = 100000
+dataTable = table(rand(`A`B`C`D`E`F`G, n) as symbolv, rand("name" + string(1..10), n) as name, rand(1..100, n) as id, rand(rand(100.0f,1000) join take(float(),100),n) as price1, rand(rand(100.0,1000) join take(double(),100),n) as price2, rand(temporalAdd(2020.01.01T12:23:24.345, (1..1000), `h), n) as timestampv,1..n as sort,rand(2020.01.01+1..100,n) as date)
+pt1.append!(dataTable)
+pt2.append!(dataTable)
+pt3.append!(dataTable)
+pt4.append!(dataTable)
+pt5.append!(dataTable)
+pt6.append!(dataTable)
+dt1.append!(dataTable)
+dt2.append!(dataTable)
+dt3.append!(dataTable)
+dt4.append!(dataTable)
+dt5.append!(dataTable)
+dt6.append!(dataTable)
+
+pnodeRunAllNodes(flushIotCache)
+pnodeRunAllNodes(nodeCompaction{dbName})
+
+@testing:case="sql_update_contextBy_having_add_newColumn",exception=1
+update pt5 set cbCount = cumsum(price2)  context by symbolv having  count(price2)>40000
+
+@testing:case="sql_update_contextBy_having_col_not_exist",exception=1
+update pt5 set price2 = cumsum(price1)  context by timestampv having  count(close1)>40000
+
+@testing:case="sql_update_contextBy_having_without_filter"//,exception=1
+update pt5 set price2 = price2+1 context by timestampv having  count(ID)
+update pt5 set price2 = price2+1  context by timestampv having 1
+
+@testing:case="sql_update_contextBy_having_without_filter1",syntaxError=1
+update pt5 set price2 = price2+1 context by timestampv having  
+
+@testing:case="sql_update_contextBy_not_include_all_parititonCol_having_order-sensitive_fucntion",exception=1
+update pt5 set price2 = price2+1 context by ID having  cumsum(price1)>1
+
+@testing:case="sql_update_contextBy_not_include_all_parititonCol_having_agg_fucntion",exception=1
+update pt5 set price2 = price2+1 context by ID  having  sum(price1)>1
+
+@testing:case="test_dfs_sql_update_context_by_having_filter_range"
+dbName = "dfs://update_context_by_having"
+tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	t=select * from pt
+	//empty filter
+	update pt set price1 = price1+price2 context by date(timestampv),ID having count(price2)<-2
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	//all filter
+	t=select * from pt
+	update pt set price1 = price1+cummax(price2) context by date(timestampv),ID having count(price2)>-10
+	update t set price1 = price1+cummax(price2) context by date(timestampv),ID 
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	//part group filter 
+	t=select * from pt
+	update pt set price2 = cummax(price2)-price2 context by date(timestampv),ID having avg(price2)>50
+	update t set price2 = cummax(price2)-price2 context by date(timestampv),ID having avg(price2)>50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+	//part filter in group
+	t=select * from pt
+	update pt set price1 = cummin(price2) context by date(timestampv),ID having avg(price2)>price1
+	update t set price1 = cummin(price2) context by date(timestampv),ID having avg(price2)>price1
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 4,each(eqObj,re.values(),ex.values())
+	//part group part filter 
+	t=select * from pt
+	update pt set price2 = mstd(price1,2) context by date(timestampv) having avg(price2)>price1 and count(*)>500
+	update t set price2 = mstd(price1,2)  context by date(timestampv) having avg(price2)>price1 and count(*)>500
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 5,each(eqObj,re.values(),ex.values())	
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_sortcolumn"
+dbName = "dfs://update_context_by_having"
+tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	t=select * from pt
+
+	update t set price1 = price1-price2 context by date(timestampv),ID having count(price2)+ID<=57
+	update pt set price1 = price1-price2 context by date(timestampv),ID having count(price2)+ID<=57
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+
+	t=select * from pt
+	update pt set price1 = price1+cummax(price2) context by date(timestampv) having sum(ID)>=74637
+	update t set price1 = price1+cummax(price2) context by date(timestampv)having sum(ID)>=74637
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	update pt set price2 =price2-ID context by date(timestampv) having avg(ID)>=50 or avg(ID)<30
+	update t set price2 = price2-ID context by date(timestampv) having avg(ID)>=50 or avg(ID)<30
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	update pt set symbolv =name context by date(timestampv) having min(symbolv)>min(name) and avg(ID)<30
+	update t set symbolv =name context by date(timestampv) having min(symbolv)>min(name) and avg(ID)<30
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 5,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_partitionColumn"
+dbName = "dfs://update_context_by_having"
+tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+
+	t=select * from pt
+	update pt set price1 = price1+1 context by date(timestampv) having date(timestampv) between 2020.01.01:2020.01.11
+	update t set price1 = price1+1 context by date(timestampv)having date(timestampv) between 2020.01.01:2020.01.11
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	update pt set price2 =price2-ID context by date(timestampv) having avg(ID)>=50 and date(timestampv)>datev
+	update t set price2 = price2-ID context by date(timestampv) having avg(ID)>=50 and date(timestampv)>datev
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_fucntions"
+defg f1(x){
+	return avg(x)+1
+}
+defg f2(x,y){
+	return mavg(x,2)+y
+}
+dbName = "dfs://update_context_by_having"
+tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	//def
+	t=select * from pt
+	update pt set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+	update t set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	update pt set price1 = price1+1 context by symbolv,date(timestampv)having f2(ID,price2)<=50
+	update t set price1 = price1+1 context by symbolv,date(timestampv) having f2(ID,price2)<=50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	//Aggregate 
+	t=select * from pt
+	update pt set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv) having beta(price1,price2+1)>0 and std(sort)<=28000
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv) having beta(price1,price2+1)>0 and std(sort)<=28000
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+	//no Aggregate
+	t=select * from pt
+	update pt set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv),symbolv csort ID having denseRank(ID)==0
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv),symbolv csort ID having denseRank(ID)==0
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 4,each(eqObj,re.values(),ex.values())
+	//no Aggregate && Aggregate
+	t=select * from pt
+	update pt set symbolv =symbolv+"3",datev=date(timestampv)+1 context by symbolv ,date(timestampv)csort ID having denseRank(ID)>=10 and (f1(ID)<=50 or beta(price1,price2+1)>0)
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by symbolv ,date(timestampv)  csort ID having denseRank(ID)>=10 and (f1(ID)<=50 or beta(price1,price2+1)>0)
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 5,each(eqObj,re.values(),ex.values())
+	//expression
+	t=select * from pt
+	update pt set symbolv =symbolv+"3",datev=date(timestampv)+1 context by ID,symbolv  having price1-price2>3 	
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by ID,symbolv  having price1-price2>3 
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 6,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_part_flush"
+n = 100
+for(i in 0:10){
+	dataTable = table(rand(`A`B`C`D`E`F`G, n) as symbolv, rand("name" + string(1..10), n) as name, rand(1..100, n) as id, rand(rand(100.0f,1000) join take(float(),100),n) as price1, rand(rand(100.0,1000) join take(double(),100),n) as price2, rand(temporalAdd(2020.01.01T12:23:24.345, (1..1000), `h), n) as timestampv,(100001+100*i)..(100000+100*(i+1)) as sort,rand(2020.01.01+1..100,n) as date)
+	print(i)
+	pt1.append!(dataTable)
+	pt2.append!(dataTable)
+	pt3.append!(dataTable)
+	pt4.append!(dataTable)
+	pt5.append!(dataTable)
+	pt6.append!(dataTable)
+	dt1.append!(dataTable)
+	dt2.append!(dataTable)
+	dt3.append!(dataTable)
+	dt4.append!(dataTable)
+	dt5.append!(dataTable)
+	dt6.append!(dataTable)
+	dbName = "dfs://update_context_by_having"
+	tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+	for(tableName in tableNames){
+		pt=loadTable(dbName,tableName)
+		//def
+		t=select * from pt
+		update pt set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+		update t set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+		re=select * from pt order by sort
+		ex=select * from t order by sort
+		assert 1,each(eqObj,re.values(),ex.values())
+	}
+	pnodeRunAllNodes(flushIotCache)
+	pnodeRunAllNodes(nodeCompaction{dbName})
+}
+
+@testing:case="sql_update_contextBy_having_where"
+dbName = "dfs://update_context_by_having"
+tableNames=("pt"+string(1..6)) join ("dt"+string(1..6))
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	t=select * from pt
+	update pt set datev=date(timestampv)+1 where timestampv<2020.01.02T09:23:24.345  context by name ,timestampv csort ID having denseRank(ID)>=2 or sum(price1)>300
+	update t set datev=date(timestampv)+1  where timestampv<2020.01.02T09:23:24.345  context by name ,timestampv csort ID having denseRank(ID)>=2 or sum(price1)>300
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	update pt set datev=date(timestampv)+1 where date(timestampv) between 2020.01.02:2020.02.02 or ID >=500 context by name ,date(timestampv),ID csort ID having denseRank(ID)>=2 or sum(price1)>300
+	update t set datev=date(timestampv)+1  where date(timestampv)   between 2020.01.02:2020.02.02 or ID >=500 context by name ,date(timestampv),ID csort ID having denseRank(ID)>=2 or sum(price1)>300
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_topic_sql_update_contextby_having_join"
+if(existsDatabase("dfs://test_update_contextby_join")){
+	dropDatabase("dfs://test_update_contextby_join")
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("", HASH, [SYMBOL, 5])
+db = database("dfs://test_update_contextby_join", COMPO, [db1, db2],,'TSDB')
+n = 6000
+t = table(rand(2012.01.01..2012.01.10, n) as cdate,concatDateTime(rand(2012.01.01..2012.01.10, n),time(1..n)) as ts,rand(1..3000, n) as qty, rand(`A`B`C`D`E`F`G, n) as csymbol, rand(10.0, n) as price,1..n as sort)
+pt1 = db.createPartitionedTable(t, `pt1, `cdate`csymbol, {ts: "delta", qty: "delta"},sortColumns=`csymbol`cdate`ts).append!(t)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate`csymbol, {ts: "delta", qty: "delta"},sortColumns=`csymbol`cdate).append!(t)
+
+t1=select * from  pt1
+t2=select * from  pt2
+
+update pt1 set pt1.price=pt2.price+price from lj(pt1, (select * from pt2) pt2, `sort) context by cdate,csymbol csort sort  having  avg(pt1.price)<10 
+update t1 set t1.price=t2.price+price from lj(t1,t2, `sort) context by cdate,csymbol csort sort having  avg(t1.price)<10
+res=select * from pt1 order by sort
+ex=select *   from t1  order by sort
+assert 1,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=cumwavg(pt1.price,pt2.price) from ej(pt1, (select * from pt2) pt2, `sort) context by cdate,csymbol csort ts having  avg(pt2.price)>=5
+update t1 set t1.price=cumwavg(t1.price,t2.price) from ej(t1,t2, `sort) context by cdate,csymbol csort ts having  avg(t2.price)>=5
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 2,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=cumcovar(pt1.price,pt2.price) from lsj(pt1, (select * from pt2) pt2, `cdate`csymbol) context by cdate,csymbol having  denseRank(pt1.qty)<=pt2.qty
+update t1 set t1.price=cumcovar(t1.price,t2.price) from lsj(t1,t2, `cdate`csymbol) context by cdate,csymbol having  denseRank(t1.qty)<=t2.qty
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 3,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=cumcorr(pt1.price,pt2.price),qty=msum2(pt2.qty,4) from cj(pt1, (select * from pt2) pt2) context by cdate,csymbol  having  denseRank(pt1.qty)==0 and avg(pt1.price) >5
+update t1 set t1.price=cumcorr(t1.price,t2.price),qty=msum2(t2.qty,4) from cj(t1,t2) context by cdate,csymbol having  denseRank(t1.qty)==0 and avg(t1.price) >5
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 4,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=cumbeta(pt1.price,pt2.price),qty=msum(pt2.qty,14) from aj(pt1, (select * from pt2) pt2,`cdate) context by cdate,csymbol having mmin(pt1.qty,2) is not null or avg(pt1.price) is null
+update t1 set t1.price=cumbeta(t1.price,t2.price),qty=msum(t2.qty,14) from aj(t1,t2,`cdate) context by cdate,csymbol having mmin(t1.qty,2) is not null or avg(t1.price) is null
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 5,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=tmsum(sort,price,1h) from wj(pt1, (select * from pt2) pt2, -1:2,< [avg(price)] >,`cdate) context by cdate,csymbol csort sort having  denseRank(pt1.qty)<=3
+update t1 set t1.price=tmsum(sort,price,1h) from wj(t1, t2, -1:2,< [avg(price)] >,`cdate) context by cdate,csymbol csort sort having  denseRank(t1.qty)<=3
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 6,each(eqObj,res.values(),ex.values())
+
+t1=select * from  pt1
+t2=select * from  pt2
+update pt1 set pt1.price=cumcovarp(pt1.price,pt2.price) from lsj(pt1, (select * from pt2) pt2, `cdate`csymbol) context by cdate,csymbol having  denseRank(pt1.qty)<=pt2.qty
+update t1 set t1.price=cumcovarp(t1.price,t2.price) from lsj(t1,t2, `cdate`csymbol) context by cdate,csymbol having  denseRank(t1.qty)<=t2.qty
+res=select * from pt1 order by sort
+ex=select * from t1 order by sort
+assert 7,each(eqObj,res.values(),ex.values())

@@ -1,0 +1,51 @@
+{
+  "id": "submitOrder",
+  "name": "提交订单",
+  "signature": "Backtest::submitOrder(engine, msg, [label=\"\"], [orderType=0])",
+  "description": "在回调函数中调用该接口提交订单，并返回订单号，适用于基于当前行情、指标或上下文状态发起买卖委托。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常从 context[\"engine\"] 读取"
+    },
+    {
+      "name": "msg",
+      "type": "TUPLE",
+      "description": "订单信息元组。当 orderType=0 时，格式为 (股票代码, 下单时间, 订单类型, 订单价格, 订单数量, 买卖方向)。其中股票代码和下单时间应从当前回调可用的行情数据中获取；订单类型通常写 5 表示限价订单；买卖方向中 1 表示买入，3 表示卖出。A股股票策略中，订单数量默认按100股整手处理；若根据目标金额或仓位换算出的数量不足100股，则不要下单。"
+    },
+    {
+      "name": "label",
+      "type": "STRING",
+      "description": "可选参数，用于为订单设置标签，便于后续分类、跟踪或调试"
+    },
+    {
+      "name": "orderType",
+      "type": "INT",
+      "description": "可选参数，表示订单类别，默认值为 0。可选值包括：0=一般订单，5=限价止盈止损订单，6=市价止盈止损订单，12=移动止盈止损订单。"
+    }
+  ],
+  "constraints": [
+    "提交订单前必须已经能从当前回调上下文中确定股票代码、下单时间、订单价格、订单数量和买卖方向。",
+    "股票代码必须来自当前回调可用的 msg 数据，不要臆造 symbol。",
+    "下单时间必须来自当前回调可用的时间字段，不要自行拼接或臆造时间。",
+    "股票策略中买卖方向仅使用 1 表示买入、3 表示卖出。",
+    "A股股票订单数量默认必须按100股整手处理；若由资金或仓位换算出的数量不是100的整数倍，应先向下取整到最接近的100股整数倍后再提交。",
+    "若整手处理后的订单数量小于100股，则不要调用 submitOrder。",
+    "不要在没有足够条件判断时生成 submitOrder 调用。",
+    "订单价格和订单数量必须来自当前策略逻辑、配置或上下文中可确定的信息，不要臆造固定数值。",
+    "若使用 label，应保持语义清晰简短，不要写与策略无关的文本。"
+  ],
+  "returns": {
+    "type": "LONG",
+    "description": "返回订单号，可用于后续跟踪该笔委托的状态或结果。"
+  },
+  "examples": [
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], 100, 1)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg)",
+    "buyQty = long(floor(targetValue / msg[symbol][\"close\"] / 100) * 100)",
+    "if(buyQty >= 100){ orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], buyQty, 1); orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"rebalance_buy\") }",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], 100, 3)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"exit_signal\")"
+  ]
+}

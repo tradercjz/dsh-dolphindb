@@ -1,0 +1,51 @@
+// bondYieldCurveBuilder demo: same-subType fixed-rate sample bonds.
+
+referenceDate = 2025.03.20
+
+def fixedBond(id, startDate, maturityDate, coupon, frequency){
+    d = dict(STRING, ANY)
+    d["productType"] = "Cash"
+    d["assetType"] = "Bond"
+    d["bondType"] = "FixedRateBond"
+    d["instrumentId"] = id
+    d["start"] = startDate
+    d["maturity"] = maturityDate
+    d["coupon"] = coupon
+    d["frequency"] = frequency
+    d["dayCountConvention"] = "ActualActualISDA"
+    d["issuePrice"] = 100.0
+    d["discountCurve"] = "CNY_TREASURY_BOND"
+    d["subType"] = "TREASURY_BOND"
+    return parseInstrument(d)
+}
+
+bond1 = fixedBond("BOND_1Y", 2025.01.15, 2026.01.15, 0.0128, "Annual")
+bond2 = fixedBond("BOND_5Y", 2024.05.20, 2029.05.20, 0.0172, "Semiannual")
+bond3 = fixedBond("BOND_7Y", 2024.10.24, 2031.10.24, 0.0200, "Semiannual")
+
+bonds = [bond1, bond2, bond3]
+
+termDays = [int(2026.01.15 - referenceDate), int(2029.05.20 - referenceDate), int(2031.10.24 - referenceDate)]
+terms = array(DURATION, 0)
+for(dayCount in termDays){
+    terms.append!(duration(string(dayCount) + "d"))
+}
+
+quotes = [0.0140, 0.0165, 0.0190]
+
+curve = bondYieldCurveBuilder(referenceDate, "CNY", bonds, terms, quotes,
+                              "Actual365", "Continuous", "Annual",
+                              "CNY_TREASURY_BOND", "Bootstrap",
+                              "CubicHermiteSpline", "Flat")
+
+probeDates = [2026.03.20, 2029.03.20, 2031.03.20]
+probeYields = curvePredict(curve, probeDates)
+curveDict = extractMktData(curve)
+curveDates = curveDict["dates"]
+
+table(["CNY_TREASURY_BOND"] as curveName,
+      [referenceDate] as referenceDate,
+      [curveDates.size()] as curvePoints,
+      [round(probeYields[0] * 100, 4)] as y1YPercent,
+      [round(probeYields[1] * 100, 4)] as y4YPercent,
+      [round(probeYields[2] * 100, 4)] as y6YPercent)

@@ -1,0 +1,41 @@
+// Example: Import HDF5 file using plugin
+
+// Step 1: Safe load plugin
+try { loadPlugin("hdf5") } catch(ex) {
+    if (strpos(string(ex[1]), "already in use") == -1) {
+        installPlugin("hdf5"); loadPlugin("hdf5")
+    }
+}
+
+// Step 2: Explore HDF5 file structure
+hdf5::lsTable("/data/candle_201801.h5")
+
+// Step 3: Preview schema
+schema = hdf5::extractHDF5Schema("/data/candle_201801.h5", "candle_201801")
+update schema set type = `LONG where name = "volume"
+
+// Step 4a: Import to memory table
+t = hdf5::loadHDF5("/data/candle_201801.h5", "candle_201801", schema)
+
+// Step 4b: Import directly to distributed table (recommended for large files)
+db = database("dfs://hdf5db", VALUE, 2018.01.01..2018.01.31)
+hdf5::loadHDF5Ex(db, "cycle", "tradingDay",
+                 "/data/candle_201801.h5", "candle_201801", schema)
+
+// Step 4c: Import with transform (type conversion during import)
+// ⚠️ When transform uses replaceColumn! (mutable function), the parameter
+// MUST be declared as `mutable t`
+def i2d(mutable t) {
+    replaceColumn!(t, `tradingDay, temporalParse(string(exec tradingDay from t), "yyyyMMdd"))
+    return t
+}
+// ⚠️ When using transform, the partitioned table MUST be pre-created via
+// createPartitionedTable BEFORE calling loadHDF5Ex
+hdf5::loadHDF5Ex(db, "cycle", "tradingDay",
+                 "/data/candle_201801.h5", "candle_201801", schema,
+                 , , i2d)
+
+// Step 5: Verify
+pt = loadTable("dfs://hdf5db", "cycle")
+select count(*) from pt
+select top 10 * from pt

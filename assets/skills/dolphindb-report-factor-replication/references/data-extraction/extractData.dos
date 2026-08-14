@@ -1,0 +1,218 @@
+def extractData(args, returnType = "string") {
+
+    startDate = temporalParse(string(args["timeRange"][0]), "yyyy.MM.dd")
+    endDate = temporalParse(string(args["timeRange"][1]), "yyyy.MM.dd")
+
+    dataList = args["data"]
+    joinPlan = args["joinPlan"]
+
+    tableSqlMap = dict(STRING, STRING)
+    finalSelectParts = array(STRING, 0)
+
+
+    // 1. 先为每张表构造子查询
+    for (cfg in dataList) {
+
+        dataName = string(cfg["dataName"])
+        dbName = string(cfg["dbName"])
+        tbName = string(cfg["tbName"])
+        timeCol = string(cfg["timeCol"])
+        frequency = string(cfg["frequency"])
+
+        // 0. 检查请求的 timeRange 是否被当前数据源的 sourceTimeRange 覆盖
+        sourceStartDate = temporalParse(string(cfg["sourceTimeRange"][0]), "yyyy.MM.dd")
+        sourceEndDate = temporalParse(string(cfg["sourceTimeRange"][1]), "yyyy.MM.dd")
+
+        if (startDate < sourceStartDate || endDate > sourceEndDate) {
+            result = dict(STRING, ANY)
+            result["success"] = false
+            result["result"] = ""
+            result["message"] = "数据源时间范围不足：" + dataName +
+                                " 的可用时间范围是 " + string(sourceStartDate) + " 至 " + string(sourceEndDate) +
+                                "，但请求的 timeRange 是 " + string(startDate) + " 至 " + string(endDate)
+            return result
+        }
+
+        selectParts = array(STRING, 0)
+        selectedNames = array(STRING, 0)
+
+
+        // 1.1 处理 requiredFields
+        // 注意：这里只用 sourceColumns[0] as name
+        // 不要碰 selectExpr
+        for (field in cfg["requiredFields"]) {
+
+            name = string(field["name"])
+            sourceCol = string(field["sourceColumns"][0])
+
+            if (sourceCol == "") {
+                result = dict(STRING, ANY)
+                result["success"] = false
+                result["result"] = ""
+                result["message"] = "字段 " + name + " 的 sourceColumns[0] 为空，请检查 args"
+                return result
+            }
+
+            selectItem = sourceCol + " as " + name
+
+            if (size(selectedNames) == 0 || sum(selectedNames == name) == 0) {
+                selectParts.append!(selectItem)
+                selectedNames.append!(name)
+            }
+
+            if (size(finalSelectParts) == 0 || sum(finalSelectParts == name) == 0) {
+                finalSelectParts.append!(name)
+            }
+        }
+
+
+        // 1.2 处理 joinFields
+        // 注意：joinFields 才使用 selectExpr as name
+        try {
+            for (jf in cfg["joinFields"]) {
+
+                joinName = string(jf["name"])
+                joinExpr = string(jf["selectExpr"])
+
+                if (joinExpr == "") {
+                    result = dict(STRING, ANY)
+                    result["success"] = false
+                    result["result"] = ""
+                    result["message"] = "joinFields 字段 " + joinName + " 的 selectExpr 为空，请检查 args"
+                    return result
+                }
+
+                joinItem = joinExpr + " as " + joinName
+
+                if (size(selectedNames) == 0 || sum(selectedNames == joinName) == 0) {
+                    selectParts.append!(joinItem)
+                    selectedNames.append!(joinName)
+                }
+            }
+        } catch(ex) {}
+
+
+        // 1.3 拼 from
+        fromText = "loadTable(\"" + dbName + "\", \"" + tbName + "\")"
+
+
+        // 1.4 拼 where
+        // 分钟表用 date(DateTime) 过滤日期范围
+        // 日频表直接用 trade_date 过滤
+        if (frequency == "minute" || frequency == "second" || frequency == "tick") {
+            timeFilterExpr = "date(" + timeCol + ")"
+        } else {
+            timeFilterExpr = timeCol
+        }
+
+        whereText = timeFilterExpr + " between " + string(startDate) + " : " + string(endDate)
+
+
+        // 1.5 拼当前表 SQL
+        selectText = concat(selectParts, ", ")
+
+        tableSql = "(select " + selectText +
+                   " from " + fromText +
+                   " where " + whereText + ")"
+
+        tableSqlMap[dataName] = tableSql
+    }
+
+
+    // 2. 找到 baseTb
+    baseTb = string(joinPlan["baseTb"])
+
+    try {
+        joinedTable = tableSqlMap[baseTb]
+    } catch(ex) {
+        result = dict(STRING, ANY)
+        result["success"] = false
+        result["result"] = ""
+        result["message"] = "没有找到 baseTb 对应的数据源配置：" + baseTb
+        return result
+    }
+
+
+    // 3. 按 joinPlan.steps 逐步 join
+    for (step in joinPlan["steps"]) {
+
+        rightTb = string(step["rightTb"])
+        joinType = string(step["joinType"])
+
+        try {
+            rightTable = tableSqlMap[rightTb]
+        } catch(ex) {
+            // 如果只是示例里的 another_table，data 里面没有配置，这里先跳过
+            continue
+        }
+
+        leftKeyText = ""
+        rightKeyText = ""
+        allKeyNamesSame = true
+
+        for (pair in step["on"]) {
+
+            leftFullName = string(pair[0])
+            rightFullName = string(pair[1])
+
+            leftParts = split(leftFullName, ".")
+            rightParts = split(rightFullName, ".")
+
+            leftKey = string(leftParts[size(leftParts) - 1])
+            rightKey = string(rightParts[size(rightParts) - 1])
+
+            leftKeyText = leftKeyText + "`" + leftKey
+            rightKeyText = rightKeyText + "`" + rightKey
+
+            if (leftKey != rightKey) {
+                allKeyNamesSame = false
+            }
+        }
+
+        if (joinType == "left") {
+
+            if (allKeyNamesSame) {
+                joinedTable = "lj(" + joinedTable + ", " + rightTable + ", " + leftKeyText + ")"
+            } else {
+                joinedTable = "lj(" + joinedTable + ", " + rightTable + ", " + leftKeyText + ", " + rightKeyText + ")"
+            }
+
+        } else {
+            result = dict(STRING, ANY)
+            result["success"] = false
+            result["result"] = ""
+            result["message"] = "当前版本只支持 left join，暂不支持：" + joinType
+            return result
+        }
+    }
+
+
+    // 4. 最外层 select 最终需要的标准字段
+    finalSelect = concat(finalSelectParts, ", ")
+
+    sqlText = "select " + finalSelect + " from " + joinedTable
+
+
+    // 5. 返回 SQL 或执行 SQL
+    if (returnType == "string") {
+        result = dict(STRING, ANY)
+        result["success"] = true
+        result["result"] = sqlText
+        result["message"] = ""
+        return result
+    }
+
+    if (returnType == "data") {
+        result = dict(STRING, ANY)
+        result["success"] = true
+        result["result"] = runSQL(sqlText)
+        result["message"] = ""
+        return result
+    }
+
+    result = dict(STRING, ANY)
+    result["success"] = false
+    result["result"] = ""
+    result["message"] = "returnType 只能是 string 或 data，当前传入的是：" + string(returnType)
+    return result
+}

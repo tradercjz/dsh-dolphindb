@@ -1,0 +1,87 @@
+@testing:case = "test_dfs_sql_update_symbol_to_othertype_prepare"
+dbName = "dfs://test_update"
+if(existsDatabase(dbName)) {dropDB(dbName)}
+n=1000;
+t=table(rand([`AMZN], n) as symbol, rand(1..10, n) as id, rand([10,11], n) as value,rand([10,11], n) as value1, symbol(rand(["I"], n)) as value2)
+db1 = database(, VALUE, [`AMZN])
+db2 = database(, RANGE, 1..10)
+db = database(dbName, COMPO, [db1, db2], , 'TSDB')
+pt = db.createPartitionedTable(t, "pt", `symbol`id, sortColumns=["value","value1"], keepDuplicates=LAST, softDelete=true)
+pt.append!(t)
+tmp = select * from pt
+
+@testing:case = "test_dfs_sql_update_symbol_to_char", exception = 1
+update pt set value2 = 'I' where value=10
+
+@testing:case = "test_dfs_sql_update_symbol_to_int", exception = 1
+update pt set value2 = 2 where value=10
+
+@testing:case = "test_dfs_sql_update_symbol_to_date", exception = 1
+update pt set value2 = 2012.01.01
+
+@testing:case = "test_dfs_sql_update_symbol_to_double", exception = 1
+update pt set value2 = 2.01
+
+@testing:case = "test_dfs_sql_update_symbol_to_decimal", exception = 1
+update pt set value2 = decimal32(2.0123,3)
+
+@testing:case = "test_dfs_sql_update_symbol_to_string"
+update pt set value2 = `string where id=10
+re = select * from pt
+ex = select * from tmp
+update ex set value2 = `string where id=10
+re.sortBy!(re.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj, re.values(), ex.values())
+re_schema = select name, typeString, typeInt, extra, comment from pt.schema().colDefs
+ex_schema = ex.schema().colDefs
+assert 2, each(eqObj, re_schema.values(), ex_schema.values())
+
+@testing:case = "test_dfs_sql_update_symbol_to_blob"
+update pt set value2 = blob(`blob) where value=10
+re = select * from pt
+ex = select * from tmp
+update ex set value2 = `blob where value=10
+re.sortBy!(re.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj, re.values(), ex.values())
+re_schema =  select name, typeString, typeInt, extra, comment from pt.schema().colDefs
+ex_schema = ex.schema().colDefs
+assert 2, each(eqObj, re_schema.values(), ex_schema.values())
+
+// https://dolphindb1.atlassian.net/browse/D20-17174
+@testing:case = "test_dfs_sql_update_D20-17174_prepare"
+def create_t(n){
+    id = take(1 2 3, n)
+    id2 = take(1 2 3, n)
+    av_intv = take(arrayVector(2 4 6, int(-1 1 NULL 0 NULL NULL)), n)
+    t = table(id,id2,av_intv)
+    return t
+}
+
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+db = database(dbName, VALUE, [1],,"TSDB")
+t = create_t(rows)
+pt =  createPartitionedTable(db, t, tableName,  `id, sortColumns=`id`id2, keepDuplicates=LAST).append!(t)
+tmp = select * from pt
+pt.schema().colDefs
+
+@testing:case = "test_dfs_sql_update_D20-17174_int", exception = 1
+update pt set av_intv= 1
+
+@testing:case = "test_dfs_sql_update_D20-17174_int", exception = 1
+update pt set av_intv= symbol([`1])
+
+@testing:case = "test_dfs_sql_update_D20-17174_char[]"
+chararr = array(CHAR[], 0, 10).append!([['A']])
+update pt set av_intv= chararr
+re = select * from pt
+ex = select * from tmp
+update ex set av_intv= take(chararr, 3)
+assert 1, each(eqObj, re.values(), ex.values())
+

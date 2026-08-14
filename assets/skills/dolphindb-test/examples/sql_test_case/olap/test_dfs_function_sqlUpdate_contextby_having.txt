@@ -1,0 +1,267 @@
+#include "checkChunk.txt"
+//update context by having
+login("admin", "123456")
+
+@testing:case="test_dfs_sql_update_context_by_having_prepare"
+dbName = "dfs://update_context_by_having"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+t = table(1:0, [`symbolv, `name, `ID, `price1, `price2, `timestampv,`sort,`datev], [SYMBOL, STRING, INT, FLOAT, DOUBLE, TIMESTAMP,INT,DATE])
+db = database(directory=dbName, partitionType=RANGE, partitionScheme=2020.01.01 2020.02.01 2020.03.01)
+pt1 = db.createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`timestampv,compressMethods={"datev":"delta"})
+dt1 = db.createTable(table=t, tableName=`dt1)
+
+//empty table
+tableNames=`pt1`dt1
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	sqlUpdate(table = t, updates = sqlColAlias(<cumsum(price1)>,`price1), contextBy=<timestampv>,having=<sum(price2) > 60>).eval()	
+}
+
+n = 100000
+dataTable = table(rand(`A`B`C`D`E`F`G, n) as symbolv, rand("name" + string(1..10), n) as name, rand(1..100, n) as id, rand(rand(100.0f,1000) join take(float(),100),n) as price1, rand(rand(100.0,1000) join take(double(),100),n) as price2, rand(temporalAdd(2020.01.01T12:23:24.345, (1..1000), `h), n) as timestampv,1..n as sort,rand(2020.01.01+1..100,n) as date)
+pt1.append!(dataTable)
+dt1.append!(dataTable)
+
+pnodeRunAllNodes(flushOLAPCache)
+
+@testing:case="sql_update_contextBy_having_add_newColumn",exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<cumsum(price2)>,`cbCount), contextBy=<symbolv>,having=< count(price2)>40000>).eval()	
+
+@testing:case="sql_update_contextBy_having_col_not_exist",exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<cumsum(price2)>,`price2), contextBy=<timestampv>,having=< count(close1)>40000>).eval()	
+
+@testing:case="sql_update_contextBy_having_without_filter"//,exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1 >,`price2), contextBy=<timestampv>,having=<  count(ID)>).eval()	
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1 >,`price2), contextBy=<timestampv>,having=< 1>).eval()	
+
+@testing:case="sql_update_contextBy_having_without_filter1",syntaxError=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1>,`price2), contextBy=<timestampv>,having=< >).eval()	
+
+@testing:case="sql_update_contextBy_not_include_all_parititonCol_having_order-sensitive_fucntion",exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1>,`price2), contextBy=<ID>,having=<  cumsum(price1)>1>).eval()	
+
+@testing:case="sql_update_contextBy_not_include_all_parititonCol_having_agg_fucntion",exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1>,`price2), contextBy=<ID>,having=<sum(price1)>1>).eval()	
+
+@testing:case="sql_update_contextBy_having_vector",exception=1
+sqlUpdate(table = pt1, updates = sqlColAlias(<price2+1>,`price2), contextBy=<timestampv>,having=[<sum(price1)>1>,<sum(price1)>1>]).eval()	
+
+@testing:case="test_dfs_sql_update_context_by_having_filter_range"
+dbName = "dfs://update_context_by_having"
+tableNames=`pt1`dt1
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	t=select * from pt
+	//empty filter
+	sqlUpdate(table = pt, updates = sqlColAlias(<price1+price2>,`price1), contextBy=[<date(timestampv)>,<ID>],having=<count(price2)<-2>).eval()	
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	//all filter
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<price1+cummax(price2)>,`price1), contextBy=[<date(timestampv)>,<ID>],having=<count(price2)>-10>).eval()
+	update t set price1 = price1+cummax(price2) context by date(timestampv),ID 
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	//part group filter 
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(< cummax(price2)-price2>,`price2), contextBy=[<date(timestampv)>,<ID>],having=<avg(price2)>50>).eval()
+	update t set price2 = cummax(price2)-price2 context by date(timestampv),ID having avg(price2)>50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+	//part filter in group
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<cummin(price2)>,`price1), contextBy=[<date(timestampv)>,<ID>],having=< avg(price2)>price1>).eval()
+	update t set price1 = cummin(price2) context by date(timestampv),ID having avg(price2)>price1
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 4,each(eqObj,re.values(),ex.values())
+	//part group part filter 
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<mstd(price1,2)>,`price2), contextBy=<date(timestampv)>,having=<avg(price2)>price1 and count(*)>500>).eval()
+	update t set price2 = mstd(price1,2)  context by date(timestampv) having avg(price2)>price1 and count(*)>500
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 5,each(eqObj,re.values(),ex.values())	
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_partitionColumn"
+dbName = "dfs://update_context_by_having"
+tableNames=`pt1`dt1
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<price1+1 >,`price1), contextBy=<date(timestampv)>,having=<date(timestampv) between 2020.01.01:2020.01.11>).eval()
+	update t set price1 = price1+1 context by date(timestampv)having date(timestampv) between 2020.01.01:2020.01.11
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<price2-ID>,`price2), contextBy=<date(timestampv)>,having=<avg(ID)>=50 and date(timestampv)>datev>).eval()
+	update t set price2 = price2-ID context by date(timestampv) having avg(ID)>=50 and date(timestampv)>datev
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_fucntions"
+defg f1(x){
+	return avg(x)+1
+}
+defg f2(x,y){
+	return mavg(x,2)+y
+}
+dbName = "dfs://update_context_by_having"
+tableNames=`pt1`dt1
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	//def
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(< price1+1>,`price1), contextBy=[<date(timestampv)>,<symbolv>],having=<f1(ID)<=50>).eval()
+	update t set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(< price1+1>,`price1), contextBy=[<symbolv>,<date(timestampv)>],having=<f2(ID,price2)<=50>).eval()
+	update t set price1 = price1+1 context by symbolv,date(timestampv) having f2(ID,price2)<=50
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+	//Aggregate 
+	t=select * from pt
+	sqlUpdate(table = pt, updates = [sqlColAlias(<symbolv+"3">,`symbolv),sqlColAlias(<date(timestampv)+1>,`datev)], contextBy=<date(timestampv)>,having=<beta(price1,price2+1)>0 and std(sort)<=28000>).eval()
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv) having beta(price1,price2+1)>0 and std(sort)<=28000
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 3,each(eqObj,re.values(),ex.values())
+	//no Aggregate
+	t=select * from pt
+	sqlUpdate(table = pt, updates =  [sqlColAlias(<symbolv+"3">,`symbolv),sqlColAlias(<date(timestampv)+1>,`datev)], contextBy=[<date(timestampv)>,<symbolv>],having=<denseRank(ID)==0>,csort=<ID>).eval()
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by date(timestampv),symbolv csort ID having denseRank(ID)==0
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 4,each(eqObj,re.values(),ex.values())
+	//no Aggregate && Aggregate
+	t=select * from pt
+	sqlUpdate(table = pt, updates =[sqlColAlias(<symbolv+"3">,`symbolv),sqlColAlias(<date(timestampv)+1>,`datev)], contextBy=[<symbolv>,<date(timestampv)>],having=<denseRank(ID)>=10 and (f1(ID)<=50 or beta(price1,price2+1)>0)>).eval()
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by symbolv ,date(timestampv)  csort ID having denseRank(ID)>=10 and (f1(ID)<=50 or beta(price1,price2+1)>0)
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 5,each(eqObj,re.values(),ex.values())
+	//expression
+	t=select * from pt
+	sqlUpdate(table = pt, updates = [sqlColAlias(<symbolv+"3">,`symbolv),<date(timestampv)+1 as datev>], contextBy=[<ID>,<symbolv>],having=<price1-price2>3 >).eval()
+	update t set symbolv =symbolv+"3",datev=date(timestampv)+1 context by ID,symbolv  having price1-price2>3 
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 6,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="test_dfs_sql_update_context_by_having_part_flush"
+n = 100
+for(i in 0:10){
+	dataTable = table(rand(`A`B`C`D`E`F`G, n) as symbolv, rand("name" + string(1..10), n) as name, rand(1..100, n) as id, rand(rand(100.0f,1000) join take(float(),100),n) as price1, rand(rand(100.0,1000) join take(double(),100),n) as price2, rand(temporalAdd(2020.01.01T12:23:24.345, (1..1000), `h), n) as timestampv,(100001+100*i)..(100000+100*(i+1)) as sort,rand(2020.01.01+1..100,n) as date)
+	print(i)
+	pt1.append!(dataTable)
+	dt1.append!(dataTable)
+	dbName = "dfs://update_context_by_having"
+	tableNames=`pt1`dt1
+	for(tableName in tableNames){
+		pt=loadTable(dbName,tableName)
+		//def
+		t=select * from pt
+		sqlUpdate(table = pt, updates = sqlColAlias(< price1+1>,`price1), contextBy=[<date(timestampv)>,<symbolv>],having=< f1(ID)<=50>).eval()
+		update t set price1 = price1+1 context by date(timestampv),symbolv having f1(ID)<=50
+		re=select * from pt order by sort
+		ex=select * from t order by sort
+		assert 1,each(eqObj,re.values(),ex.values())
+	}
+	pnodeRunAllNodes(flushOLAPCache)
+}
+
+@testing:case="sql_update_contextBy_having_where"
+dbName = "dfs://update_context_by_having"
+tableNames=`pt1`dt1
+for(tableName in tableNames){
+	pt=loadTable(dbName,tableName)
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<date(timestampv)+1>,`datev), contextBy=[<name>,<timestampv>],having=<denseRank(ID)>=2 or sum(price1)>300>,where=<timestampv<2020.01.02T09:23:24.345 >,csort=<ID>).eval()
+	update t set datev=date(timestampv)+1  where timestampv<2020.01.02T09:23:24.345  context by name ,timestampv csort ID having denseRank(ID)>=2 or sum(price1)>300
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 1,each(eqObj,re.values(),ex.values())
+	
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<date(timestampv)+1>,`datev), contextBy=[<name>,<date(timestampv)>,<ID>],having=<denseRank(ID)>=2 or sum(price1)>300>,where=<date(timestampv) between 2020.01.02:2020.02.02 or ID >=500>,csort=<ID>).eval()
+	update t set datev=date(timestampv)+1  where date(timestampv)   between 2020.01.02:2020.02.02 or ID >=500 context by name ,date(timestampv),ID csort ID having denseRank(ID)>=2 or sum(price1)>300
+	re=select * from pt order by sort
+	ex=select * from t order by sort
+	assert 2,each(eqObj,re.values(),ex.values())
+}
+
+@testing:case="sql_update_contextBy_having_all_dataType"
+def createTableData(n){
+    dates=rand(2012.01.01..2012.01.10, n)
+    syms=rand(symbol("A"+string(1..10)), n)
+    ints=rand(1..10, n)
+    boolv=rand([true, false, NULL], n)
+    charv=char(rand(rand(-100..100, 10) join take(char(), 10), n))
+    shortv=short(rand(rand(-100..100, 10) join take(short(), 10), n))
+    intv=int(rand(rand(-100..100, 10) join take(int(), 10), n))
+    longv=long(rand(rand(-100..100, 10) join take(long(), 10), n))
+    datev=date(date(0)+rand(rand(-100..100, 10) join take(date(), 10), n))
+    monthv=month(2012.01M+rand(rand(-100..100, 10) join take(month(), 10), n))
+    timev=time(12:23:56.489+rand(rand(-100..100, 10) join take(time(), 10), n))
+    minutev=minute(12:23m+rand(rand(-100..100, 10) join take(minute(), 10), n))
+    secondv=second(11:23:56+rand(rand(-100..100, 10) join take(second(), 10), n))
+    datetimev=datetime(datetime(take(2012.01.01..2012.01.10, n))+rand(rand(-100..100, 10) , n))
+    timestampv=timestamp(timestamp(0)+rand(rand(-100..100, 10) join take(timestamp(), 10), n))
+    nanotimev=nanotime(nanotime(0)+rand(rand(-100..100, 10) join take(nanotime(), 10), n))
+    nanotimestampv=nanotimestamp(nanotimestamp(0)+rand(rand(-100..100, 10) join take(nanotimestamp(), 10), n))
+    doublev=rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n)
+    floatv=rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00f, 10), n)
+    symbolv=symbol(string(rand(("A"+string(rand(100, 10))) join take("", 10), n)))
+    stringv=string(rand(("AMPL"+string(rand(100, 10))) join take("", 10), n))
+    uuidv=rand(rand(uuid(), 10) join take(uuid(), 10), n)
+    int128v=rand(rand(int128(), 10) join take(int128(), 10), n)
+    ipaddrv=rand(rand(ipaddr(), 10) join take(ipaddr(), 10), n)
+    datehourv=datehour(rand(temporalAdd(timestamp(0), rand(-100..100, 10), "H") join take(date(), 10), n))
+    complexv=complex(rand(rand(-100..100, 10) join take(int(), 4), n), rand(rand(-100..100, 10) join take(int(), 4), n))
+    pointv=point(rand(rand(-100..100, 10) join take(int(), 3), n), rand(rand(-100..100, 10) join take(int(), 3), n))
+    decimal32v=decimal32(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 5)
+    decimal64v=decimal64(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 15)
+    decimal128v=decimal128(rand(rand(100.0, 10)*rand([-1, 1], 10) join take(00F, 10), n), 25)
+    return table(dates,syms,ints,boolv,charv,shortv,intv,longv,datev,monthv,secondv,datetimev,timestampv,nanotimev,nanotimestampv,floatv,doublev,symbolv,stringv,uuidv,int128v,datehourv,ipaddrv,complexv,pointv,decimal32v,decimal64v,decimal128v,1..n as sortv)
+}
+
+def createSch(){
+    colNameList = [`dates,`syms,`ints,`boolv,`charv,`shortv,`intv,`longv,`datev,`monthv,`secondv,`datetimev,`timestampv,`nanotimev,`nanotimestampv,`floatv,`doublev,`symbolv,`stringv,`uuidv,`int128v,`datehourv,`ipaddrv,`complexv,`pointv,`decimal32v,`decimal64v,`decimal128v,`sort]
+    colTypeList = [DATE, SYMBOL, INT, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, UUID, INT128, DATEHOUR, IPADDR,  COMPLEX, POINT, DECIMAL32(6), DECIMAL64(15), DECIMAL128(25),INT]
+    return table(100:0, colNameList, colTypeList)
+}
+n=100000
+dbName="dfs://test_update_having_dataTypes"
+if (existsDatabase(dbName)){
+       	 dropDatabase(dbName)
+  }
+db1 = database("", VALUE, date(0..10))
+db2 = database("", HASH, [SYMBOL,5])
+db = database(dbName, COMPO, [db1,db2])
+tableSchema=createTableData(n)
+pt=db.createPartitionedTable(tableSchema, `pt, `dates`syms, {"datetimev":"delta"}).append!(tableSchema)
+for(colName in tableSchema.colNames()){
+	t=select * from pt
+	sqlUpdate(table = pt, updates = sqlColAlias(<intv+1>,`intv), contextBy=[<dates>,<syms>],having=< min(sqlCol(colName))>=tableSchema[colName][0]>).eval()
+	sqlUpdate(table = t, updates = sqlColAlias(<intv+1>,`intv), contextBy=[<dates>,<syms>],having=< min(sqlCol(colName))>=tableSchema[colName][0]>).eval()
+	re=select * from pt order by sortv
+	ex=select * from t  order by sortv
+	assert 1,each(eqObj,re.values(),ex.values())
+}

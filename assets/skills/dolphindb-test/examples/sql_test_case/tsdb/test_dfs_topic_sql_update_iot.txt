@@ -1,0 +1,1665 @@
+#include "checkChunk.txt"
+
+login(`admin,`123456)
+@testing:case="test_dfs_sql_update_createTables"
+
+def nodeCompaction(dbName){
+	 suffix=substr(dbName, 5)
+	 chunkIds=exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	 for(x in chunkIds){
+	  triggerIotCompaction(x)
+	 }
+}
+
+def createTables(){
+	if(existsDatabase("dfs://test_iot_update")){
+		dropDatabase("dfs://test_iot_update")
+	}
+	db1=database("",VALUE,2021.03.01+0..30)
+	db2=database("",HASH,[INT,5])
+	db=database("dfs://test_iot_update",COMPO,[db1,db2],,"TSDB")
+	n=6000
+	t = table(take(2021.03.01 +1..30,n) as ts, take(time(10) +1..30,n) as time, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,take(10.5+1..100,n) as price)
+	dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"},`qty`time)
+	empt=db.createPartitionedTable(t,`empt,`ts`qty,{ts:"delta", qty:"delta"},`qty`time)
+	wt=db.createTable(t,`wt,,`qty`time)
+	dt.append!(t)
+	wt.append!(t)
+	n=6
+	t1 = table(take(2021.03.01 +1..6,n) as ts,take(time(10) +1..6,n) as time, take(1..10000,n) as qty , take(`A`B``D,n) as sym,rand(100.0,n) as price)
+	dt1=db.createPartitionedTable(t,`dt1,`ts`qty, {ts:"delta", qty:"delta"},`qty`time)
+	wt1=db.createTable(t,`wt1,,`qty`time)
+	dt1.append!(t1)
+	wt1.append!(t1)
+
+}
+
+def createOlapTables(){
+	if(existsDatabase("dfs://test_olap_update")){
+		dropDatabase("dfs://test_olap_update")
+	}
+	db1=database("",VALUE,2021.03.01+0..30)
+	db2=database("",HASH,[INT,5])
+	db=database("dfs://test_olap_update",COMPO,[db1,db2])
+	n=6000
+	t = table(take(2021.03.01 +1..30,n) as ts, take(time(10) +1..30,n) as time, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,take(10.5+1..100,n) as price)
+	dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"})
+	dt.append!(t)
+}
+
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)	
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+t=select *  from dt
+
+@testing:case="test_dfs_sql_update_partitionColumns_1",exception=1
+update dt set ts = ts+1
+
+@testing:case="test_dfs_sql_update_partitionColumns_2",exception=1
+update dt set qty = qty+1
+
+@testing:case="test_dfs_sql_update_sortColumns",exception=1
+update dt set time = time+1
+
+@testing:case="test_dfs_sql_update_dt_sortColumns_1",exception=1
+update wt set qty = qty+1
+
+@testing:case="test_dfs_sql_update_dt_sortColumns_2",exception=1
+update wt set time = time+1
+
+@testing:case="test_dfs_sql_update_new_columns",exception=1
+update dt set key=qty
+
+@testing:case="test_dfs_sql_update_from_fj_partition",exception=1
+update dt set dt.price=dt1.price  from fj(dt, dt1, `ts`qty)
+
+@testing:case="test_dfs_sql_update_from_fj_partition",exception=1
+update dt set dt.price=dt1.price  from cj(dt, dt1)
+
+@testing:case="test_dfs_sql_update_from_aj_partition_wrong",exception=1
+update dt set dt.price=dt1.price  from  aj(dt, dt1, `qty`ts) 
+
+@testing:case="test_dfs_sql_update_from_wj_partition_wrong",exception=1
+update dt set dt.price=dt1.price  from  wj(dt, dt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty)
+
+@testing:case="test_dfs_sql_update_from_wj_partition_wrong",exception=1
+update dt set dt.price=dt1.price  from  pwj(dt, dt1, -1:2,< [wavg(qty,price)]>,`ts`qty)
+ 
+@testing:case="test_dfs_sql_update_from_fj_DimensionalTable",exception=1
+update wt set wt.price=wt1.price  from fj(wt, wt1, `ts`qty)
+
+@testing:case="test_dfs_sql_update_from_where_order-sensitive",exception=1
+update dt set  price=price+1  where ts=next(ts) 
+
+@testing:case="test_dfs_sql_update_dfs_from_Memorytable",exception=1
+n=60
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+t1 = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)	
+update dt set price =0  from lsj(t,t1,`ts`qty) 
+
+@testing:case="test_dfs_sql_update_dfs_from_DimensionalTable",exception=1
+update dt set price =0   from ej(wt,wt1,`ts`qty) 
+
+@testing:case="test_dfs_sql_update_from", exception=1
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)	
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+//lj
+t=select * from dt
+t1= select * from dt1
+update dt set dt.price=dt1.price*qty from  lj(dt, dt1, `ts`qty) where sym="A"
+update wt set wt.price=wt1.price*qty from  lj(wt, wt1, `ts`qty)where sym="A"  
+update t set t.price=t1.price*qty  from  lj(t, t1, `ts`qty) where sym="A" 
+update empt set empt.price=dt1.price*qty from  lj(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+empts=select * from empt
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//ej
+t=select * from dt 
+t1=select * from dt1
+update dt set dt.price=dt1.price+1  from ej(dt, dt1, `ts`qty)
+update wt set wt.price=wt1.price+1  from ej(wt, wt1, `ts`qty)
+update t set t.price=t1.price+1  from  ej(t, t1, `ts`qty)
+update empt set empt.price=mmin(dt1.price,3)  from ej(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//lsj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price  from lsj(dt, dt1, `ts`qty)
+update wt set wt.price=wt1.price  from   lsj(wt, wt1, `ts`qty)  
+update t set t.price=t1.price  from  lsj(t, t1, `ts`qty)
+update empt set empt.price=dt1.price from  lsj(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//aj
+t=select * from dt
+t1=select * from dt1
+update dt set dt.price=dt1.price-1 ,dt.sym=dt1.sym  from  aj(dt, dt1, `ts`qty`ts)
+update wt set wt.price=wt1.price-1,wt.sym=wt1.sym  from  aj(wt, wt1,  `ts`qty`ts) 
+update t set t.price=t1.price-1, t.sym=t1.sym  from  aj(t, t1,  `ts`qty`ts)  
+update empt set empt.price=dt1.price-1,empt.sym=dt1.sym   from  aj(empt, dt1,  `ts`qty`ts)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//wj
+t=select * from dt
+t1=select * from dt1
+update dt set  price=avg_price-price   from  wj(dt, dt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time)
+update wt set  price=avg_price-price   from   wj(wt, wt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time)
+update t set price=avg_price-price  from  wj(t, t1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time) 
+update empt set  price=avg_price-price  from   wj(empt, dt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 5,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//pwj
+t=select * from dt
+t1=select * from dt1
+update dt set dt.price=wavg_qty   from  pwj(dt, dt1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B
+update wt set wt.price=wavg_qty  from pwj(wt, wt1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B  
+update t set price=wavg_qty  from  pwj(t, t1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B  
+update empt set empt.price=wavg_qty  from  pwj(empt, dt1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 6,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_contextby"
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+t=select *  from dt
+t1=select *  from dt1
+update t set  price=price+sum(qty) context by ts,qty,sym
+update dt set price=price+sum(qty) context by ts,qty,sym
+update wt set price=price+sum(qty) context by ts,qty,sym
+update empt set price=sum(price) context by ts,qty,sym
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+/*
+update t set qty=qty+count(qty) context by  ts,hashBucket(qty,5),sym,qty
+update dt set qty=qty+count(qty) context by sym,qty
+update wt set qty=qty+count(qty) context by ts,hashBucket(qty,5),sym,qty
+update empt set qty=qty+count(qty) context by sym,qty
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+*/
+
+@testing:case="test_dfs_sql_update_join_contextby", exception=1
+//lj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price*qty from  lj(dt, dt1, `ts`qty) where sym="A" context by sym
+update wt set wt.price=wt1.price*qty  from  lj(wt, wt1, `ts`qty)where sym="A"   context by sym
+update t set t.price=t1.price*qty  from  lj(t, t1, `ts`qty) where sym="A"  context by sym
+update empt set empt.price=dt1.price*qty  from   lj(empt, dt1, `ts`qty) context by sym
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+empts=select * from empt
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+//lsj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price   from lsj(dt, dt1, `ts`qty) context by ts,qty,sym
+update wt set wt.price=wt1.price   from   lsj(wt, wt1, `ts`qty)   context by ts,qty,sym
+update t set t.price=t1.price   from  lsj(t, t1, `ts`qty) context by ts,qty,sym
+update empt set t.price=dt1.price  from   lsj(empt, dt1, `ts`qty) context by ts,qty,sym
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_where_ordering_function"
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)	
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+t=select *  from dt
+update t set price=price\prev(price) where sym==`B  context by ts,qty
+update dt set price=price\prev(price) where sym==`B context by ts,qty
+update wt set price=price\prev(price)  where sym==`B context by ts,qty
+update empt set price=price\prev(price) where sym==`B context by ts,qty
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_without_filter"
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)	
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+for(i in 1:10){
+t=select *  from dt
+update dt set price=price*i
+update wt set price=price*i
+update t set price=price*i
+update empt set price=price*i
+dts=select *  from dt  order by ts,qty
+wts=select  *  from  wt   order by ts,qty
+expected=select * from t order by  ts,qty
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+
+@testing:case="test_dfs_sql_update_where"
+createTables()
+empt=loadTable("dfs://test_iot_update",`empt)	
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+t=select *  from dt
+for(i in 0:5){
+	print(i)
+	update dt set price=price-1000 where sym=`A 
+	update wt set price=price-1000 where sym=`A
+	update t set price=price-1000 where sym=`A
+	update empt set price=price-1000 where sym=`A
+	dts=select *  from dt order by ts,qty
+	wts=select *  from wt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+for(i in 0:5){
+	print(i)
+	r=rand([10,11,21,NULL],1)[0]
+	update dt set sym=`E where qty=r
+	update wt set sym=`E  where qty=r
+	update t set sym=`E  where qty=r
+	update empt set sym=`E  where qty=r
+	dts=select *  from dt order by ts,qty
+	wts=select *  from wt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+for(i in 0:5){
+	print(i)
+	update dt set price=price+1 where sym=`A and qty>5
+	update wt set price=price+1 where sym=`A and qty>5
+	update t set price=price+1 where sym=`A and qty>5
+	update empt set price=price+1 where sym=`A and qty>5
+	dts=select *  from dt order by ts,qty
+	wts=select *  from wt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+
+for(i in 0:5){
+	print(i)
+	r=rand(1..30,1)[0]
+	update dt set price=price+1 where qty between r:(r+2)
+	update wt set price=price+1 where qty between r:(r+2)
+	update t set price=price+1 where qty between r:(r+2)
+	update empt set price=price+1 where qty between r:(r+2)
+	select * from dt
+	dts=select *  from dt order by ts,qty
+	wts=select *  from wt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+//partition
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db1=database("",VALUE,2021.03.01+0..30)
+db2=database("",HASH,[INT,50])
+db=database("dfs://test_iot_update",COMPO,[db1,db2],,"IOT")
+n=6000
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty)
+wt=db.createPartitionedTable(t,`wt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty).append!(t)
+dt.append!(t)
+update dt set price=price+1  where ts=2021.03.02, partition(qty, 21 31)
+update t set price=price+1 where ts=2021.03.02 and hashBucket(qty,50) in 21 31 
+update wt set price=price+1 where ts=2021.03.02 and hashBucket(qty,50) in 21 31 
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_new_tablename"
+pt=loadTable("dfs://test_iot_update",`dt)
+t=select *  from pt
+wtt=loadTable("dfs://test_iot_update",`wt)
+for(i in 0:5){
+	update pt set price=price+1  where ts>2020.04.20
+	update wtt set price=price+1  where ts>2020.04.20
+	update t set price=price+1  where ts>2020.04.20
+	dts=select *  from pt order by ts,qty
+	wtts=select *  from wtt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wtts.values(),expected.values()))
+}
+
+
+@testing:case="test_dfs_sql_update_after_addColumn"
+dbName="dfs://test_update"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 2012.01.01..2012.01.10,,"TSDB")
+n = 1000000
+t = table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..100), n) as sym, rand(100, n) as price)
+pt1 = db.createPartitionedTable(t, "pt1", "date",,`sym`price).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", "date",,`sym`price).append!(t)
+dt1 = db.createTable(t, "dt1",,`sym`price).append!(t)
+dt2 = db.createTable(t, "dt2",,`sym`price).append!(t)
+
+//pt1
+addColumn(pt1, "col1", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col1=1
+re = select * from pt1
+assert 1, re[`col1]==1
+
+addColumn(pt1, "col2", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col2=2,col1=1
+re = select * from pt1
+assert 2, re[`col2]==2
+
+addColumn(pt1, "col3", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col3=3,col2=2,col1=1
+re = select * from pt1
+assert 3, re[`col3]==3
+
+addColumn(pt1, "col4", [BOOL])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col4=true ,col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from pt1
+assert 3, re[`col4]==true
+
+addColumn(pt1, "col5", [DOUBLE])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col5=price/col2*col3,col4=true,col3=3, col2=2,col1=1
+re = select * from pt1
+
+//pt2
+addColumn(pt2, "col1", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col1=1
+re = select * from pt2
+assert 1, re[`col1]==1
+
+addColumn(pt2, "col2", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col2=2,col1=1
+re = select * from pt2
+assert 2, re[`col2]==2
+
+addColumn(pt2, "col3", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col3=3,col2=2,col1=1
+re = select * from pt2
+assert 3, re[`col3]==3
+
+addColumn(pt2, "col4", [BOOL])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col4=true, col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from pt2
+assert 3, re[`col4]==true
+
+addColumn(pt2, "col5", [DOUBLE])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col5=price/col2*col3, col4=true, col3=3,col2=2,col1=1
+re = select * from pt2
+
+//dt1
+addColumn(dt1, "col1", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col1=1
+re = select * from dt1
+assert 1, re[`col1]==1
+
+addColumn(dt1, "col2", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col2=2,col1=1
+re = select * from dt1
+assert 2, re[`col2]==2
+
+addColumn(dt1, "col3", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col3=3,col2=2,col1=1
+re = select * from dt1
+assert 3, re[`col3]==3
+
+addColumn(dt1, "col4", [BOOL])
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col4=true,col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from dt1
+assert 3, re[`col4]==true
+
+addColumn(dt1, "col5", [DOUBLE])
+dt1 = loadTable(dbName, "pt1")
+update dt1 set col5=price/col2*col3,col4=true,col3=3,col2=2,col1=1
+re = select * from dt1
+
+//dt2
+addColumn(dt2, "col1", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col1=1
+re = select * from dt2
+assert 1, re[`col1]==1
+
+addColumn(dt2, "col2", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col2=2,col1=1
+re = select * from dt2
+assert 2, re[`col2]==2
+
+addColumn(dt2, "col3", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col3=3,col2=2,col1=1
+re = select * from dt2
+assert 3, re[`col3]==3
+
+addColumn(dt2, "col4", [BOOL])
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col4=true,col3=3,col2=2,col1=1  where int(col3)==3
+re = select * from dt2
+assert 3, re[`col4]==true
+
+addColumn(dt2, "col5", [DOUBLE])
+dt2 = loadTable(dbName, "pt2")
+update dt2 set col5=price/col2*col3,col4=true,col3=3,col2=2,col1=1
+re = select * from dt2
+
+
+@testing:case="test_dfs_sql_update_dropDB"
+if(existsDatabase("dfs://test_update")){
+	dropDatabase("dfs://test_update")
+}
+
+@testing:case="test_dfs_sql_update_iot"
+ID=1 2 3 4 5 6 7 8 9 10
+x=1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 10.5
+y=`A`B`C`D`E`F`G`H`I`G
+if(existsDatabase("dfs://hashdb101")){
+	dropDatabase("dfs://hashdb101")
+}
+db=database("dfs://hashdb101", HASH,  [INT, 2],,"TSDB"); //create database
+t=table(ID, x, y)
+if(existsTable("dfs://hashdb101",`pt)){
+	dropTable(db,`pt)
+} 
+pt = db.createPartitionedTable(t, `pt, `ID,,`ID)
+pt.append!(t)
+if(!existsTable("dfs://hashdb101",`pt1)){
+renameTable(db, `pt, `pt1) } //remane
+
+@testing:case = "update_dfs_one_column_number"
+pt1 = loadTable(db, `pt1)
+update pt1 set x=1.0
+pt1_test = (select x from pt1).x
+assert 1,pt1_test ==take(1.0,10) 
+
+@testing:case = "update_dfs_two_column_number"
+pt1 = loadTable(db, `pt1)
+update pt1 set x=2.0,y="AA"
+pt1_test1 = (select x from pt1).x
+pt1_test2 = (select y from pt1).y
+assert 1,pt1_test1 == take(2.0,10)
+assert 2,pt1_test2 == take(`AA,10)
+
+@testing:case = "update_dfs_columns_null"
+pt1 = loadTable(db, `pt1)
+update pt1 set x = NULL,y=NULL
+pt1_test1 = (select x from pt1).x
+pt1_test2 = (select y from pt1).y
+assert 1,pt1_test1 == NULL
+assert 2,each(eqObj,pt1_test2,NULL)
+
+@testing:case = "update_dfs_where_equal_single"
+pt1 = loadTable(db, `pt1)
+pt1.append!(t)
+loadTable(db, `pt1).append!(t)
+update pt1 set x = 100,y=y where y == "A"
+pt1_test1 = (select x from pt1 where y==`A).x
+assert 1,pt1_test1 == 100
+
+@testing:case = "update_dfs_where_equal_or"
+update loadTable(db, `pt1) set x = 100,y=y where y =="A" or y == "B"
+pt1_test1 = (select x from loadTable(db, `pt1) where y=="A").x
+pt1_test2 = (select x from loadTable(db, `pt1) where y=="B").x
+assert 1,pt1_test1 == 100
+assert 2,pt1_test2 == 100
+
+@testing:case = "update_dfs_where_equal_and"
+update loadTable(db, `pt1) set x = 200 where x ==100 and y=="A"
+select * from loadTable(db, `pt1)
+pt1_test1 = (select x from loadTable(db, `pt1) where y=="A").x
+assert 1,pt1_test1 == 200
+
+@testing:case = "update_dfs_where_equal_in"
+update loadTable(db, `pt1) set x = 500 ,y=y where ID in 4 6
+pt1_test1 = (select x from loadTable(db, `pt1) where ID = 4).x
+assert 1,pt1_test1 == 500
+
+@testing:case = "update_dfs_context_by"
+ID = 1 1 2 2 3 4 5 6 7 8
+x = 12.1 13.1 14.1 15.1 16.1 17.1 30.1 31.1 32.1 34.1
+y = `Z`X`C`V`B`N`M`L`L`L
+t1 = table(ID,x,y)
+if(existsTable("dfs://hashdb101", `pt1)){
+	dropTable(db,`pt1)
+}
+pt1 = db.createPartitionedTable(t, `pt1, `ID,,`ID)
+loadTable(db, `pt1).append!(t1)
+select * from loadTable(db, `pt1)
+update loadTable(db, `pt1) set x = sum(x) ,y=y context by ID,y
+assert 1, size(select ID from loadTable(db, `pt1) where ID =2)==2
+
+@testing:case = "update_dfs_join_table", exception=1
+t2 = table(1 11 as ID,14.1 32.7 as x,`C`V as y)
+if(existsTable("dfs://hashdb101",`pt2)){
+	dropTable("dfs://hashdb101",`pt2)
+}
+pt2 = db.createPartitionedTable(t2, `pt2, `ID,,`ID)
+loadTable(db, `pt2).append!(t2)
+update loadTable(db, `pt1) set pt1.y=pt2.y from ej(loadTable(db, `pt1),loadTable(db, `pt2),`ID)
+pt1_test1 = (select y from loadTable(db, `pt1) where ID = 2).y
+assert 1,pt1_test1 ==`C`V
+
+@testing:case="prepare_data"
+ID = 1 1 2 2 3 4 5 6 7 8
+x = 12.1 13.1 14.1 15.1 16.1 17.1 30.1 31.1 32.1 34.1
+y = `Z`X`C`V`B`N`M`L`L`L
+t=table(ID, x, y)
+if(existsTable("dfs://hashdb101",`dt1)){
+	dropTable(db,`dt1)
+} 
+dt1 = db.createTable(t,`dt1,,`ID)
+dt1.append!(t)
+
+@testing:case = "update_one_column_number"
+dt1 = loadTable(db, `dt1)
+update dt1 set x=1.0
+assert 1,(exec x from dt1) ==take(1.0,10) 
+
+@testing:case = "update_two_column_number"
+dt1 = loadTable(db, `dt1)
+update dt1 set x=2.0,y="AA"
+assert 1,(exec x from dt1) == take(2.0,10)
+assert 2,(exec y from dt1) == take(`AA,10)
+
+@testing:case = "update_columns_null"
+dt1 = loadTable(db, `dt1)
+update dt1 set x = NULL,y=NULL
+assert 1,(exec x from dt1) == NULL
+assert 2,each(eqObj,(exec y from dt1),NULL)
+
+@testing:case = "update_where_equal_single"
+dt1 = loadTable(db, `dt1)
+dt1.append!(t)
+loadTable(db, `dt1).append!(t)
+update dt1 set x = 100,y=y where y == "A"
+assert 1,(exec x from dt1 where y==`A) == 100
+
+@testing:case = "update_where_equal_or"
+dt1 = loadTable(db, `dt1)
+update dt1 set x = 100,y=y where y =="A" or y == "B"
+assert 1,(exec x from dt1 where y=="A" )== 100
+assert 2,(exec x from dt1 where y=="B" )== 100
+
+@testing:case = "update_where_equal_and"
+loadTable(db, `dt1).append!(t)
+dt1 = loadTable(db, `dt1)
+select * from dt1
+update dt1 set x = 200 where ID = 1 and y==`Z
+assert 1,(exec x from dt1 where ID = 1 and y==`Z) == 200
+
+@testing:case = "update_where_equal_in"
+dt1 = loadTable(db, `dt1)
+update dt1 set x = 500 where ID in 4 6
+assert 1,(exec x from dt1 where ID = 4) == 500
+
+@testing:case = "update_context_by"
+dt1 = loadTable(db, `dt1)
+ID = 1 1 2 2 3 4 5 6 7 8
+x = 12.1 13.1 14.1 15.1 16.1 17.1 30.1 31.1 32.1 34.1
+y = `Z`X`C`V`B`N`M`L`L`L
+t1 = table(ID,x,y)
+//dt1.append!(t1)
+update t1 set x = x+1 context by ID,y
+assert 1, size(select ID from dt1 where ID =2)==8
+
+@testing:case = "update_join_table", exception=1
+dt1 = loadTable(db, `dt1)
+t2 = table(1 11 as ID,14.1 32.7 as x,`C`V as y)
+if(existsTable("dfs://hashdb101",`dt2)){
+	dropTable(db,`dt2)
+}
+dt2 = db.createPartitionedTable(t2, `dt2, `ID,,`ID)
+dt2.append!(t2)
+update dt1 set dt1.y=dt2.y from ej(dt1,dt2,`ID)
+//assert 1,(exec y from dt1 where ID = 2 and x !=NULL)==`C`V`C`V`C`V
+
+@testing:case = "test_dfs_sql_update_flushIotCache"
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db1=database("",VALUE,2021.03.01+0..30)
+db2=database("",HASH,[INT,5])
+db=database("dfs://test_iot_update",COMPO,[db1,db2],,"TSDB")
+n=6000
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+pt=db.createPartitionedTable(t,`pt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty).append!(t)
+pt=loadTable("dfs://test_iot_update",`pt)
+for(i in 0:5){
+update pt set price=price+1  where ts>2020.04.20
+update t set price=price+1  where ts>2020.04.20
+pnodeRunAllNodes(flushIotCache)
+pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+}
+
+@testing:case = "test_dfs_sql_update_finally_flushIotCache"
+for(i in 0:5){
+	update pt set price=price+1  where ts>2020.04.20
+	update t set price=price+1  where ts>2020.04.20
+}
+pnodeRunAllNodes(flushIotCache)
+pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_frequent_triggerIotCompaction"
+for(i in 0:5){
+	update pt set price=price+1  where ts>2020.04.20
+	update t set price=price+1  where ts>2020.04.20
+	pnodeRunAllNodes(flushIotCache)
+	pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+}
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_finally_triggerIotCompaction"
+pnodeRunAllNodes(flushIotCache)
+for(i in 0:5){
+	update pt set price=price+1  where ts>2020.04.20
+	update t set price=price+1 where ts>2020.04.20
+}
+pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_read_and_write"
+def read_data(table){
+	for(i in 0:1000){
+		t =  select * from table
+	}
+}
+def write_data(table){
+	for(i in 1..5){
+		update table set price=price+100 
+	}
+}
+job1=submitJob("readData1","read data in table",read_data,pt)
+job2=submitJob("writeData10","write data in table",write_data,pt)
+for(i in 1..5){
+	update t set price=price+100
+}
+assert 1,(exec count(*) from pt) >0
+sleep(400)
+do{
+	tm=exec endTime from getRecentJobs() where jobId=job2
+	if(tm[0]!=NULL){
+		break;
+	}
+}while(true)
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+cancelJob(job1)
+/*
+@testing:case = "test_dfs_sql_update_multi_sortColumns"
+createOlapTables()
+createTables()
+iotPt=loadTable("dfs://test_iot_update",`dt)	
+olapPt=loadTable("dfs://test_olap_update",`dt)	
+//single
+update iotPt set qty=2, price=price,ts = ts ,sym = sym,time=time where ts in 2021.03.01..2021.03.02
+update olapPt set qty=2, price=price,ts = ts ,sym = sym,time=time  where ts in 2021.03.01..2021.03.02
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 1,each(eqObj,res.values(),expected.values())
+//two
+update iotPt set qty=2, price=price,ts = ts ,sym = sym,time=time+10 where ts < 2021.03.01
+update olapPt set qty=2, price=price,ts = ts ,sym = sym,time=time+10  where ts < 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 2,each(eqObj,res.values(),expected.values())
+//three
+update iotPt set qty=2, price=price,ts = ts ,sym = `,time=time+10 where ts == 2021.03.01
+update olapPt set qty=2, price=price,ts = ts ,sym = `,time=time+10  where ts == 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 3,each(eqObj,res.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_partitionColumns"
+update iotPt set qty=200+qty, price=price,ts = ts+100 ,sym = `,time=time where ts == 2021.03.01
+update olapPt set qty=200+qty, price=price,ts = ts+100 ,sym = `,time=time  where ts == 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 3,each(eqObj,res.values(),expected.values())
+*/
+
+///////////////keepDuplicates=LAST
+@testing:case="test_dfs_sql_update_createTables_keepDuplicates=LAST"
+def createTables(dbName){
+	if(existsDatabase("dfs://test_iot_update")){
+		dropDatabase("dfs://test_iot_update")
+	}
+	db1=database("",VALUE,2021.03.01+0..30)
+	db2=database("",VALUE,1..6)
+	db=database("dfs://test_iot_update",COMPO,[db1,db2],,"TSDB")
+	n=6000
+	t = table(take(2021.03.01 +1..30,n) as ts, rand(time(10) +1..600,n) as time, take(1..6,n) as qty , take(`A`B`C`D,n) as sym,take(10.5+1..100,n) as price)
+	dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"},`sym`ts`time,keepDuplicates=LAST)
+	empt=db.createPartitionedTable(t,`empt,`ts`qty,{ts:"delta", qty:"delta"},`sym`ts`time,keepDuplicates=LAST)
+	wt=db.createTable(t,`wt,,`ts`qty`sym`time,keepDuplicates=LAST)
+	dt.append!(t)
+	wt.append!(t)
+	n=6
+	t1 = table(take(2021.03.01 +1..6,n) as ts,take(time(10) +1..6,n) as time, take(1..10000,n) as qty , take(`A`B``D,n) as sym,rand(100.0,n) as price)
+	dt1=db.createPartitionedTable(t,`dt1,`ts`qty, {ts:"delta", qty:"delta"},`sym`qty`time)
+	wt1=db.createTable(t,`wt1,,`sym`qty`time)
+	dt1.append!(t1)
+	wt1.append!(t1)
+}
+
+def createOlapTables(){
+	if(existsDatabase("dfs://test_olap_update")){
+		dropDatabase("dfs://test_olap_update")
+	}
+	db1=database("",VALUE,2021.03.01+0..30)
+	db2=database("",HASH,[INT,5])
+	db=database("dfs://test_olap_update",COMPO,[db1,db2])
+	n=6000
+	t = table(take(2021.03.01 +1..30,n) as ts, take(time(10) +1..6000,n) as time, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,take(10.5+1..100,n) as price)
+	dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"})
+}
+
+createTables("dfs://test_iot_update")
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+t=select *  from dt
+
+
+@testing:case="test_dfs_sql_update_partitionColumns_1_keepDuplicates=LAST",exception=1
+update dt set ts = ts+1
+
+@testing:case="test_dfs_sql_update_partitionColumns_2_keepDuplicates=LAST",exception=1
+update dt set qty = qty+1
+
+@testing:case="test_dfs_sql_update_sortColumns_keepDuplicates=LAST",exception=1
+update dt set time = time+1
+
+@testing:case="test_dfs_sql_update_dt_sortColumns_1_keepDuplicates=LAST",exception=1
+update wt set qty = qty+1
+
+@testing:case="test_dfs_sql_update_dt_sortColumns_2_keepDuplicates=LAST",exception=1
+update wt set time = time+1
+
+@testing:case="test_dfs_sql_update_new_columns_keepDuplicates=LAST",exception=1
+update dt set key=qty
+
+@testing:case="test_dfs_sql_update_from_fj_partition_keepDuplicates=LAST",exception=1
+update dt set dt.price=dt1.price  from fj(dt, dt1, `ts`qty)
+
+@testing:case="test_dfs_sql_update_from_fj_partition_keepDuplicates=LAST",exception=1
+update dt set dt.price=dt1.price  from cj(dt, dt1)
+
+@testing:case="test_dfs_sql_update_from_aj_partition_wrong_keepDuplicates=LAST",exception=1
+update dt set dt.price=dt1.price  from  aj(dt, dt1, `qty`ts) 
+
+@testing:case="test_dfs_sql_update_from_wj_partition_wrong_keepDuplicates=LAST",exception=1
+update dt set dt.price=dt1.price  from  wj(dt, dt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty)
+
+@testing:case="test_dfs_sql_update_from_wj_partition_wrong_keepDuplicates=LAST",exception=1
+update dt set dt.price=dt1.price  from  pwj(dt, dt1, -1:2,< [wavg(qty,price)]>,`ts`qty)
+ 
+@testing:case="test_dfs_sql_update_from_fj_DimensionalTable_keepDuplicates=LAST",exception=1
+update wt set wt.price=wt1.price  from fj(wt, wt1, `ts`qty)
+
+@testing:case="test_dfs_sql_update_from_where_order-sensitive_keepDuplicates=LAST",exception=1
+update dt set  price=price+1  where ts=next(ts) 
+
+@testing:case="test_dfs_sql_update_dfs_from_Memorytable_keepDuplicates=LAST",exception=1
+n=60
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+t1 = table(take(2021.03.01 +1..30,n) as ts, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)	
+update dt set price =0  from lsj(t,t1,`ts`qty) 
+
+@testing:case="test_dfs_sql_update_dfs_from_DimensionalTable_keepDuplicates=LAST",exception=1
+update dt set price =0   from ej(wt,wt1,`ts`qty) 
+
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_prepare"
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db1=database("",VALUE,2021.03.01+0..30)
+db2=database("",HASH,[INT,5])
+db=database("dfs://test_iot_update",COMPO,[db1,db2],,"IOT")
+n=6000
+t = table(take(2021.03.01 +1..30,n) as ts, rand(time(10) +1..600,n) as time, take(1..300000,n) as qty , take(`A`B`C`D,n) as sym,take(10.5+1..100,n) as price)
+dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"},`sym`ts`time,keepDuplicates=LAST)
+empt=db.createPartitionedTable(t,`empt,`ts`qty,{ts:"delta", qty:"delta"},`sym`ts`time,keepDuplicates=LAST)
+wt=db.createTable(t,`wt,,`sym`ts`time,keepDuplicates=LAST)
+dt.append!(t)
+wt.append!(t)
+n=6
+t1 = table(take(2021.03.01 +1..6,n) as ts,take(time(10) +1..6,n) as time, take(1..10000,n) as qty , take(`A`B``D,n) as sym,rand(100.0,n) as price)
+dt1=db.createPartitionedTable(t,`dt1,`ts`qty, {ts:"delta", qty:"delta"},`sym`ts`time,keepDuplicates=LAST)
+wt1=db.createTable(t,`wt1,,`qty`sym`ts`time,keepDuplicates=LAST)
+dt1.append!(t1)
+wt1.append!(t1)
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+empt=loadTable("dfs://test_iot_update",`empt)
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_lj",exception = 1 
+//lj
+t=select * from dt
+t1= select * from dt1
+update dt set dt.price=dt1.price*qty from  lj(dt, dt1, `ts`qty) where sym="A"
+update wt set wt.price=wt1.price*qty  from   lj(wt, wt1, `ts`qty)where sym="A"  
+update t set t.price=t1.price*qty  from  lj(t, t1, `ts`qty) where sym="A" 
+update empt set empt.price=dt1.price*qty from   lj(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+empts=select * from empt
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_ej",exception = 1
+//ej
+t=select * from dt 
+t1=select * from dt1
+update dt set dt.price=dt1.price+1  from ej(dt, dt1, `ts`qty)
+update wt set wt.price=wt1.price+1  from ej(wt, wt1, `ts`qty)
+update t set t.price=t1.price+1  from  ej(t, t1, `ts`qty)
+update empt set empt.price=mmin(dt1.price,3)  from ej(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_lsj",exception = 1
+//lsj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price  from lsj(dt, dt1, `ts`qty)
+update wt set wt.price=wt1.price  from   lsj(wt, wt1, `ts`qty)  
+update t set t.price=t1.price  from  lsj(t, t1, `ts`qty)
+update empt set empt.price=dt1.price  from   lsj(empt, dt1, `ts`qty)
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_aj",exception = 1
+//aj
+t=select * from dt
+t1=select * from dt1
+update dt set dt.price=dt1.price-1  from  aj(dt, dt1, `ts`qty`ts)
+update wt set wt.price=wt1.price-1   from  aj(wt, wt1,  `ts`qty`ts) 
+update t set t.price=t1.price-1 from  aj(t, t1,  `ts`qty`ts)  
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_wj",exception = 1
+//wj
+t=select * from dt
+t1=select * from dt1
+update dt set  price=avg_price-price    from  wj(dt, dt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time)
+update wt set  price=avg_price-price   from   wj(wt, wt1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time)
+update t set price=avg_price-price  from  wj(t, t1, -1:2,< [ first(qty),avg(price) ]>,`ts`qty`time) 
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 5,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_from_keepDuplicates=LAST_pwj",exception = 1
+//pwj
+t=select * from dt
+t1=select * from dt1
+update dt set dt.price=wavg_qty   from  pwj(dt, dt1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B
+update wt set wt.price=wavg_qty   from pwj(wt, wt1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B  
+update t set price=wavg_qty  from  pwj(t, t1, -1:2,< [wavg(qty,price)]>,`ts`qty`time) where sym in `A`B  
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 6,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_contextby_keepDuplicates=LAST"
+createTables("dfs://test_iot_update")
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+dt1=loadTable("dfs://test_iot_update",`dt1)	
+wt1=loadTable("dfs://test_iot_update",`wt1)
+empt=loadTable("dfs://test_iot_update",`empt)
+t=select *  from dt
+update t set  price=price+sum(qty) context by ts,qty,sym
+update dt set price=price+sum(qty) context by ts,qty,sym
+update wt set price=price+sum(qty) context by ts,qty,sym
+dts=select *  from dt order by ts,time,qty,price
+wts=select *  from wt order by ts,time,qty,price
+expected=select * from t order by ts,time,qty,price
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_join_contextby_keepDuplicates=LAST_lj",exception = 1 
+//lj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price*qty from  lj(dt, dt1, `ts`qty) where sym="A" context by sym
+update wt set wt.price=wt1.price*qty from  lj(wt, wt1, `ts`qty)where sym="A"   context by sym
+update t set t.price=t1.price*qty  from  lj(t, t1, `ts`qty) where sym="A"  context by sym
+update empt set empt.price=dt1.price*qty  from   lj(empt, dt1, `ts`qty) context by sym
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+empts=select * from empt
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_join_contextby_keepDuplicates=LAST_lsj",exception = 1
+//lsj
+t=select * from dt 
+t1=select * from dt1 
+update dt set dt.price=dt1.price   from lsj(dt, dt1, `ts`qty) context by ts,qty,sym
+update wt set wt.price=wt1.price   from   lsj(wt, wt1, `ts`qty)   context by ts,qty,sym
+update t set t.price=t1.price  from  lsj(t, t1, `ts`qty) context by ts,qty,sym
+update empt set t.price=dt1.price   from   lsj(empt, dt1, `ts`qty) context by ts,qty,sym
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_where_ordering_function_keepDuplicates=LAST"
+createTables("dfs://test_iot_update")
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+empt=loadTable("dfs://test_iot_update",`empt)
+t=select *  from dt
+update t set price=price\prev(price) where sym==`B  context by ts,qty,time
+update dt set price=price\prev(price) where sym==`B context by ts,qty,time
+update wt set price=price\prev(price)  where sym==`B   context by ts,qty,time
+// update empt set price=price\prev(price) where sym==`B
+dts=select *  from dt order by ts,qty,time,sym
+wts=select *  from wt order by ts,qty,time,sym
+expected=select * from t order by ts,qty,time,sym
+assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_without_filter_keepDuplicates=LAST"
+createTables("dfs://test_iot_update")
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+for(i in 1:10){
+t=select *  from dt
+update dt set price=price*i
+update wt set price=price*i
+update t set price=price*i
+update empt set price=price*i
+dts=select *  from dt  order by ts,time,qty
+wts=select  *  from  wt   order by ts,time,qty
+expected=select * from t order by  ts,time,qty
+assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+
+@testing:case="test_dfs_sql_update_where_keepDuplicates=LAST"
+createTables("dfs://test_iot_update")
+dt=loadTable("dfs://test_iot_update",`dt)	
+wt=loadTable("dfs://test_iot_update",`wt)
+t=select *  from dt
+for(i in 0:5){
+	print(i)
+	update dt set price=price-1000 where sym=`A 
+	update wt set price=price-1000 where sym=`A
+	update t set price=price-1000 where sym=`A
+	update empt set price=price-1000 where sym=`A
+	dts=select *  from dt order by ts,time,qty
+	wts=select *  from wt order by  ts,time,qty
+	expected=select * from t order by  ts,time,qty
+	assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+// Aggregate or order-sensitive functions are not allowed without context by clause when updating a partitioned table
+// for(i in 0:5){
+// 	print(i)
+// 	r=rand([10,11,21,NULL],1)[0]
+// 	update dt set price=avg(price)+r where qty=r
+// 	update wt set price=avg(price)+r  where qty=r
+// 	update t set price=avg(price)+r  where qty=r
+// 	update empt set price=avg(price)+r  where qty=r
+// 	dts=select *  from dt order by  ts,time,qty
+// 	wts=select *  from wt order by  ts,time,qty
+// 	expected=select * from t order by  ts,time,qty
+// 	assert 2,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+// }
+for(i in 0:5){
+	print(i)
+	update dt set price=price+1 where sym=`A and qty>5
+	update wt set price=price+1 where sym=`A and qty>5
+	update t set price=price+1 where sym=`A and qty>5
+	update empt set price=price+1 where sym=`A and qty>5
+	dts=select *  from dt order by ts,time,qty
+	wts=select *  from wt order by  ts,time,qty
+	expected=select * from t order by  ts,time,qty
+	assert 3,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+
+for(i in 0:5){
+	print(i)
+	r=rand(1..30,1)[0]
+	t=select * from dt
+	update dt set price=price+1 where qty between r:(r+2)
+	update wt set price=price+1 where qty between r:(r+2)
+	update t set price=price+1 where qty between r:(r+2)
+	update empt set price=price+1 where qty between r:(r+2)
+	dts=select *  from dt order by ts,time,qty
+	wts=select *  from wt order by  ts,time,qty
+	expected=select * from t order by ts,time,qty
+	assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+}
+//partition
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db1=database("",VALUE,2021.03.01+0..30)
+db2=database("",HASH,[INT,50])
+db=database("dfs://test_iot_update",COMPO,[db1,db2],,"TSDB")
+n=6000
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..100,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+dt=db.createPartitionedTable(t,`dt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty,keepDuplicates=LAST)
+wt=db.createPartitionedTable(t,`wt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty,keepDuplicates=LAST).append!(t)
+dt.append!(t)
+t=select *  from dt
+update dt set price=price+1  where ts=2021.03.02, partition(qty, 21 31)
+update t set price=price+1 where ts=2021.03.02 and hashBucket(qty,50) in 21 31 
+update wt set price=price+1 where ts=2021.03.02 and hashBucket(qty,50) in 21 31 
+dts=select *  from dt order by ts,qty
+wts=select *  from wt order by ts,qty
+expected=select * from t order by ts,qty
+assert 4,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wts.values(),expected.values()))
+
+@testing:case="test_dfs_sql_update_new_tablename_keepDuplicates=LAST"
+pt=loadTable("dfs://test_iot_update",`dt)
+t=select *  from pt
+wtt=loadTable("dfs://test_iot_update",`wt)
+for(i in 0:5){
+	update pt set price=price+1  where ts<2020.04.20
+	update wtt set price=price+1  where ts<2020.04.20
+	update t set price=price+1  where ts<2020.04.20
+	dts=select *  from pt order by ts,qty
+	wtts=select *  from wtt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 1,each(eqObj,dts.values(),expected.values()).append!(each(eqObj,wtts.values(),expected.values()))
+}
+
+@testing:case="test_dfs_sql_update_after_addColumn_keepDuplicates=LAST"
+dbName="dfs://test_update"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 2012.01.01..2012.01.10,,"IOT")
+n = 1000000
+t = table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..100), n) as sym, rand(100, n) as price)
+pt1 = db.createPartitionedTable(t, "pt1", "date",,`sym`date,keepDuplicates=LAST).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", "date",,`sym`date,keepDuplicates=LAST).append!(t)
+dt1 = db.createTable(t, "dt1",,`sym`price,keepDuplicates=LAST).append!(t)
+dt2 = db.createTable(t, "dt2",,`sym`price,keepDuplicates=LAST).append!(t)
+
+//pt1
+addColumn(pt1, "col1", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col1=1
+re = select * from pt1
+assert 1, re[`col1]==1
+
+addColumn(pt1, "col2", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col2=2,col1=1
+re = select * from pt1
+assert 2, re[`col2]==2
+
+addColumn(pt1, "col3", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col3=3,col2=2,col1=1
+re = select * from pt1
+assert 3, re[`col3]==3
+
+addColumn(pt1, "col4", [BOOL])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col4=true ,col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from pt1
+assert 3, re[`col4]==true
+
+addColumn(pt1, "col5", [DOUBLE])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col5=price/col2*col3,col4=true,col3=3, col2=2,col1=1
+re = select * from pt1
+
+//pt2
+addColumn(pt2, "col1", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col1=1
+re = select * from pt2
+assert 1, re[`col1]==1
+
+addColumn(pt2, "col2", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col2=2,col1=1
+re = select * from pt2
+assert 2, re[`col2]==2
+
+addColumn(pt2, "col3", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col3=3,col2=2,col1=1
+re = select * from pt2
+assert 3, re[`col3]==3
+
+addColumn(pt2, "col4", [BOOL])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col4=true, col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from pt2
+assert 3, re[`col4]==true
+
+addColumn(pt2, "col5", [DOUBLE])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col5=price/col2*col3, col4=true, col3=3,col2=2,col1=1
+re = select * from pt2
+
+//dt1
+addColumn(dt1, "col1", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col1=1
+re = select * from dt1
+assert 1, re[`col1]==1
+
+addColumn(dt1, "col2", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col2=2,col1=1
+re = select * from dt1
+assert 2, re[`col2]==2
+
+addColumn(dt1, "col3", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col3=3,col2=2,col1=1
+re = select * from dt1
+assert 3, re[`col3]==3
+
+addColumn(dt1, "col4", [BOOL])
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col4=true,col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from dt1
+assert 3, re[`col4]==true
+
+addColumn(dt1, "col5", [DOUBLE])
+dt1 = loadTable(dbName, "pt1")
+update dt1 set col5=price/col2*col3,col4=true,col3=3,col2=2,col1=1
+re = select * from dt1
+
+//dt2
+addColumn(dt2, "col1", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col1=1
+re = select * from dt2
+assert 1, re[`col1]==1
+
+addColumn(dt2, "col2", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col2=2,col1=1
+re = select * from dt2
+assert 2, re[`col2]==2
+
+addColumn(dt2, "col3", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col3=3,col2=2,col1=1
+re = select * from dt2
+assert 3, re[`col3]==3
+
+addColumn(dt2, "col4", [BOOL])
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col4=true,col3=3,col2=2,col1=1 where int(col3)==3
+re = select * from dt2
+assert 3, re[`col4]==true
+
+addColumn(dt2, "col5", [DOUBLE])
+dt2 = loadTable(dbName, "pt2")
+update dt2 set col5=price/col2*col3,col4=true,col3=3,col2=2,col1=1
+re = select * from dt2
+
+@testing:case="test_dfs_sql_update_iot_keepDuplicates=LAST"
+ID=1 2 3 4 5 6 7 8 9 1
+x=1.5 2.5 3.5 4.5 5.5 6.5 7.5 8.5 9.5 10.5
+y=`A`B`C`D`E`F`G`H`I`A
+z=2021.07.01..2021.07.10
+if(existsDatabase("dfs://hashdb101")){
+	dropDatabase("dfs://hashdb101")
+}
+db=database("dfs://hashdb101", HASH,  [INT, 2],,"TSDB"); 
+t=table(ID, x, y,z)
+if(existsTable("dfs://hashdb101",`pt)){
+	dropTable(db,`pt)
+} 
+pt = db.createPartitionedTable(t, `pt, `ID,,`y`ID,keepDuplicates=LAST)
+pt.append!(t)
+if(existsTable("dfs://hashdb101",`pt1)){
+	dropTable(db,`pt1)
+ }
+renameTable(db, `pt, `pt1) //remane
+
+@testing:case = "update_dfs_one_column_number_keepDuplicates=LAST"
+pt1 = loadTable(db, `pt1)
+t =select *  from  loadTable(db, `pt1)
+update t set x=1.0
+update pt1 set x=1.0
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+
+@testing:case = "update_dfs_two_column_number_keepDuplicates=LAST"
+pt1 = loadTable(db, `pt1)
+t =select *  from  loadTable(db, `pt1)
+update t set x=2.0,z=z+1
+update pt1 set x=2.0,z=z+1
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+/*
+@testing:case = "update_dfs_columns_null_keepDuplicates=LAST"
+pt1 = loadTable(db, `pt1)
+t =select *  from  loadTable(db, `pt1)
+update t set ID =NULL ,x = NULL,y=NULL
+update pt1 set ID =NULL ,x = NULL,y=NULL
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+*/
+
+@testing:case = "update_dfs_where_equal_single_keepDuplicates=LAST"
+pt1 = loadTable(db, `pt1)
+pt1.append!(t)
+loadTable(db, `pt1).append!(t)
+t =select *  from  loadTable(db, `pt1)
+update pt1 set x = 100 where y == "A"
+update t set x = 100 where y == "A"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+@testing:case = "update_dfs_where_equal_or_keepDuplicates=LAST"
+t =select *  from  pt1
+update pt1 set x = 100 where y =="A" or y == "B"
+update t set x = 100 where y =="A" or y == "B"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+@testing:case = "update_dfs_where_equal_and_keepDuplicates=LAST"
+t =select *  from  pt1
+update pt1 set x = 200 where x ==100 and y=="A"
+update t set x = 200 where x ==100 and y=="A"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+@testing:case = "update_dfs_where_equal_in_keepDuplicates=LAST"
+t =select *  from  pt1
+update pt1 set x = 500 where ID in 4 6
+update t set x = 500  where ID in 4 6
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+
+@testing:case = "update_dfs_context_by_keepDuplicates=LAST"
+ID = 1 1 2 2 3 4 5 8 8 8
+x = 12.1 13.1 14.1 15.1 16.1 17.1 30.1 31.1 32.1 34.1
+y = `Z`X`C`V`B`N`M`L`L`L
+z = 2021.07.01..2021.07.10
+t1 = table(ID,x,y,z)
+if(existsDatabase("dfs://hashdb101")){
+	dropDatabase("dfs://hashdb101")
+}
+db=database("dfs://hashdb101", HASH,  [INT, 2],,"TSDB"); 
+pt1 = db.createPartitionedTable(t1, `pt1, `ID,,`ID`z,keepDuplicates=LAST)
+loadTable(db, `pt1).append!(t1)
+t=select * from pt1
+update pt1 set x = sum(x)  context by x,ID,y
+update t set x = sum(x)  context by x,ID,y
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from pt1 order by y,ID).values())
+
+@testing:case = "update_dfs_join_table_keepDuplicates=LAST",exception =1 
+t2 = table(1 11 as ID,14.1 32.7 as x,`C`V as y,2021.07.11 2021.07.12 as z)
+if(existsTable("dfs://hashdb101",`pt2)){
+	dropTable(db,`pt2)
+}
+pt2 = db.createPartitionedTable(t2, `pt2, `ID,,`y`ID,keepDuplicates=LAST)
+loadTable(db, `pt2).append!(t1)
+t=select * from loadTable("dfs://hashdb101", `pt1)
+t1=select * from loadTable("dfs://hashdb101", `pt2)
+update t set t.x=t1.x from ej(t,t1,`ID)
+update loadTable(db, `pt1) set pt1.x=pt2.x from ej(loadTable(db, `pt1),loadTable(db, `pt2),`ID)
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `pt1) order by y,ID).values())
+
+@testing:case="prepare_data"
+t=table(ID, x, y,z)
+if(existsTable("dfs://hashdb101",`dt1)){
+	dropTable(db,`dt1)
+} 
+dt1 = db.createTable(t,`dt1,,`ID`z,keepDuplicates=LAST)
+dt1.append!(t)
+
+@testing:case = "update_one_column_number_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+t =select * from loadTable(db, `dt1)
+update dt1 set x=1.0
+update t set x=1.0
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_two_column_number_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+t =select * from loadTable(db, `dt1)
+update dt1 set x=2.0,y=y+"AA"
+update t set x=2.0,y=y+"AA"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_columns_null_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+t =select * from loadTable(db, `dt1)
+update dt1 set x = NULL,y=NULL
+update t set x = NULL,y=NULL
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_where_equal_single_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+dt1.append!(t)
+loadTable(db, `dt1).append!(t)
+t =select * from loadTable(db, `dt1)
+update dt1 set x = 100 where y == "A"
+update t set x = 100 where y == "A"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+
+@testing:case = "update_where_equal_or"
+dt1 = loadTable(db, `dt1)
+t =select * from loadTable(db, `dt1)
+update dt1 set x = 100 where y =="A" or y == "B"
+update t set x = 100 where y =="A" or y == "B"
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_where_equal_and_keepDuplicates=LAST"
+loadTable(db, `dt1).append!(t)
+dt1 = loadTable(db, `dt1)
+t=select * from dt1
+update dt1 set x = 200 where ID = 1 and y==`Z
+update t set x = 200 where ID = 1 and y==`Z
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_where_equal_in_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+t=select * from dt1
+update dt1 set x = 500 where ID in 4 6
+update t set x = 500 where ID in 4 6
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_context_by_keepDuplicates=LAST"
+dt1 = loadTable(db, `dt1)
+ID = 1 1 2 2 3 4 5 6 7 8
+x = 12.1 13.1 14.1 15.1 16.1 17.1 30.1 31.1 32.1 34.1
+y = `Z`Z`C`V`B`N`M`L`L`L
+t1 = table(ID,x,y)
+dt1.append!(t1)
+t=select * from dt1
+update dt1 set x = x+1 context by  ID,y
+update t set x = x+1 context by hashBucket(ID,2), ID,y
+assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "update_join_table_keepDuplicates=LAST", exception=1
+dt1 = loadTable(db, `dt1)
+t2 = table(1 11 as ID,14.1 32.7 as x,`C`V as y)
+if(existsTable("dfs://hashdb101", `dt2)){
+	dropTable(db,`dt2)
+}
+dt2 = db.createPartitionedTable(t2, `dt2, `ID,,`y`ID,keepDuplicates=LAST)
+dt2.append!(t2)
+dt2 = loadTable(db, `dt2)
+t=select * from dt1
+update dt1 set dt1.x=dt2.x from ej(dt1,dt2,`ID)
+//assert 1, each(eqObj,(select *  from t order by y,ID).values(),(select * from loadTable("dfs://hashdb101", `dt1) order by y,ID).values())
+
+@testing:case = "test_dfs_sql_update_flushIotCache_keepDuplicates=LAST"
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db1=database("",VALUE,2021.03.01+0..30)
+db2=database("",HASH,[INT,5])
+db=database("dfs://test_iot_update",COMPO,[db1,db2],,"TSDB")
+n=6000
+t = table(take(2021.03.01 +1..30,n) as ts, take(1..300,n) as qty , take(`A`B`C`D,n) as sym,rand(10.0,n) as price)
+pt=db.createPartitionedTable(t,`pt,`ts`qty, {ts:"delta", qty:"delta"},`ts`qty,keepDuplicates=LAST).append!(t)
+pt=loadTable("dfs://test_iot_update",`pt)
+for(i in 0:5){
+	t=select *  from pt
+	update pt set price=price+1 where ts<2020.04.20
+	update t set price=price+1  where ts<2020.04.20
+	pnodeRunAllNodes(flushIotCache)
+	pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+	dts=select *  from pt order by ts,qty
+	expected=select * from t order by ts,qty
+	assert 1,each(eqObj,dts.values(),expected.values())
+}
+
+@testing:case = "test_dfs_sql_update_finally_flushIotCache_keepDuplicates=LAST"
+for(i in 0:5){
+	t=select *  from pt
+	update pt set price=price+1  where ts<2020.04.20
+	update t set price=price+1  where ts<2020.04.20
+}
+pnodeRunAllNodes(flushIotCache)
+pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_frequent_triggerIotCompaction_keepDuplicates=LAST"
+for(i in 0:5){
+	update pt set price=price+1  where ts<2020.04.20
+	update t set price=price+1 where ts<2020.04.20
+	pnodeRunAllNodes(flushIotCache)
+	pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+}
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_finally_triggerIotCompaction_keepDuplicates=LAST"
+pnodeRunAllNodes(flushIotCache)
+for(i in 0:5){
+	update pt set price=price+1  where ts<2020.04.20
+	update t set price=price+1  where ts<2020.04.20
+}
+pnodeRunAllNodes(nodeCompaction{"dfs://test_iot_update"})
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_read_and_write_keepDuplicates=LAST"
+def read_data(table){
+	for(i in 0:1000){
+		t =  select * from table
+	}
+}
+def write_data(table){
+	for(i in 1..5){
+		update table set price=price+100
+	}
+}
+job1=submitJob("readData1","read data in table",read_data,pt)
+job2=submitJob("writeData10","write data in table",write_data,pt)
+for(i in 1..5){
+	update t set price=price+100
+}
+assert 1,(exec count(*) from pt) >0
+sleep(400)
+do{
+	tm=exec endTime from getRecentJobs() where jobId=job2
+	if(tm[0]!=NULL){
+		break;
+	}
+}while(true)
+dts=select *  from pt order by ts,qty
+expected=select * from t order by ts,qty
+assert 1,each(eqObj,dts.values(),expected.values())
+cancelJob(job1)
+/*
+@testing:case = "test_dfs_sql_update_multi_sortColumns_keepDuplicates=LAST"
+createOlapTables()
+createTables("dfs://test_iot_update")
+iotPt=loadTable("dfs://test_iot_update",`dt)	
+t=select *  from iotPt
+olapPt=loadTable("dfs://test_olap_update",`dt).append!(t)
+//single
+update iotPt set qty=2, price=price,ts = ts ,sym = sym,time=time where ts in 2021.03.01..2021.03.02
+update olapPt set qty=2, price=price,ts = ts ,sym = sym,time=time  where ts in 2021.03.01..2021.03.02
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 1,each(eqObj,res.values(),expected.values())
+//two
+update iotPt set qty=2, price=price,ts = ts ,sym = sym,time=time+10 where ts < 2021.03.01
+update olapPt set qty=2, price=price,ts = ts ,sym = sym,time=time+10  where ts < 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 2,each(eqObj,res.values(),expected.values())
+//three
+update iotPt set qty=2, price=price,ts = ts ,sym = `,time=time+10 where ts == 2021.03.01
+update olapPt set qty=2, price=price,ts = ts ,sym = `,time=time+10  where ts == 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 3,each(eqObj,res.values(),expected.values())
+
+@testing:case = "test_dfs_sql_update_partitionColumns_keepDuplicates=LAST"
+update iotPt set qty=200+qty, price=price,ts = ts+100 ,sym = `,time=time where ts == 2021.03.01
+update olapPt set qty=200+qty, price=price,ts = ts+100 ,sym = `,time=time  where ts == 2021.03.01
+res=select * from iotPt order by ts,sym,qty,time,price
+expected=select *  from olapPt order by ts,sym,qty,time,price
+assert 3,each(eqObj,res.values(),expected.values())
+
+@testing:case="test_dfs_sql_update_dropDB"
+dbs=getClusterDFSDatabases()
+for(db in dbs){
+	if(existsDatabase(db)){
+		dropDatabase(db)
+	}
+}
+*/
+
+@testing:case="test_dfs_sql_update_cover_all_type_date"
+if(existsDatabase("dfs://test_iot_update")){
+	dropDatabase("dfs://test_iot_update")
+}
+db=database("dfs://test_iot_update",VALUE,2021.01.01..2021.01.20,,"TSDB")
+n = 100
+type_bool = take(true false,n) 
+type_char = take(`a`b,n)
+type_short = take(122h,n)
+type_int = take(11 22 ,n)
+type_long = take(22l, n)
+type_date =take(2021.01.01..2021.01.20,n)
+type_datetime = take(2021.01.01T13:12:10,n)
+type_minute = take(13:20m,n)
+type_second = take(13:20:10 ,n)
+type_timestamp = take(2021.01.01T13:12:10.008,n)
+type_float = take(22.01f, n)
+type_double = take(22.02,n)
+type_string = take("Hello",n)
+t0 = uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")
+type_UUID =take(t0,n)
+t1 = ipaddr("192.168.1.13")
+type_IPADDR = take(t1,n) 
+t2 = int128("e1671797c52e15f763380b45e841ec32")
+type_INT128 = take(t2,n) 
+
+t1 = table(type_bool as type_bool,type_char as type_char,type_short as type_short,type_int as type_int,type_long as type_long,type_date as type_date,type_datetime as type_datetime,type_minute as type_minute,type_second as type_second,type_timestamp as type_timestamp,type_float as type_float,type_double as type_double,type_string as type_string,type_UUID as type_UUID,type_IPADDR as type_IPADDR,type_INT128 as type_INT128)
+pt1 = db.createPartitionedTable(t1,`pt1,`type_date,,`type_date).append!(t1)
+update pt1 set type_bool  = true
+update t1 set type_bool  = true
+re = exec type_bool from pt1
+assert 1,eqObj(re,t1.type_bool)
+
+update pt1 set type_char   = `c
+update t1 set type_char   = `c
+re = exec type_char from pt1
+assert 2,eqObj(re,t1.type_char)
+
+update pt1 set type_short   =300h
+update t1 set type_short   = 300h
+re = exec type_short from pt1
+assert 3,eqObj(re,t1.type_short)
+
+update pt1 set type_int  = 30
+update t1 set type_int   = 30
+re = exec type_int from pt1
+assert 4,eqObj(re,t1.type_int)
+
+update pt1 set type_long   = 40l
+update t1 set type_long   = 40l
+re = exec type_long  from pt1
+assert 5,eqObj(re,t1.type_long )
+
+update pt1 set type_datetime   = 2021.01.11T13:12:10
+update t1 set type_datetime   = 2021.01.11T13:12:10
+re = exec type_datetime  from pt1
+assert 6,eqObj(re,t1.type_datetime )
+
+update pt1 set type_minute  = 20:20m
+update t1 set type_minute  = 20:20m
+re = exec type_minute  from pt1
+assert 7,eqObj(re,t1.type_minute )
+
+update pt1 set type_second  = 20:20:20
+update t1 set type_second  = 20:20:20
+re = exec type_second  from pt1
+assert 8,eqObj(re,t1.type_second )
+
+update pt1 set type_timestamp  = 2021.01.01T20:20:20.222
+update t1 set type_timestamp  = 2021.01.01T20:20:20.222
+re = exec type_timestamp  from pt1
+assert 9,eqObj(re,t1.type_timestamp )
+
+update pt1 set type_float  = 11.11f
+update t1 set type_float  = 11.11f
+re = exec type_float  from pt1
+assert 10,eqObj(re,t1.type_float )
+
+update pt1 set type_double  = 11.11
+update t1 set type_double = 11.11
+re = exec type_double  from pt1
+assert 11,eqObj(re,t1.type_double )
+
+update pt1 set type_string  = "WORLD"
+update t1 set type_string = "WORLD"
+re = exec type_string  from pt1
+assert 12,eqObj(re,t1.type_string )
+

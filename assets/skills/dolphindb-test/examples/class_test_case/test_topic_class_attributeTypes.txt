@@ -1,0 +1,1276 @@
+@testing:case="test_function_attributeTypes_class_instance"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+attributeTypes(Foo)
+assert 1 , each(eqObj, attributeTypes(Foo).values(),  table(["id"] as attr, ["INT"] as type).values())
+
+@testing:case="test_function_attributeTypes_class_with_not_statement_member"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1.setId(3)
+assert 1, f1.id == 3
+assert 2, each(eqObj, attributeTypes(Foo).values(),  table(["id"] as attr, ["INT"] as type).values())
+f1.setId(4)
+assert 3, f1.id == 4
+
+@testing:case="test_function_attributeTypes_class_parament_same_with_function"
+class Foo{
+	id::INT
+	def f1(){return 1}
+	def Foo(f1){
+		id = f1
+	}
+}
+assert 1, Foo(3).id == 3
+assert 2, each(eqObj, attributeTypes(Foo).values(),  table(["id"] as attr, ["INT"] as type).values())
+
+@testing:case="test_function_attributeTypes_class_defined_without_statement"
+class Foo{
+	id:: int
+	def Foo(id_){id = id_}
+	def f1(){return 3}
+	def f2(){
+	 	return self.f1()+avg(1..10)
+	}
+}
+f = Foo(4)
+assert 1, f.f2() ==  8.5
+assert 2, each(eqObj, attributeTypes(Foo).values(),  table(["id"] as attr, ["INT"] as type).values())
+
+@testing:case="test_function_attributeTypes_class_defined_with_statement"
+class Foo{
+	id:: int
+	def f1()
+	def Foo(id_){id = id_}
+	def f2(){
+	 	return self.f1()+avg(1..10)
+	}
+	def f1(){return 3}
+}
+f = Foo(4)
+assert 1, f.f2() ==  8.5
+assert 2, each(eqObj, attributeTypes(Foo).values(),  table(["id"] as attr, ["INT"] as type).values())
+
+@testing:case="test_function_attributeTypes_class_attribute_all_type"
+class Foo{
+                id :: int
+                value1 :: CHAR
+                value2 :: SHORT
+                value3 :: INT
+                value4 :: LONG
+                value5 :: FLOAT
+                value6 :: DOUBLE
+                value7 :: BOOL
+                value8 :: MONTH
+                value9 :: MONTH
+                value10 :: DATE
+                value11 :: DATETIME
+                value12 :: datehour
+                value13 :: TIMESTAMP
+                value14 :: NANOTIMESTAMP
+                value15 :: MINUTE
+                value16 :: SECOND
+                value17 :: TIME
+                value18 :: NANOTIME
+                value19 :: STRING
+                value20 :: BLOB
+                value21 ::INT128
+                value22 ::UUID
+                value23 ::ipaddr
+                value24 ::POINT
+                value25 ::COMPLEX
+                value26 ::DURATION
+                def Foo(id_, value_){
+                    id = id_
+                    value1 = value_
+                }
+                def getVal(){
+                    return value1
+                }
+}
+assert 1, Foo(1,char(1)).getVal() == char(1)
+assert 2,each(eqObj, attributeTypes(Foo).values(), table(["id"] join ("value"+string(1..26)) as name, ["INT","CHAR","SHORT","INT","LONG","FLOAT","DOUBLE","BOOL","MONTH","MONTH","DATE","DATETIME","DATEHOUR","TIMESTAMP","NANOTIMESTAMP","MINUTE","SECOND","TIME","NANOTIME","STRING","BLOB","INT128","UUID","IPADDR","POINT","COMPLEX","DURATION"] as type).values())
+
+@testing:case="test_function_attributeTypes_class_attribute_CODE"
+class Foo{
+                id :: bool
+                value ::CODE
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return eval(self.value)
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],<1+3>).getVal()==4
+assert 2, (typestr Foo(rand(false true, 1)[0],<1+3>).value) == "CODE"
+assert 3, attributeTypes(Foo).attr == ["id","value"]
+assert 4, attributeTypes(Foo).type == ["BOOL","CODE"]
+
+@testing:case="test_function_attributeTypes_class_attribute_DECIMAL32(5)"
+class Foo{
+                id :: bool
+                value :: DECIMAL32(5)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],decimal32(32.4323,5)).getVal() == decimal32(32.4323,5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal()) == "DECIMAL32"
+assert 3, attributeTypes(Foo).attr == ["id","value"]
+assert 4, attributeTypes(Foo).type == ["BOOL","DECIMAL32(5)"]
+
+@testing:case="test_function_attributeTypes_class_attribute_DECIMAL64(5)"
+class Foo{
+                id :: bool
+                value :: DECIMAL64(5)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal() == decimal64(32.4323,5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal()) == "DECIMAL64"
+assert 3, attributeTypes(Foo).attr == ["id","value"]
+assert 4, attributeTypes(Foo).type == ["BOOL","DECIMAL64(5)"]
+
+@testing:case="test_function_attributeTypes_class_attribute_DECIMAL128(7)"
+class Foo{
+                id :: bool
+                value :: DECIMAL128(7)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],decimal128(32.4323,7)).getVal() == decimal128(32.4323,7)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal128(32.4323,7)).getVal()) == "DECIMAL128"
+assert 3, attributeTypes(Foo).attr== ["id","value"]
+assert 4, attributeTypes(Foo).type==["BOOL","DECIMAL128(7)"]
+
+@testing:case="test_function_attributeTypes_class_attribute_numeric_type"
+class Foo_char{
+                value :: char
+                def Foo_char( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_short{
+                value :: short
+                def Foo_short( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_int{
+                value :: int
+                def Foo_int( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_long{
+                value :: long
+                def Foo_long( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_float{
+                value :: float
+                def Foo_float( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_double{
+                value :: double
+                def Foo_double( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+classVec = [Foo_char, Foo_short, Foo_int,Foo_long,Foo_float,Foo_double]
+for(cls in classVec){
+	func = string(cls).split("{")[0].split("_")[1]
+	for(type2 in [`CHAR, `LONG,`SHORT,`INT,`FLOAT,`DOUBLE]){
+		assert 1,  cls(funcByName(lower(type2))(3.32)).value ==   funcByName(func)(funcByName(lower(type2))(3.32))
+		assert 2, (typestr cls(funcByName(lower(type2))(3.32)).value) == func.upper()
+		assert 3, attributeTypes(cls).attr == ["value"]
+		assert 4, attributeTypes(cls).type == [upper(func)] 
+	}
+}
+assert 5, Foo_int(decimal64(9.323,4)).value == 9
+assert 6, (typestr Foo_int(decimal32(9.323,4)).value) == "INT"
+assert 7, eqFloat(Foo_float(decimal128(9.323,4)).value ,9.323,6)
+assert 8, (typestr Foo_float(decimal32(9.323,4)).value) == "FLOAT"
+
+@testing:case="test_function_attributeTypes_class_attribute_CHAR_array"
+class Foo{
+                value :: CHAR VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(char(1..10)).value == char(1..10)
+assert 2, (typestr Foo(CHAR(1..10)).value) =="FAST CHAR VECTOR"
+assert 3, attributeTypes(Foo).attr == ["value"]
+assert 4, attributeTypes(Foo).type  == ["CHAR VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_attribute_SHORT_array"
+class Foo{
+                value :: SHORT VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(short(1..10)).value == short(1..10)
+assert 2, (typestr Foo(SHORT(1..10)).value) =="FAST SHORT VECTOR"
+assert 3, attributeTypes(Foo).attr == ["value"]
+assert 4, attributeTypes(Foo).type  == ["SHORT VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_assign_all_attribute"
+class Base{
+	id :: INT
+	def Base(id_){
+		id = id_	
+	}	
+}
+class Foo{
+                value1 :: SHORT VECTOR
+	  value2 :: INT
+	  value3 :: INT[] VECTOR
+	  value4 :: Base
+                def Foo(id_, value1_,value2_,value3_){
+		value4 = Base(id_)
+                    	value1 = value1_
+                    	value2 = value2_
+                    	value3 = value3_
+                }
+                def getVal(){
+                    return value1
+                }
+}
+data = arrayVector((1..10)*5, 1..50)
+assert 1, Foo(16,short(1..10), 13, data).value1 == short(1..10)
+assert 2, (typestr Foo(16,short(1..10), 13, data).value1) =="FAST SHORT VECTOR"
+assert 3, attributeTypes(Foo).attr == ["value1","value2","value3","value4"]
+assert 4, attributeTypes(Foo).type  == ["SHORT VECTOR","INT","INT[] VECTOR","Base"]
+
+@testing:case="test_function_attributeTypes_class_assign_some_attribute"
+class Base{
+	id :: INT
+	def Base(id_){
+		id = id_	
+	}	
+}
+class Foo{
+                value1 :: SHORT VECTOR
+	  value2 :: INT
+	  value3 :: INT[] VECTOR
+	  value4 :: Base
+                def Foo(id_, value1_){
+		value4 = Base(id_)
+                    	value1 = value1_
+                }
+                def getVal(){
+                    return value1
+                }
+}
+data = arrayVector((1..10)*5, 1..50)
+assert 1, Foo(16,short(1..10)).value1 == short(1..10)
+assert 2, (typestr Foo(16,short(1..10)).value1) =="FAST SHORT VECTOR"
+assert 3, attributeTypes(Foo).attr == ["value1","value2","value3","value4"]
+assert 4, attributeTypes(Foo).type  == ["SHORT VECTOR","INT","INT[] VECTOR","Base"]
+
+@testing:case="test_function_attributeTypes_class_assign_no_attribute"
+class Base{
+	id :: INT
+	def Base(id_){
+		id = id_	
+	}	
+}
+class Foo{
+                value1 :: SHORT VECTOR
+	  value2 :: INT
+	  value3 :: INT[] VECTOR
+	  value4 :: Base
+                def Foo(){
+                }
+                def getVal(){
+                    return value1
+                }
+}
+assert 3, attributeTypes(Foo).attr == ["value1","value2","value3","value4"]
+assert 4, attributeTypes(Foo).type  == ["SHORT VECTOR","INT","INT[] VECTOR","Base"]
+
+@testing:case="test_function_attributeTypes_class_attribute_array"
+class Foo{
+                value1 :: INT VECTOR
+                value2 :: LONG VECTOR
+                value3 :: FLOAT VECTOR
+                value4 :: DOUBLE VECTOR
+                value5 :: MONTH VECTOR
+                value6 :: DATE VECTOR
+                value7 :: DATEHOUR VECTOR
+                value8 :: DATETIME VECTOR
+                value9 :: TIMESTAMP VECTOR
+                value10 :: MINUTE VECTOR
+                def Foo( value_){
+                    value1 = value_
+                    value2 = value_
+                    value3 = value_
+                    value4 = value_
+                    value5 = value_
+                    value6 = value_
+                    value7 = value_
+                    value8 = value_
+                    value9 = value_
+                    value10 = value_
+                }
+                def getVal(){
+                    return value1
+                }
+}
+assert 1, Foo(int(1..10)).value1 == int(1..10)
+assert 2, (typestr Foo(INT(1..10)).value1) =="FAST INT VECTOR"
+assert 3, (typestr Foo(INT(1..10)).value2) =="FAST LONG VECTOR"
+assert 4, (typestr Foo(FLOAT(1..10)).value3) =="FAST FLOAT VECTOR"
+assert 5, (typestr Foo(DOUBLE(1..10)).value4) =="FAST DOUBLE VECTOR"
+assert 6, (typestr Foo(MONTH(1..10)).value5) =="FAST MONTH VECTOR"
+assert 7, (typestr Foo(DATE(1..10)).value6) =="FAST DATE VECTOR"
+assert 8, (typestr Foo(DATEHOUR(1..10)).value7) =="FAST DATEHOUR VECTOR"
+assert 9, (typestr Foo(DATETIME(1..10)).value8) =="FAST DATETIME VECTOR"
+assert 10, (typestr Foo(TIMESTAMP(1..10)).value9) =="FAST TIMESTAMP VECTOR"
+assert 11, (typestr Foo(NANOTIMESTAMP(1..10)).value10) =="FAST MINUTE VECTOR"
+assert 12, attributeTypes(Foo).attr =="value" + string(1..10)
+assert 13, attributeTypes(Foo).type ==["INT VECTOR","LONG VECTOR","FLOAT VECTOR","DOUBLE VECTOR","MONTH VECTOR","DATE VECTOR","DATEHOUR VECTOR","DATETIME VECTOR","TIMESTAMP VECTOR","MINUTE VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_attribute_arrayvector"
+class Foo{
+                value1 :: INT[] VECTOR
+                value2 :: LONG[] VECTOR
+                value3 :: FLOAT[] VECTOR
+                value4 :: DOUBLE[] VECTOR
+                value5 :: MONTH[] VECTOR
+                value6 :: DATE[] VECTOR
+                value7 :: DATEHOUR[] VECTOR
+                value8 :: DATETIME[] VECTOR
+                value9 :: TIMESTAMP[] VECTOR
+                value10 :: MINUTE[] VECTOR
+                value11 :: TIME[] VECTOR
+                value12 :: SECOND[] VECTOR
+                value13 :: NANOTIME[] VECTOR
+                def Foo( value_){
+                    value1 = value_
+                    value2 = value_
+                    value3 = value_
+                    value4 = value_
+                    value5 = value_
+                    value6 = value_
+                    value7 = value_
+                    value8 = value_
+                    value9 = value_
+                    value10 = value_
+                    value11 = value_
+                    value12 = value_
+                    value13 = value_
+                }
+                def getVal(){
+                    return value1
+                }
+}
+data = arrayVector((1..10) *5, 1..50)
+go
+assert 1, each(eqObj, Foo(data).value1, data)
+assert 2, (typestr Foo(int(data)).value1) =="FAST INT[] VECTOR"
+assert 3, (typestr Foo(int(data)).value2) =="FAST LONG[] VECTOR"
+assert 4, (typestr Foo(float(data)).value3) =="FAST FLOAT[] VECTOR"
+assert 5, (typestr Foo(double(data)).value4) =="FAST DOUBLE[] VECTOR"
+assert 6, (typestr Foo(datehour(data)).value5) =="FAST MONTH[] VECTOR"
+assert 7, (typestr Foo(datetime(data)).value6) =="FAST DATE[] VECTOR"
+assert 8, (typestr Foo(datehour(data)).value7) =="FAST DATEHOUR[] VECTOR"
+assert 9, (typestr Foo(datetime(data)).value8) =="FAST DATETIME[] VECTOR"
+assert 10, (typestr Foo(timestamp(data)).value9) =="FAST TIMESTAMP[] VECTOR"
+assert 11, (typestr Foo(nanotimestamp(data)).value10) =="FAST MINUTE[] VECTOR"
+assert 12, attributeTypes(Foo).attr =="value" + string(1..13)
+assert 13, attributeTypes(Foo).type ==["INT[] VECTOR","LONG[] VECTOR","FLOAT[] VECTOR","DOUBLE[] VECTOR","MONTH[] VECTOR","DATE[] VECTOR","DATEHOUR[] VECTOR","DATETIME[] VECTOR","TIMESTAMP[] VECTOR","MINUTE[] VECTOR","TIME[] VECTOR","SECOND[] VECTOR","NANOTIME[] VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_attribute_STRING_array"
+class Foo{
+                id :: bool
+                value :: STRING VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],"A"+string(1..10)).getVal() == "A"+string(1..10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],"A"+string(1..10)).value) == "STRING VECTOR"
+assert 3, attributeTypes(Foo).attr == ["id","value"]
+assert 4, attributeTypes(Foo).type == ["BOOL","STRING VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_attribute_SYMBOL_array"
+class Foo{
+                id :: bool
+                value :: SYMBOL VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],"A"+string(take(1..10, 2000))).getVal() == "A"+string(take(1..10, 2000))
+assert 2, (typestr  Foo(rand(false true, 1)[0],"A"+string(take(1..10, 2000))).value) == "FAST SYMBOL VECTOR"
+assert 3, attributeTypes(Foo).attr == ["id","value"]
+assert 4, attributeTypes(Foo).type == ["BOOL","SYMBOL VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_attribute_set"
+class Foo{
+	value :: ANY
+	def Foo(value_){
+		value  = set(value_)	
+	}
+	def append(para){
+		value.append!(para)	
+	}
+}
+f = Foo(take(1..10, 1000))
+assert 1,  eqObj(f.value.keys(), set(1..10).keys()) 
+f.append(2 3 4)
+assert 2, eqObj(f.value.keys(), set(1..10).keys()) 
+assert 3, attributeTypes(Foo).attr == ["value"]
+assert 4, attributeTypes(Foo).type == ["ANY"]
+
+@testing:case="test_function_attributeTypes_class_attribute_dictionary"
+class F1{
+	id::INT
+	value :: string
+	def F1(id_, value_){
+		id = id_
+		value = value_
+	}	
+}
+
+class Foo{
+	value :: ANY
+	def Foo(key_,value_){
+		keytype = (typestr key_)
+		value = dict(keytype ,ANY)
+		value[key_]  = value_	
+	}
+	def append(key,value_){
+		value[key] = value_	
+	}
+}
+
+f1 = F1(1, "name1")
+fo = Foo(1, f1)
+assert 1,  fo.value[1].id == 1
+assert 2, fo.value[1].value == "name1"
+index = 0
+for(i in 1 2 3 2 1){
+	f1 = F1(i, "name"+string(index))
+	fo.append(i, f1)
+	index += 1
+}
+assert 3,  fo.value[1].id == 1
+assert 4, fo.value[1].value == "name4"
+assert 5, fo.value.keys().size() == 3
+assert 6, attributeTypes(Foo).attr == ["value"]
+assert 7, attributeTypes(Foo).type == ["ANY"]
+
+@testing:case="test_function_attributeTypes_class_attribute_matrix"
+class Foo{
+	value :: ANY
+	def Foo(value_){
+		value  = value_
+	}
+	def calculate(){
+		return each(avg, value)
+	}
+}
+f = Foo(take(1..10, 1000)$10:100)
+assert 1,  f.value == take(1..10, 1000)$10:100
+assert 2, eqObj(f.calculate(),  each(avg, take(1..10, 1000)$10:100)) 
+assert 3, attributeTypes(Foo).attr == ["value"]
+assert 4, attributeTypes(Foo).type == ["ANY"]
+
+@testing:case="test_function_attributeTypes_class_as_dict_value"
+class Context {
+	buySignalRSI :: INT
+	
+	def Context() {
+		buySignalRSI = 70
+	}
+}
+
+d=dict(STRING,ANY)
+c = Context()
+d["c"] = c
+d["d"] = Context
+assert 1,  d["c"].buySignalRSI == 70
+for(i in 0:10){
+	d[string(i)] = c
+	assert 2, d[string(i)].buySignalRSI == 70
+}
+assert 3, d.size() == 12
+assert 4, attributeTypes(d["d"]).attr == ["buySignalRSI"]
+assert 5, attributeTypes(d["d"]).type == ["INT"]
+
+@testing:case="test_function_attributeTypes_class_inhert_as_dict_value"
+class F {
+	buySignalRSI :: INT
+	
+	def F() {
+		buySignalRSI = 70
+	}
+}
+
+class Context : F {
+	def Context() {
+		F()
+	}
+}
+
+d=dict(STRING,ANY)
+c = Context()
+d["c"] = c
+d["d"] = Context
+assert 1,  d["c"].buySignalRSI == 70
+for(i in 0:10){
+	d[string(i)] = c
+	assert 2, d[string(i)].buySignalRSI == 70
+}
+assert 3, d.size() == 12
+assert 4, attributeTypes(d["d"]).attr == ["buySignalRSI"]
+assert 5, attributeTypes(d["d"]).type == ["INT"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_ddb_function"
+class F1{
+	id :: INT
+	def F1(id_){
+		id = id_	
+	}	
+	def int(){
+		return 4	
+	}
+}
+
+class F2:F1{
+	name :: STRING
+	def F2(){
+		F1(long(122))	
+	}	
+	def setName(name_){
+		name = name_
+	}
+}
+f = F2()
+assert 1, f.id == 122
+assert 2, f.int() == 4
+assert 3, attributeTypes(F2).attr == ["id","name"]
+assert 4, attributeTypes(F2).type == ["INT","STRING"]
+assert 5, attributeTypes(F1).attr == ["id"]
+assert 6, attributeTypes(F1).type == ["INT"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_same_functionName"
+class F1{
+	id :: INT
+	name :: STRING
+	value :: ANY VECTOR
+	def F1(id_, name_){
+		id ,name = id_,name_
+	}	
+	def setVal(value_){
+		value = value_
+	}
+	def getFlag(){
+		if(value.isNull().all()){
+			return false
+		}else{
+			return true	
+		}
+	}
+}
+
+class F2 : F1{
+	position  :: POINT
+	def F2(position_){
+		F1(int(1), string(1))
+		position = position_
+	}
+
+	def getPosition(){
+		return position	
+	}
+	def setVal(id){
+		position = point(id,id)
+	}
+}
+
+f1 = F1(11, "ttdfa")
+f = F2(point(1,1))
+assert 1, f.id == 1
+assert 2, f.name == "1"
+assert 3,  f1.id == 11
+assert 4, f1.name == "ttdfa"
+f.setVal(12)
+assert 5, f.position == point(12,12)
+assert 6, f.value.isNull() == true
+assert 7, attributeTypes(F1).attr == ["id","name","value"]
+assert 8, attributeTypes(F1).type == ["INT","STRING","ANY VECTOR"]
+assert 9, attributeTypes(F2).attr == ["id","name","value","position"]
+assert 10, attributeTypes(F2).type == ["INT","STRING","ANY VECTOR","POINT"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_same_functionName_2"
+class F1{
+	id :: INT
+	name :: STRING
+	def F1(id_, name_){
+		id, name = id_, name_
+	}	
+	def f1(val){
+		return val + 1	
+	}
+	def f2(val){
+		return val\11	
+	}
+}
+
+class F2 : F1{
+	value :: ANY VECTOR
+	def F2(id_, name_, value_){
+		F1(id_, name_)
+		value = value_
+		//id, name, value = id_, name_, value_
+	}
+	def f1(val){
+		return val * val	
+	}
+}
+
+class F3 : F2{
+	val :: INT
+	def F3(id_, name_,value_,val_){
+		F2(id_, name_,value_)
+		val = val_
+	}
+}
+
+f1 = F3(1, "t1", 1..10, 11.1)
+f2 = F2(2, "tt2", 1..10 + 0.1)
+assert 1, f1.f1(5) == 25
+assert 2, each(eqObj, f1.f2(5), 5\11) 
+assert 3, f2.f1(11) == 11*11
+assert 4, f2.f2(11) == 1.0
+assert 5, f1.value == 1..10
+assert 6, f2.value == 1..10 + 0.1
+assert 7, each(f1.f1, 1..10) == each(pow, 1..10, 2)
+assert 9, attributeTypes(F3).attr == ["id","name","value","val"]
+assert 10, attributeTypes(F3).type == ["INT","STRING","ANY VECTOR","INT"]
+assert 11, attributeTypes(F2).attr == ["id","name","value"]
+assert 12, attributeTypes(F2).type == ["INT","STRING","ANY VECTOR"]
+assert 13, attributeTypes(F1).attr == ["id","name"]
+assert 14, attributeTypes(F1).type == ["INT","STRING"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_same_functionName_3"
+class F1{
+	id :: INT
+	name :: STRING
+	def F1(id_, name_){
+		id, name = id_, name_
+	}	
+	def f1(val){
+		return val + 1	
+	}
+	def f2(val){
+		return val\11	
+	}
+}
+
+class F2 : F1{
+	value :: ANY VECTOR
+	def F2(id_, name_, value_){
+		F1(id_, name_)
+		value = value_
+		//id, name, value = id_, name_, value_
+	}
+	def f1(val){
+		return val * val	
+	}
+}
+
+class F3 : F1{
+	val :: INT
+	def F3(id_, name_,val_){
+		id,name, val = id_, name_, val_
+	}
+}
+f1 = F3(1, "t1", 11.1)
+f2 = F2(2, "tt2", 1..10 + 0.1)
+assert 1, f1.f1(5) == 6
+assert 2, each(eqObj, f1.f2(5), 5\11) 
+assert 3, f2.f1(11) == 11*11
+assert 4, f2.f2(11) == 1.0
+assert 5, f1.val == 11
+assert 6, f2.value == 1..10 + 0.1
+assert 7, each(f1.f1, 1..10) == 1..10+1
+assert 9, attributeTypes(F3).attr == ["id","name","val"]
+assert 10, attributeTypes(F3).type == ["INT","STRING","INT"]
+assert 11, attributeTypes(F2).attr == ["id","name","value"]
+assert 12, attributeTypes(F2).type == ["INT","STRING","ANY VECTOR"]
+assert 13, attributeTypes(F1).attr == ["id","name"]
+assert 14, attributeTypes(F1).type == ["INT","STRING"]
+
+@testing:case="test_function_attributeTypes_class_inherit_same_functionName_with_customize_class"
+class F1{
+	id :: INT
+	name :: string
+	def F1( name_){
+		id = 1
+		name = name_	
+	}	
+	def setId(id_){
+		id = id_	
+	}
+}
+
+class F2{
+	key :: F1
+	value :: ANY VECTOR
+	def F2(name_){
+		key = F1(name_)
+	}	
+	def setVal(value_){
+		value = value_	
+	}
+}
+
+class F3:F2{
+	def F3(name_){
+		F2(name_)
+	}	
+	def getPosition(pos){
+		return point(pos, pos)
+	}
+}
+
+f1 = F3("tt1")
+f2 = F2("gg1")
+assert 1, f1.key.id == 1
+assert 2, f2.key.id == 1
+assert 3, f1.key.name == "tt1"
+assert 4, f2.key.name == "gg1"
+f1.key.setId(12)
+f1.setVal(1..10)
+assert 5, f1.key.id == 12
+assert 6, f1.value == 1..10
+f2.key.setId(331)
+assert 7, f2.key.id == 331
+assert 8, f1.getPosition(11) == point(11.0, 11.0)
+
+f3 = F2("tt2")
+data = []
+for(i in 0:1000){
+	data.append!(F1("newInstance"+string(i)))
+}
+f3.setVal(data)
+assert 9, eqObj(f3.value, data)
+assert 10, attributeTypes( F3).attr == ["key","value"]
+assert 11, attributeTypes( F3).type == ["F1","ANY VECTOR"]
+assert 12, attributeTypes(F2).attr == ["key","value"]
+assert 13, attributeTypes(F2).type == ["F1","ANY VECTOR"]
+assert 14, attributeTypes(F1).attr == ["id","name"]
+assert 15, attributeTypes(F1).type == ["INT","STRING"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_aggregate_function_1"
+class F1{
+	id :: INT
+	name :: STRING
+	defg F1(id_, name_){
+		id = id_
+		name = name_
+	}	
+}
+
+class F2:F1{
+	value :: ANY VECTOR
+	defg F2(){
+		id = 1
+		name = "tt1"	
+	}	
+}
+f = F2()
+assert 1, f.id == 1
+assert 2, f.name == "tt1"
+assert 3, attributeTypes(F2).attr == ["id","name","value"]
+assert 4, attributeTypes(F2).type == ["INT","STRING","ANY VECTOR"]
+assert 5, attributeTypes(F1).attr == ["id","name"]
+assert 6, attributeTypes(F1).type == ["INT","STRING"]
+
+@testing:case="test_function_attributeTypes_class_inherit_with_not_attribute"
+class F1{
+	def F1(){}
+	def getPosition(id){
+		return 	point(id, id)
+	}
+	def pre(val){
+		res = array(DOUBLE)
+		for(v in val){
+			res.append!(v%3)
+		}
+		return res	
+	}
+}
+
+class F2:F1{
+	id::INT VECTOR
+	def F2(id_){
+		F1()	
+		id = pre(id_)
+	}
+}
+t1 = rand(10, 11)
+f = F2(t1)
+assert 1, each(eqObj, f.id,mod(t1, 3))
+assert 2, f.getPosition(f.id) == point(double(mod(t1, 3)),double(mod(t1, 3)))
+assert 3, attributeTypes(F2).attr == ["id"]
+assert 4, attributeTypes(F2).type == ["INT VECTOR"]
+assert 5, attributeTypes(F1).attr.size() == 0
+assert 6, attributeTypes(F1).type.size() == 0
+assert 7, (exec count(*) from attributeTypes(F1)) == 0
+
+@testing:case="test_function_attributeTypes_class_inherit_with_each_init"
+class F1{
+	def F1(){}
+	def getPosition(id){
+		return 	point(id, id)
+	}
+	def pre(val, v1){
+		return (val-v1)*0.53+val\v1
+	}
+}
+
+class F2:F1{
+	id::DOUBLE VECTOR
+	def F2(id_){
+		F1()	
+		id = each(pre{,3},id_)
+	}
+}
+t1 = rand(10.0, 11)
+f = F2(t1)
+def pre(val, v1){
+	return (val-v1)*0.53+val\v1
+}
+assert 1, each(eqObj,f.id, pre(t1, 3))
+assert 2, attributeTypes(F2).attr == ["id"]
+assert 3, attributeTypes(F2).type == ["DOUBLE VECTOR"]
+
+@testing:case="test_function_attributeTypes_class_polymorphism_isInstanceOf"
+class Base {
+	def Base() {}
+}
+
+class Derived : Base {
+	def Derived() {}
+}
+
+b = Base()
+d = Derived()
+assert 1, isInstanceOf(b, Base)
+assert 2, isInstanceOf(b, Derived) == false
+assert 3, isInstanceOf(d, Base)
+assert 4, isInstanceOf(d, Derived)
+assert 5, attributeTypes(Derived).size() == 0
+assert 6, attributeTypes(Derived).size() == 0
+
+@testing:case="test_function_attributeTypes_class_polymorphism_isInstanceOf_for_multiple_extends"
+class Base {
+	def Base() {}
+}
+
+class Middle : Base {
+	def Middle() {}
+}
+
+class Derived : Middle {
+	def Derived() {}
+}
+
+b = Base()
+m = Middle()
+d = Derived()
+assert 1, isInstanceOf(b, Base)
+assert 2, isInstanceOf(b, Middle) == false
+assert 3, isInstanceOf(b, Derived) == false
+assert 4, isInstanceOf(m, Base)
+assert 5, isInstanceOf(m, Middle)
+assert 6, isInstanceOf(m, Derived) == false
+assert 7, isInstanceOf(d, Base)
+assert 8, isInstanceOf(d, Middle)
+assert 9, isInstanceOf(d, Derived)
+assert 10, attributeTypes(Base).size() == 0
+assert 11, attributeTypes(Middle).size() == 0
+assert 12, attributeTypes(Derived).size() == 0
+
+@testing:case="test_function_attributeTypes_class_polymorphism_override_call_base_constructor_for_multiple_extends"
+class Base {
+	val :: INT
+	def Base() {val = 0}
+}
+
+class Middle : Base {
+	def Middle() {val = 1}
+}
+
+class Derived : Middle {
+	def Derived() {Base()}
+	def get() { return val }
+}
+b = Base()
+m = Middle()
+d = Derived()
+assert 1, isNull(d.val)
+assert 2, attributeTypes(Base).attr==["val"]
+assert 3, attributeTypes(Base).type==["INT"]
+assert 4, attributeTypes(Middle).attr ==["val"]
+assert 5, attributeTypes(Middle).type ==["INT"]
+assert 6, attributeTypes(Derived).attr ==["val"]
+assert 7, attributeTypes(Derived).type ==["INT"]
+
+@testing:case="test_function_attributeTypes_class_polymorphism_get_base_ref_in_constructor"
+class Base {
+	def Base() {}
+	def str() { return "Base" }
+}
+
+class Derived : Base {
+	baseRef :: ANY
+	def Derived() { baseRef = Base() }
+	def getBaseRef() { return baseRef }
+	def str() { return "Derived" }
+}
+
+d = Derived()
+assert 1, d.str() == "Derived"
+assert 2, d.getBaseRef().str() == "Derived"
+assert 3, isInstanceOf(d, Derived)
+assert 4, isInstanceOf(d.getBaseRef(), Derived)
+assert 5, attributeTypes(Derived).attr ==["baseRef"]
+assert 6, attributeTypes(Derived).type ==["ANY"]
+assert 7, attributeTypes(Base).size() == 0
+
+@testing:case="test_function_attributeTypes_class_polymorphism_get_base_ref_in_methods_for_multiple_extends"
+class Base {
+	def Base() {}
+}
+
+class Middle : Base {
+	baseRef :: ANY
+	def Middle() { baseRef = Base() }
+}
+
+class Derived : Middle {
+	def Derived() {}
+	def getBaseRef() { return baseRef }
+}
+
+m = Middle()
+d = Derived()
+assert 1, isInstanceOf(m.baseRef, Middle)
+assert 2, isVoid(d.baseRef)
+assert 5, attributeTypes(Derived).attr ==["baseRef"]
+assert 6, attributeTypes(Derived).type ==["ANY"]
+assert 7, attributeTypes(Base).size() == 0
+assert 8, attributeTypes(Middle).attr ==["baseRef"]
+assert 9, attributeTypes(Middle).type ==["ANY"]
+
+@testing:case="test_function_attributeTypes_class_polymorphism_def_class_in_curly_braces"
+if (1==1) {
+	class Base {
+		base :: INT
+		def Base() { base = 0 }
+	}
+}
+
+class Derived : Base {
+	def Derived() { Base() }
+}
+assert 1, Derived().base == 0
+assert 2, attributeTypes(Derived).attr ==["base"]
+assert 3, attributeTypes(Derived).type ==["INT"]
+
+@testing:case="test_function_attributeTypes_class_polymorphism_def_class_in_do_while"
+do {
+	class Base {
+		base :: INT
+		def Base() { base = 0 }
+	}
+} while(0)
+
+class Derived : Base {
+	def Derived() { Base() }
+}
+assert 1, Derived().base == 0
+assert 2, attributeTypes(Derived).attr  ==["base"]
+assert 3, attributeTypes(Derived).type ==["INT"]
+assert 4, attributeTypes(Base).attr ==["base"]
+assert 5, attributeTypes(Base).type ==["INT"]
+
+@testing:case="test_function_attributeTypes_class_inhert_dict_1"
+class MyDict {
+    def MyDict() {
+    }
+    def f1(a){
+    	return a+11	
+    }
+}
+class ScriptGenerator: MyDict {
+     map_ :: ANY
+    def ScriptGenerator() {
+        map_ = dict(STRING,ANY)
+    }
+
+    def append(key, value){
+    	map_[key] = value
+    }
+}
+vari1 = ScriptGenerator()
+vari1.append("v1",  vari1.f1)
+vari1.append("v2", 123)
+assert 1, vari1.map_["v1"](32) == 43
+assert 2, vari1.map_["v2"] == 123
+assert 3, attributeTypes(ScriptGenerator).attr ==["map_"]
+assert 4, attributeTypes(ScriptGenerator).type ==["ANY"]
+assert 5, attributeTypes(MyDict).size() == 0
+
+@testing:case="test_function_attributeTypes_class_inhert_dict_2"
+class ScriptGenerator {
+     map_ :: ANY
+    def ScriptGenerator() {
+        map_ = dict(STRING,ANY)
+    }
+
+    def append(key, value){
+    	map_[key] = value
+    }
+
+}
+class MyDict: ScriptGenerator {
+	def MyDict(){
+		ScriptGenerator()	
+	}
+	def f1(a){
+		return a+11	
+	}
+}
+vari1 = MyDict()
+vari1.append("v1",  vari1.f1)
+vari1.append("4233", 331)
+assert 1, vari1.map_["v1"](32) == 43
+assert 2, vari1.map_["4233"]  == 331
+assert 3, attributeTypes(MyDict).attr ==["map_"]
+assert 3, attributeTypes(MyDict).type ==["ANY"]
+assert 4, attributeTypes(ScriptGenerator).attr==["map_"]
+assert 4, attributeTypes(ScriptGenerator).type==["ANY"]
+
+@testing:case="test_function_attributeTypes_attribute>1024"
+script = "class Base {\n"
+for(i in 0:3000){
+	script += "\tval"+string(i)+"\t:: INT\n"		
+}
+script += "\tdef Base() {val = 0}\n}"
+runScript(script)
+go
+assert 1, attributeTypes(Base).attr  == "val" +string(0..2999)
+assert 2, attributeTypes(Base).type  == take(["INT"], 3000)
+
+@testing:case="test_function_attributeTypes_attribute>1024_with_inhert"
+script = "class Base {\n"
+for(i in 0:3000){
+	script += "\tval"+string(i)+"\t:: INT\n"		
+}
+script += "\tdef Base() {val = 0}\n}"
+runScript(script)
+go
+class Derived : Base{
+	id :: STRING
+	def Derived(){Base()}	
+}
+assert 1, attributeTypes(Derived).attr == ("val" +string(0..2999)) join ["id"]
+assert 2, attributeTypes(Derived).type == take(["INT"], 3000) join ["STRING"]
+
+@testing:case="test_function_attributeTypes_attribute>1024_with_inhert_2"
+class Base{
+	id :: STRING
+	def Base() {val = 0}
+}
+
+script = "class Derived : Base {\n"
+for(i in 0:3000){
+	script += "\tval"+string(i)+"\t:: INT\n"		
+}
+script += "\tdef Derived() {Base()}\n}"
+runScript(script)
+go
+assert 1, attributeTypes(Derived).attr ==["id"] join  ("val" +string(0..2999))
+assert 2, attributeTypes(Derived).type ==["STRING"] join take(["INT"], 3000)
+
+@testing:case="test_function_attributeTypes_attribute>1024_with_inhert_3"
+class Base{
+	id :: STRING
+	def Base() {val = 0}
+}
+
+class Base2{
+	val :: Base
+	def Base2(id_){
+		val = Base()
+	}	
+}
+script = "class Derived : Base2 {\n"
+for(i in 0:3000){
+	script += "\tval"+string(i)+"\t:: Base\n"		
+}
+script += "\tdef Derived(id_) {Base2(id_)}\n}"
+runScript(script)
+go
+assert 1, attributeTypes(Derived).attr ==["val"] join  ("val" +string(0..2999))
+assert 2, attributeTypes(Derived).type ==take("Base", 3001)
+
+@testing:case="test_function_attributeTypes_parallel"
+class Base{
+	id :: STRING
+	def Base() {val = 0}
+}
+
+script = "class Derived : Base {\n"
+for(i in 0:3000){
+	script += "\tval"+string(i)+"\t:: INT\n"		
+}
+script += "\tdef Derived() {Base()}\n}"
+runScript(script)
+go
+def f1(id){
+	for(i in 0:1000){
+		assert 1, attributeTypes(Derived).attr ==["id"] join  ("val" +string(0..2999))	
+		assert 2, attributeTypes(Derived).type ==["STRING"] join  take(["INT"], 3000)
+	}	
+}
+jobs =array(STRING)
+for(i in 0:4){
+	jobs.append!(submitJob("attributetest","attributetest",f1{1})	)
+}
+for(job in jobs){
+	getJobReturn(job,true)	
+}
+assert 2, isNull(exec errorMsg from getRecentJobs() where jobId in jobs).all() == true
+
+@testing:case="test_function_attributeTypes_class_name_same_share_variable", exception=1
+undef("Foo",VAR)
+try{undef("Foo",SHARED)}catch(ex){}
+go
+class Foo{
+                id :: bool
+                value :: STRING VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+share streamTable(1:0, `id`value,[INT,STRING]) as Foo
+attributeTypes(Foo)
+
+@testing:case="test_function_attributeTypes_class_name_same_function_name", exception=1
+undef("Foo",VAR)
+try{undef("Foo",SHARED)}catch(ex){}
+go
+class Foo{
+                id :: bool
+                value :: STRING VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+ }
+go
+def Foo(id){
+	return id
+}
+attributeTypes(Foo)
+
+@testing:case="test_function_attributeTypes_class_name_undef"
+undef("Foo",VAR)
+go
+class Foo{
+                id :: bool
+                value :: STRING VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+share streamTable(1:0, `id`value,[INT,STRING]) as Foo
+try{undef("Foo",SHARED)}catch(ex){}
+go
+assert 1, attributeTypes(Foo).attr == ["id","value"]
+assert 2, attributeTypes(Foo).type == ["BOOL","STRING VECTOR"]
+

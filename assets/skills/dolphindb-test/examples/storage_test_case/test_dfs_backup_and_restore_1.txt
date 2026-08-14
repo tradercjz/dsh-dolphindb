@@ -1,0 +1,604 @@
+login("admin", "123456")
+
+#include "test_dfs_backup_and_restore_prepare.txt"
+
+// **********************************************************************************
+//***********single value*************************************************************
+@testing:case="function_backup_restore_single_value"
+single_db = "dfs://backup_single_value"
+single_tb = "valuepart1"
+createValueDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "valuepart1_copy"
+createValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_single_value_dimension"
+single_db = "dfs://backup_single_value"
+single_tb = "valuepart1"
+createDimensionalValueDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "valuepart1_copy"
+createDimensionalValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********single list**********************************
+@testing:case="function_backup_restore_single_list"
+single_db = "dfs://backup_single_list"
+single_tb = "listpart1"
+createListDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "listpart1_copy"
+createValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_single_list_dimension"
+single_db = "dfs://backup_single_list"
+single_tb = "listpart1"
+createDimensionalListDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "listpart1_copy"
+createDimensionalValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********single range****************
+@testing:case="function_backup_restore_single_range"
+single_db = "dfs://backup_single_range"
+single_tb = "rangepart1"
+createRangeDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "rangepart1_copy"
+createValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_single_range_dimension"
+single_db = "dfs://backup_single_range"
+single_tb = "rangepart1"
+createDimensionalRangeDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "rangepart1_copy"
+createDimensionalValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********double value_range****************************** 
+@testing:case="function_backup_restore_double_value_range"
+double_db = "dfs://backup_value_range"
+double_tb = "valuerangepart2"
+createValueRangeDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "valuerangepart2_copy"
+createValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",true, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_double_value_range_dimension"
+double_db = "dfs://backup_value_range"
+double_tb = "valuerangepart2"
+createDimensionalValueRangeDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "valuerangepart2_copy"
+createDimensionalValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 4, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",true, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********double value_list****************
+@testing:case="function_backup_restore_double_value_list"
+double_db = "dfs://backup_value_list"
+double_tb = "valuelistpart2"
+createValueListDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+getBackupList(workdir_backup, double_db, double_tb)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "valuelistpart2_copy"
+createValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",true, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_double_value_list_dimension"
+double_db = "dfs://backup_value_list"
+double_tb = "valuelistpart2"
+createDimensionalValueListDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+getBackupList(workdir_backup, double_db, double_tb)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "valuelistpart2_copy"
+createDimensionalValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",true, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********double range_list****************
+@testing:case="function_backup_restore_double_range_list"
+double_db = "dfs://backup_range_list"
+double_tb = 'rangelistpart2'
+createRangeListDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "rangelistpart2_copy"
+createValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",true, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_double_range_list_dimension"
+double_db = "dfs://backup_range_list"
+double_tb = 'rangelistpart2'
+createDimensionalRangeListDB(double_db, double_tb, tableSchema)
+writeData(double_db, double_tb) 
+tb = database(double_db).loadTable(double_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(double_db, double_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, double_db, double_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+double_tb_copy = "rangelistpart2_copy"
+createDimensionalValueDB(double_db, double_tb_copy, tableSchema)
+double_tb_copy_case =  database(double_db).loadTable(double_tb_copy)
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, double_db, double_tb, "%",false, double_tb_copy_case)
+ct1 = select count(*) from double_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(double_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+//***********triple value_range_list ****************************** 
+@testing:case="function_backup_restore_triple_value_range_list"
+triple_db = "dfs://backup_value_range_list"
+triple_tb = "valuerangelistpart3"
+createValueRangeListDB(triple_db, triple_tb, tableSchema)
+writeData(triple_db, triple_tb) 
+tb = database(triple_db).loadTable(triple_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(triple_db, triple_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, triple_db, triple_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, triple_db, triple_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+triple_tb_copy = "valuerangelistpart3_copy"
+createValueDB(triple_db, triple_tb_copy, tableSchema)
+triple_tb_copy_case =  database(triple_db).loadTable(triple_tb_copy)
+restore(workdir_backup, triple_db, triple_tb, "%",false, triple_tb_copy_case)
+ct1 = select count(*) from triple_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, triple_db, triple_tb, "%",true, triple_tb_copy_case)
+ct1 = select count(*) from triple_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(triple_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_restore_triple_value_range_list_dimension"
+triple_db = "dfs://backup_value_range_list"
+triple_tb = "valuerangelistpart3"
+createDimensionalValueRangeListDB(triple_db, triple_tb, tableSchema)
+writeData(triple_db, triple_tb) 
+tb = database(triple_db).loadTable(triple_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(triple_db, triple_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, triple_db, triple_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, triple_db, triple_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+triple_tb_copy = "valuerangelistpart3_copy"
+createDimensionalValueDB(triple_db, triple_tb_copy, tableSchema)
+triple_tb_copy_case =  database(triple_db).loadTable(triple_tb_copy)
+restore(workdir_backup, triple_db, triple_tb, "%",false, triple_tb_copy_case)
+ct1 = select count(*) from triple_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, triple_db, triple_tb, "%",true, triple_tb_copy_case)
+ct1 = select count(*) from triple_tb_copy_case
+assert 6, ct1.count[0] == 10000
+dropDatabase(triple_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_dimension_table_restore_partitioned_table"
+single_db = "dfs://backup_single_value"
+single_tb = "valuepart1"
+createDimensionalValueDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "valuepart1_copy"
+createValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 6, ct1.count[0] == 10000
+
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="function_backup_partitioned_table_restore_dimensional_table"
+single_db = "dfs://backup_single_value"
+single_tb = "valuepart1"
+createValueDB(single_db, single_tb, tableSchema)
+writeData(single_db, single_tb) 
+tb = database(single_db).loadTable(single_tb)
+ct1 = select count(*) from tb
+assert 1, ct1.count[0] == 5000
+backup(workdir_backup, <select * from tb>)
+writeData(single_db, single_tb) 
+ct1 = select count(*) from tb
+assert 2, ct1.count[0] == 10000
+restore(workdir_backup, single_db, single_tb, "%")
+ct1 = select count(*) from tb
+assert 3, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%", true)
+ct1 = select count(*) from tb
+assert 4, ct1.count[0] == 5000
+
+single_tb_copy = "valuepart1_copy"
+createDimensionalValueDB(single_db, single_tb_copy, tableSchema)
+single_tb_copy_case =  database(single_db).loadTable(single_tb_copy)
+restore(workdir_backup, single_db, single_tb, "%",false, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 4, ct1.count[0] == 5000
+restore(workdir_backup, single_db, single_tb, "%",true, single_tb_copy_case)
+ct1 = select count(*) from single_tb_copy_case
+assert 5, ct1.count[0] == 10000
+
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex1", exception=1
+backup(,)
+
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex2", exception=1
+backup(1,)
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex3", exception=1
+backup("",)
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex4", exception=1
+backup("test" ,)
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex5", exception=1
+backup(workdir_backup ,)
+
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex6", exception=1
+backup(workdir_backup ,"<>")
+
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex7", exception=1
+backup(workdir_backup ,"<select * from t>")
+@testing:case="test_dfs_function_backup_invalidfirstarg_ex8", exception=1
+backup(workdir_backup ,"<select * from t>",)
+
+dropDatabase(single_db)
+try{
+	rmdir(workdir_backup,true)
+}catch(ex){print ex}
+
+@testing:case="test_function_backup_sql_sortKeyMappingFunction"
+backupDir = WORK_DIR+"/backup"
+if(exists(backupDir)){
+	rmdir(backupDir, true)
+    mkdir(backupDir)
+}else{
+	mkdir(backupDir)
+}
+
+dbName = "dfs://AST_COMPLEX"
+tbName = "TEST"
+colNames = ["tradedate","portfolio_id","i_code"]
+colTypes = ["DATE","SYMBOL","SYMBOL"]
+
+try{dropDatabase(dbName)} catch(ex){print ex}
+try{dropTable(database(dbName), tbName)} catch(ex){print ex}
+
+db1 = database(, partitionType=RANGE, partitionScheme=date(datetimeAdd(1980.01M,0..80*12,'M')))
+db2 = database(, partitionType=HASH, partitionScheme=[SYMBOL, 5])
+db = database(dbName, COMPO, [db1, db2], , "TSDB", "CHUNK")
+t = table(1:0, colNames, colTypes)
+pt = db.createPartitionedTable(t, tbName, ["tradedate", "portfolio_id"],,["i_code", "tradedate"], , [hashBucket{, 20}])
+res = table(date(2022.01M..2025.01M) as col1, "aaa"+string(1..37) as col2, "bbb"+string(1..37) as col3)
+pt.append!(res)
+
+// sql方式备份
+backup(backupDir,<select * from loadTable(dbName,tbName)>);
+
+// 使用migrate方式恢复
+try{dropDatabase(dbName)} catch(ex){print ex}
+try{dropTable(database(dbName), tbName)} catch(ex){print ex}
+ans = migrate(backupDir, dbName, tbName)
+go
+ex = table([dbName] as x, [tbName] as y)
+assert 1, each(eqObj, ans.values(), ex.values())
+assert 2, eqObj(schema(loadTable(dbName, tbName)).sortKeyMappingFunction, ["hashBucket{, 20}"])
+ans = select * from loadTable(dbName, tbName) order by tradedate, portfolio_id, i_code
+ex = select * from table(date(2022.01M..2025.01M) as col1, "aaa"+string(1..37) as col2, "bbb"+string(1..37) as col3) order by col1, col2, col3
+assert 3, each(eqObj, ans.values(), ex.values())

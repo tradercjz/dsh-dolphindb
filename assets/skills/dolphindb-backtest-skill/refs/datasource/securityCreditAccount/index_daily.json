@@ -1,0 +1,55 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "index_daily",
+    "desc": "存放指数日频行情数据，包含指数每日收盘点位、开盘点位、最高点位、最低点位、昨日收盘点、涨跌点、涨跌幅、成交量、成交额和数据更新时间。可用于指数日线行情的获取，或者用于指数分钟行情的前收盘价的补充",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "TS指数代码"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日"
+        },
+        "close": {
+            "type": "DOUBLE",
+            "desc": "收盘点位"
+        },
+        "open": {
+            "type": "DOUBLE",
+            "desc": "开盘点位"
+        },
+        "high": {
+            "type": "DOUBLE",
+            "desc": "最高点位"
+        },
+        "low": {
+            "type": "DOUBLE",
+            "desc": "最低点位"
+        },
+        "pre_close": {
+            "type": "DOUBLE",
+            "desc": "昨日收盘点"
+        },
+        "change": {
+            "type": "DOUBLE",
+            "desc": "涨跌点"
+        },
+        "pct_chg": {
+            "type": "DOUBLE",
+            "desc": "涨跌幅（%）"
+        },
+        "vol": {
+            "type": "DOUBLE",
+            "desc": "成交量（手）"
+        },
+        "amount": {
+            "type": "DOUBLE",
+            "desc": "成交额（千元）"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "更新时间"
+        }
+    }
+}

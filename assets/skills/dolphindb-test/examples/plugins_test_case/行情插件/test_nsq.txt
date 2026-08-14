@@ -1,0 +1,3001 @@
+#include "setup/settings.txt"
+login("admin", "123456")
+//configFilePath="H:/downloads/DolphinDB_Win64_V2.00.6/server/sdk_config.ini"
+// WORK_DIR = "/home/yyzheng/VsCodeTestingFile/300/single"
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+relativeConfigFilePath="setup/sdk_config.ini"
+
+try{loadPlugin(getHomeDir()+"/plugins/nsq/PluginNsq.txt")}catch(exc){print(exc)} 
+go
+
+def clear_all_share_table(){
+	share_table = exec name from objs(true) where shared=1
+	for(t in share_table){
+		try{clearTablePersistence(objByName(t))}catch(ex){}
+		undef(t, SHARED);	
+	}
+}
+clear_all_share_table()
+
+//shanghai
+snapshot_sh_dummy  = streamTable(
+    array(SYMBOL, 0) as ExchangeId,
+    array(SYMBOL, 0) as InstrumentId,
+    array(DOUBLE, 0) as LastPrice,
+    array(DOUBLE, 0) as PreClosePrice,
+    array(DOUBLE, 0) as OpenPrice,
+    array(DOUBLE, 0) as HighPrice,
+    array(DOUBLE, 0) as LowPrice,
+    array(DOUBLE, 0) as ClosePrice,
+    array(DOUBLE, 0) as UpperLimitPrice,
+    array(DOUBLE, 0) as LowerLimitPrice,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as UpdateTime,
+    array(LONG, 0) as TradeVolume,
+    array(DOUBLE, 0) as TradeBalance,
+    array(DOUBLE, 0) as AveragePrice,
+    array(DOUBLE, 0) as BidPrice1,
+    array(DOUBLE, 0) as BidPrice2,
+    array(DOUBLE, 0) as BidPrice3,
+    array(DOUBLE, 0) as BidPrice4,
+    array(DOUBLE, 0) as BidPrice5,
+    array(DOUBLE, 0) as BidPrice6,
+    array(DOUBLE, 0) as BidPrice7,
+    array(DOUBLE, 0) as BidPrice8,
+    array(DOUBLE, 0) as BidPrice9,
+    array(DOUBLE, 0) as BidPrice10,
+    array(DOUBLE, 0) as AskPrice1,
+    array(DOUBLE, 0) as AskPrice2,
+    array(DOUBLE, 0) as AskPrice3,
+    array(DOUBLE, 0) as AskPrice4,
+    array(DOUBLE, 0) as AskPrice5,
+    array(DOUBLE, 0) as AskPrice6,
+    array(DOUBLE, 0) as AskPrice7,
+    array(DOUBLE, 0) as AskPrice8,
+    array(DOUBLE, 0) as AskPrice9,
+    array(DOUBLE, 0) as AskPrice10,
+    array(LONG, 0) as BidVolume1,
+    array(LONG, 0) as BidVolume2,
+    array(LONG, 0) as BidVolume3,
+    array(LONG, 0) as BidVolume4,
+    array(LONG, 0) as BidVolume5,
+    array(LONG, 0) as BidVolume6,
+    array(LONG, 0) as BidVolume7,
+    array(LONG, 0) as BidVolume8,
+    array(LONG, 0) as BidVolume9,
+    array(LONG, 0) as BidVolume10,
+    array(LONG, 0) as AskVolume1,
+    array(LONG, 0) as AskVolume2,
+    array(LONG, 0) as AskVolume3,
+    array(LONG, 0) as AskVolume4,
+    array(LONG, 0) as AskVolume5,
+    array(LONG, 0) as AskVolume6,
+    array(LONG, 0) as AskVolume7,
+    array(LONG, 0) as AskVolume8,
+    array(LONG, 0) as AskVolume9,
+    array(LONG, 0) as AskVolume10,
+    array(LONG, 0) as TradesNum,
+    array(CHAR, 0) as InstrumentTradeStatus,
+    array(LONG, 0) as TotalBidVolume,
+    array(LONG, 0) as TotalAskVolume,
+    array(DOUBLE, 0) as MaBidPrice,
+    array(DOUBLE, 0) as MaAskPrice,
+    array(DOUBLE, 0) as MaBondBidPrice,
+    array(DOUBLE, 0) as MaBondAskPrice,
+    array(DOUBLE, 0) as YieldToMaturity,
+    array(DOUBLE, 0) as IOPV,
+    array(INT, 0) as EtfBuycount,
+    array(INT, 0) as EtfSellCount,
+    array(LONG, 0) as EtfBuyVolume,
+    array(DOUBLE, 0) as EtfBuyBalance,
+    array(LONG, 0) as EtfSellVolume,
+    array(DOUBLE, 0) as EtfSellBalance,
+    array(LONG, 0) as TotalWarrantExecVolume,
+    array(DOUBLE, 0) as WarrantLowerPrice,
+    array(DOUBLE, 0) as WarrantUpperPrice,
+    array(INT, 0) as CancelBuyNum,
+    array(INT, 0) as CancelSellNum,
+    array(LONG, 0) as CancelBuyVolume,
+    array(LONG, 0) as CancelSellVolume,
+    array(DOUBLE, 0) as CancelBuyValue,
+    array(DOUBLE, 0) as CancelSellValue,
+    array(INT, 0) as TotalBuyNum,
+    array(INT, 0) as TotalSellNum,
+    array(INT, 0) as DurationAfterBuy,
+    array(INT, 0) as DurationAfterSell,
+    array(INT, 0) as BidOrdersNum,
+    array(INT, 0) as AskOrdersNum,
+    array(DOUBLE, 0) as PreIOPV
+)
+
+trade_sh_dummy = streamTable(
+    array(SYMBOL, 0) as ExchangeID,
+    array(SYMBOL, 0) as InstrumentID,
+    array(INT, 0) as TransFlag,
+    array(LONG, 0) as SeqNo,
+    array(INT, 0) as ChannelNo,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as TransactTime,
+    array(DOUBLE, 0) as TrdPrice,
+    array(LONG, 0) as TrdVolume,
+    array(DOUBLE, 0) as TrdMoney,
+    array(LONG, 0) as TrdBuyNo,
+    array(LONG, 0) as TrdSellNo,
+    array(CHAR, 0) as TrdBSFlag,
+    array(LONG, 0) as BizIndex
+);
+
+orders_sh_dummy = streamTable(
+    array(SYMBOL, 0) as ExchangeID,
+    array(SYMBOL, 0) as InstrumentID,
+    array(INT, 0) as TransFlag,
+    array(LONG, 0) as SeqNo,
+    array(INT, 0) as ChannelNo,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as TransactTime,
+    array(DOUBLE, 0) as OrdPrice,
+    array(LONG, 0) as OrdVolume,
+    array(CHAR, 0) as OrdSide,
+    array(CHAR, 0) as OrdType,
+    array(LONG, 0) as OrdNo,
+    array(LONG, 0) as BizIndex
+);
+
+//shenzhen
+snapshot_sz_dummy = streamTable(
+    array(SYMBOL, 0) as ExchangeId,
+    array(SYMBOL, 0) as InstrumentId,
+    array(DOUBLE, 0) as LastPrice,
+    array(DOUBLE, 0) as PreClosePrice,
+    array(DOUBLE, 0) as OpenPrice,
+    array(DOUBLE, 0) as HighPrice,
+    array(DOUBLE, 0) as LowPrice,
+    array(DOUBLE, 0) as ClosePrice,
+    array(DOUBLE, 0) as UpperLimitPrice,
+    array(DOUBLE, 0) as LowerLimitPrice,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as UpdateTime,
+    array(LONG, 0) as TradeVolume,
+    array(DOUBLE, 0) as TradeBalance,
+    array(DOUBLE, 0) as AveragePrice,
+    array(DOUBLE, 0) as BidPrice1,
+    array(DOUBLE, 0) as BidPrice2,
+    array(DOUBLE, 0) as BidPrice3,
+    array(DOUBLE, 0) as BidPrice4,
+    array(DOUBLE, 0) as BidPrice5,
+    array(DOUBLE, 0) as BidPrice6,
+    array(DOUBLE, 0) as BidPrice7,
+    array(DOUBLE, 0) as BidPrice8,
+    array(DOUBLE, 0) as BidPrice9,
+    array(DOUBLE, 0) as BidPrice10,
+    array(DOUBLE, 0) as AskPrice1,
+    array(DOUBLE, 0) as AskPrice2,
+    array(DOUBLE, 0) as AskPrice3,
+    array(DOUBLE, 0) as AskPrice4,
+    array(DOUBLE, 0) as AskPrice5,
+    array(DOUBLE, 0) as AskPrice6,
+    array(DOUBLE, 0) as AskPrice7,
+    array(DOUBLE, 0) as AskPrice8,
+    array(DOUBLE, 0) as AskPrice9,
+    array(DOUBLE, 0) as AskPrice10,
+    array(LONG, 0) as BidVolume1,
+    array(LONG, 0) as BidVolume2,
+    array(LONG, 0) as BidVolume3,
+    array(LONG, 0) as BidVolume4,
+    array(LONG, 0) as BidVolume5,
+    array(LONG, 0) as BidVolume6,
+    array(LONG, 0) as BidVolume7,
+    array(LONG, 0) as BidVolume8,
+    array(LONG, 0) as BidVolume9,
+    array(LONG, 0) as BidVolume10,
+    array(LONG, 0) as AskVolume1,
+    array(LONG, 0) as AskVolume2,
+    array(LONG, 0) as AskVolume3,
+    array(LONG, 0) as AskVolume4,
+    array(LONG, 0) as AskVolume5,
+    array(LONG, 0) as AskVolume6,
+    array(LONG, 0) as AskVolume7,
+    array(LONG, 0) as AskVolume8,
+    array(LONG, 0) as AskVolume9,
+    array(LONG, 0) as AskVolume10,
+    array(LONG, 0) as TradesNum,
+    array(CHAR, 0) as InstrumentTradeStatus,
+    array(LONG, 0) as TotalBidVolume,
+    array(LONG, 0) as TotalAskVolume,
+    array(DOUBLE, 0) as MaBidPrice,
+    array(DOUBLE, 0) as MaAskPrice,
+    array(DOUBLE, 0) as MaBondBidPrice,
+    array(DOUBLE, 0) as MaBondAskPrice,
+    array(DOUBLE, 0) as YieldToMaturity,
+    array(DOUBLE, 0) as IOPV,
+    array(INT, 0) as EtfBuycount,
+    array(INT, 0) as EtfSellCount,
+    array(LONG, 0) as EtfBuyVolume,
+    array(DOUBLE, 0) as EtfBuyBalance,
+    array(LONG, 0) as EtfSellVolume,
+    array(DOUBLE, 0) as EtfSellBalance,
+    array(LONG, 0) as TotalWarrantExecVolume,
+    array(DOUBLE, 0) as WarrantLowerPrice,
+    array(DOUBLE, 0) as WarrantUpperPrice,
+    array(INT, 0) as CancelBuyNum,
+    array(INT, 0) as CancelSellNum,
+    array(LONG, 0) as CancelBuyVolume,
+    array(LONG, 0) as CancelSellVolume,
+    array(DOUBLE, 0) as CancelBuyValue,
+    array(DOUBLE, 0) as CancelSellValue,
+    array(INT, 0) as TotalBuyNum,
+    array(INT, 0) as TotalSellNum,
+    array(INT, 0) as DurationAfterBuy,
+    array(INT, 0) as DurationAfterSell,
+    array(INT, 0) as BidOrdersNum,
+    array(INT, 0) as AskOrdersNum,
+    array(DOUBLE, 0) as PreIOPV
+)
+
+trade_sz_dummy = streamTable(
+    array(SYMBOL, 0) as ExchangeID,
+    array(SYMBOL, 0) as InstrumentID,
+    array(INT, 0) as TransFlag,
+    array(LONG, 0) as SeqNo,
+    array(INT, 0) as ChannelNo,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as TransactTime,
+    array(DOUBLE, 0) as TrdPrice,
+    array(LONG, 0) as TrdVolume,
+    array(DOUBLE, 0) as TrdMoney,
+    array(LONG, 0) as TrdBuyNo,
+    array(LONG, 0) as TrdSellNo,
+    array(CHAR, 0) as TrdBSFlag,
+    array(LONG, 0) as BizIndex
+)
+
+orders_sz_dummy = streamTable(
+    array(SYMBOL, 0) as ExchangeID,
+    array(SYMBOL, 0) as InstrumentID,
+    array(INT, 0) as TransFlag,
+    array(LONG, 0) as SeqNo,
+    array(INT, 0) as ChannelNo,
+    array(DATE, 0) as TradeDate,
+    array(TIME, 0) as TransactTime,
+    array(DOUBLE, 0) as OrdPrice,
+    array(LONG, 0) as OrdVolume,
+    array(CHAR, 0) as OrdSide,
+    array(CHAR, 0) as OrdType,
+    array(LONG, 0) as OrdNo,
+    array(LONG, 0) as BizIndex
+)
+
+@testing:case="prepare_shared_table"
+share snapshot_sh_dummy as snapshot_sh
+share trade_sh_dummy as trade_sh
+share orders_sh_dummy as orders_sh
+share snapshot_sz_dummy as snapshot_sz
+share trade_sz_dummy as trade_sz
+share orders_sz_dummy as orders_sz
+
+@testing:case="test_nsq_connect_args_less", exception=1
+nsq::connect()
+
+@testing:case="test_nsq_connect_args_more", syntaxError=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),"nsq_sdk_u1", "nsq_sdk_p1",,1)
+
+@testing:case="test_nsq_connect_args_userName_error", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),["nsq_sdk_u1"], "nsq_sdk_p1")
+
+@testing:case="test_nsq_connect_args_userName_error_2", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),12345, "nsq_sdk_p1")
+
+@testing:case="test_nsq_connect_args_userName_error_3", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),`nsq_sdk_u1`nsq_sdk_u1, "nsq_sdk_p1")
+
+@testing:case="test_nsq_connect_args_passWord_error_1", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),"nsq_sdk_u1", ["nsq_sdk_p1"])
+
+@testing:case="test_nsq_connect_args_passWord_error_2", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),"nsq_sdk_u1", 12345)
+
+@testing:case="test_nsq_connect_args_passWord_error_3", exception=1
+nsq::connect(relativeConfigFilePath,dict(["ReceivedTime", "getAllFieldNames"], [true, true]),"nsq_sdk_u1", `nsq_sdk_p1`"nsq_sdk_p1")
+
+@testing:case="init_connection_error_u/p", exception=1
+nsq::connect(configFilePath,,"nsq_sdk_u2", "nsq_sdk_p1")
+
+@testing:case="test_nsq_connect_file_not_exist", exception=1
+nsq::connect(getHomeDir()+"/not_exist.ini")
+
+@testing:case="test_nsq_connect_configFilePath_scalar", exception=1
+nsq::connect(1)
+
+@testing:case="test_nsq_connect_configFilePath_NULL", exception=1
+nsq::connect(NULL)
+
+@testing:case="test_nsq_connect_configFilePath_string(NULL)", exception=1
+nsq::connect(string(NULL))
+
+@testing:case="test_nsq_connect_configFilePath_vector", exception=1
+nsq::connect([relativeConfigFilePath,relativeConfigFilePath])
+
+@testing:case="test_nsq_close_args_more",syntaxError = 1
+nsq::close(1)
+
+@testing:case="test_nsq_getSubscriptionStatus_args_more",syntaxError = 1
+nsq::getSubscriptionStatus(1)
+
+@testing:case="test_nsq_getStatus_args_more",syntaxError = 1
+nsq::getStatus(1)
+
+@testing:case="test_nsq_connect_relative_path"
+try{nsq::close()}catch(ex){}
+nsq::connect(relativeConfigFilePath)
+sleep(2000)
+nsq::close()
+
+@testing:case="test_nsq_subscribe_without_connection", exception=1
+nsq::subscribe("snapshot", "sh", snapshot_sh)
+
+@testing:case="test_nsq_connect_twice", exception=1
+nsq::connect(relativeConfigFilePath)
+nsq::connect(configFilePath)
+
+@testing:case="test_nsq_connect_close_twice", exception=1
+nsq::close()
+nsq::close()
+
+@testing:case="init_connection"
+nsq::connect(configFilePath,,"nsq_sdk_u1", "nsq_sdk_p1")
+
+@testing:case="test_nsq_subscribe_type_int", exception=1
+nsq::subscribe(1, "sh", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_type_invalid", exception=1
+nsq::subscribe("xxx", "sh", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_type_vector", exception=1
+nsq::subscribe(["xxx", "yyy"], "sh", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_type_string_null", exception=1
+nsq::subscribe(string(), "sh", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_type_missing", exception=1
+nsq::subscribe(NULL, "sh", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_location_int", exception=1
+nsq::subscribe("snapshot", 1, snapshot_sh)
+
+@testing:case="test_nsq_subscribe_location_invalid", exception=1
+nsq::subscribe("snapshot", "xx", snapshot_sh)
+
+@testing:case="test_nsq_subscribe_location_vector", exception=1
+nsq::subscribe("snapshot", ["xx", "yy"], snapshot_sh)
+
+@testing:case="test_nsq_subscribe_location_string_null", exception=1
+nsq::subscribe("snapshot", string(), snapshot_sh)
+
+@testing:case="test_nsq_subscribe_location_missing", exception=1
+nsq::subscribe("snapshot", NULL, snapshot_sh)
+
+@testing:case="test_nsq_subscribe_streamTable_int", exception=1
+nsq::subscribe("snapshot", "sh", 1)
+
+@testing:case="test_nsq_subscribe_streamTable_vector", exception=1
+nsq::subscribe("snapshot", "sh", [snapshot_sh,snapshot_sh])
+
+@testing:case="init_close"
+nsq::close()
+
+@testing:case="test_nsq_connect_unsubscribe_multiple_times"
+nsq::connect(configFilePath)
+for(i in 0..10){
+    nsq::subscribe("snapshot",  "sh", snapshot_sh)
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(snapshot, sh)"
+    assert 1, tmp[`startTime]!=NULL && tmp[`endTime]==NULL
+    nsq::unsubscribe("snapshot",  "sh")
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(snapshot, sh)"
+    assert 2, tmp[`endTime]!=NULL
+
+    nsq::subscribe("snapshot",  "sz", snapshot_sz)
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(snapshot, sz)"
+    assert 3, tmp[`startTime]!=NULL && tmp[`endTime]==NULL
+    nsq::unsubscribe("snapshot",  "sz")
+    tmp = (select * from nsq::getSubscriptionStatus() where topicType = "(snapshot, sz)")
+    assert 4, tmp[`endTime]!=NULL
+
+    nsq::subscribe("trade",  "sh", trade_sh)
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(trade, sh)"
+    assert 5, tmp[`startTime]!=NULL && tmp[`endTime]==NULL
+    nsq::unsubscribe("trade",  "sh")
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(trade, sh)"
+    assert 6, tmp[`endTime]!=NULL
+
+    nsq::subscribe("trade",  "sz", trade_sz)
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(trade, sz)"
+    assert 7, tmp[`startTime]!=NULL && tmp[`endTime]==NULL
+    nsq::unsubscribe("trade",  "sz")
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(trade, sz)"
+    assert 8, tmp[`endTime]!=NULL
+
+    nsq::subscribe("orders",  "sh", orders_sh)
+    tmp =  select * from nsq::getSubscriptionStatus() where topicType = "(orders, sh)"
+    assert 9, tmp[`startTime]!=NULL && tmp[`endTime]==NULL 
+    nsq::unsubscribe("orders",  "sh")
+    tmp =  select * from nsq::getSubscriptionStatus() where topicType = "(orders, sh)"
+    assert 10, tmp[`endTime]!=NULL
+
+    nsq::subscribe("orders",  "sz", orders_sz)
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(orders, sz)"
+    assert 11, tmp[`startTime]!=NULL && tmp[`endTime]==NULL 
+    nsq::unsubscribe("orders",  "sz")
+    tmp = select * from nsq::getSubscriptionStatus() where topicType = "(orders, sz)"
+    assert 12, tmp[`endTime]!=NULL
+}
+nsq::close()
+
+@testing:case="undef_shared_variables"
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+@testing:case="test_nsq_subscribe_in_memory_table", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+tmp = table(10000:0, scm[`name], scm[`typeInt])
+nsq::subscribe("snapshot", "sh", tmp)
+
+@testing:case="test_nsq_subscribe_dfs_table", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+tmp = table(10000:0, scm[`name], scm[`typeInt])
+dbName = "dfs://test_nsq"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, HASH, [STRING, 10])
+pt=db.createPartitionedTable(tmp, "pt", `ExchangeId)
+nsq::subscribe("snapshot",  "sh", pt)
+
+@testing:case="test_nsq_subscribe_dimensional_table", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+tmp = table(10000:0, scm[`name], scm[`typeInt])
+dbName = "dfs://test_nsq"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, HASH, [STRING, 10])
+pt=db.createTable(tmp, "pt")
+nsq::subscribe("snapshot",  "sh", pt)
+
+@testing:case="clear_variable"
+undef(`tmp)
+
+@testing:case="test_nsq_subscribe_schema_incompatible", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+share streamTable(10000:0, scm[`name][0:10], scm[`typeInt][0:10]) as tmp
+nsq::subscribe("snapshot",  "sh", tmp)
+
+@testing:case="clear_variable"
+undef(`tmp, SHARED)
+
+@testing:case="test_nsq_subscribe_sh_schema_col_number_incompatible", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+share streamTable(10000:0, scm[`name][0:10], scm[`typeInt][0:10]) as tmp
+nsq::subscribe("snapshot",  "sh", tmp)
+
+@testing:case="clear_variable"
+undef(`tmp, SHARED)
+
+@testing:case="test_nsq_subscribe_sh_schema_col_type_incompatible", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+update scm set typeString="STRING", typeInt=17 where name=="ExchangeId"
+update scm set typeString="STRING", typeInt=17 where name=="InstrumentId"
+share streamTable(10000:0, scm[`name][0:10], scm[`typeInt][0:10]) as tmp
+nsq::subscribe("snapshot",  "sh", tmp)
+
+@testing:case="clear_variable"
+undef(`tmp, SHARED)
+
+@testing:case="test_nsq_subscribe_sz_schema_col_number_incompatible", exception=1
+scm = schema(snapshot_sz_dummy).colDefs
+share streamTable(10000:0, scm[`name][0:10], scm[`typeInt][0:10]) as tmp
+nsq::subscribe("snapshot",  "sz", tmp)
+
+@testing:case="clear_variable"
+undef(`tmp, SHARED)
+
+@testing:case="test_nsq_subscribe_sz_schema_col_type_incompatible", exception=1
+scm = schema(snapshot_sz_dummy).colDefs
+update scm set typeString="STRING", typeInt=17 where name=="ExchangeId"
+update scm set typeString="STRING", typeInt=17 where name=="InstrumentId"
+share streamTable(10000:0, scm[`name][0:10], scm[`typeInt][0:10]) as tmp
+nsq::subscribe("snapshot",  "sz", tmp)
+
+@testing:case="clear_variable"
+undef(`tmp, SHARED)
+
+@testing:case="test_nsq_connect_multiple_times", exception=1
+for(i in 1..10){
+	nsq::connect(configFilePath)
+}
+
+//@testing:case="test_nsq_unsubscribe_subscription_not_exist", exception=1
+//nsq::unsubscribe("snapshot", "sh")
+
+@testing:case="test_nsq_close_connection"
+nsq::close()
+
+@testing:case="test_nsq_getSubscriptionStatus_close_connection",exception=1
+select * from nsq::getSubscriptionStatus()
+
+@testing:case="test_nsq_connect_close_multiple_times"
+for(i in 1..10){
+	print i
+	nsq::connect(configFilePath)
+	nsq::getSubscriptionStatus()
+	sleep(1000)
+	nsq::close()
+	sleep(1000)
+}
+
+@testing:case="test_nsq_close_connection_not_exist", exception=1
+nsq::close()
+
+@testing:case="test_nsq_unsubscribe_connect_false", exception=1
+nsq::unsubscribe("snapshot", "sh")
+
+@testing:case="test_nsq_init_connection"
+nsq::connect(configFilePath)
+
+
+
+@testing:case="test_nsq_getSubscriptionStatus_without_subscrition"
+re = select * from nsq::getSubscriptionStatus() order by topicType
+assert 1, size(re)==0
+
+/******************multiThread test****************/
+@testing:case="test_nsq_getSubscriptionStatus_without_subscrition_multithreading"
+def multithreading_getSubscriptionStatus(){
+	re = select * from nsq::getSubscriptionStatus() order by topicType
+	return size(re)==0
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_getSubscriptionStatus","multithreading_getSubscriptionStatus",multithreading_getSubscriptionStatus)) 
+}
+for(i in 0..50){
+	assert 1, getJobReturn(jobs[i],true)
+}
+sleep(1000)
+
+@testing:case="test_nsq_getSubscriptionStatus_multithreading"
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+sleep(1000)
+def multithreading_getSubscriptionStatus(){
+	res = true
+	for(i in 0..10){
+		re = select * from nsq::getSubscriptionStatus() order by topicType
+        res&&=size(re)==1
+        res&&=(re[0][`topicType]=="(snapshot, sh)")
+        res&&=(re[0][`startTime]!=NULL)
+        res&&=(re[0][`endTime]==NULL)
+        res&&=(re[0][`firstMsgTime]!=NULL)
+        res&&=(re[0][`lastMsgTime]!=NULL)
+        res&&=(re[0][`processedMsgCount]>0)
+        res&&=(re[0][`lastErrMsg]==NULL)
+        res&&=(re[0][`failedMsgCount]==0)
+        res&&=(re[0][`lastFailedTimestamp]==NULL)
+	}
+	
+	return res
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_getSubscriptionStatus","multithreading_getSubscriptionStatus",multithreading_getSubscriptionStatus)) 
+}
+for(i in 0..50){
+	assert 1, getJobReturn(jobs[i],true)
+}
+nsq::unsubscribe("snapshot", "sh")
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+sleep(1000)
+
+@testing:case="test_nsq_conn_multithreading"
+nsq::close()
+def mconn(configFilePath){
+	conn = nsq::connect(configFilePath);
+	return conn;
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_conn","multithreading_multithreading_conn",mconn{configFilePath})) 
+}
+for(job in jobs){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(mexception){
+		assert 1, mexception[1] like "%there is already a connection.%";
+	}
+}
+nsq::close()
+sleep(1000)
+
+@testing:case="test_nsq_close_multithreading"
+def mclose(){
+	for(i in 0..50){
+		nsq::close()
+	}
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_close","multithreading_close",mclose)) 
+}
+for(job in jobs){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(mexception){
+		assert 1, mexception[1] like "%there is no connection to close%";
+	}
+}
+sleep(1000)
+
+@testing:case="test_nsq_subscribe_multithreading"
+nsq::connect(configFilePath)
+
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+
+def msubscribe(snapshot_sh){
+	for(i in 0..10){
+		nsq::subscribe("snapshot",  "sh", snapshot_sh)
+		nsq::subscribe("snapshot",  "sh", snapshot_sh)
+		nsq::subscribe("snapshot",  "sh", snapshot_sh)
+	}
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_subscribe","multithreading_subscribe",msubscribe{snapshot_sh})) 
+}
+for(job in jobs){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(mexception){
+		assert 1, mexception[1] like "%subscription already exists%";
+	}
+}
+
+nsq::unsubscribe("snapshot", "sh")
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+sleep(1000)
+
+@testing:case="test_nsq_subscribe_multithreading_2"
+//nsq::connect(configFilePath)
+
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+scm = schema(trade_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sh", cacheSize=1000000)
+go
+
+def msubscribe(snapshot_sh){
+	for(i in 0..10){
+		nsq::subscribe("snapshot",  "sh", snapshot_sh)
+		nsq::subscribe("trade",  "sh", trade_sh)
+		nsq::subscribe("snapshot",  "sh", snapshot_sh)
+		nsq::subscribe("trade",  "sh", trade_sh)
+	}
+}
+jobs = []
+for(i in 0..50){
+	jobs.append!(submitJob("multithreading_subscribe","multithreading_subscribe",msubscribe{snapshot_sh})) 
+}
+for(job in jobs){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(mexception){
+		assert 1, mexception[1] like "%subscription already exists%";
+	}
+}
+
+nsq::unsubscribe("snapshot", "sh")
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+nsq::unsubscribe("trade", "sh")
+clearTablePersistence(trade_sh)
+undef(`trade_sh, SHARED)
+sleep(1000)
+
+//在交易时间段，上午九点半到十一点半，下午1点到3点会有实时行情进来
+//shanghai
+@testing:case="test_nsq_subscribe_snapshot_sh"
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(snapshot_sh).totalSize
+assert 1, total>0
+re = select top 1000 *  from snapshot_sh
+assert 2, re[`ExchangeId].hasNull()==false
+assert 3, re[`InstrumentId].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`UpdateTime].hasNull()==false
+nsq::unsubscribe("snapshot", "sh")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+assert 6,  re3==re2
+total = getPersistenceMeta(snapshot_sh).totalSize
+sleep(5000)
+assert 7, getPersistenceMeta(snapshot_sh).totalSize==total
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+
+@testing:case="test_nsq_subscribe_trade_sh"
+scm = schema(trade_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sh", cacheSize=1000000)
+go
+nsq::subscribe("trade",  "sh", trade_sh)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sh)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sh)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(trade_sh).totalSize
+assert 1, total>0
+re = select top 1000 * from trade_sh
+assert 2, re[`exchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`TransactTime].hasNull()==false
+nsq::unsubscribe("trade", "sh")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sh)")[0]
+assert 6, re3==re2
+total = getPersistenceMeta(trade_sh).totalSize
+sleep(5000)
+assert 7, getPersistenceMeta(trade_sh).totalSize==total
+clearTablePersistence(trade_sh)
+undef(`trade_sh, SHARED)
+
+@testing:case="test_nsq_subscribe_orders_sh"
+scm = schema(orders_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sh", cacheSize=1000000)
+go
+nsq::subscribe("orders",  "sh", orders_sh)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sh)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sh)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(orders_sh).totalSize
+assert 1, total>0
+re = select top 1000 *  from orders_sh
+assert 2, re[`ExchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`TransactTime].hasNull()==false
+nsq::unsubscribe("orders", "sh")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sh)")[0]
+assert 6, re3==re2
+total = getPersistenceMeta(orders_sh).totalSize
+sleep(5000)
+assert 7, getPersistenceMeta(orders_sh).totalSize==total
+clearTablePersistence(orders_sh)
+undef(`orders_sh, SHARED)
+
+//shenzhen
+@testing:case="test_nsq_subscribe_snapshot_sz"
+scm = schema(snapshot_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sz", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sz", snapshot_sz)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sz)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sz)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(snapshot_sz).totalSize
+assert 1, total>0
+re = select top 1000 *  from snapshot_sz
+assert 2, re[`ExchangeId].hasNull()==false
+assert 3, re[`InstrumentId].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 6, re[`UpdateTime].hasNull()==false
+nsq::unsubscribe("snapshot", "sz")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sz)")[0]
+assert 7, re3==re2
+total = getPersistenceMeta(snapshot_sz).totalSize
+sleep(5000)
+assert 8, getPersistenceMeta(snapshot_sz).totalSize==total
+clearTablePersistence(snapshot_sz)
+undef(`snapshot_sz, SHARED)
+
+@testing:case="test_nsq_subscribe_trade_sz"
+scm = schema(trade_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sz", cacheSize=1000000)
+go
+nsq::subscribe("trade",  "sz", trade_sz)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sz)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sz)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(trade_sz).totalSize
+assert 1, total>0
+re = select top 1000 * from trade_sz
+assert 2, re[`ExchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`TransactTime].hasNull()==false
+nsq::unsubscribe("trade", "sz")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sz)")[0]
+assert 6, re3==re2
+sleep(5000)
+assert 7, getPersistenceMeta(trade_sz).totalSize==total
+clearTablePersistence(trade_sz)
+undef(`trade_sz, SHARED)
+
+@testing:case="test_nsq_subscribe_orders_sz"
+scm = schema(orders_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sz", cacheSize=1000000)
+go
+nsq::subscribe("orders",  "sz", orders_sz)
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sz)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sz)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(orders_sz).totalSize
+assert 1, total>0
+re = select top 1000 * from orders_sz
+assert 2, re[`ExchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`TransactTime].hasNull()==false
+nsq::unsubscribe("orders", "sz")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(orders, sz)")[0]
+assert 6, re3==re2
+sleep(5000)
+assert 7, getPersistenceMeta(orders_sz).totalSize==total
+clearTablePersistence(orders_sz)
+undef(`orders_sz, SHARED)
+
+@testing:case="test_nsq_one_subscription_resub_multiple_times"
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+sleep(5000)
+for(i in 1..20){
+	print i
+	total1 = getPersistenceMeta(snapshot_sh).totalSize
+	nsq::unsubscribe("snapshot",  "sh")
+	processed = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+	//assert 1, processed==0 
+	sleep(1000)
+	nsq::subscribe("snapshot",  "sh", snapshot_sh)
+	sleep(5000)
+	total2 = getPersistenceMeta(snapshot_sh).totalSize
+	assert 2, total2>total1
+	processed = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+	assert 3, processed>0
+	
+}
+
+nsq::unsubscribe("snapshot",  "sh")
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+
+@testing:case="test_nsq_multiple_subscription_unsubcribe_only_one"
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+scm = schema(trade_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sh", cacheSize=1000000)
+scm = schema(orders_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sh", cacheSize=1000000)
+scm = schema(snapshot_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sz", cacheSize=1000000)
+scm = schema(trade_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sz", cacheSize=1000000)
+scm = schema(orders_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sz", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+nsq::subscribe("trade",  "sh", trade_sh)
+nsq::subscribe("orders",  "sh", orders_sh)
+nsq::subscribe("snapshot",  "sz", snapshot_sz)
+nsq::subscribe("trade",  "sz", trade_sz)
+nsq::subscribe("orders",  "sz", orders_sz)
+
+sleep(10000)
+total1 = getPersistenceMeta(snapshot_sh).totalSize
+total2 = getPersistenceMeta(trade_sh).totalSize
+total3 = getPersistenceMeta(orders_sh).totalSize
+total4 = getPersistenceMeta(snapshot_sz).totalSize
+total5 = getPersistenceMeta(trade_sz).totalSize
+total6 = getPersistenceMeta(orders_sz).totalSize
+
+nsq::unsubscribe("orders", "sz")
+tmp = getPersistenceMeta(orders_sz).totalSize
+sleep(5000)
+total1_1 = getPersistenceMeta(snapshot_sh).totalSize
+total2_1 = getPersistenceMeta(trade_sh).totalSize
+total3_1 = getPersistenceMeta(orders_sh).totalSize
+total4_1 = getPersistenceMeta(snapshot_sz).totalSize
+total5_1 = getPersistenceMeta(trade_sz).totalSize
+total6_1 = getPersistenceMeta(orders_sz).totalSize
+assert 1, total1_1>total1
+assert 2, total2_1>total2
+assert 3, total3_1>total3
+assert 4, total4_1>total4
+assert 5, total5_1>total5
+assert 6, total6_1==tmp
+
+nsq::unsubscribe("trade", "sz")
+tmp = getPersistenceMeta(trade_sz).totalSize
+sleep(5000)
+total1_2 = getPersistenceMeta(snapshot_sh).totalSize
+total2_2 = getPersistenceMeta(trade_sh).totalSize
+total3_2 = getPersistenceMeta(orders_sh).totalSize
+total4_2 = getPersistenceMeta(snapshot_sz).totalSize
+total5_2 = getPersistenceMeta(trade_sz).totalSize
+total6_2 = getPersistenceMeta(orders_sz).totalSize
+assert 7, total1_2>total1_1
+assert 8, total2_2>total2_1
+assert 9, total3_2>total3_1
+assert 10, total4_2>total4_1
+assert 11, total5_2==tmp
+assert 12, total6_2==total6_1
+
+nsq::unsubscribe("snapshot", "sz")
+tmp = getPersistenceMeta(snapshot_sz).totalSize
+sleep(5000)
+total1_3 = getPersistenceMeta(snapshot_sh).totalSize
+total2_3 = getPersistenceMeta(trade_sh).totalSize
+total3_3 = getPersistenceMeta(orders_sh).totalSize
+total4_3 = getPersistenceMeta(snapshot_sz).totalSize
+total5_3 = getPersistenceMeta(trade_sz).totalSize
+total6_3 = getPersistenceMeta(orders_sz).totalSize
+assert 13, total1_3>total1_2
+assert 14, total2_3>total2_2
+assert 15, total3_3>total3_2
+assert 16, total4_3==tmp
+assert 17, total5_3==total5_2
+assert 18, total6_3==total6_2
+
+nsq::unsubscribe("orders", "sh")
+tmp = getPersistenceMeta(orders_sh).totalSize
+sleep(5000)
+total1_4 = getPersistenceMeta(snapshot_sh).totalSize
+total2_4 = getPersistenceMeta(trade_sh).totalSize
+total3_4 = getPersistenceMeta(orders_sh).totalSize
+total4_4 = getPersistenceMeta(snapshot_sz).totalSize
+total5_4 = getPersistenceMeta(trade_sz).totalSize
+total6_4 = getPersistenceMeta(orders_sz).totalSize
+assert 19, total1_4>total1_3
+assert 20, total2_4>total2_3
+assert 21, total3_4==tmp
+assert 22, total4_4==total4_3
+assert 23, total5_4==total5_3
+assert 24, total6_4==total6_3
+
+nsq::unsubscribe("trade", "sh")
+tmp = getPersistenceMeta(trade_sh).totalSize
+sleep(5000)
+total1_5 = getPersistenceMeta(snapshot_sh).totalSize
+total2_5 = getPersistenceMeta(trade_sh).totalSize
+total3_5 = getPersistenceMeta(orders_sh).totalSize
+total4_5 = getPersistenceMeta(snapshot_sz).totalSize
+total5_5 = getPersistenceMeta(trade_sz).totalSize
+total6_5 = getPersistenceMeta(orders_sz).totalSize
+assert 19, total1_5>total1_4
+assert 20, total2_5==tmp
+assert 21, total3_5==total3_4
+assert 22, total4_5==total4_4
+assert 23, total5_5==total5_4
+assert 24, total6_5==total6_4
+
+nsq::unsubscribe("snapshot", "sh")
+tmp = getPersistenceMeta(snapshot_sh).totalSize
+sleep(5000)
+total1_6 = getPersistenceMeta(snapshot_sh).totalSize
+total2_6 = getPersistenceMeta(trade_sh).totalSize
+total3_6 = getPersistenceMeta(orders_sh).totalSize
+total4_6 = getPersistenceMeta(snapshot_sz).totalSize
+total5_6 = getPersistenceMeta(trade_sz).totalSize
+total6_6 = getPersistenceMeta(orders_sz).totalSize
+assert 25, total1_6==tmp
+assert 26, total2_6==total2_5
+assert 27, total3_6==total3_5
+assert 28, total4_6==total4_5
+assert 29, total5_6==total5_5
+assert 30, total6_6==total6_5
+
+clearTablePersistence(snapshot_sh)
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+clearTablePersistence(snapshot_sz)
+clearTablePersistence(trade_sz)
+clearTablePersistence(orders_sz)
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+nsq::getSubscriptionStatus()
+
+@testing:case="test_nsq_subscribe_snapshot_multiple", exception=1
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh1", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh2", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh1)
+nsq::subscribe("snapshot",  "sh", snapshot_sh2)
+
+@testing:case="test_nsq_subscribe_snapshot_multiple_assert_clear"
+sleep(10000)
+total1 = getPersistenceMeta(snapshot_sh1).totalSize
+total2 = getPersistenceMeta(snapshot_sh2).totalSize
+assert 1, total1>0
+assert 2, total2==0
+nsq::unsubscribe("snapshot", "sh")
+clearTablePersistence(snapshot_sh1)
+undef(`snapshot_sh1, SHARED)
+clearTablePersistence(snapshot_sh2)
+undef(`snapshot_sh2, SHARED)
+
+@testing:case="test_nsq_close_connection_before_unsubscribe"
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+nsq::subscribe("snapshot", "sh", snapshot_sh)
+sleep(10000)
+nsq::close()
+total1 = getPersistenceMeta(snapshot_sh).totalSize
+sleep(5000)
+total2 = getPersistenceMeta(snapshot_sh).totalSize
+assert 1, total2==total1
+
+@testing:case="test_nsq_close_connection_before_unsubscribe_getSubscriptionStatus_exception",exception=1
+(exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]   //1 TODO: 需要有 connection 才能 get status
+
+@testing:case= "test_nsq_close_connection_before_unsubscribe_reconnect"
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot", "sh", snapshot_sh)
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+assert 1, re2>0
+total3 = getPersistenceMeta(snapshot_sh).totalSize
+assert 2, total3>total2
+nsq::unsubscribe("snapshot", "sh")
+
+clearTablePersistence(snapshot_sh)
+undef(`snapshot_sh, SHARED)
+
+@testing:case="test_nsq_dropStreamTable_when_subscribe"
+nsq::close()
+nsq::connect(configFilePath)
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+go
+nsq::subscribe("snapshot", "sh", snapshot_sh)
+sleep(10000)
+dropStreamTable("snapshot_sh")
+sleep(2000)
+errMsg = (exec lastErrMsg from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 1, errMsg.isNull()[0]==true    
+failedMsgCount1 =  (exec failedMsgCount from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 2, failedMsgCount1==0
+lastFailedTimestamp1 = (exec lastFailedTimestamp from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 3, lastFailedTimestamp1[0].isNull()==true
+sleep(5000)
+failedMsgCount2 =  (exec failedMsgCount from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 4, failedMsgCount2==failedMsgCount1
+lastFailedTimestamp2 = (exec lastFailedTimestamp from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 5, lastFailedTimestamp2[0].isNull()==true
+assert 6, lastFailedTimestamp1[0].isNull()==true
+
+nsq::unsubscribe("snapshot", "sh")
+errMsg = (exec lastErrMsg from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 7, errMsg.isNull()==true
+failedMsgCount1 =  (exec failedMsgCount from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 8, failedMsgCount1==0
+lastFailedTimestamp1 = (exec lastFailedTimestamp from nsq::getSubscriptionStatus() where topicType="(snapshot, sh)")
+assert 9, lastFailedTimestamp1[0].isNull()==true
+clearTablePersistence(`snapshot_sh)
+undef(`snapshot_sh)
+
+@testing:case="clear_connection"
+nsq::close()
+
+//https://dolphindb1.atlassian.net/browse/DPLG-370
+@testing:case="init_connection"
+nsq::connect(configFilePath)
+
+@testing:case="test_nsq_getSchema_int", exception=1
+nsq::getSchema(1)
+
+@testing:case="test_nsq_getSchema_string_null", exception=1
+nsq::getSchema(string(NULL))
+
+@testing:case="test_nsq_getSchema_invalid_string", exception=1
+nsq::getSchema("aaa")
+
+@testing:case="test_nsq_getSchema_string_vector", exception=1
+nsq::getSchema(["snapshot", "orders"])
+
+@testing:case="test_nsq_getSchema_args_less", exception=1
+nsq::getSchema()
+
+@testing:case="test_nsq_getSchema_args_more", syntaxError=1
+nsq::getSchema(`snapshot,1)
+
+@testing:case="close_connection"
+nsq::close()
+
+@testing:case="test_nsq_getSchema_before_connect", exception=1
+nsq::getSchema("snapshot")
+
+@testing:case="test_nsq_connect_options_scalar", exception=1
+nsq::connect(configFilePath, 1)
+
+@testing:case="test_nsq_connect_options_string_null", exception=1
+nsq::connect(configFilePath, "receivedTime:true")
+
+@testing:case="test_nsq_connect_options_invalid_key", exception=1
+nsq::connect(configFilePath, dict(["aaa"], [true]))
+
+@testing:case="test_nsq_connect_options_key_vector", exception=1
+nsq::connect(configFilePath, dict(["receivedTime", "aaa"], [true, true]))
+
+@testing:case="test_nsq_connect_options_receivedTime_value_string", exception=1
+nsq::connect(configFilePath, dict(["receivedTime"], ["true"]))
+
+@testing:case="test_nsq_connect_options_receivedTime_value_vector", exception=1
+nsq::connect(configFilePath, dict(["receivedTime"], [[true, false]]))
+
+@testing:case="test_nsq_connect_with_receivedTime_multiple_times"
+for(i in 1..10){
+	print(i)
+	withReceivedTime = rand([true, false], 1)[0]
+	if(withReceivedTime==false){
+		print("without receivedTime")
+		nsq::connect(configFilePath)
+		snapshot_scm = nsq::getSchema("snapshot")
+		trade_scm = nsq::getSchema("trade")
+		orders_scm = nsq::getSchema("orders")
+		assert 1, snapshot_scm.size()==87
+		assert 2, trade_scm.size()==14
+		assert 3, orders_scm.size()==13
+		assert 4,(exec type from snapshot_scm where name = `ExchangeID)=="SYMBOL"
+		assert 5,(exec type from snapshot_scm where name = `InstrumentID)=="SYMBOL"
+		assert 6,(exec type from trade_scm where name = `ExchangeID)=="SYMBOL"
+		assert 7,(exec type from trade_scm where name = `InstrumentID)=="SYMBOL"
+		assert 8,(exec type from orders_scm where name = `ExchangeID)=="SYMBOL"
+		assert 9,(exec type from orders_scm where name = `InstrumentID)=="SYMBOL"
+		nsq::close()
+	}else{
+		print("with receivedTime")
+		nsq::connect(configFilePath, {"receivedTime":true})
+		snapshot_scm = nsq::getSchema("snapshot")
+		trade_scm = nsq::getSchema("trade")
+		orders_scm = nsq::getSchema("orders")
+		assert 10, snapshot_scm.size()==88
+		assert 11, trade_scm.size()==15
+		assert 12, orders_scm.size()==14
+		assert 13,(exec type from snapshot_scm where name = `ExchangeID)=="SYMBOL"
+		assert 14,(exec type from snapshot_scm where name = `InstrumentID)=="SYMBOL"
+		assert 15,(exec type from trade_scm where name = `ExchangeID)=="SYMBOL"
+		assert 16,(exec type from trade_scm where name = `InstrumentID)=="SYMBOL"
+		assert 17,(exec type from orders_scm where name = `ExchangeID)=="SYMBOL"
+		assert 18,(exec type from orders_scm where name = `InstrumentID)=="SYMBOL"
+		nsq::close()
+	}
+	sleep(1000)
+}
+
+@testing:case="test_nsq_subscribe_through_getSchema"
+nsq::connect(configFilePath)
+for(i in 1..10){
+	//https://dolphindb1.atlassian.net/browse/DPLG-412
+	snapshot_scm = nsq::getSchema("snapshot")
+	trade_scm = nsq::getSchema("trade")
+	orders_scm = nsq::getSchema("orders")
+	assert 1, snapshot_scm.size()==87
+	assert 2, trade_scm.size()==14
+	assert 3, orders_scm.size()==13
+}
+
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sz", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+nsq::subscribe("trade",  "sh", trade_sh)
+nsq::subscribe("orders",  "sh", orders_sh)
+nsq::subscribe("snapshot",  "sz", snapshot_sz)
+nsq::subscribe("trade",  "sz", trade_sz)
+nsq::subscribe("orders",  "sz", orders_sz)
+
+sleep(10000)
+status = select * from nsq::getSubscriptionStatus() order by topicType
+assert 1, size(status)==6
+assert 2, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+assert 3, all(!isNull(status[`startTime]))
+assert 4, all((status[`endTime]==NULL))
+assert 5, all(!isNull(status[`firstMsgTime]))
+assert 6, all(!isNull(status[`lastMsgTime]))
+assert 7, sum(status[`processedMsgCount]>0)>4
+assert 8, all(isNull(status[`lastErrMsg]))
+assert 9, all(status[`failedMsgCount]==0)
+assert 10, all(status[`lastFailedTimestamp]==NULL)
+
+nsq::unsubscribe("snapshot",  "sh")
+nsq::unsubscribe("trade",  "sh")
+nsq::unsubscribe("orders",  "sh")
+nsq::unsubscribe("snapshot",  "sz")
+nsq::unsubscribe("trade",  "sz")
+nsq::unsubscribe("orders",  "sz")
+
+status = select * from nsq::getSubscriptionStatus() order by topicType
+assert 11, size(status)==6
+assert 12, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+assert 13, all(!isNull(status[`startTime]))
+assert 14, all(!isNull(status[`endTime]))
+assert 15, all(!isNull(status[`firstMsgTime]))
+assert 16, all(!isNull(status[`lastMsgTime]))
+assert 17, sum(status[`processedMsgCount]>0)>=4
+assert 18, all(isNull(status[`lastErrMsg]))
+assert 19, all(status[`failedMsgCount]==0)
+assert 20, all(status[`lastFailedTimestamp]==nanotimestamp(NULL))
+
+clearTablePersistence(snapshot_sh)
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+clearTablePersistence(snapshot_sz)
+clearTablePersistence(trade_sz)
+clearTablePersistence(orders_sz)
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+nsq::close()
+
+@testing:case="test_nsq_connect_receivedTime_true_subscribe_through_getSchema"
+nsq::connect(configFilePath, {"receivedTime":true})
+assert 0, size(nsq::getSubscriptionStatus()) == 0
+for(i in 1..10){
+	//https://dolphindb1.atlassian.net/browse/DPLG-412
+	snapshot_scm = nsq::getSchema("snapshot")
+	trade_scm = nsq::getSchema("trade")
+	orders_scm = nsq::getSchema("orders")
+	assert 1, snapshot_scm.size()==88
+	assert 2, trade_scm.size()==15
+	assert 3, orders_scm.size()==14
+}
+
+assert 4, (exec type from snapshot_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+assert 5, (exec type from trade_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+assert 6, (exec type from orders_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sz", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+nsq::subscribe("trade",  "sh", trade_sh)
+nsq::subscribe("orders",  "sh", orders_sh)
+nsq::subscribe("snapshot",  "sz", snapshot_sz)
+nsq::subscribe("trade",  "sz", trade_sz)
+nsq::subscribe("orders",  "sz", orders_sz)
+
+sleep(12000)
+status = select * from nsq::getSubscriptionStatus() order by topicType
+assert 7, size(status)==6
+assert 8, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+assert 9, all(!isNull(status[`startTime]))
+assert 10, all((status[`endTime]==NULL))
+assert 11, all(!isNull(status[`firstMsgTime]))
+assert 12, all(!isNull(status[`lastMsgTime]))
+assert 13, sum(status[`processedMsgCount]>0)>4
+assert 14, all(isNull(status[`lastErrMsg]))
+assert 15, all(status[`failedMsgCount]==0)
+assert 16, all(status[`lastFailedTimestamp]==NULL)
+
+if(snapshot_sh.size()>0){
+	x = exec ReceivedTime from snapshot_sh
+	assert 17, isNull(x)==false
+}
+if(trade_sh.size()>0){
+	x = exec ReceivedTime from trade_sh
+	assert 18, isNull(x)==false
+}
+if(orders_sh.size()>0){
+	x = exec ReceivedTime from orders_sh
+	assert 19, isNull(x)==false
+}
+
+if(snapshot_sz.size()>0){
+	x = exec ReceivedTime from snapshot_sh
+	assert 20, isNull(x)==false
+}
+if(trade_sz.size()>0){
+	x = exec ReceivedTime from trade_sh
+	assert 21, isNull(x)==false
+}
+if(orders_sz.size()>0){
+	x = exec ReceivedTime from orders_sh
+	assert 22, isNull(x)==false
+}
+
+nsq::unsubscribe("snapshot",  "sh")
+nsq::unsubscribe("trade",  "sh")
+nsq::unsubscribe("orders",  "sh")
+nsq::unsubscribe("snapshot",  "sz")
+nsq::unsubscribe("trade",  "sz")
+nsq::unsubscribe("orders",  "sz")
+
+status = select * from nsq::getSubscriptionStatus() order by topicType
+assert 23, size(status)==6
+assert 24, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+assert 25, all(!isNull(status[`startTime]))
+assert 26, all(!isNull(status[`endTime]))
+assert 27, all(!isNull(status[`firstMsgTime]))
+assert 28, all(!isNull(status[`lastMsgTime]))
+assert 29, sum(status[`processedMsgCount]>0)>4
+assert 30, all(isNull(status[`lastErrMsg]))
+assert 31, all(status[`failedMsgCount]==0)
+assert 32, all(status[`lastFailedTimestamp]==nanotimestamp(NULL))
+
+clearTablePersistence(snapshot_sh)
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+clearTablePersistence(snapshot_sz)
+clearTablePersistence(trade_sz)
+clearTablePersistence(orders_sz)
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+nsq::close()
+
+
+@testing:case="test_nsq_with_receivedTime_sub_unsub_multiple_times"
+nsq::connect(configFilePath, {"receivedTime":true})
+snapshot_scm = nsq::getSchema("snapshot")
+trade_scm = nsq::getSchema("trade")
+orders_scm = nsq::getSchema("orders")
+assert 1, snapshot_scm.size()==88
+assert 2, trade_scm.size()==15
+assert 3, orders_scm.size()==14
+assert 4, (exec type from snapshot_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+assert 5, (exec type from trade_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+assert 6, (exec type from orders_scm where name=="ReceivedTime")=="NANOTIMESTAMP"
+
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshot_scm[`name], snapshot_scm[`type]), tableName="snapshot_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, trade_scm[`name], trade_scm[`type]), tableName="trade_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orders_scm[`name], orders_scm[`type]), tableName="orders_sz", cacheSize=1000000)
+go
+
+for(i in 1..10){
+	print(i)
+	nsq::subscribe("snapshot",  "sh", snapshot_sh)
+	nsq::subscribe("trade",  "sh", trade_sh)
+	nsq::subscribe("orders",  "sh", orders_sh)
+	nsq::subscribe("snapshot",  "sz", snapshot_sz)
+	nsq::subscribe("trade",  "sz", trade_sz)
+	nsq::subscribe("orders",  "sz", orders_sz)
+	
+	sleep(10000)
+	
+	status = select * from nsq::getSubscriptionStatus() order by topicType
+    assert 7, size(status)==6
+    assert 8, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+    assert 9, all(!isNull(status[`startTime]))
+    assert 10, all((status[`endTime]==NULL))
+    assert 11, all(!isNull(status[`firstMsgTime]))
+    assert 12, all(!isNull(status[`lastMsgTime]))
+    assert 13, sum(status[`processedMsgCount]>0)>4
+    assert 14, all(isNull(status[`lastErrMsg]))
+    assert 15, all(status[`failedMsgCount]==0)
+    assert 16, all(status[`lastFailedTimestamp]==NULL)
+
+	nsq::unsubscribe("snapshot",  "sh")
+	nsq::unsubscribe("trade",  "sh")
+	nsq::unsubscribe("orders",  "sh")
+	nsq::unsubscribe("snapshot",  "sz")
+	nsq::unsubscribe("trade",  "sz")
+	nsq::unsubscribe("orders",  "sz")
+	
+	status = select * from nsq::getSubscriptionStatus() order by topicType
+    assert 23, size(status)==6
+    assert 24, status[`topicType] == ["(orders, sh)","(orders, sz)","(snapshot, sh)","(snapshot, sz)","(trade, sh)","(trade, sz)"]
+    assert 25, all(!isNull(status[`startTime]))
+    assert 26, all(!isNull(status[`endTime]))
+    assert 27, all(!isNull(status[`firstMsgTime]))
+    assert 28, all(!isNull(status[`lastMsgTime]))
+    assert 29, sum(status[`processedMsgCount]>0)>4
+    assert 30, all(isNull(status[`lastErrMsg]))
+    assert 31, all(status[`failedMsgCount]==0)
+    assert 32, all(status[`lastFailedTimestamp]==nanotimestamp(NULL))
+}
+clearTablePersistence(snapshot_sh)
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+clearTablePersistence(snapshot_sz)
+clearTablePersistence(trade_sz)
+clearTablePersistence(orders_sz)
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+nsq::close()
+/*
+@testing:case="test_nsq_subscribe_all_data"
+nsq::connect(configFilePath)
+scm = schema(snapshot_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sh", cacheSize=1000000)
+scm = schema(trade_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sh", cacheSize=1000000)
+scm = schema(orders_sh_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sh", cacheSize=1000000)
+scm = schema(snapshot_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="snapshot_sz", cacheSize=1000000)
+scm = schema(trade_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="trade_sz", cacheSize=1000000)
+scm = schema(orders_sz_dummy).colDefs
+enableTableShareAndPersistence(table=streamTable(1000000:0, scm[`name], scm[`typeInt]), tableName="orders_sz", cacheSize=1000000)
+go
+nsq::subscribe("snapshot",  "sh", snapshot_sh)
+nsq::subscribe("trade",  "sh", trade_sh)
+nsq::subscribe("orders",  "sh", orders_sh)
+nsq::subscribe("snapshot",  "sz", snapshot_sz)
+nsq::subscribe("trade",  "sz", trade_sz)
+nsq::subscribe("orders",  "sz", orders_sz)
+
+print "snapshot_sh " + string(getPersistenceMeta(snapshot_sh).totalSize)
+print "trade_sh " + string(getPersistenceMeta(trade_sh).totalSize)
+print "orders_sh " + string(getPersistenceMeta(orders_sh).totalSize)
+print "snapshot_sz " + string(getPersistenceMeta(snapshot_sz).totalSize)
+print "trade_sz " + string(getPersistenceMeta(trade_sz).totalSize)
+print "orders_sz " + string(getPersistenceMeta(orders_sz).totalSize)
+
+nsq::getSubscriptionStatus()
+
+select max(TradeDate), max(TransactTime) from trade_sh
+select top 10 * from trade_sh
+
+nsq::unsubscribe("snapshot",  "sh")
+nsq::unsubscribe("trade",  "sh")
+nsq::unsubscribe("orders",  "sh")
+nsq::unsubscribe("snapshot",  "sz")
+nsq::unsubscribe("trade",  "sz")
+nsq::unsubscribe("orders",  "sz")
+
+clearTablePersistence(snapshot_sh)
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+clearTablePersistence(snapshot_sz)
+clearTablePersistence(trade_sz)
+clearTablePersistence(orders_sz)
+undef(`snapshot_sh, SHARED)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+undef(`snapshot_sz, SHARED)
+undef(`trade_sz, SHARED)
+undef(`orders_sz, SHARED)
+
+nsq::close()
+*/
+
+@testing:case="test_nsq_getAllFieldNames"
+nsq::connect(configFilePath, dict(["getAllFieldNames"], [true]));
+snapshotSchema = nsq::getSchema(`snapshot);
+tradeSchema = nsq::getSchema(`trade);
+ordersSchema = nsq::getSchema(`orders);
+assert 1, size(snapshotSchema) == 191
+assert 2, size(tradeSchema) == 14  
+assert 3, size(ordersSchema) == 13 
+
+assert 4,(exec type from snapshotSchema where name = `ExchangeID)=="SYMBOL"
+assert 5,(exec type from snapshotSchema where name = `InstrumentID)=="SYMBOL"
+assert 6,(exec type from tradeSchema where name = `ExchangeID)=="SYMBOL"
+assert 7,(exec type from tradeSchema where name = `InstrumentID)=="SYMBOL"
+assert 8,(exec type from ordersSchema where name = `ExchangeID)=="SYMBOL"
+assert 9,(exec type from ordersSchema where name = `InstrumentID)=="SYMBOL"
+
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type]) as snapshotTable;
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type]) as tradeTable;
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type]) as ordersTable;
+assert 10, size(schema(snapshotTable)[`colDefs])  == 191
+assert 11, size(schema(tradeTable)[`colDefs])  == 14   
+assert 12, size(schema(ordersTable)[`colDefs])  == 13 
+
+nsq::subscribe(`snapshot, `sh, snapshotTable);
+nsq::subscribe(`snapshot, `sz, snapshotTable);
+nsq::subscribe(`trade, `sh, tradeTable);
+nsq::subscribe(`trade, `sz, tradeTable);
+nsq::subscribe(`orders, `sh, ordersTable);
+nsq::subscribe(`orders, `sz, ordersTable);
+
+nsq::unsubscribe("snapshot",  "sh")
+nsq::unsubscribe("trade",  "sh")
+nsq::unsubscribe("orders",  "sh")
+nsq::unsubscribe("snapshot",  "sz")
+nsq::unsubscribe("trade",  "sz")
+nsq::unsubscribe("orders",  "sz")
+
+undef(`snapshotTable, SHARED)
+undef(`tradeTable, SHARED)
+undef(`ordersTable, SHARED)
+
+nsq::close()
+
+@testing:case="changeSchema_before_subscribe"
+nsq::connect(configFilePath);
+snapshotSchema = nsq::getSchema(`snapshot);
+t1 = streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type]);
+share t1 as snapshot_sh;
+nsq::close()
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+addColumn(snapshot_sh, "ReceivedTime", NANOTIMESTAMP)
+nsq::subscribe(`snapshot, `sh, snapshot_sh);
+re1 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+assert 0, re2>re1
+total = size(snapshot_sh)
+assert 1, total>0
+re = select top 1000 * from snapshot_sh
+assert 2, re[`ExchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+nsq::unsubscribe("snapshot", "sh")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(snapshot, sh)")[0]
+assert 5, re3==re2
+nsq::close()
+undef (`snapshot_sh,SHARED)
+
+@testing:case="test_nsq_connect_dataVersion_v220105"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]), , , "v220105")
+orderSchema = nsq::getSchema("orders")
+res = exec count(*) from orderSchema where name in ("TickStatus","TrdVolume")
+assert 10, res == 2
+enableTableShareAndPersistence(table=streamTable(100000:0, orderSchema[`name], orderSchema[`typeInt]), tableName="orders_sh", cacheSize=100000)
+go
+nsq::subscribe("orders", "sh", orders_sh)
+
+tradeSchema = nsq::getSchema("trade")
+enableTableShareAndPersistence(table=streamTable(1000000:0, tradeSchema[`name], tradeSchema[`typeInt]), tableName="trade_sh", cacheSize=1000000)
+go
+nsq::subscribe("trade", "sh", trade_sh)
+
+re1 = (exec processedMsgCount from nsq::getStatus() where topicType=="(trade, sh)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getStatus() where topicType=="(trade, sh)")[0]
+assert 0, re2>re1
+total = getPersistenceMeta(trade_sh).totalSize
+assert 1, total>0
+re = select top 1000 * from trade_sh
+assert 2, re[`exchangeID].hasNull()==false
+assert 3, re[`InstrumentID].hasNull()==false
+assert 4, re[`TradeDate].hasNull()==false
+assert 5, re[`TransactTime].hasNull()==false
+nsq::unsubscribe("trade", "sh")
+re3 = (exec processedMsgCount from nsq::getSubscriptionStatus() where topicType=="(trade, sh)")[0]
+assert 6, re3==re2
+total = getPersistenceMeta(trade_sh).totalSize
+sleep(5000)
+assert 7, getPersistenceMeta(trade_sh).totalSize==total
+clearTablePersistence(trade_sh)
+clearTablePersistence(orders_sh)
+undef(`trade_sh, SHARED)
+undef(`orders_sh, SHARED)
+nsq::close()
+
+@testing:case="test_nsq_connect_snapshot_dataVersion_v220105"
+nsq::connect(configFilePath, dict(["receivedTime", "outputElapsed"], [true, true]), , , "v220105")
+
+snapshotSchema = nsq::getSchema("snapshot")
+res = exec count(*) from snapshotSchema 
+assert 1, res == 89
+enableTableShareAndPersistence(table=streamTable(100000:0, snapshotSchema[`name], snapshotSchema[`typeInt]), tableName="snapshot_sz", cacheSize=100000)
+go
+nsq::subscribe("snapshot", "sz", snapshot_sz)
+
+re1 = (exec processedMsgCount from nsq::getStatus() where topicType=="(snapshot, sz)")[0]
+sleep(10000)
+re2 = (exec processedMsgCount from nsq::getStatus() where topicType=="(snapshot, sz)")[0]
+assert 2, re2>re1
+total = getPersistenceMeta(snapshot_sz).totalSize
+assert 3, total>0
+
+nsq::unsubscribe("snapshot", "sz")
+clearTablePersistence(snapshot_sz)
+undef(`snapshot_sz, SHARED)
+nsq::close()
+
+@testing:case="test_nsq_connect_snapshot_dataVersion_v220105_getAllField"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames", "outputElapsed"], [true, true, true]), , , "v220105")
+
+snapshotSchema = nsq::getSchema("snapshot")
+res = exec count(*) from snapshotSchema 
+assert 1, res == 219
+
+enableTableShareAndPersistence(table=streamTable(100000:0, snapshotSchema[`name], snapshotSchema[`typeInt]), tableName="snapshot_sz", cacheSize=100000)
+go
+nsq::subscribe("snapshot", "sz", snapshot_sz)
+
+re1 = (exec processedMsgCount from nsq::getStatus() where topicType=="(snapshot, sz)")[0]
+sleep(10000)
+re2 =(exec processedMsgCount from nsq::getStatus() where topicType=="(snapshot, sz)")[0]
+assert 2, re2>re1
+total = getPersistenceMeta(snapshot_sz).totalSize
+assert 3, total>0
+
+re = select top 1000 *  from snapshot_sz
+assert 4, re[`Bid1Count].hasNull()==false
+assert 5, re[`MaxBid1Count].hasNull()==false
+assert 6, re[`Ask1Count].hasNull()==false
+assert 7, re[`MaxAsk1Count].hasNull()==false
+nsq::unsubscribe("snapshot", "sz")
+clearTablePersistence(snapshot_sz)
+undef(`snapshot_sz, SHARED)
+nsq::close()
+
+@testing:case="test_nsq_connect_with_wrong_config_0",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad0.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_1",exception=1
+configFilePath=WORK_DIR+"setup/sdk_config_bad.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_2",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad2.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_3",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad3.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_4",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad4.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_5",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad5.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_6"
+//utf-8_bom
+configFilePath=WORK_DIR+"/setup/sdk_config_bad6.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_7",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad7.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_8",exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config_bad8.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+
+@testing:case="test_nsq_connect_with_wrong_config_good_0"
+try{nsq::close()}catch(ex){}
+configFilePath=WORK_DIR+"/setup/sdk_config_good0.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+nsq::close()
+
+@testing:case="test_nsq_connect_with_wrong_config_good_1"
+configFilePath=WORK_DIR+"/setup/sdk_config_good1.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+nsq::close()
+
+@testing:case="test_nsq_connect_with_wrong_config_good_2"
+configFilePath=WORK_DIR+"/setup/sdk_config_good2.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+nsq::close()
+
+@testing:case="test_nsq_connect_with_wrong_config_good_3"
+configFilePath=WORK_DIR+"/setup/sdk_config_good3.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+nsq::close()
+
+@testing:case = "test_nsq_function_connect_subscribe_StockTypeOrderTransaction_ChannelNo" 
+//clear_all_share_table()
+go
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+undef(`t1)
+go
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t1
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t3
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t4
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t5
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t6
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t801
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2011
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2012
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2013
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2014
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2021
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2022
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2023
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2024
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2031
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2032
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2033
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2034
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2061
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2071
+
+streamTableDictsSH =  dict([1,2,3,4,5,6,801], [t1,t2,t3,t4,t5,t6,t801])
+streamTableDictsSZ =  dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034,2061,2071], [t2011,t2012,t2013,t2014,t2021,t2022,t2023,t2024,t2031,t2032,t2033,t2034,t2061,t2071])
+
+nsq::subscribe(`orderTrade, `sh, streamTableDictsSH);
+nsq::subscribe(`orderTrade, `sz, streamTableDictsSZ);
+
+sleep(10000)
+assert 1,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='1)' )==1
+assert 2,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2)' )==1
+assert 3,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='3)' )==1
+assert 4,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='4)' )==1
+assert 5,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='5)' )==1
+assert 6,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='6)' )==1
+assert 7,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='801)')==1
+assert 8,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2011)' )==1
+assert 9,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2012)' )==1
+assert 10,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2013)' )==1
+assert 11,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2014)' )==1
+assert 12,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2021)' )==1
+assert 13,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2022)' )==1
+assert 14,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2023)' )==1
+assert 15,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2024)' )==1
+assert 16,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2031)' )==1
+assert 17,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2032)' )==1
+assert 18,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2033)' )==1
+assert 19,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2034)' )==1
+assert 20,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2061)' )==1
+assert 21,(exec count(*) from nsq::getStatus() where split(topicType," ")[3] ='2071)' )==1
+assert 22,(exec count(*) from nsq::getStatus() where failedMsgCount != 0) == 0
+// wait for a while, 
+assert 23,(exec count(*) from nsq::getStatus() where processedMsgCount = 0,split(topicType," ")[3] !='2061)',split(topicType," ")[3] !='2071)') == 0
+nsq::close()
+
+names = [`t1, `t2, `t3, `t4, `t5, `t6, `t801, `t2011, `t2012, `t2013, `t2014, `t2021, `t2022, `t2023, `t2024, `t2031, `t2032, `t2033, `t2034, `t2061, `t2071]
+for(name in names){
+	undef(name, SHARED)
+}
+
+//cov
+@testing:case = "test_nsq_function_connect_options_all_false" 
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames"], [false, false]))
+nsq::close()
+
+@testing:case="test_nsq_function_connect_three_arguments", exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames"], [false, false]), "admin")
+
+@testing:case="test_nsq_function_connect_dataVersion_null"
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames"], [false, false]), "admin", "123456", string(NULL))
+nsq::close()
+
+@testing:case="test_nsq_function_connect_dataVersion_origin_lower", exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames"], [false, false]), "admin", "123456", "origin")
+
+@testing:case="test_nsq_function_connect_dataVersion_invalid_string", exception=1
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime", "getAllFieldNames"], [false, false]), "admin", "123456", "a/b/c")
+
+@testing:case = "test_nsq_function_connect_subscribe_orderTrade_empty_dict" 
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+go
+
+streamTableDictsSH =  dict(INT, ANY)
+streamTableDictsSZ =  dict(INT, ANY)
+
+nsq::subscribe(`orderTrade, `sh, streamTableDictsSH);
+nsq::subscribe(`orderTrade, `sz, streamTableDictsSZ);
+
+nsq::close()
+
+@testing:case = "test_nsq_function_connect_subscribe_orderTrade_and_order_trade_unsubscribe_order"
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+go
+
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t1
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t3
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t4
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t5
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t6
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t801
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2011
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2012
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2013
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2014
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2021
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2022
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2023
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2024
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2031
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2032
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2033
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2034
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2061
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2071
+
+go
+streamTableDictsSH =  dict([1,2,3,4,5,6,801], [t1,t2,t3,t4,t5,t6,t801])
+streamTableDictsSZ =  dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034,2061,2071], [t2011,t2012,t2013,t2014,t2021,t2022,t2023,t2024,t2031,t2032,t2033,t2034,t2061,t2071])
+
+nsq::subscribe(`orderTrade, `sh, streamTableDictsSH);
+nsq::subscribe(`orderTrade, `sz, streamTableDictsSZ);
+
+scm = schema(trade_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sh
+go
+addColumn(trade_sh, `receivedTime, NANOTIMESTAMP)
+nsq::subscribe("trade",  "sh", trade_sh)
+
+scm = schema(orders_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sh
+go
+nsq::subscribe("orders",  "sh", orders_sh)
+
+scm = schema(trade_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sz
+go
+nsq::subscribe("trade",  "sz", orders_sh)
+scm = schema(orders_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sz
+go
+nsq::subscribe("orders",  "sz", orders_sh)
+
+sleep(3000)
+re1 = nsq::getSubscriptionStatus()
+num = streamTableDictsSH.keys().size()+streamTableDictsSZ.keys().size()+4
+assert 1, re1.size()==num
+
+nsq::unsubscribe("orders", "sh")
+nsq::unsubscribe("orders", "sz")
+
+sleep(10000)
+re2 = nsq::getSubscriptionStatus()
+tmp1 = select * from re1 where topicType like "%orderTrade%" or topicType like "%trade%" order by topicType
+tmp2 = select * from re2 where topicType like "%orderTrade%" or topicType like "%trade%" order by topicType
+assert 2, tmp2[`processedMsgCount]>=tmp1[`processedMsgCount]
+
+nsq::unsubscribe("orderTrade", "sh")
+nsq::unsubscribe("orderTrade", "sz")
+nsq::unsubscribe("trade", "sh")
+nsq::unsubscribe("trade", "sz")
+nsq::close()
+
+names = [`t1, `t2, `t3, `t4, `t5, `t6, `t801, `t2011, `t2012, `t2013, `t2014, `t2021, `t2022, `t2023, `t2024, `t2031, `t2032, `t2033, `t2034, `t2061, `t2071, `trade_sh, `orders_sh, `trade_sz, `orders_sz]
+for(name in names){
+	undef(name, SHARED)
+}
+
+@testing:case = "test_nsq_function_connect_subscribe_orderTrade_and_order_trade_unsubscribe_trade"
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+go
+
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t1
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t3
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t4
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t5
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t6
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t801
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2011
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2012
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2013
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2014
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2021
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2022
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2023
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2024
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2031
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2032
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2033
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2034
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2061
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2071
+
+go
+streamTableDictsSH =  dict([1,2,3,4,5,6,801], [t1,t2,t3,t4,t5,t6,t801])
+streamTableDictsSZ =  dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034,2061,2071], [t2011,t2012,t2013,t2014,t2021,t2022,t2023,t2024,t2031,t2032,t2033,t2034,t2061,t2071])
+
+nsq::subscribe(`orderTrade, `sh, streamTableDictsSH);
+nsq::subscribe(`orderTrade, `sz, streamTableDictsSZ);
+
+scm = schema(trade_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sh
+go
+addColumn(trade_sh, `receivedTime, NANOTIMESTAMP)
+nsq::subscribe("trade",  "sh", trade_sh)
+
+scm = schema(orders_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sh
+go
+nsq::subscribe("orders",  "sh", orders_sh)
+
+scm = schema(trade_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sz
+go
+nsq::subscribe("trade",  "sz", orders_sh)
+scm = schema(orders_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sz
+go
+nsq::subscribe("orders",  "sz", orders_sh)
+
+sleep(3000)
+re1 = nsq::getSubscriptionStatus()
+num = streamTableDictsSH.keys().size()+streamTableDictsSZ.keys().size()+4
+assert 1, re1.size()==num
+
+nsq::unsubscribe("trade", "sh")
+nsq::unsubscribe("trade", "sz")
+
+sleep(10000)
+re2 = nsq::getSubscriptionStatus()
+tmp1 = select * from re1 where topicType like "%orderTrade%" or topicType like "%orders%" order by topicType
+tmp2 = select * from re2 where topicType like "%orderTrade%" or topicType like "%orders%" order by topicType
+assert 2, tmp2[`processedMsgCount]>tmp1[`processedMsgCount]
+
+nsq::unsubscribe("orderTrade", "sh")
+nsq::unsubscribe("orderTrade", "sz")
+nsq::unsubscribe("orders", "sh")
+nsq::unsubscribe("orders", "sz")
+nsq::close()
+
+names = [`t1, `t2, `t3, `t4, `t5, `t6, `t801, `t2011, `t2012, `t2013, `t2014, `t2021, `t2022, `t2023, `t2024, `t2031, `t2032, `t2033, `t2034, `t2061, `t2071, `trade_sh, `orders_sh, `trade_sz, `orders_sz]
+for(name in names){
+	undef(name, SHARED)
+}
+
+@testing:case = "test_nsq_function_connect_subscribe_orderTrade_and_order_trade_unsubscribe_orderTade"
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+go
+
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t1
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t3
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t4
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t5
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t6
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t801
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2011
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2012
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2013
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2014
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2021
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2022
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2023
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2024
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2031
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2032
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2033
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2034
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2061
+share streamTable(100:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2071
+
+go
+streamTableDictsSH =  dict([1,2,3,4,5,6,801], [t1,t2,t3,t4,t5,t6,t801])
+streamTableDictsSZ =  dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034,2061,2071], [t2011,t2012,t2013,t2014,t2021,t2022,t2023,t2024,t2031,t2032,t2033,t2034,t2061,t2071])
+
+nsq::subscribe(`orderTrade, `sh, streamTableDictsSH);
+nsq::subscribe(`orderTrade, `sz, streamTableDictsSZ);
+
+scm = schema(trade_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sh
+go
+addColumn(trade_sh, `receivedTime, NANOTIMESTAMP)
+nsq::subscribe("trade",  "sh", trade_sh)
+
+scm = schema(orders_sh_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sh
+go
+nsq::subscribe("orders",  "sh", orders_sh)
+
+scm = schema(trade_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as trade_sz
+go
+nsq::subscribe("trade",  "sz", orders_sh)
+scm = schema(orders_sz_dummy).colDefs
+share streamTable(1000000:0, scm[`name], scm[`typeInt]) as orders_sz
+go
+nsq::subscribe("orders",  "sz", orders_sh)
+
+sleep(3000)
+re1 = nsq::getSubscriptionStatus()
+num = streamTableDictsSH.keys().size()+streamTableDictsSZ.keys().size()+4
+assert 1, re1.size()==num
+
+nsq::unsubscribe("orderTrade", "sh")
+nsq::unsubscribe("orderTrade", "sz")
+
+sleep(10000)
+re2 = nsq::getSubscriptionStatus()
+tmp1 = select * from re1 where topicType like "%trade%" or topicType like "%orders%" order by topicType
+tmp2 = select * from re2 where topicType like "%trade%" or topicType like "%orders%" order by topicType
+assert 2, tmp2[`processedMsgCount]>tmp1[`processedMsgCount]
+
+nsq::unsubscribe("trade", "sh")
+nsq::unsubscribe("trade", "sz")
+nsq::unsubscribe("orders", "sh")
+nsq::unsubscribe("orders", "sz")
+nsq::close()
+
+names = [`t1, `t2, `t3, `t4, `t5, `t6, `t801, `t2011, `t2012, `t2013, `t2014, `t2021, `t2022, `t2023, `t2024, `t2031, `t2032, `t2033, `t2034, `t2061, `t2071, `trade_sh, `orders_sh, `trade_sz, `orders_sz]
+for(name in names){
+	undef(name, SHARED)
+}
+
+@testing:case = "test_nsq_snapshot_engine_cannot_handle_sz_cancelling_order_while_origin_data_has_n_null_in_BSFlag"
+try{
+    nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+}
+catch (ex){
+}
+orderSchema = nsq::getSchema("orderTrade")
+share streamTable(1:0, orderSchema["name"], orderSchema["type"]) as orderTrade
+go
+
+nsq::subscribe("orderTrade", "sz", dict([2021,2022,2023,2024,2031,2032],
+    [orderTrade,orderTrade,orderTrade,orderTrade,orderTrade,orderTrade]))
+
+buyWithdraw = select * from orderTrade where SourceType = 1 and BuyNo != 0 and SellNo = 0
+res = exec count(*) from buyWithdraw where BSFlag != 1 // 为 0，现在设置 bsflag 了
+assert 1, eqObj(res, 0)
+sellWithdraw = select * from orderTrade where SourceType = 1 and BuyNo = 0 and SellNo != 0
+res = exec count(*) from sellWithdraw where BSFlag != 2 // 为 0，现在设置 bsflag 了
+assert 2, eqObj(res, 0)
+
+undef("orderTrade", SHARED)
+nsq::unsubscribe("orderTrade", "sz")
+nsq::close()
+
+@testing:case = "test_nsq_cannot_correctly_unsubscribe_order_or_trade_while_subscribe_orderTrade"
+try{
+    nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+}
+catch (ex){
+}
+
+orderSchema = nsq::getSchema("orderTrade")
+share streamTable(1:0, orderSchema["name"], orderSchema["type"]) as orderTrade
+go
+
+nsq::subscribe("orderTrade", "sh", dict([1, 2, 3, 4, 5, 6], 
+    [orderTrade, orderTrade, orderTrade, orderTrade, orderTrade, orderTrade]))
+
+orderSchema = nsq::getSchema("orders")
+share streamTable(1:0, orderSchema["name"], orderSchema["type"]) as order_sh
+nsq::subscribe("orders", "sh", order_sh)
+
+tradeSchema = nsq::getSchema("trade")
+share streamTable(1:0, tradeSchema["name"], tradeSchema["type"]) as trade_sh
+nsq::subscribe("trade", "sh", trade_sh)
+
+nsq::unsubscribe("orders", "sh")
+nsq::unsubscribe("trade", "sh")
+
+res = nsq::getStatus()
+tradeEndTime = exec endTime from res where topicType = "(trade, sh)"
+assert 1, each(eqObj, isNull(tradeEndTime), [false])
+ordersEndTime = exec endTime from res where topicType = "(orders, sh)"
+assert 2, each(eqObj, isNull(tradeEndTime), [false])
+
+undef("orderTrade", SHARED)
+undef("trade_sh", SHARED)
+undef("order_sh", SHARED)
+nsq::unsubscribe("orderTrade", "sh")
+nsq::close()
+
+// https://dolphindb1.atlassian.net/browse/D20-20167
+@testing:case="test_function_nsq_setLogLevel_empty",exception=1
+nsq::setLogLevel()
+
+@testing:case="test_function_nsq_setLogLevel_arg_over",syntaxError=1
+nsq::setLogLevel(INFO, 2)
+
+@testing:case="test_function_nsq_setLogLevel_other_saclar_1",exception=1
+nsq::setLogLevel(true)
+
+@testing:case="test_function_nsq_setLogLevel_other_saclar_2",exception=1
+nsq::setLogLevel(DOUBLE)
+
+@testing:case="test_function_nsq_setLogLevel_vector",exception=1
+nsq::setLogLevel([INFO, INFO])
+
+@testing:case="test_function_nsq_setLogLevel_pair",exception=1
+nsq::setLogLevel(INFO:INFO)
+
+@testing:case="test_function_nsq_setLogLevel_matrix",exception=1
+nsq::setLogLevel(1..6$2:3)
+
+@testing:case="test_function_nsq_setLogLevel_set",exception=1
+nsq::setLogLevel(set(1 2 3))
+
+@testing:case="test_function_nsq_setLogLevel_dict",exception=1
+nsq::setLogLevel(dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_nsq_setLogLevel_table",exception=1
+nsq::setLogLevel(table(1 2 3 as x))
+
+@testing:case="test_function_nsq_getLogLevel_arg_over",syntaxError=1
+nsq::getLogLevel(1)
+
+@testing:case="test_nsq_getLogLevel_default"
+assert 1, eqObj(nsq::getLogLevel(), getConfig("logLevel"))
+
+@testing:case="test_function_nsq_getLogLevel_setLogLevel_multi_times"
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	nsq::setLogLevel(logLevel)
+	ans = nsq::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_function_nsq_getLogLevel_setLogLevel_multi_jobs"
+def submitJob_set(){
+	for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+		nsq::setLogLevel(logLevel)
+	}
+}
+
+def submitJob_get(){
+	for(i in 1..1000){
+		ans = nsq::getLogLevel()
+		assert 1, ans in ["DEBUG", "INFO", "WARNING", "ERROR"]
+	}
+}
+
+job1 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job2 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job3 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+job4 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+getJobReturn(job4, true)
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	nsq::setLogLevel(logLevel)
+	ans = nsq::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case = "test_nsq_function_connect_keyword_fileName"
+try{
+    nsq::close()
+}
+catch (ex){}
+configFilePath = WORK_DIR + "/setup/sdk_config.ini"
+nsq::connect(fileName=configFilePath)
+res = nsq::getSchema(`snapshot)
+assert 1, size(res) == 87
+
+@testing:case = "test_nsq_function_connect_keyword_option"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath, option=dict(["receivedTime"], [true]))
+res = nsq::getSchema(`snapshot)
+assert 1, size(res) == 88
+
+@testing:case = "test_nsq_function_connect_keyword_username_and_password"
+try{
+    nsq::close()
+}
+catch (ex){}
+username = "nsq_sdk_u1"
+password = "nsq_sdk_p1"
+nsq::connect(configFilePath, username=username, password=password)
+res = nsq::getSchema(`snapshot)
+assert 1, size(res) == 87
+
+@testing:case = "test_nsq_function_connect_keyword_dateVersion"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath, option=dict(["receivedTime"], [true]), dataVersion='ORIGIN')
+res = nsq::getSchema(`snapshot)
+assert 1, size(res) == 88
+
+@testing:case = "test_nsq_function_connect_keyword_not_specify_all_option_args"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath, option=dict(["receivedTime"], [true]), dataVersion='ORIGIN')
+res = nsq::getSchema(`snapshot)
+assert 1, size(res) == 88
+
+@testing:case = "test_nsq_function_connect_keyword_wrong_arg_name", syntaxError = 1
+nsq::connect(wrongName=configFilePath)
+
+@testing:case = "test_nsq_function_connect_syntax"
+res = syntax(nsq::connect)
+ex = "connect(fileName, [option], [username], [password], [dataVersion='ORIGIN'])"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_nsq_function_getSchema_keyword_dataType"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+res = nsq::getSchema(dataType=`snapshot)
+assert 1, size(res) == 87
+
+@testing:case = "test_nsq_function_getSchema_keyword_wrong_arg_name", syntaxError = 1
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::getSchema(wrongName=`snapshot)
+
+@testing:case = "test_nsq_function_getSchema_syntax"
+res = syntax(nsq::getSchema)
+ex = "getSchema(dataType)"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_nsq_function_subscribe_keyword_dataType"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe(dataType="snapshot", market="sh", outputTable=snapshot_sh_dummy)
+res = nsq::getStatus()
+assert 1, size(res) == 1
+
+@testing:case = "test_nsq_function_subscribe_keyword_market"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot", market="sh", outputTable=snapshot_sh_dummy)
+res = nsq::getStatus()
+assert 1, size(res) == 1
+
+@testing:case = "test_nsq_function_subscribe_keyword_outputTable"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot", "sh", outputTable=snapshot_sh_dummy)
+res = nsq::getStatus()
+assert 1, size(res) == 1
+
+@testing:case = "test_nsq_function_subscribe_keyword_wrong_arg_name", syntaxError = 1
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot",  "sh", wrongName=snapshot_sh_dummy)
+
+@testing:case = "test_nsq_function_subscribe_syntax"
+res = syntax(nsq::subscribe)
+ex = "subscribe(dataType, market, outputTable, [queueDepth=1000000], [codes])"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_nsq_function_unsubscribe_keyword_dataType"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot", "sh", snapshot_sh_dummy)
+res = nsq::getStatus()
+assert 1, size(res) == 1
+nsq::unsubscribe(dataType=`snapshot, market=`sh)
+res = nsq::getStatus()
+assert 2, isNull(res[`endTime][0]) == false
+
+@testing:case = "test_nsq_function_unsubscribe_keyword_market"
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot", "sh", snapshot_sh_dummy)
+res = nsq::getStatus()
+assert 1, size(res) == 1
+nsq::unsubscribe(`snapshot, market=`sh)
+res = nsq::getStatus()
+assert 2, isNull(res[`endTime][0]) == false
+
+@testing:case = "test_nsq_function_unsubscribe_keyword_wrong_arg_name", syntaxError = 1
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::subscribe("snapshot",  "sh", snapshot_sh_dummy)
+nsq::unsubscribe(`snapshot, wrongName=`sh)
+
+@testing:case = "test_nsq_function_unsubscribe_syntax"
+res = syntax(nsq::unsubscribe)
+ex = "unsubscribe(dataType, market)"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_nsq_function_close_with_keyword", syntaxError = 1
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::close(wrongName=1)
+
+@testing:case = "test_nsq_function_close_syntax"
+res = syntax(nsq::close)
+ex = "close()"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_nsq_function_getStatus_with_keyword", syntaxError = 1
+try{
+    nsq::close()
+}
+catch (ex){}
+nsq::connect(configFilePath)
+nsq::getStatus(wrongName=1)
+
+@testing:case = "test_nsq_function_getStatus_syntax"
+res = syntax(nsq::getStatus)
+ex = "getStatus()"
+assert 1, eqObj(res, ex)
+
+///////////////subscribe queueDepth//////////////////////
+@testing:case = "test_nsq_subscribe_prepare"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+snapshotSchema = nsq::getSchema(`snapshot);
+tradeSchema = nsq::getSchema(`trade);
+ordersSchema = nsq::getSchema(`orders);
+orderTradeSchema = nsq::getSchema(`orderTrade);
+go
+
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshotSchema[`name], snapshotSchema[`type]), tableName="snapshot_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, snapshotSchema[`name], snapshotSchema[`type]), tableName="snapshot_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, tradeSchema[`name], tradeSchema[`type]), tableName="trade_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, tradeSchema[`name], tradeSchema[`type]), tableName="trade_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, ordersSchema[`name], ordersSchema[`type]), tableName="orders_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, ordersSchema[`name], ordersSchema[`type]), tableName="orders_sz", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orderTradeSchema[`name], orderTradeSchema[`type]), tableName="orderTrade_sh", cacheSize=1000000)
+enableTableShareAndPersistence(table=streamTable(1000000:0, orderTradeSchema[`name], orderTradeSchema[`type]), tableName="orderTrade_sz", cacheSize=1000000)
+// share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as snapshot_sh;
+// share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as snapshot_sz;
+// share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as trade_sh;
+// share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as trade_sz;
+// share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as orders_sh;
+// share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as orders_sz;
+// share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as orderTrade_sh;
+// share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as orderTrade_sz;
+go
+nsq::subscribe(`snapshot, `sh, snapshot_sh, NULL);
+nsq::subscribe(`snapshot, `sz, snapshot_sz, NULL);
+nsq::subscribe(`trade, `sh, trade_sh, NULL);
+nsq::subscribe(`trade, `sz, trade_sz, NULL);
+nsq::subscribe(`orders, `sh, orders_sh, NULL);
+nsq::subscribe(`orders, `sz, orders_sz, NULL);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]),NULL);
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz]),NULL);
+sleep(10000)
+nsq::close()
+go
+allCodes_snapshot_sh = exec distinct InstrumentId from snapshot_sh
+allCodes_snapshot_sz = exec distinct InstrumentId from snapshot_sz
+allCodes_trade_sh = exec distinct InstrumentId from trade_sh
+allCodes_trade_sz = exec distinct InstrumentId from trade_sz
+allCodes_orders_sh = exec distinct InstrumentId from orders_sh
+allCodes_orders_sz = exec distinct InstrumentId from orders_sz
+allCodes_orderTrade_sh = exec distinct SecurityID from orderTrade_sh
+allCodes_orderTrade_sz = exec distinct SecurityID from orderTrade_sz
+
+@testing:case = "test_nsq_subscribe_queueDepth_default"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, );
+assert 1, nsq::getStatus().queueDepthLimit == 1000000;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_queueDepth_NULL"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, NULL);
+nsq::subscribe(`snapshot, `sz, snapshot_sz, NULL);
+nsq::subscribe(`trade, `sh, trade_sh, NULL);
+nsq::subscribe(`trade, `sz, trade_sz, NULL);
+nsq::subscribe(`orders, `sh, orders_sh, NULL);
+nsq::subscribe(`orders, `sz, orders_sz, NULL);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]),NULL);
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz]),NULL);
+
+sleep(1000)
+assert 1, nsq::getStatus().queueDepthLimit.distinct() == [1000000];
+assert 2, nsq::getStatus().lastErrMsg.distinct() == NULL;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_queueDepth_negative",exception=1
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, -1);
+
+
+@testing:case = "test_nsq_subscribe_queueDepth_big_int"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 1000000000000);
+nsq::subscribe(`snapshot, `sz, snapshot_sz, 1000000000000);
+nsq::subscribe(`trade, `sh, trade_sh, 1000000000000);
+nsq::subscribe(`trade, `sz, trade_sz, 1000000000000);
+nsq::subscribe(`orders, `sh, orders_sh, 1000000000000);
+nsq::subscribe(`orders, `sz, orders_sz, 1000000000000);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]),1000000000000);
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz]),1000000000000);
+sleep(1000)
+assert 1, nsq::getStatus().queueDepthLimit == 1000000000000;
+assert 2, nsq::getStatus().lastErrMsg.distinct() == NULL;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_queueDepth_long"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000000l);
+nsq::subscribe(`snapshot, `sz, snapshot_sz, 10000000000l);
+nsq::subscribe(`trade, `sh, trade_sh, 10000000000l);
+nsq::subscribe(`trade, `sz, trade_sz, 10000000000l);
+nsq::subscribe(`orders, `sh, orders_sh, 10000000000l);
+nsq::subscribe(`orders, `sz, orders_sz, 10000000000l);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]),10000000000l);
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz]),10000000000l);
+sleep(1000)
+assert 1, nsq::getStatus().queueDepthLimit == 10000000000l;
+assert 2, nsq::getStatus().lastErrMsg.distinct() == NULL;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_queueDepth_0",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 0);
+
+@testing:case = "test_nsq_subscribe_queueDepth_decimal",exception=1
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, decimal64(100000, 3));
+
+@testing:case = "test_nsq_subscribe_queueDepth_double",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 100.0);
+
+///////////////subscribe codes//////////////////////
+@testing:case = "test_nsq_subscribe_codes_len>81",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["asdfadffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"]
+nsq::subscribe(`snapshot, `sh, snapshot_sh, , codes);
+
+@testing:case = "test_nsq_subscribe_codes_len=0"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = []$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, , codes);
+nsq::subscribe(`snapshot, `sz, snapshot_sz, , codes);
+nsq::subscribe(`trade, `sh, trade_sh, , codes);
+nsq::subscribe(`trade, `sz, trade_sz, , codes);
+nsq::subscribe(`orders, `sh, orders_sh, , codes);
+nsq::subscribe(`orders, `sz, orders_sz, , codes);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]), , codes);
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz,orderTrade_sz]), , codes);
+sleep(1000)
+assert 1, nsq::getStatus().size() == 25;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_codes_int_vector",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = [601236, 603938, 122393,157787, 130862]
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+
+@testing:case = "test_nsq_subscribe_codes_multi_contain_invalid",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["601236", "603938", "abc", "122393","157787", "130862"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+
+@testing:case = "test_nsq_subscribe_codes_multi_contain_NULL",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["601236", NULL]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+
+@testing:case = "test_nsq_subscribe_codes_multi_contain_default",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["601236", , "603938"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+
+@testing:case = "test_nsq_subscribe_codes_duplicate"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["601236", "601236"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+assert 1, nsq::getStatus().size() == 1;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_codes_not_exist1"
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["100000", "200000"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+assert 1, nsq::getStatus().size() == 1;
+nsq::close()
+
+@testing:case = "test_nsq_subscribe_codes_not_exist2",exception=1
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["1000002", "2000002"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, codes);
+
+
+@testing:case = "test_nsq_subscribe_sh_codes_in_sz_dataSource_snapshot"
+try{nsq::close()}catch(ex){}
+try{undef(`snapshot_sz, SHARED)}catch(ex){}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as snapshot_sz;
+try{undef(`snapshot_sh, SHARED)}catch(ex){}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as snapshot_sh;
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`snapshot, `sz, snapshot_sz, 10000000, allCodes_snapshot_sh[!in(allCodes_snapshot_sh,allCodes_snapshot_sz)]$STRING);
+nsq::subscribe(`snapshot, `sh, snapshot_sh, 10000000, allCodes_snapshot_sz[!in(allCodes_snapshot_sz,allCodes_snapshot_sh)]$STRING);
+sleep(10000)
+cnt = exec count(*) from snapshot_sz
+try{assert 1, cnt == 0}catch(ex){
+    ids = exec distinct InstrumentId from snapshot_sz
+    assert 2, in(ids, allCodes_snapshot_sh).all() == true
+    assert 3, in(ids, allCodes_snapshot_sz).all() == false
+}
+
+cnt = exec count(*) from snapshot_sh
+try{assert 4, cnt == 0}catch(ex){
+    ids = exec distinct InstrumentId from snapshot_sh
+    assert 5, in(ids, allCodes_snapshot_sz).all() == true
+    assert 6, in(ids, allCodes_snapshot_sh).all() == false
+}
+
+@testing:case = "test_nsq_subscribe_sh_codes_in_sz_dataSource_trade"
+try{nsq::close()}catch(ex){}
+try{undef(`trade_sz, SHARED)}catch(ex){}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as trade_sz;
+try{undef(`trade_sh, SHARED)}catch(ex){}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as trade_sh;
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`trade, `sz, trade_sz, 10000000, allCodes_trade_sh[!in(allCodes_trade_sh,allCodes_trade_sz)]$STRING);
+nsq::subscribe(`trade, `sh, trade_sh, 10000000, allCodes_trade_sz[!in(allCodes_trade_sz,allCodes_trade_sh)]$STRING);
+sleep(10000)
+cnt = exec count(*) from trade_sz
+if(allCodes_trade_sh[!in(allCodes_trade_sh,allCodes_trade_sz)].size()==0)
+    assert 1, cnt > 0
+else
+    assert 2, cnt == 0
+
+cnt = exec count(*) from trade_sh
+assert 3, cnt == 0
+
+
+@testing:case = "test_nsq_subscribe_sh_codes_in_sz_dataSource_orders"
+try{nsq::close()}catch(ex){}
+try{undef(`orders_sz, SHARED)}catch(ex){}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as orders_sz;
+try{undef(`orders_sh, SHARED)}catch(ex){}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as orders_sh;
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+nsq::subscribe(`orders, `sz, orders_sz, 10000000, allCodes_orders_sh[!in(allCodes_orders_sh,allCodes_orders_sz)]$STRING);
+nsq::subscribe(`orders, `sh, orders_sh, 10000000, allCodes_orders_sz[!in(allCodes_orders_sz,allCodes_orders_sh)]$STRING);
+sleep(10000)
+cnt = exec count(*) from orders_sz
+assert 1, cnt == 0
+
+cnt = exec count(*) from orders_sh
+assert 2, cnt == 0
+
+
+@testing:case = "test_nsq_subscribe_sz_codes_in_sh_dataSource_orderTrade"
+try{nsq::close()}catch(ex){}
+try{undef(`orderTrade_sh, SHARED)}catch(ex){}
+share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as orderTrade_sh;
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = [allCodes_orderTrade_sz[0]]$STRING
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh,orderTrade_sh]), 10000000, codes);
+sleep(10000)
+cnt = exec count(*) from orderTrade_sh
+assert 1, cnt == 0
+
+
+@testing:case = "test_nsq_subscribe_diff_codes_same_dataSource",exception=1
+//https://dolphindb1.atlassian.net/browse/DPLG-5087
+try{undef(`t1,SHARED)}catch(ex){}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t2;
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["603938"]$STRING
+nsq::subscribe(`snapshot, `sh, t1, codes=codes);
+codes = ["601236"]$STRING
+nsq::subscribe(`snapshot, `sh, t2, codes=codes); // 属于同一个数据源，第二次订阅失败
+
+
+@testing:case = "test_nsq_subscribe_codes_diff_dataSource"
+//https://dolphindb1.atlassian.net/browse/DPLG-5088
+try{undef(`t1,SHARED)}catch(ex){}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as t2;
+try{nsq::close()}catch(ex){}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+snapshotSchema = nsq::getSchema(`snapshot);
+tradeSchema = nsq::getSchema(`trade);
+
+codes1=[588700]$STRING
+nsq::subscribe(`snapshot, `sh, t1, codes=codes1);
+sleep(5000)
+ids1 = exec distinct InstrumentId from t1
+assert 1, ids1 in codes1 //未订阅trade数据源时，codes1订阅正确
+assert 1.1, ids1.size() > 0
+
+codes2=[600000]$STRING
+nsq::subscribe(`trade, `sh, t2, codes=codes2);
+sleep(5000)
+ids2 = exec distinct InstrumentId from t2
+assert 2, ids2 in codes1 // 未订阅到数据
+assert 2.1, ids2.size() > 0 // 未订阅到数据
+
+ids1 = exec distinct InstrumentId from t1
+assert 3, ids1 in codes1 //订阅trade数据源后，snapshot订阅结果里包含了code为600000的数据
+
+
+@testing:case = "test_nsq_subscribe_diff_codes_snapshot"
+try{undef(`t1,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t2;
+try{nsq::close()}catch(ex){print ex}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes1 = ["127917","152285","605102","157471","751059","605016","124339","600028","152233","157594"]$STRING
+nsq::subscribe(`snapshot, `sh, t1, codes=codes1);
+codes2 = ["000650","002247","002111","301131","000503","301371","301128","399102","301556","395099"]$STRING
+nsq::subscribe(`snapshot, `sz, t2, codes=codes2);
+sleep(10000)
+
+ids1 = exec distinct InstrumentId from t1
+assert 1, ids1 in codes1
+assert 1.1, ids1.size() > 0
+ids2 = exec distinct InstrumentId from t2
+assert 2, ids2 in codes2
+assert 2.1, ids2.size() > 0
+
+@testing:case = "test_nsq_subscribe_diff_codes_trade"
+try{undef(`t1,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as t2;
+try{nsq::close()}catch(ex){print ex}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes1=[600000]$STRING
+nsq::subscribe(`trade, `sh, t1, codes=codes1);
+codes2 = ["159222","301216","300207","159219","159540","002584","001221","300606","161128","300904"]$STRING
+nsq::subscribe(`trade, `sz, t2, codes=codes2);
+sleep(10000)
+
+ids1 = exec distinct InstrumentId from t1
+assert 1, ids1 in codes1
+assert 1.1, ids1.size() >= 0  //sh数据很慢，数据少
+ids2 = exec distinct InstrumentId from t2
+assert 2, ids2 in codes2
+assert 2.1, ids2.size() > 0
+
+@testing:case = "test_nsq_subscribe_diff_codes_orders"
+try{undef(`t1,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as t2;
+try{nsq::close()}catch(ex){print ex}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes1 = ["601669","601669","601669","600570","601669","600570","601669","600570","601669","601669"]$STRING
+nsq::subscribe(`orders, `sh, t1, codes=codes1);
+codes2 = ["002448","123182","300823","300047","300654","000501","002966","301213","301230","301148"]$STRING
+nsq::subscribe(`orders, `sz, t2, codes=codes2);
+sleep(10000)
+
+ids1 = exec distinct InstrumentId from t1
+assert 1, ids1 in codes1
+assert 1.1, ids1.size() >= 0  //sh数据很慢，数据少
+ids2 = exec distinct InstrumentId from t2
+assert 2, ids2 in codes2
+assert 2.1, ids2.size() > 0
+
+@testing:case = "test_nsq_subscribe_diff_codes_orderTrade"
+try{undef(`t1,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t2;
+try{nsq::close()}catch(ex){print ex}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes1 = ["601669","600570","601669","600570","600570","600570","600570","600570","601669","600570"]$STRING
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[t1,t1,t1,t1,t1,t1,t1]), codes=codes1);
+codes2 = ["301009","300596","301307","159782","159280","127022","001278","159565","300904","300500"]$STRING
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[t2,t2,t2,t2,t2,t2,t2,t2,t2,t2,t2,t2]), codes=codes2);
+sleep(10000)
+
+ids1 = exec distinct SecurityID from t1
+assert 1, ids1 in codes1
+assert 1.1, ids1.size() > 0
+ids2 = exec distinct SecurityID from t2
+assert 2, ids2 in codes2
+assert 2.1, ids2.size() > 0
+
+
+@testing:case = "test_nsq_subscribe_diff_codes_all_dataSource"
+try{undef(`t1,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t1;
+try{undef(`t2,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as t2;
+try{undef(`t3,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as t3;
+try{undef(`t4,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type])  as t4;
+try{undef(`t5,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as t5;
+try{undef(`t6,SHARED)}catch(ex){print ex}
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type])  as t6;
+// try{undef(`t7,SHARED)}catch(ex){print ex}
+// share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t7;
+// try{undef(`t8,SHARED)}catch(ex){print ex}
+// share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as t8;
+try{nsq::close()}catch(ex){print ex}
+go
+
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes1 = ["127917","152285","605102","157471","751059","605016","124339","600028","152233","157594"]$STRING
+nsq::subscribe(`snapshot, `sh, t1, codes=codes1);
+codes2 = ["000650","002247","002111","301131","000503","301371","301128","399102","301556","395099"]$STRING
+nsq::subscribe(`snapshot, `sz, t2, codes=codes2);
+codes3=[600000]$STRING
+nsq::subscribe(`trade, `sh, t3, codes=codes3);
+codes4 = ["159222","301216","300207","159219","159540","002584","001221","300606","161128","300904"]$STRING
+nsq::subscribe(`trade, `sz, t4, codes=codes4);
+codes5 = ["601669","601669","601669","600570","601669","600570","601669","600570","601669","601669"]$STRING
+nsq::subscribe(`orders, `sh, t5, codes=codes5);
+codes6 = ["002448","123182","300823","300047","300654","000501","002966","301213","301230","301148"]$STRING
+nsq::subscribe(`orders, `sz, t6, codes=codes6);
+// codes7 = ["601669","600570","601669","600570","600570","600570","600570","600570","601669","600570"]$STRING
+// nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[t7,t7,t7,t7,t7,t7,t7]), codes=codes7);
+// codes8 = ["301009","300596","301307","159782","159280","127022","001278","159565","300904","300500"]$STRING
+// nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[t8,t8,t8,t8,t8,t8,t8,t8,t8,t8,t8,t8]), codes=codes8);
+sleep(15000)
+
+ids1 = exec distinct InstrumentId from t1
+assert 1, ids1 in codes1
+assert 1.1, ids1.size() > 0
+ids2 = exec distinct InstrumentId from t2
+assert 2, ids2 in codes2
+assert 2.1, ids2.size() > 0
+ids3 = exec distinct InstrumentId from t3
+assert 3, ids3 in codes3
+assert 3.1, ids3.size() >= 0  //sh数据很慢，数据少
+ids4 = exec distinct InstrumentId from t4
+assert 4, ids4 in codes4  //有多余的InstrumentId
+assert 4.1, ids4.size() > 0
+ids5 = exec distinct InstrumentId from t5
+assert 5, ids5 in codes5
+assert 5.1, ids5.size() >= 0  //sh数据很慢，数据少
+ids6 = exec distinct InstrumentId from t6
+assert 6, ids6 in codes6 //有多余的InstrumentId
+assert 6.1, ids6.size() > 0
+// ids7 = exec distinct SecurityID from t7
+// assert 7, ids7 in codes7
+// assert 7.1, ids7.size() > 0
+// ids8 = exec distinct SecurityID from t8
+// assert 8, ids8 in codes8 //有多余的InstrumentId
+// assert 8.1, ids8.size() > 0
+
+
+@testing:case = "test_nsq_subscribe_multi_codes_keyword"
+undef(`snapshot_sh,SHARED)
+share streamTable(1000:0, snapshotSchema[`name], snapshotSchema[`type])  as snapshot_sh;
+try{nsq::close()}catch(ex){}
+nsq::connect(configFilePath, dict(["receivedTime"], [true]));
+codes = ["601236", "603938", "122393","157787", "130862"]$STRING
+nsq::subscribe(`snapshot, `sh, snapshot_sh, codes=codes);
+assert 1, nsq::getStatus().size() == 1;
+sleep(10000)
+ids = exec distinct InstrumentId from snapshot_sh
+assert 2, ids in codes
+
+@testing:case = "test_nsq_function_connect_subscribe_orderTrade_check_content" 
+try{nsq::close()}catch(ex){}
+configFilePath=WORK_DIR+"/setup/sdk_config.ini"
+nsq::connect(configFilePath, dict(["receivedTime"], [true]))
+orderTradeSchema = nsq::getSchema(`orderTrade);
+tradeSchema = nsq::getSchema(`trade);
+ordersSchema = nsq::getSchema(`orders);
+go
+
+share streamTable(1000:0, tradeSchema[`name], tradeSchema[`type]) as tradeTable;
+share streamTable(1000:0, ordersSchema[`name], ordersSchema[`type]) as ordersTable;
+share streamTable(1000:0, orderTradeSchema[`name], orderTradeSchema[`type])  as orderTradeTable;
+go
+
+nsq::subscribe(`trade, `sh, tradeTable);
+nsq::subscribe(`trade, `sz, tradeTable);
+nsq::subscribe(`orders, `sh, ordersTable);
+nsq::subscribe(`orders, `sz, ordersTable);
+nsq::subscribe(`orderTrade, `sh, dict([1,2,3,4,5,6,801],[orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable]));
+nsq::subscribe(`orderTrade, `sz, dict([2011,2012,2013,2014,2021,2022,2023,2024,2031,2032,2033,2034],[orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable,orderTradeTable]));
+
+sleep(10000)
+
+res = select t1.OrdType,t1.OrdNo, t2.sourceType, t2.Type, t1.OrdSide, t2.BSFlag, t2.BuyNo, t2.SellNo from ordersTable as t1 inner join orderTradeTable as t2 on t1.InstrumentID=t2.SecurityID and t1.ChannelNo=t2.ChannelNo and t1.SeqNo=t2.ApplSeqNum
+exp = exec count(*) from res where OrdNo!=SellNo or OrdNo!=BuyNo
+assert 0, exp == 0
+
+exp = select sourceType, Type from res where OrdType='A'
+if(exp.size()>0){
+    assert 1, distinct(exp.sourceType) == [0]
+    assert 2, distinct(exp.Type) == [2]
+}
+
+exp = select sourceType, Type from res where OrdType='D'
+if(exp.size()>0){
+    assert 3, distinct(exp.sourceType) == [0]
+    assert 4, distinct(exp.Type) == [10]
+}
+
+exp = select sourceType, Type from res where OrdType='S'
+if(exp.size()>0){
+    assert 5, distinct(exp.sourceType) == [-1]
+    assert 6, distinct(exp.Type) == [11]
+}
+
+exp = select sourceType, Type from res where OrdType='1'
+if(exp.size()>0){
+    assert 7, distinct(exp.sourceType) == [0]
+    assert 8, distinct(exp.Type) == [1]
+}
+
+exp = select sourceType, Type from res where OrdType='2'
+if(exp.size()>0){
+    assert 9, distinct(exp.sourceType) == [0]
+    assert 10, distinct(exp.Type) == [2]
+}
+
+exp = select sourceType, Type from res where OrdType='U'
+if(exp.size()>0){
+    assert 11, distinct(exp.sourceType) == [0]
+    assert 12, distinct(exp.Type) == [3]
+}
+
+exp = select BSFlag from res where OrdSide='1'
+if(exp.size()>0){
+    assert 13, distinct(exp.BSFlag) == [1]
+}
+
+exp = select BSFlag from res where OrdSide='2'
+if(exp.size()>0){
+    assert 14, distinct(exp.BSFlag) == [2]
+}
+
+
+// check trade
+res = select t1.TrdBSFlag, t2.Type, t2.BSFlag, t1.TrdBuyNo, t1.TrdSellNo, t2.BuyNo, t2.SellNo  from tradeTable as t1 inner join orderTradeTable as t2 on t1.InstrumentID=t2.SecurityID and t1.ChannelNo=t2.ChannelNo and t1.SeqNo=t2.ApplSeqNum
+exp = exec count(*) from res where BuyNo!=TrdBuyNo or SellNo!=TrdSellNo
+assert 15, exp == 0
+
+exp = select Type, BSFlag from res where TrdBSFlag='B'
+if(exp.size()>0){
+    assert 16, distinct(exp.Type) == [0]
+    assert 17, distinct(exp.BSFlag) == [1]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag='S'
+if(exp.size()>0){
+    assert 18, distinct(exp.Type) == [0]
+    assert 19, distinct(exp.BSFlag) == [2]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag in ['N','F']
+if(exp.size()>0){
+    assert 20, distinct(exp.Type) == [0]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag in ['N','F'] and TrdBuyNo > TrdSellNo
+if(exp.size()>0){
+    assert 21, distinct(exp.BSFlag) == [1]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag in ['N','F'] and TrdBuyNo < TrdSellNo
+if(exp.size()>0){
+    assert 22, distinct(exp.BSFlag) == [2]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag='4'
+if(exp.size()>0){
+    assert 23, distinct(exp.Type) == [1]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag='4' and TrdBuyNo != 0
+if(exp.size()>0){
+    assert 24, distinct(exp.BSFlag) == [1]
+}
+
+exp = select Type, BSFlag from res where TrdBSFlag='4' and TrdSellNo != 0
+if(exp.size()>0){
+    assert 25, distinct(exp.BSFlag) == [2]
+}
+
+@testing:case = "test_nsq_clear"
+try{
+    nsq::close()
+}
+catch (ex){}

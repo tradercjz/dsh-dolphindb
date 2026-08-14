@@ -1,0 +1,26 @@
+// ============================================================
+// DividendCurve — parseMktData 构建示例
+// 构建权益股息率曲线
+// ============================================================
+// 金融含义：
+//   DividendCurve 存储标的资产的连续股息率期限结构。
+//   在 BSM/BAW 模型中，股息率类似于 FX 期权中的"外币利率"——
+//   它降低了标的资产的远期价格（除息效应）。
+//   较高的股息率会降低 Call 价值、提高 Put 价值。
+//   对于 ETF，通常假设 continuous dividend yield ≈ 2% 左右。
+// ============================================================
+
+divDict = dict(STRING, ANY)
+divDict["mktDataType"]         = "Curve"            // 曲线类
+divDict["curveType"]           = "DividendCurve"     // 股息率曲线
+divDict["referenceDate"]       = 2025.08.18
+divDict["curveName"]           = "50ETF_DIV"         // 曲线名称
+divDict["dayCountConvention"]  = "Actual365"
+divDict["compounding"]         = "Continuous"         // 连续复利股息率
+divDict["interpMethod"]        = "Linear"
+divDict["extrapMethod"]        = "Flat"
+// 各期限的连续股息率
+divDict["dates"]   = [2025.09.18, 2026.03.18, 2026.08.18]
+divDict["values"]  = [0.02, 0.02, 0.02]              // 年化 2% 连续股息率
+
+divCurve = parseMktData(divDict)

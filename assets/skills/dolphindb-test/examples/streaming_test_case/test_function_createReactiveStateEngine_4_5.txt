@@ -1,0 +1,73 @@
+//**********************************test tmfunction*************************\\
+//keepOrder
+@testing:case="test_function_createReactiveStateEngine_metric_tm_function_keepOrder_true"
+n = 1000000
+timestamp = 2000.01.01T00:00:00.000 + sort(rand(1..n, n))
+sym=take("A"+string(1..100), n)
+price=round(rand(1..100 join NULL, n) * rand(1.0, n), 2)
+qty=rand([0.1, 0.2, 1, 2], n)
+dummy = table(timestamp, sym, price, qty)
+@state
+def f1(price){
+	return moving(avg, price, 10)
+}
+
+@state
+def f2(timestamp, price){
+	return tmoving(avg, timestamp, price, 20s)
+}
+
+m =  [<timestamp>, <tmove(timestamp, price, 10s)>, <tmfirst(timestamp, price, 10s)>, <tmlast(timestamp, price, 30s)>, <tmsum(timestamp, price, 1s)>, <tmavg(timestamp, price, 1m)>, <tmcount(timestamp, price, 30s)>, <tmvar(timestamp, price, 45s)>, <tmvarp(timestamp, price, 15s)>, <tmstd(timestamp, price, 10s)>, <tmstdp(timestamp, price, 20s)>, <tmprod(timestamp, qty, 5s)>, <tmskew(timestamp, price, 10s, false)>, <tmkurtosis(timestamp, price, 30s, false)>, <tmmin(timestamp, price, 1s)>, <tmmax(timestamp, price, 1s)>, <tmmed(timestamp, price, 30s)>, <tmpercentile(timestamp, price, 50, 35s)>, <tmrank(timestamp, price, true, 10s)>, <tmcovar(timestamp, price, qty, 20s)>, <tmcovarp(timestamp, price, qty, 20s)>, <tmbeta(timestamp, price, qty, 30s)>, <tmcorr(timestamp, price, qty, 25s)>, <tmwavg(timestamp, price, qty, 30s)>, <tmwsum(timestamp, price, qty, 25s)>, <f1(price)>, <f2(timestamp, price)>]
+
+colNames = ["sym", "timestamp"].append!("factor"+string(1..(size(m)-1)))
+colTypes = [STRING, TIMESTAMP].append!(take(DOUBLE, size(m)-1))
+outputTable = table(n:0, colNames, colTypes)
+engine = createReactiveStateEngine(name="test", metrics=m, dummyTable=dummy, outputTable=outputTable, keyColumn="sym", keepOrder=true)
+engine.append!(dummy)
+
+a=sqlColAlias(m, ["timestamp"].append!("factor"+string(1..(size(m)-1))))
+typestr(a)
+col = array(ANY, 0, 25).append!(sqlCol("sym"))
+for(i in 0..(size(m)-1)){
+	col.append!(a[i])
+}
+
+expected = sql(select=col, from=dummy, groupBy=sqlCol("sym"), groupFlag=0, hint=HINT_KEEPORDER).eval()
+for(c in "factor"+string(1..(size(m)-1))){
+	expected.replaceColumn!(c, double(expected[c]))
+}
+assert 1, each(eqObj, outputTable.values(), expected.values(), 4)
+
+dropAggregator("test")
+engine=NULL
+
+//@testing:case="test_function_createReactiveStateEngine_addMetrics_tm_function"
+//n = 1000000
+//timestamp = 2000.01.01T00:00:00.000 + sort(rand(1..n, n))
+//sym=take("A"+string(1..100), n)
+//price=round(rand(1..100 join NULL, n) * rand(1.0, n), 2)
+//qty=rand([0.1, 0.2, 1, 2], n)
+//dummy = table(timestamp, sym, price, qty)
+//
+//colNames = ["sym", "timestamp", "factor1", "factor2"]
+//colTypes = [STRING, TIMESTAMP, DOUBLE, DOUBLE]
+//outputTable = table(n:0, colNames, colTypes)
+//
+//engine = createReactiveStateEngine("test", [<timestamp>, <cumavg(price)>, <mavg(price, 10)>], dummy, outputTable, "sym")
+//engine.append!(dummy)
+//
+//addMetrics(engine, <[cumsum(price) as factor3, msum(price, 10) as factor4]>, table(1:0, `factor3`factor4, [DOUBLE, DOUBLE]))
+////addMetrics(engine, <[tmavg(timestamp, price, 10s) as factor3, tmsum(timestamp, price, 10s) as factor4]>, table(1:0, `factor3`factor4, [DOUBLE, DOUBLE]))
+//
+//timestamp = 2000.01.01T00:00:00.000 + sort(rand((1..n) + n, n))
+//sym=take("A"+string(1..100), n)
+//price=round(rand(1..100 join NULL, n) * rand(1.0, n), 2)
+//qty=rand([0.1, 0.2, 1, 2], n)
+//tmp2 = table(timestamp, sym, price, qty)
+//engine.append!(tmp2)
+//
+//select * from outputTable
+//
+//dropAggregator("test")
+//engine=NULL
+

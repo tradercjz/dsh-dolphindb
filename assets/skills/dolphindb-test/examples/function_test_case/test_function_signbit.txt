@@ -1,0 +1,819 @@
+
+login("admin","123456")
+scalarTest = [26,INT128,BOOL,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,DATEHOUR,SYMBOL,STRING,UUID,IPADDR,BLOB,FUNCTIONDEF,HANDLE,CODE,DATASOURCE,RESOURCE,DURATION,ANY,'ANY DICTIONARY',DECIMAL32(2),DECIMAL64(2),DECIMAL128(2)]
+
+@testing:case="function_signbit_void_error",exception=1
+signbit(NULL)
+
+@testing:case="function_signbit_scalar_error_compress",exception=1
+idx = 0
+signbit(compress(1..10, "delta"))
+
+@testing:case="function_signbit_scalar_error_INT128",exception=1
+signbit(cast(10, INT128))
+
+@testing:case="function_signbit_scalar_error_BOOL",exception=1
+signbit(cast(10, BOOL))
+
+@testing:case="function_signbit_scalar_error_DATE",exception=1
+signbit(cast(10, DATE))
+
+@testing:case="function_signbit_scalar_error_MONTH",exception=1
+signbit(cast(10, MONTH))
+
+@testing:case="function_signbit_scalar_error_TIME",exception=1
+signbit(cast(10, TIME))
+
+@testing:case="function_signbit_scalar_error_MINUTE",exception=1
+signbit(cast(10, MINUTE))
+
+@testing:case="function_signbit_scalar_error_SECOND",exception=1
+signbit(cast(10, SECOND))
+
+@testing:case="function_signbit_scalar_error_DATETIME",exception=1
+signbit(cast(10, DATETIME))
+
+@testing:case="function_signbit_scalar_error_TIMESTAMP",exception=1
+signbit(cast(10, TIMESTAMP))
+
+@testing:case="function_signbit_scalar_error_NANOTIME",exception=1
+signbit(cast(10, NANOTIME))
+
+@testing:case="function_signbit_scalar_error_NANOTIMESTAMP",exception=1
+signbit(cast(10, NANOTIMESTAMP))
+
+@testing:case="function_signbit_scalar_error_DATEHOUR",exception=1
+signbit(cast(10, DATEHOUR))
+
+@testing:case="function_signbit_scalar_error_SYMBOL",exception=1
+signbit(cast(10, SYMBOL))
+
+@testing:case="function_signbit_scalar_error_STRING",exception=1
+signbit(cast(10, STRING))
+
+@testing:case="function_signbit_scalar_error_UUID",exception=1
+signbit(cast(10, UUID))
+
+@testing:case="function_signbit_scalar_error_IPADDR",exception=1
+signbit(cast(10, IPADDR))
+
+@testing:case="function_signbit_scalar_error_BLOB",exception=1
+signbit(cast(10, BLOB))
+
+@testing:case="function_signbit_scalar_error_FUNCTIONDEF",exception=1
+signbit(cast(10, FUNCTIONDEF))
+
+@testing:case="function_signbit_scalar_error_HANDLE",exception=1
+signbit(cast(10, HANDLE))
+
+@testing:case="function_signbit_scalar_error_CODE",exception=1
+signbit(cast(10, CODE))
+
+@testing:case="function_signbit_scalar_error_DATASOURCE",exception=1
+signbit(cast(10, DATASOURCE))
+
+@testing:case="function_signbit_scalar_error_RESOURCE",exception=1
+signbit(cast(10, RESOURCE))
+
+@testing:case="function_signbit_scalar_error_DURATION",exception=1
+signbit(cast(10, DURATION))
+
+@testing:case="function_signbit_scalar_error_ANY",exception=1
+signbit(cast(10, ANY))
+
+@testing:case="function_signbit_scalar_error_ANY DICTIONARY",exception=1
+signbit(cast(10, 'ANY DICTIONARY'))
+
+@testing:case="function_signbit_scalar_error_DECIMAL32(2)"
+assert 1, signbit(cast(10, DECIMAL32(2)))==false
+
+@testing:case="function_signbit_scalar_error_DECIMAL64(2)"
+assert 1, signbit(cast(10, DECIMAL64(2)))==false
+
+@testing:case="function_signbit_scalar_error_DECIMAL128(2)"
+assert 1, signbit(cast(10, DECIMAL128(2)))==false
+
+@testing:case="function_signbit_vector_arrayvector_error_bool",exception=1
+x = array(BOOL[],0).append!([1 NULL,1 NULL NULL])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_float"
+x = array(FLOAT[],0).append!([1 1])
+re = signbit(x)
+ex = array(BOOL[], 0).append!([false false])
+assert 1, eqObj(re, ex)
+
+@testing:case="function_signbit_vector_arrayvector_error_double"
+x = array(DOUBLE[],0).append!([1 1])
+re = signbit(x)
+ex = array(BOOL[], 0).append!([false false])
+assert 1, eqObj(re, ex)
+
+@testing:case="function_signbit_vector_arrayvector_error_decimal32"
+x = array(DECIMAL32(2)[],0).append!([1 1])
+re = signbit(x)
+ex = array(BOOL[], 0).append!([false false])
+assert 1, eqObj(re, ex)
+
+@testing:case="function_signbit_vector_arrayvector_error_decimal64"
+x = array(DECIMAL64(2)[],0).append!([1 1])
+re = signbit(x)
+ex = array(BOOL[], 0).append!([false false])
+assert 1, eqObj(re, ex)
+
+@testing:case="function_signbit_vector_arrayvector_error_decimal128"
+x = array(DECIMAL128(2)[],0).append!([1 1])
+re = signbit(x)
+ex = array(BOOL[], 0).append!([false false])
+assert 1, eqObj(re, ex)
+
+@testing:case="function_signbit_vector_arrayvector_error_date",exception=1
+x = array(DATE[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_month",exception=1
+x = array(MONTH[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_time",exception=1
+x = array(TIME[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_minute",exception=1
+x = array(MINUTE[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_second",exception=1
+x = array(SECOND[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_datetime",exception=1
+x = array(DATETIME[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_timestamp",exception=1
+x = array(TIMESTAMP[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_nanotime",exception=1
+x = array(NANOTIME[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_nanotimestamp",exception=1
+x = array(NANOTIMESTAMP[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_arrayvector_error_datehour",exception=1
+x = array(DATEHOUR[],0).append!([1 1])
+signbit(x)
+
+@testing:case="function_signbit_vector_tuple_error_any",exception=1
+x = array(ANY,40)
+signbit(x)
+
+@testing:case="function_signbit_vector_tuple_error_compress",exception=1
+x[0] = compress(1..10, "delta")
+signbit(x)
+
+@testing:case="function_signbit_vector_tuple_error",exception=1
+x = array(ANY,29)
+x[0] = compress(1..10, "delta")
+for(i in 1:29){
+	if(scalarTest[i] == SYMBOL){
+		x[i] = symbol([`10])
+	}else if(scalarTest[i] == 'ANY DICTIONARY'){
+		x[i] = {a:1,b:2}
+	}else{
+		x[i] = cast(10,scalarTest[i])
+	}
+}
+signbit(x)
+
+@testing:case="function_signbit_vector_colum_tuple_error_any",exception=1
+x = array(ANY,40)
+x.setColumnarTuple!()
+signbit(x)
+
+@testing:case="function_signbit_vector_colum_tuple_error_compress",exception=1
+x[0] = compress(1..10, "delta")
+signbit(x)
+
+@testing:case="function_signbit_vector_colum_tuple_error",exception=1
+x = array(ANY,29)
+x.setColumnarTuple!()
+x[0] = compress(1..10, "delta")
+for(i in 1:29){
+	if(scalarTest[i] == SYMBOL){
+		x[i] = symbol([`10])
+	}else if(scalarTest[i] == 'ANY DICTIONARY'){
+		x[i] = {a:1,b:2}
+	}else{
+		x[i] = cast(10,scalarTest[i])
+	}
+}
+signbit(x)
+
+@testing:case="function_signbit_vector_array_error_compress",exception=1
+signbit(compress(1..10, "delta"))
+
+@testing:case="function_signbit_vector_array_error_sub_compress",exception=1
+signbit(subarray(compress(1..10, "delta"),0:))
+
+@testing:case="function_signbit_vector_array_error_INT128",exception=1
+signbit([cast(10,INT128)])
+
+@testing:case="function_signbit_vector_array_error_sub_INT128",exception=1
+signbit(subarray([cast(10,INT128)],0:))
+
+@testing:case="function_signbit_vector_array_error_BOOL",exception=1
+signbit([cast(10,BOOL)])
+
+@testing:case="function_signbit_vector_array_error_sub_BOOL",exception=1
+signbit(subarray([cast(10,BOOL)],0:))
+
+@testing:case="function_signbit_vector_array_error_DATE",exception=1
+signbit([cast(10,DATE)])
+
+@testing:case="function_signbit_vector_array_error_sub_DATE",exception=1
+signbit(subarray([cast(10,DATE)],0:))
+
+@testing:case="function_signbit_vector_array_error_MONTH",exception=1
+signbit([cast(10,MONTH)])
+
+@testing:case="function_signbit_vector_array_error_sub_MONTH",exception=1
+signbit(subarray([cast(10,MONTH)],0:))
+
+@testing:case="function_signbit_vector_array_error_TIME",exception=1
+signbit([cast(10,TIME)])
+
+@testing:case="function_signbit_vector_array_error_sub_TIME",exception=1
+signbit(subarray([cast(10,TIME)],0:))
+
+@testing:case="function_signbit_vector_array_error_MINUTE",exception=1
+signbit([cast(10,MINUTE)])
+
+@testing:case="function_signbit_vector_array_error_sub_MINUTE",exception=1
+signbit(subarray([cast(10,MINUTE)],0:))
+
+@testing:case="function_signbit_vector_array_error_SECOND",exception=1
+signbit([cast(10,SECOND)])
+
+@testing:case="function_signbit_vector_array_error_sub_SECOND",exception=1
+signbit(subarray([cast(10,SECOND)],0:))
+
+@testing:case="function_signbit_vector_array_error_DATETIME",exception=1
+signbit([cast(10,DATETIME)])
+
+@testing:case="function_signbit_vector_array_error_sub_DATETIME",exception=1
+signbit(subarray([cast(10,DATETIME)],0:))
+
+@testing:case="function_signbit_vector_array_error_TIMESTAMP",exception=1
+signbit([cast(10,TIMESTAMP)])
+
+@testing:case="function_signbit_vector_array_error_sub_TIMESTAMP",exception=1
+signbit(subarray([cast(10,TIMESTAMP)],0:))
+
+@testing:case="function_signbit_vector_array_error_NANOTIME",exception=1
+signbit([cast(10,NANOTIME)])
+
+@testing:case="function_signbit_vector_array_error_sub_NANOTIME",exception=1
+signbit(subarray([cast(10,NANOTIME)],0:))
+
+@testing:case="function_signbit_vector_array_error_NANOTIMESTAMP",exception=1
+signbit([cast(10,NANOTIMESTAMP)])
+
+@testing:case="function_signbit_vector_array_error_sub_NANOTIMESTAMP",exception=1
+signbit(subarray([cast(10,NANOTIMESTAMP)],0:))
+
+@testing:case="function_signbit_vector_array_error_DATEHOUR",exception=1
+signbit([cast(10,DATEHOUR)])
+
+@testing:case="function_signbit_vector_array_error_sub_DATEHOUR",exception=1
+signbit(subarray([cast(10,DATEHOUR)],0:))
+
+@testing:case="function_signbit_vector_array_error_SYMBOL",exception=1
+signbit([cast(10,SYMBOL)])
+
+@testing:case="function_signbit_vector_array_error_sub_SYMBOL",exception=1
+signbit(subarray([cast(10,SYMBOL)],0:))
+
+@testing:case="function_signbit_vector_array_error_STRING",exception=1
+signbit([cast(10,STRING)])
+
+@testing:case="function_signbit_vector_array_error_sub_STRING",exception=1
+signbit(subarray([cast(10,STRING)],0:))
+
+@testing:case="function_signbit_vector_array_error_UUID",exception=1
+signbit([cast(10,UUID)])
+
+@testing:case="function_signbit_vector_array_error_sub_UUID",exception=1
+signbit(subarray([cast(10,UUID)],0:))
+
+@testing:case="function_signbit_vector_array_error_IPADDR",exception=1
+signbit([cast(10,IPADDR)])
+
+@testing:case="function_signbit_vector_array_error_sub_IPADDR",exception=1
+signbit(subarray([cast(10,IPADDR)],0:))
+
+@testing:case="function_signbit_vector_array_error_BLOB",exception=1
+signbit([cast(10,BLOB)])
+
+@testing:case="function_signbit_vector_array_error_sub_BLOB",exception=1
+signbit(subarray([cast(10,BLOB)],0:))
+
+@testing:case="function_signbit_vector_array_error_FUNCTIONDEF",exception=1
+signbit([cast(10,FUNCTIONDEF)])
+
+@testing:case="function_signbit_vector_array_error_sub_FUNCTIONDEF",exception=1
+signbit(subarray([cast(10,FUNCTIONDEF)],0:))
+
+@testing:case="function_signbit_vector_array_error_HANDLE",exception=1
+signbit([cast(10,HANDLE)])
+
+@testing:case="function_signbit_vector_array_error_sub_HANDLE",exception=1
+signbit(subarray([cast(10,HANDLE)],0:))
+
+@testing:case="function_signbit_vector_array_error_CODE",exception=1
+signbit([cast(10,CODE)])
+
+@testing:case="function_signbit_vector_array_error_sub_CODE",exception=1
+signbit(subarray([cast(10,CODE)],0:))
+
+@testing:case="function_signbit_vector_array_error_DATASOURCE",exception=1
+signbit([cast(10,DATASOURCE)])
+
+@testing:case="function_signbit_vector_array_error_sub_DATASOURCE",exception=1
+signbit(subarray([cast(10,DATASOURCE)],0:))
+
+@testing:case="function_signbit_vector_array_error_RESOURCE",exception=1
+signbit([cast(10,RESOURCE)])
+
+@testing:case="function_signbit_vector_array_error_sub_RESOURCE",exception=1
+signbit(subarray([cast(10,RESOURCE)],0:))
+
+@testing:case="function_signbit_vector_array_error_DURATION",exception=1
+signbit([cast(10,DURATION)])
+
+@testing:case="function_signbit_vector_array_error_sub_DURATION",exception=1
+signbit(subarray([cast(10,DURATION)],0:))
+
+@testing:case="function_signbit_vector_array_error_ANY",exception=1
+signbit([cast(10,ANY)])
+
+@testing:case="function_signbit_vector_array_error_sub_ANY",exception=1
+signbit(subarray([cast(10,ANY)],0:))
+
+@testing:case="function_signbit_vector_array_error_'ANY DICTIONARY'",exception=1
+signbit([cast(10,'ANY DICTIONARY')])
+
+@testing:case="function_signbit_vector_array_error_sub_'ANY DICTIONARY'",exception=1
+signbit(subarray([cast(10,'ANY DICTIONARY')],0:))
+
+@testing:case="function_signbit_vector_array_error_DECIMAL32(2)"
+assert 1, signbit([cast(10,DECIMAL32(2))])==[false]
+
+@testing:case="function_signbit_vector_array_error_sub_DECIMAL32(2)"
+assert 1, signbit(subarray([cast(10,DECIMAL32(2))],0:))==[false]
+
+@testing:case="function_signbit_vector_array_error_DECIMAL64(2)"
+assert 1, signbit([cast(10,DECIMAL64(2))])==[false]
+
+@testing:case="function_signbit_vector_array_error_sub_DECIMAL64(2)"
+assert 1, signbit(subarray([cast(10,DECIMAL64(2))],0:))==[false]
+
+@testing:case="function_signbit_vector_array_error_DECIMAL128(2)"
+assert 1, signbit([cast(10,DECIMAL128(2))])==[false]
+
+@testing:case="function_signbit_vector_array_error_sub_DECIMAL128(2)"
+assert 1, signbit(subarray([cast(10,DECIMAL128(2))],0:))==[false]
+
+@testing:case="function_signbit_vector_bigarray_error_INT128",exception=1
+signbit(bigarray(cast(1..10000000,INT128)))
+
+@testing:case="function_signbit_vector_bigarray_error_BOOL",exception=1
+signbit(bigarray(cast(1..10000000,BOOL)))
+
+@testing:case="function_signbit_vector_bigarray_error_DATE",exception=1
+signbit(bigarray(cast(1..10000000,DATE)))
+
+@testing:case="function_signbit_vector_bigarray_error_MONTH",exception=1
+signbit(bigarray(cast(1..10000000,MONTH)))
+
+@testing:case="function_signbit_vector_bigarray_error_TIME",exception=1
+signbit(bigarray(cast(1..10000000,TIME)))
+
+@testing:case="function_signbit_vector_bigarray_error_MINUTE",exception=1
+signbit(bigarray(cast(1..10000000,MINUTE)))
+
+@testing:case="function_signbit_vector_bigarray_error_SECOND",exception=1
+signbit(bigarray(cast(1..10000000,SECOND)))
+
+@testing:case="function_signbit_vector_bigarray_error_DATETIME",exception=1
+signbit(bigarray(cast(1..10000000,DATETIME)))
+
+@testing:case="function_signbit_vector_bigarray_error_TIMESTAMP",exception=1
+signbit(bigarray(cast(1..10000000,TIMESTAMP)))
+
+@testing:case="function_signbit_vector_bigarray_error_NANOTIME",exception=1
+signbit(bigarray(cast(1..10000000,NANOTIME)))
+
+@testing:case="function_signbit_vector_bigarray_error_NANOTIMESTAMP",exception=1
+signbit(bigarray(cast(1..10000000,NANOTIMESTAMP)))
+
+@testing:case="function_signbit_vector_bigarray_error_DATEHOUR",exception=1
+signbit(bigarray(cast(1..10000000,DATEHOUR)))
+
+@testing:case="function_signbit_vector_bigarray_error_SYMBOL",exception=1
+signbit(bigarray(cast(1..10000000,SYMBOL)))
+
+@testing:case="function_signbit_vector_bigarray_error_STRING",exception=1
+signbit(bigarray(cast(1..10000000,STRING)))
+
+@testing:case="function_signbit_vector_bigarray_error_UUID",exception=1
+signbit(bigarray(cast(1..10000000,UUID)))
+
+@testing:case="function_signbit_vector_bigarray_error_IPADDR",exception=1
+signbit(bigarray(cast(1..10000000,IPADDR)))
+
+@testing:case="function_signbit_vector_bigarray_error_BLOB",exception=1
+signbit(bigarray(cast(1..10000000,BLOB)))
+
+@testing:case="function_signbit_vector_bigarray_error_FUNCTIONDEF",exception=1
+signbit(bigarray(cast(1..10000000,FUNCTIONDEF)))
+
+@testing:case="function_signbit_vector_bigarray_error_HANDLE",exception=1
+signbit(bigarray(cast(1..10000000,HANDLE)))
+
+@testing:case="function_signbit_vector_bigarray_error_CODE",exception=1
+signbit(bigarray(cast(1..10000000,CODE)))
+
+@testing:case="function_signbit_vector_bigarray_error_DATASOURCE",exception=1
+signbit(bigarray(cast(1..10000000,DATASOURCE)))
+
+@testing:case="function_signbit_vector_bigarray_error_RESOURCE",exception=1
+signbit(bigarray(cast(1..10000000,RESOURCE)))
+
+@testing:case="function_signbit_vector_bigarray_error_DURATION",exception=1
+signbit(bigarray(cast(1..10000000,DURATION)))
+
+@testing:case="function_signbit_vector_bigarray_error_ANY",exception=1
+signbit(bigarray(cast(1..10000000,ANY)))
+
+@testing:case="function_signbit_vector_bigarray_error_'ANY DICTIONARY'",exception=1
+signbit(bigarray(cast(1..10000000,'ANY DICTIONARY')))
+
+@testing:case="function_signbit_vector_bigarray_error_DECIMAL32(2)"
+assert 1, signbit(bigarray(cast(1..10000000,DECIMAL32(2))))==take(false, 10000000)
+
+@testing:case="function_signbit_vector_bigarray_error_DECIMAL64(2)"
+assert 1, signbit(bigarray(cast(1..10000000,DECIMAL64(2))))==take(false, 10000000)
+
+@testing:case="function_signbit_vector_bigarray_error_DECIMAL128(2)"
+assert 1, signbit(bigarray(cast(1..10000000,DECIMAL128(2))))==take(false, 10000000)
+
+@testing:case="function_signbit_matrix_logical_error",exception=1
+m = matrix(BOOL,2,2,,1)
+signbit(m)
+
+@testing:case="function_signbit_matrix_compress",exception=1
+signbit(matrix(compress(1..3,"delta")))
+
+@testing:case="function_signbit_matrix_int128",exception=1
+signbit(matrix(INT128,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_date",exception=1
+signbit(matrix(DATE,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_month",exception=1
+signbit(matrix(MONTH,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_time",exception=1
+signbit(matrix(TIME,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_minute",exception=1
+signbit(matrix(MINUTE,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_second",exception=1
+signbit(matrix(SECOND,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_datetime",exception=1
+signbit(matrix(DATETIME,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_timestamp",exception=1
+signbit(matrix(TIMESTAMP,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_nanotime",exception=1
+signbit(matrix(NANOTIME,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_nanotimestamp",exception=1
+signbit(matrix(NANOTIMESTAMP,2,2,,1))
+
+@testing:case="function_signbit_matrix_temporal_error_datehour",exception=1
+signbit(matrix(DATEHOUR,2,2,,1))
+
+@testing:case="function_signbit_matrix_literal_error_symbol",exception=1
+signbit(matrix(SYMBOL,2,2,,1))
+
+@testing:case="function_signbit_set_error",exception=1
+signbit(set([5,5,3,4]))
+
+@testing:case="function_signbit_table_error"
+re = signbit(table(1..3 as id))
+assert 1, eqObj(re.values(), table(take(false, 3) as id).values())
+
+@testing:case="function_signbit_pair_error"
+assert 1, signbit(cast(10000000,INT):cast(10000000,INT))==pair(false, false)
+
+@testing:case="function_signbit_dict_error_value_int"
+re = signbit(dict([1],[100$INT]))
+ex = dict([1], [false])
+assert 1, eqObj(re.keys(), ex.keys())
+assert 2, eqObj(re.values(), ex.values())
+
+@testing:case="function_signbit_dict_error_value_matrix"
+re = signbit(dict([1,2],matrix(INT,3,2,,1)))
+ex = dict([1, 2], take(false, 6)$3:2)
+assert 1, eqObj(re[1], ex[1])
+assert 2, eqObj(re[2], ex[2])
+
+@testing:case="function_signbit_dict_error_value_table"
+re = signbit(dict([1],table([1] as id)))
+ex = dict([1], table([false] as id))
+assert 1, eqObj(re[1].values(), ex[1].values())
+
+@testing:case="function_signbit_item_error_two",syntaxError=1
+signbit(1,1)
+
+@testing:case="function_signbit_item_error_zero",exception=1
+signbit()
+
+@testing:case="function_signbit_syntax"
+assert 1,syntax(signbit) == "signbit(X)"
+
+@testing:case="function_signbit_Integral_NULL"
+assert 1,signbit(char(NULL)) == true
+assert 2,signbit(short(NULL)) == true
+assert 3,signbit(int(NULL)) == true
+assert 4,signbit(long(NULL)) == true
+
+@testing:case="function_signbit_scalar_char"
+assert 1,signbit(127c) == false
+assert 2,signbit(-128c) == true
+assert 3,signbit(0c) == false
+assert 4,signbit(63c) == false
+assert 5,signbit(-64c) == true
+assert 6,eqObj(signbit(-0c),false)
+
+@testing:case="function_signbit_scalar_short"
+assert 1,signbit(32767h) == false
+assert 2,signbit(-32768h) == true
+assert 3,signbit(0h) == false
+assert 4,signbit(63h) == false
+assert 5,signbit(-64h) == true
+assert 6,eqObj(signbit(-0h),false)
+
+@testing:case="function_signbit_scalar_int"
+assert 1,signbit(2147483647i) == false
+assert 2,signbit(-2147483648i) == true
+assert 3,signbit(0i) == false
+assert 4,signbit(63i) == false
+assert 5,signbit(-64i) == true
+assert 6,eqObj(signbit(-0i),false)
+
+@testing:case="function_signbit_scalar_long"
+assert 1,signbit(9223372036854775807l) == false
+assert 2,signbit(-9223372036854775808l) == true
+assert 3,signbit(0l) == false
+assert 4,signbit(63l) == false
+assert 5,signbit(-64l) == true
+assert 6,eqObj(signbit(-0l),false)
+
+@testing:case="function_signbit_Floating_NULL"
+assert 1,signbit(float(NULL)) == true
+assert 2,signbit(double(NULL)) == true
+
+@testing:case="function_signbit_scalar_float"
+assert 1,signbit(1.175494351E-38f) == false
+assert 2,signbit(3.402823466E+38f) == false
+assert 3,signbit(10.0f) == false
+assert 4,signbit(-1.175494351E-38f) == true
+assert 5,signbit(-3.402823466E+38f) == true
+assert 6,signbit(-10.0f) == true
+assert 7,signbit(0.0f) == false
+assert 8,signbit(-0.0f) == true
+
+@testing:case="function_signbit_scalar_double"
+assert 1,signbit(2.2250738585072014E-308F) == false
+assert 2,signbit(1.7976931348623158E+308F) == false
+assert 3,signbit(10.0F) == false
+assert 4,signbit(-2.2250738585072014E-308F) == true
+assert 5,signbit(-1.7976931348623158E+308F) == true
+assert 6,signbit(-10.0F) == true
+assert 7,signbit(0.0F) == false
+assert 8,signbit(-0.0F) == true
+
+@testing:case="function_signbit_vector_len_zero"
+assert 1,signbit(array(INT,0)) == array(BOOL,0)
+assert 2,signbit(bigarray(INT,0,100000000000)) == array(BOOL,0)
+assert 3,signbit(subarray([1,,,,,,,],0:0)) == array(BOOL,0)
+
+@testing:case="function_signbit_vector_all_type_limit"
+checkDIc = dict([CHAR],[[127c,-128c,63c,-64c,0c,-0c]])
+checkDIc[SHORT] = [32767h,-32768h,63h,-64h,0h,-0h]
+checkDIc[INT] = [2147483647i,-2147483648i,63i,-64i,0i,-0i]
+checkDIc[LONG] = [9223372036854775807l,-9223372036854775808l,63l,-64l,0l,-0l]
+checkDIc[FLOAT] = [1.175494351E-38f,3.402823466E+38f,10f,0f,-0f,-1.175494351E-38f,-3.402823466E+38f,-10f]
+checkDIc[DOUBLE] = [2.2250738585072014E-308F,1.7976931348623158E+308F,10F,0F,-0F,-10F,-1.7976931348623158E+308F,-2.2250738585072014E-308F]
+resD = dict([CHAR],[[false,true,false,true,false,false]])
+resD[SHORT] = [false,true,false,true,false,false]
+resD[INT] = [false,true,false,true,false,false]
+resD[LONG] = [false,true,false,true,false,false]
+resD[FLOAT] = [false,false,false,false,true,true,true,true]
+resD[DOUBLE] = [false,false,false,false,true,true,true,true]
+types = [CHAR,SHORT,INT,LONG,FLOAT,DOUBLE]
+for(nt in types){
+	ar = checkDIc[nt]
+	ares = resD[nt]
+	assert 1,eqObj(signbit(ar),ares)
+}
+
+@testing:case="function_signbit_vector_all_type_Hasnull"
+types=[char,short,int,long,float,double]
+def check_vector2(new_type){
+	ar = array(new_type,0,10000000).append!(take(new_type([0,99,121,NULL,-0.0,-2,-127]),1024))
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(ar),take([false,false,false,true,true,true,true],1024))
+	}else{
+		return eqObj(signbit(ar),take([false,false,false,true,false,true,true],1024))
+	}
+}
+assert 1,each(check_vector2,types)
+
+@testing:case="function_signbit_vector_all_type_null"
+types=[char,short,int,long,float,double]
+def check_vector3(new_type){
+	ar = new_type([1,NULL,NULL,NULL])
+	ar = array(new_type,0,10000000).append!(take(ar[1:4],1024))
+	return eqObj(signbit(ar),take([true,true,true],1024))
+}
+each(check_vector3,types)
+
+@testing:case="function_signbit_bigarray_all_types"
+types=[char,short,int,long,float,double]
+def check_bigarray1(new_type){
+	ar = bigarray(new_type,0,10000000).append!(take(new_type([0,99,127,-0.0,-2,-128]),1048576*2))
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(ar),take([false,false,false,true,true,true],1048576*2))
+	}else{
+		return eqObj(signbit(ar),take([false,false,false,false,true,true],1048576*2))
+	}
+}
+assert 1,each(check_bigarray1,types)
+
+@testing:case="function_signbit_bigarray_all_types_null"
+types=[char,short,int,long,float,double]
+def check_bigarray2(new_type){
+	ar = bigarray(new_type,0,10000000).append!(take(new_type([0,99,127,NULL,-0.0,-2,-128]),1048576*2))
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(ar),take([false,false,false,true,true,true,true],1048576*2))
+	}else{
+		return eqObj(signbit(ar),take([false,false,false,true,false,true,true],1048576*2))
+	}
+}
+assert 1,each(check_bigarray2,types)
+
+@testing:case="function_signbit_subarray_all_types"
+types=[char,short,int,long,float,double]
+def check_subarray1(new_type){
+	ar = bigarray(new_type,0,10000000).append!(take(new_type([0,99,121,-0.0,-2,-127]),1048576*2))
+	sar = subarray(ar,0:1025)
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(sar),take([false,false,false,true,true,true],1025))
+	}else{
+		return eqObj(signbit(sar),take([false,false,false,false,true,true],1025))
+	}
+}
+assert 1,each(check_subarray1,types)
+
+@testing:case="function_signbit_subarray_all_types_null"
+types=[char,short,int,long,float,double]
+def check_subarray2(new_type){
+	ar = bigarray(new_type,0,10000000).append!(take(new_type([0,99,121,NULL,-0.0,-2,-127]),1048576*2))
+	sar = subarray(ar,0:1025)
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(sar),take([false,false,false,true,true,true,true],1025))
+	}else{
+		return eqObj(signbit(sar),take([false,false,false,true,false,true,true],1025))
+	}
+}
+assert 1,each(check_subarray2,types)
+
+@testing:case="function_signbit_fast_vector"
+assert 1,signbit(-500..499) == (true take 500).append!(false take 500)
+assert 2,signbit(-512..511) == (true take 512).append!(false take 512)
+assert 3,signbit(-1000..999) == (true take 1000).append!(false take 1000)
+
+@testing:case="function_signbit_matrix_len_zero"
+assert 1,signbit(matrix(INT,0,5000)) == matrix(BOOL,0,5000)
+assert 2,signbit(matrix(INT,5000,0)) == matrix(BOOL,5000,0)
+
+@testing:case="function_signbit_matrix_null"
+assert 1,signbit(matrix(CHAR,2,4,NULL)) == matrix(BOOL,2,4)
+assert 2,signbit(matrix(INT,2,4,NULL)) == matrix(BOOL,2,4)
+assert 3,signbit(matrix(SHORT,2,4,NULL)) == matrix(BOOL,2,4)
+assert 4,signbit(matrix(FLOAT,2,4,NULL)) == matrix(BOOL,2,4)
+assert 5,signbit(matrix(LONG,2,4,NULL)) == matrix(BOOL,2,4)
+assert 6,signbit(matrix(DOUBLE,2,4,NULL)) == matrix(BOOL,2,4)
+
+@testing:case="function_signbit_matrix_all_type_limit"
+checkDIc = dict([CHAR],[[127c,-128c,63c,-64c,0c,-0c]])
+checkDIc[SHORT] = [32767h,-32768h,63h,-64h,0h,-0h]
+checkDIc[INT] = [2147483647i,-2147483648i,63i,-64i,0i,-0i]
+checkDIc[LONG] = [9223372036854775807l,-9223372036854775808l,63l,-64l,0l,-0l]
+checkDIc[FLOAT] = [1.175494351E-38f,3.402823466E+38f,10f,0f,-0f,-1.175494351E-38f,-3.402823466E+38f,-10f]
+checkDIc[DOUBLE] = [2.2250738585072014E-308F,1.7976931348623158E+308F,10F,0F,-0F,-10F,-1.7976931348623158E+308F,-2.2250738585072014E-308F]
+resD = dict([CHAR],[[false,true,false,true,false,false]])
+resD[SHORT] = [false,true,false,true,false,false]
+resD[INT] = [false,true,false,true,false,false]
+resD[LONG] = [false,true,false,true,false,false]
+resD[FLOAT] = [false,false,false,false,true,true,true,true]
+resD[DOUBLE] = [false,false,false,false,true,true,true,true]
+types = [CHAR,SHORT,INT,LONG,FLOAT,DOUBLE]
+for(nt in types){
+	amat = matrix(checkDIc[nt])
+	ares = matrix(resD[nt])
+	//if(nt == FLOAT || nt == DOUBLE){
+	//	assert 1,eqObj(signbit(amat),ares[0])
+	//}else{
+	//	assert 1,eqObj(signbit(amat),ares)
+	//}
+	assert 1,eqObj(signbit(amat),ares)
+}
+
+@testing:case="function_signbit_matrix_all_type_null"
+types=[char,short,int,long,float,double]
+def check_matrix2(new_type){
+	ar = array(new_type,0,10000000).append!(take(new_type([0,99,121,NULL,-0.0,-2,-127]),1024))
+	amat = matrix(ar)
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(amat),matrix(take([false,false,false,true,true,true,true],1024)))
+	}else{
+		return eqObj(signbit(amat),matrix(take([false,false,false,true,false,true,true],1024)))
+	}
+}
+assert 1,each(check_matrix2,types)
+
+@testing:case="function_signbit_submatrix_all_type"
+types=[char,short,int,long,float,double]
+def check_submatrix1(new_type){
+	ar = array(new_type,0,10000000).append!(take(new_type([0,99,121,-0.0,-2,-127]),1024))
+	amat = matrix(ar)
+	sam = loc(amat,true take 1024,view=true)
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(sam),matrix(take([false,false,false,true,true,true],1024)))
+	}else{
+		return eqObj(signbit(sam),matrix(take([false,false,false,false,true,true],1024)))
+	}
+}
+assert 1,each(check_submatrix1,types)
+
+@testing:case="function_signbit_submatrix_all_type_null"
+types=[char,short,int,long,float,double]
+def check_submatrix2(new_type){
+	ar = array(new_type,0,10000000).append!(take(new_type([0,99,121,NULL,-0.0,-2,-127]),1024))
+	amat = matrix(ar)
+	sam = loc(amat,true take 1024,view=true)
+	if(new_type == float || new_type == double){
+		return eqObj(signbit(sam),matrix(take([false,false,false,true,true,true,true],1024)))
+	}else{
+		return eqObj(signbit(sam),matrix(take([false,false,false,true,false,true,true],1024)))
+	}
+}
+assert 1,each(check_submatrix2,types)
+
+@testing:case="function_signbit_fast_matrix"
+assert 1,signbit(-500..499$10:100) == (true take 500).append!(false take 500)$10:100
+assert 2,signbit(-32768..32767$64:1024) == (true take 32768).append!(false take 32768)$64:1024
+assert 3,signbit(-1000000..999999$500:4000) == (true take 1000000).append!(false take 1000000)$500:4000
+
+@testing:case="function_signbit_huge_matrix"
+assert 1,signbit(-530450..530449$1030:1030) == (true take 530450).append!(false take 530450)$1030:1030
+assert 2,signbit(-500000000..499999999$10000:100000) == (true take 500000000).append!(false take 500000000)$10000:100000
+
+@testing:case="function_signbit_free_table"
+td = (-2..3)
+freet = table(td)
+signbit_id = [1b,1b,0b,0b,0b,0b]
+assert 1,each(eqObj,(select signbit(td) as id from freet).id,signbit_id)
+
+@testing:case="function_signbit_partitioned_table"
+dbName = "dfs://test_function_signbit"
+db = database(dbName,VALUE,1..10,,"TSDB")
+left_row = array(DOUBLE[], 0).append!([rand(1..100,2000),rand(1..100,2000),rand(1..100,2000)])
+right_row = array(DOUBLE[], 0).append!([rand(1..100,2000), rand(1..100,2000), rand(1..100,2000)])
+t = table(1 2 1 as id,left_row,right_row)
+if(existsTable(dbName,'pt')){
+    drop table "dfs://test_function_signbit".pt
+}
+pt = db.createPartitionedTable(t,`pt,`id,,`id).append!(t)
+assert 1,each(eqObj,((select signbit(id) as res from pt).res),array(BOOL,3,false))

@@ -1,0 +1,1879 @@
+
+@testing:case="test_prepare_function"
+def arrayvector_append(v,datatype,n,k){
+	av = array(datatype, 0, n)
+	for(i in 0:n){
+		tempv = rand(v,k)
+		av.append!([tempv])
+	}
+	return av
+}
+
+def arrayvector_append_noteq(v,n){
+	zeroNum = (n/10)
+	kt = shuffle(take([1,2,10],n-6).join(take([256,65535,65536],6)))
+	av = arrayVector(int(cumsum(kt)),rand(v,cumsum(kt)[n-1])).append!(take([[]],zeroNum))
+	return rand(av,n)
+}
+
+def arrayvector_append_empty(datatype){
+	av = array(datatype, 0, 0)
+	return av
+}
+
+def arrayvector_append_loop(v,datatype,n,k){
+	av = array(datatype, 0, n)
+	for(i in 0:n){
+		tempv = take(v,k)
+		av.append!([tempv])
+	}
+	return av
+}
+
+def bigarrayvector_append(v,datatype,n,k){
+	av = bigarray(datatype, 0, n)
+	for(i in 0:n){
+		tempv = rand(v,k)
+		av.append!([tempv])
+	}
+	return av
+}
+
+def createDataTable_notnull_eqlong(n,k){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(rand([true, false],n))
+	cv = char(rand(-100..100,  n))
+	sv = short(rand(-100..100,  n))
+	iv = int(rand(-100..100,  n))
+	lv = long(rand(-100..100,  n))
+	dv = double(rand(rand(-100..100, 10)*0.23, n))
+	fv = float(rand(rand(-100..100, 10)*0.23, n))
+	dav = date(rand(-100..100,  n))
+	mv = month(1967.12M+rand(-100..100,  n))
+	tv = time(rand(0..100,  n))
+	miv = minute(12:13m+rand(-100..100,  n))
+	sev = second(12:13:12+rand(-100..100,  n))
+	dtv = datetime(1969.12.23+rand(-100..100,  n))
+	tiv = timestamp(1970.01.01T00:00:00.023+rand(-100..100,  n))
+	nav = nanotime(12:23:45.452623154+rand(-100..100,  n))
+	ntv = nanotimestamp(rand(-100..100, n))
+	dhv = datehour(datehour(1969.12.31T12:45:12)+rand(-100..100,  n))
+	d32v = decimal32(rand(rand(-100..100, 10)*0.23, n), 6)
+	d64v = decimal64(rand(rand(-100..100, 10)*0.23, n), 12)
+	d128v = decimal128(rand(rand(-100..100, 10)*0.23, n), 32)
+	dint128v = rand(int128(),n)
+	dipaddrv = rand(ipaddr(),n)
+	duuidv = rand(uuid(),n)
+	boolv = arrayvector_append(bv,BOOL[],n,k)
+	charv = arrayvector_append(cv,CHAR[],n,k)
+	shortv = arrayvector_append(sv,SHORT[], n,k)
+	intv = arrayvector_append(iv,INT[], n,k)
+	longv = arrayvector_append(lv, LONG[], n,k)
+	doublev = arrayvector_append(dv,DOUBLE[], n,k)
+	floatv = arrayvector_append(fv, FLOAT[], n,k)
+	datev = arrayvector_append(dav,DATE[], n,k)
+	monthv = arrayvector_append(mv, MONTH[], n,k)
+	timev = arrayvector_append(tv, TIME[], n,k)
+	minutev = arrayvector_append(miv, MINUTE[], n,k)
+	secondv = arrayvector_append(sev, SECOND[],  n,k)
+	datetimev = arrayvector_append(dtv, DATETIME[], n,k)
+	timestampv = arrayvector_append(tiv, TIMESTAMP[], n,k)
+	nanotimev = arrayvector_append(nav, NANOTIME[], n,k)
+	nanotimestampv = arrayvector_append(ntv, NANOTIMESTAMP[],  n,k)
+	datehourv = arrayvector_append(dhv, DATEHOUR[], n,k)
+	decimal32v = arrayvector_append(d32v, DECIMAL32(2)[],  n,k)
+	decimal64v = arrayvector_append(d64v, DECIMAL64(4)[],  n,k)
+	decimal128v = arrayvector_append(d128v, DECIMAL128(8)[], n,k)
+	int128v = arrayvector_append(dint128v, INT128[],  n,k)
+	ipaddrv = arrayvector_append(dipaddrv, IPADDR[],  n,k)
+	uuidv = arrayvector_append(duuidv, UUID[],  n,k)
+	t = table(idv as id,symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+def createDataTable_allnull_eqlong(n,k){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(take(bool(), n))
+	cv = char( take(char(), n))
+	sv = short(take(short(), n))
+	iv = int(take(int(), n))
+	lv = long(take(long(), n))
+	dv = double( take(double(), n))
+	fv = float(take(float(), n))
+	dav = date( take(date(), n))
+	mv = month( take(month(), n))
+	tv = time( take(time(), n))
+	miv = minute( take(minute(), n))
+	sev = second( take(second(), n))
+	dtv = datetime(take(datetime(), n))
+	tiv = timestamp( take(timestamp(), n))
+	nav = nanotime( take(nanotime(), n))
+	ntv = nanotimestamp( take(nanotimestamp(), n))
+	dhv = datehour( take(datehour(), n))
+	d32v = decimal32( take(double(), n), 6)
+	d64v = decimal64( take(double(), n), 12)
+	d128v = decimal128( take(double(), n), 32)
+	dint128v = take(int128(),n)
+	dipaddrv = take(ipaddr(),n)
+	duuidv = take(uuid(),n)
+	boolv = arrayvector_append(bv,BOOL[], n,k)
+	charv = arrayvector_append(cv,CHAR[], n,k)
+	shortv = arrayvector_append(sv,SHORT[], n,k)
+	intv = arrayvector_append(iv,INT[], n,k)
+	longv = arrayvector_append(lv, LONG[], n,k)
+	doublev = arrayvector_append(dv,DOUBLE[], n,k)
+	floatv = arrayvector_append(fv, FLOAT[], n,k)
+	datev = arrayvector_append(dav,DATE[], n,k)
+	monthv = arrayvector_append(mv, MONTH[], n,k)
+	timev = arrayvector_append(tv, TIME[], n,k)
+	minutev = arrayvector_append(miv, MINUTE[], n,k)
+	secondv = arrayvector_append(sev, SECOND[], n,k)
+	datetimev = arrayvector_append(dtv, DATETIME[], n,k)
+	timestampv = arrayvector_append(tiv, TIMESTAMP[], n,k)
+	nanotimev = arrayvector_append(nav, NANOTIME[], n,k)
+	nanotimestampv = arrayvector_append(ntv, NANOTIMESTAMP[], n,k)
+	datehourv = arrayvector_append(dhv, DATEHOUR[], n,k)
+	decimal32v = arrayvector_append(d32v, DECIMAL32(6)[], n,k)
+	decimal64v = arrayvector_append(d64v, DECIMAL64(12)[], n,k)
+	decimal128v = arrayvector_append(d128v, DECIMAL128(32)[], n,k)
+	int128v = arrayvector_append(dint128v, INT128[],  n,k)
+	ipaddrv = arrayvector_append(dipaddrv, IPADDR[],  n,k)
+	uuidv = arrayvector_append(duuidv, UUID[],  n,k)
+	t = table(idv as id, symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+
+def createDataTable_includenull_eqlong(n,k){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(rand([true, false, NULL], n))
+	cv = char(rand(rand(-100..100, 10) join take(char(), 4), n))
+	sv = short(rand(rand(-100..100, 10) join take(short(), 4), n))
+	iv = int(rand(rand(-100..100, 10) join take(int(), 4), n))
+	lv = long(rand(rand(-100..100, 10) join take(long(), 4), n))
+	dv = double(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n))
+	fv = float(rand(rand(-100..100, 10)*0.23 join take(float(), 4), n))
+	dav = date(rand(rand(-100..100, 10) join take(date(), 4), n))
+	mv = month(rand(1967.12M+rand(-100..100, 10) join take(month(), 4), n))
+	tv = time(rand(rand(0..100, 10) join take(time(), 4), n))
+	miv = minute(rand(12:13m+rand(-100..100, 10) join take(minute(), 4), n))
+	sev = second(rand(12:13:12+rand(-100..100, 10) join take(second(), 4), n))
+	dtv = datetime(rand(1969.12.23+rand(-100..100, 10) join take(datetime(), 4), n))
+	tiv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 10) join take(timestamp(), 4), n))
+	nav = nanotime(rand(12:23:45.452623154+rand(-100..100, 10) join take(nanotime(), 4), n))
+	ntv = nanotimestamp(rand(rand(-100..100, 10) join take(nanotimestamp(), 4), n))
+	dhv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 10) join take(datehour(), 4), n))
+	d32v = decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 6)
+	d64v = decimal64(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 12)
+	d128v = decimal128(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 32)
+	dint128v = rand(rand(int128(),1000) join take(int128(),100),n)
+	dipaddrv =  rand(rand(ipaddr(),1000) join take(ipaddr(),100),n)
+	duuidv =  rand(rand(uuid(),1000) join take(uuid(),100),n)
+	boolv = arrayvector_append(bv,BOOL[],n,k)
+	charv = arrayvector_append(cv,CHAR[],n,k)
+	shortv = arrayvector_append(sv,SHORT[], n,k)
+	intv = arrayvector_append(iv,INT[], n,k)
+	longv = arrayvector_append(lv, LONG[], n,k)
+	doublev = arrayvector_append(dv,DOUBLE[], n,k)
+	floatv = arrayvector_append(fv, FLOAT[], n,k)
+	datev = arrayvector_append(dav,DATE[], n,k)
+	monthv = arrayvector_append(mv, MONTH[], n,k)
+	timev = arrayvector_append(tv, TIME[], n,k)
+	minutev = arrayvector_append(miv, MINUTE[], n,k)
+	secondv = arrayvector_append(sev, SECOND[],  n,k)
+	datetimev = arrayvector_append(dtv, DATETIME[], n,k)
+	timestampv = arrayvector_append(tiv, TIMESTAMP[], n,k)
+	nanotimev = arrayvector_append(nav, NANOTIME[], n,k)
+	nanotimestampv = arrayvector_append(ntv, NANOTIMESTAMP[],  n,k)
+	datehourv = arrayvector_append(dhv, DATEHOUR[], n,k)
+	decimal32v = arrayvector_append(d32v, DECIMAL32(6)[],  n,k)
+	decimal64v = arrayvector_append(d64v, DECIMAL64(12)[],  n,k)
+	decimal128v = arrayvector_append(d128v, DECIMAL128(32)[], n,k)
+	int128v = arrayvector_append(dint128v, INT128[],  n,k)
+	ipaddrv = arrayvector_append(dipaddrv, IPADDR[],  n,k)
+	uuidv = arrayvector_append(duuidv, UUID[],  n,k)
+	t = table(idv as id, symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+def createDataTable_notnull_noteqlong(n){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(rand([true, false],n))
+	cv = char(rand(-100..100,  n))
+	sv = short(rand(-100..100,  n))
+	iv = int(rand(-100..100,  n))
+	lv = long(rand(-100..100,  n))
+	dv = double(rand(rand(-100..100, 10)*0.23, n))
+	fv = float(rand(rand(-100..100, 10)*0.23, n))
+	dav = date(rand(-100..100,  n))
+	mv = month(1967.12M+rand(-100..100,  n))
+	tv = time(rand(0..100,  n))
+	miv = minute(12:13m+rand(-100..100,  n))
+	sev = second(12:13:12+rand(-100..100,  n))
+	dtv = datetime(1969.12.23+rand(-100..100,  n))
+	tiv = timestamp(1970.01.01T00:00:00.023+rand(-100..100,  n))
+	nav = nanotime(12:23:45.452623154+rand(-100..100,  n))
+	ntv = nanotimestamp(rand(-100..100, n))
+	dhv = datehour(datehour(1969.12.31T12:45:12)+rand(-100..100,  n))
+	d32v = decimal32(rand(rand(-100..100, 10)*0.23, n), 6)
+	d64v = decimal64(rand(rand(-100..100, 10)*0.23, n), 12)
+	d128v = decimal128(rand(rand(-100..100, 10)*0.23, n), 32)
+	dint128v = rand(int128(),n)
+	dipaddrv = rand(ipaddr(),n)
+	duuidv = rand(uuid(),n)
+	boolv = arrayvector_append_noteq(bv,n)
+	charv = arrayvector_append_noteq(cv,n)
+	shortv = arrayvector_append_noteq(sv, n)
+	intv = arrayvector_append_noteq(iv, n)
+	longv = arrayvector_append_noteq(lv, n)
+	doublev = arrayvector_append_noteq(dv, n)
+	floatv = arrayvector_append_noteq(fv, n)
+	datev = arrayvector_append_noteq(dav, n)
+	monthv = arrayvector_append_noteq(mv, n)
+	timev = arrayvector_append_noteq(tv, n)
+	minutev = arrayvector_append_noteq(miv, n)
+	secondv = arrayvector_append_noteq(sev,  n)
+	datetimev = arrayvector_append_noteq(dtv, n)
+	timestampv = arrayvector_append_noteq(tiv, n)
+	nanotimev = arrayvector_append_noteq(nav, n)
+	nanotimestampv = arrayvector_append_noteq(ntv,  n)
+	datehourv = arrayvector_append_noteq(dhv, n)
+	decimal32v = arrayvector_append_noteq(d32v,  n)
+	decimal64v = arrayvector_append_noteq(d64v,  n)
+	decimal128v = arrayvector_append_noteq(d128v, n)
+	int128v = arrayvector_append_noteq(dint128v, n)
+	ipaddrv = arrayvector_append_noteq(dipaddrv, n)
+	uuidv = arrayvector_append_noteq(duuidv,  n)
+	t = table(idv as id, symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+def createDataTable_allnull_noteqlong(n){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(take(bool(), n))
+	cv = char( take(char(), n))
+	sv = short(take(short(), n))
+	iv = int(take(int(), n))
+	lv = long(take(long(), n))
+	dv = double( take(double(), n))
+	fv = float(take(float(), n))
+	dav = date( take(date(), n))
+	mv = month( take(month(), n))
+	tv = time( take(time(), n))
+	miv = minute( take(minute(), n))
+	sev = second( take(second(), n))
+	dtv = datetime(take(datetime(), n))
+	tiv = timestamp( take(timestamp(), n))
+	nav = nanotime( take(nanotime(), n))
+	ntv = nanotimestamp( take(nanotimestamp(), n))
+	dhv = datehour( take(datehour(), n))
+	d32v = decimal32( take(double(), n), 6)
+	d64v = decimal64( take(double(), n), 12)
+	d128v = decimal128( take(double(), n), 32)
+	dint128v = take(int128(),n)
+	dipaddrv = take(ipaddr(),n)
+	duuidv = take(uuid(),n)
+	boolv = arrayvector_append_noteq(bv, n)
+	charv = arrayvector_append_noteq(cv, n)
+	shortv = arrayvector_append_noteq(sv, n)
+	intv = arrayvector_append_noteq(iv, n)
+	longv = arrayvector_append_noteq(lv, n)
+	doublev = arrayvector_append_noteq(dv, n)
+	floatv = arrayvector_append_noteq(fv, n)
+	datev = arrayvector_append_noteq(dav, n)
+	monthv = arrayvector_append_noteq(mv, n)
+	timev = arrayvector_append_noteq(tv, n)
+	minutev = arrayvector_append_noteq(miv, n)
+	secondv = arrayvector_append_noteq(sev, n)
+	datetimev = arrayvector_append_noteq(dtv, n)
+	timestampv = arrayvector_append_noteq(tiv, n)
+	nanotimev = arrayvector_append_noteq(nav, n)
+	nanotimestampv = arrayvector_append_noteq(ntv, n)
+	datehourv = arrayvector_append_noteq(dhv, n)
+	decimal32v = arrayvector_append_noteq(d32v, n)
+	decimal64v = arrayvector_append_noteq(d64v, n)
+	decimal128v = arrayvector_append_noteq(d128v, n)
+	int128v = arrayvector_append_noteq(dint128v, n)
+	ipaddrv = arrayvector_append_noteq(dipaddrv, n)
+	uuidv = arrayvector_append_noteq(duuidv,  n)
+	t = table(idv as id, symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+
+def createDataTable_includenull_noteqlong(n){
+	idv = take(1..n,n)
+	symv = take("a"+string(1..100),n)
+	bv = bool(rand([true, false, NULL], n))
+	cv = char(rand(rand(-100..100, 10) join take(char(), 4), n))
+	sv = short(rand(rand(-100..100, 10) join take(short(), 4), n))
+	iv = int(rand(rand(-100..100, 10) join take(int(), 4), n))
+	lv = long(rand(rand(-100..100, 10) join take(long(), 4), n))
+	dv = double(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n))
+	fv = float(rand(rand(-100..100, 10)*0.23 join take(float(), 4), n))
+	dav = date(rand(rand(-100..100, 10) join take(date(), 4), n))
+	mv = month(rand(1967.12M+rand(-100..100, 10) join take(month(), 4), n))
+	tv = time(rand(rand(0..100, 10) join take(time(), 4), n))
+	miv = minute(rand(12:13m+rand(-100..100, 10) join take(minute(), 4), n))
+	sev = second(rand(12:13:12+rand(-100..100, 10) join take(second(), 4), n))
+	dtv = datetime(rand(1969.12.23+rand(-100..100, 10) join take(datetime(), 4), n))
+	tiv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 10) join take(timestamp(), 4), n))
+	nav = nanotime(rand(12:23:45.452623154+rand(-100..100, 10) join take(nanotime(), 4), n))
+	ntv = nanotimestamp(rand(rand(-100..100, 10) join take(nanotimestamp(), 4), n))
+	dhv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 10) join take(datehour(), 4), n))
+	d32v = decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 6)
+	d64v = decimal64(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 12)
+	d128v = decimal128(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 32)
+	dint128v = rand(rand(int128(),1000) join take(int128(),100),n)
+	dipaddrv =  rand(rand(ipaddr(),1000) join take(ipaddr(),100),n)
+	duuidv =  rand(rand(uuid(),1000) join take(uuid(),100),n)
+	boolv = arrayvector_append_noteq(bv,n)
+	charv = arrayvector_append_noteq(cv,n)
+	shortv = arrayvector_append_noteq(sv,n)
+	intv = arrayvector_append_noteq(iv,n)
+	longv = arrayvector_append_noteq(lv,  n)
+	doublev = arrayvector_append_noteq(dv, n)
+	floatv = arrayvector_append_noteq(fv,  n)
+	datev = arrayvector_append_noteq(dav, n)
+	monthv = arrayvector_append_noteq(mv,  n)
+	timev = arrayvector_append_noteq(tv, n)
+	minutev = arrayvector_append_noteq(miv, n)
+	secondv = arrayvector_append_noteq(sev,  n)
+	datetimev = arrayvector_append_noteq(dtv, n)
+	timestampv = arrayvector_append_noteq(tiv,  n)
+	nanotimev = arrayvector_append_noteq(nav, n)
+	nanotimestampv = arrayvector_append_noteq(ntv, n)
+	datehourv = arrayvector_append_noteq(dhv, n)
+	decimal32v = arrayvector_append_noteq(d32v, n)
+	decimal64v = arrayvector_append_noteq(d64v,  n)
+	decimal128v = arrayvector_append_noteq(d128v, n)
+	int128v = arrayvector_append_noteq(dint128v, n)
+	ipaddrv = arrayvector_append_noteq(dipaddrv, n)
+	uuidv = arrayvector_append_noteq(duuidv,  n)
+	t = table(idv as id, symv as sym, boolv as boolv, charv as charv, intv as intv, shortv as shortv, longv as longv, floatv as floatv, doublev as doublev, datev as datev, monthv as monthv, timev as timev, minutev as minutev, secondv as secondv, datetimev as datetimev, timestampv as timestampv, nanotimev as nanotimev, nanotimestampv as nanotimestampv,  datehourv as datehourv, decimal32v as decimal32v, decimal64v as decimal64v, decimal128v as decimal128v, int128v as int128v, ipaddrv as ipaddrv, uuidv as uuidv)
+	return t
+}
+
+@testing:case="test_update_arrayvector_length_larger", exception = 1
+n=2
+t = createDataTable_notnull_eqlong(n,3)
+bv = bool(rand([true, false],n))
+boolv_new = arrayvector_append(bv,BOOL[],5,n)
+update t set boolv=boolv_new 
+
+@testing:case="test_update_arrayvector_length_larger_context_by", exception = 1
+update t set boolv=boolv_new  context by id
+
+@testing:case="test_update_arrayvector_length_larger_where_context_by", exception = 1
+update t set boolv=boolv_new  where id>0 context by id 
+
+@testing:case="test_update_arrayvector_length_larger_context_by_csort", exception = 1
+update t set boolv=boolv_new  context by id csort id
+
+@testing:case="test_update_arrayvector_length_smaller", exception = 1
+n=2
+t = createDataTable_notnull_eqlong(n,3)
+bv = bool(rand([true, false],n))
+boolv_new = arrayvector_append(bv,BOOL[],1,n)
+update t set boolv=boolv_new 
+
+@testing:case="test_update_emptyTable_arrayvector_length_not_0", exception = 1
+n=0
+t = createDataTable_notnull_eqlong(n,3)
+bv = bool(rand([true, false],1))
+boolv_new = arrayvector_append(bv,BOOL[],1,1)
+update t set boolv=boolv_new 
+
+@testing:case="test_update_emptyTable_arrayvector_length_not_0_conext_by", exception = 1
+update t set boolv=boolv_new  context by id
+
+@testing:case="test_update_emptyTable_arrayvector_length_not_0_where_conext_by", exception = 1
+update t set boolv=boolv_new  where id>0 context by id
+
+@testing:case="test_update_arrayvector_NULL", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set boolv=NULL
+
+@testing:case="test_update_arrayvector_NULL_conext_by", exception = 1
+update t set boolv=NULL context by id
+
+@testing:case="test_update_arrayvector_NULL_where_conext_by", exception = 1
+update t set boolv=NULL where id>0 context by id
+
+@testing:case="test_update_arrayvector_NULL_conext_by_csort", exception = 1
+t[`id] = rand(5,n)
+update t set boolv=NULL context by id csort id
+
+@testing:case="test_update_arrayvector_kind_diff_salar", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=1
+
+@testing:case="test_update_arrayvector_kind_diff_salar_conext_by", exception = 1
+update t set intv=1   context by id
+
+@testing:case="test_update_arrayvector_kind_diff_salar_where_conext_by", exception = 1
+update t set intv=1   where id>0 context by id
+
+@testing:case="test_update_arrayvector_kind_diff_salar_context_by_csort", exception = 1
+t[`id] = rand(5,n)
+update t set intv=1   context by id csort id
+
+@testing:case="test_update_arrayvector_to_int()", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=int()
+
+@testing:case="test_update_arrayvector_to_int()_context_by", exception = 1
+update t set intv=int()  context by id
+
+@testing:case="test_update_arrayvector_to_agg", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=sum(intv)
+
+@testing:case="test_update_arrayvector_to_agg_context_by", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=sum(intv) context by id
+
+@testing:case="test_update_arrayvector_kind_diff_pair", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+new = 3:6
+update t set intv=new 
+
+@testing:case="test_update_arrayvector_kind_diff_pair_context_by", exception = 1
+update t set intv=new  context by id
+
+@testing:case="test_update_arrayvector_kind_diff_pair_where_context_by", exception = 1
+update t set intv=new  where id>0 context by id
+
+@testing:case="test_update_arrayvector_kind_diff_pair_csort_context_by", exception = 1
+update t set intv=new  context by id csort id
+
+@testing:case="test_update_arrayvector_kind_diff_set", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+new = set(1..10)
+update t set intv=new 
+
+@testing:case="test_update_arrayvector_kind_diff_set_context_by", exception = 1
+update t set intv=new context by id
+
+@testing:case="test_update_arrayvector_kind_diff_tuple", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+new = (1 2 3, 2 3 4, 4 5 6,6 6 6, 8 8 8, 9 9 9, 2 3 4, 4 5 6,6 6 6, 8 8 8)
+update t set intv=new 
+
+@testing:case="test_update_arrayvector_kind_diff_matrix", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+new = matrix(1..10)
+update t set intv=new 
+
+@testing:case="test_update_arrayvector_kind_diff_dict", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+id = 1..10
+qty = 2..11
+new = dict(id,qty)
+update t set intv=new 
+
+@testing:case="test_update_arrayvector_kind_diff_table_table", exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+id = 1..10
+qty = 2..11
+new = table(id,qty)
+update t set intv=new 
+
+@testing:case="test_update_normalVector_to_arrayvector", exception = 1
+id = bool(rand([true, false],10))
+qty = 2..11
+t = table(id,qty)
+n=10
+bv = bool(rand([true, false],n))
+boolv_new = arrayvector_append(bv,BOOL[],n,3)
+update t set id=boolv_new
+
+@testing:case="test_update_arrayvector_to_salar_diff_datatype",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=1h
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=short(1..10)
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype_context_by",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=[short(1)] context by id
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype_where_context_by",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=[short(1)] where id>1 context by id
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype_2",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=short(1..12)
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype_2_context_by",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=short([1,2]) context by id
+
+@testing:case="test_update_arrayvector_to_vector_diff_datatype_2_where_context_by",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=short([1,2]) where id>0 context by id
+
+@testing:case="test_update_arrayvector_to_vector_[]",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=[]
+
+@testing:case="test_update_arrayvector_to_vector_[]_context_by",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=[] context by id
+
+@testing:case="test_update_arrayvector_to_vector_size_0",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+update t set intv=array(INT,0,10)
+
+@testing:case="test_update_second_arrayvector_to_date",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,3)
+dv = date(rand(0..100,  n))
+datev_new = arrayvector_append(dv,DATE[],n,3)
+update t set secondv=datev_new 
+
+@testing:case="test_update_second_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set secondv=monthv_new 
+
+@testing:case="test_update_time_arrayvector_to_date",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+dv = date(rand(0..100,  n))
+datev_new = arrayvector_append(dv,DATE[],n,3)
+update t set timev=datev_new 
+
+@testing:case="test_update_time_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set timev=monthv_new 
+
+@testing:case="test_update_datehour_arrayvector_to_second",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = second(12:13:12+rand(-100..100,  n))
+secondv_new = arrayvector_append(iv,SECOND[],n,3)
+update t set datehourv=secondv_new 
+
+@testing:case="test_update_datehour_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set datehourv=monthv_new 
+
+@testing:case="test_update_datehour_arrayvector_to_nanotime",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = nanotime(12:23:45.452623154+rand(-100..100,  n))
+nanotimev_new = arrayvector_append(iv,NANOTIME[],n,3)
+update t set datehourv=nanotimev_new 
+
+@testing:case="test_update_datehour_arrayvector_to_minute",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = minute(12:13m+rand(-100..100,  n))
+minutev_new = arrayvector_append(iv,MINUTE[],n,3)
+update t set datehourv=minutev_new 
+
+@testing:case="test_update_datehour_arrayvector_to_time",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = time(rand(0..100,  n))
+timev_new = arrayvector_append(iv,TIME[],n,3)
+update t set datehourv=timev_new 
+
+@testing:case="test_update_datetime_arrayvectorto_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set datetimev=monthv_new 
+
+@testing:case="test_update_nanotimestamp_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set nanotimestampv=monthv_new 
+
+@testing:case="test_update_timestamp_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set timestampv=monthv_new 
+
+@testing:case="test_update_nanotime_arrayvector_to_date",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+dv = date(rand(0..100,  n))
+datev_new = arrayvector_append(dv,DATE[],n,3)
+update t set nanotimev=datev_new 
+
+@testing:case="test_update_nanotim_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set nanotimev=monthv_new 
+
+@testing:case="test_update_date_arrayvector_to_minute",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = minute(12:13m+rand(-100..100,  n))
+minutev_new = arrayvector_append(iv,MINUTE[],n,3)
+update t set datev=minutev_new 
+
+@testing:case="test_update_date_arrayvector_to_nanotime",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = nanotime(12:23:45.452623154+rand(-100..100,  n))
+nanotimev_new = arrayvector_append(iv,NANOTIME[],n,3)
+update t set datev=nanotimev_new 
+
+@testing:case="test_update_date_arrayvector_to_second",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = second(12:13:12+rand(-100..100,  n))
+secondv_new = arrayvector_append(iv,SECOND[],n,3)
+update t set datev=secondv_new 
+
+@testing:case="test_update_date_arrayvector_to_time",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = time(rand(0..100,  n))
+timev_new = arrayvector_append(iv,TIME[],n,3)
+update t set datev=timev_new 
+
+@testing:case="test_update_month_arrayvector_to_minute",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = minute(12:13m+rand(-100..100,  n))
+minutev_new = arrayvector_append(iv,MINUTE[],n,3)
+update t set monthv=minutev_new 
+
+@testing:case="test_update_month_arrayvector_to_nanotime",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = nanotime(12:23:45.452623154+rand(-100..100,  n))
+nanotimev_new = arrayvector_append(iv,NANOTIME[],n,3)
+update t set monthv=nanotimev_new 
+
+@testing:case="test_update_month_arrayvector_to_second",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = second(12:13:12+rand(-100..100,  n))
+secondv_new = arrayvector_append(iv,SECOND[],n,3)
+update t set monthv=secondv_new 
+
+@testing:case="test_update_month_arrayvector_to_time",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = time(rand(0..100,  n))
+timev_new = arrayvector_append(iv,TIME[],n,3)
+update t set monthv=timev_new 
+
+@testing:case="test_update_minute_arrayvector_to_date",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+dv = date(rand(0..100,  n))
+datev_new = arrayvector_append(dv,DATE[],n,3)
+update t set minutev=datev_new 
+
+@testing:case="test_update_minute_arrayvector_to_month",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+iv = month(1967.12M+rand(-100..100,  n))
+monthv_new = arrayvector_append(iv,MONTH[],n,3)
+update t set minutev=monthv_new 
+
+@testing:case="test_update_int128_arrayvector_to_int",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+new = arrayvector_append(rand(100,10),INT[],n,3)
+update t set int128v=new 
+
+@testing:case="test_update_ipaddr_arrayvector_to_int",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+new = arrayvector_append(rand(100,10),INT[],n,3)
+update t set ipaddrv=new 
+
+@testing:case="test_update_uuid_arrayvector_to_int",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+new = arrayvector_append(rand(100,10),INT[],n,3)
+update t set uuidv=new 
+
+@testing:case="test_update_arrayvector_to_to_arrayvector_diff_type_context_by",exception = 1
+t = createDataTable_notnull_eqlong(10,3)
+new = arrayvector_append(rand(100,10),INT[],n,3)
+update t set uuidv=new  context by id
+
+@testing:case="test_update_arrayvector_where_filter_no_data_newValue_length_not_0",exception = 1
+n=100
+t = createDataTable_notnull_eqlong(n,10)
+ext = t
+new1 = -10..10
+new2 = array(LONG[],0,10).append!([[1]])
+update t set  longv=new2 where id=101
+
+
+@testing:case="test_update_arrayvector_where_filter_no_data_newValue_length_not_0_context_by",exception = 1
+n=100
+t = createDataTable_notnull_eqlong(n,10)
+ext = t
+new1 = -10..10
+new2 = array(LONG[],0,10).append!([[1]])
+update t set  longv=new2 where id=101 context by id
+
+@testing:case="test_update_arrayvector_to_vector_not_support_memPartitonedTable",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n,10)
+db = database(,VALUE,1..10)
+pt = db.createPartitionedTable(t,`pt,`id).append!(t)
+update pt set intv=1..2 where id= 1
+
+@testing:case="test_update_arrayvector_to_arrayvector_not_support_memPartitonedTable",exception = 1
+n=10
+t = createDataTable_notnull_eqlong(n, 2)
+db = database(,VALUE,1..10)
+pt = db.createPartitionedTable(t,`pt,`id).append!(t)
+update pt set intv=array(INT[],0,100).append!([[1]]) where id= 1
+
+@testing:case="test_update_same_length_arrayvector_to_kind_diff_scalar",exception = 1
+for(size in [0,3,260,65536]){
+	if(size==65536){
+		n=1000
+	}else{
+		n=2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	ext = t
+	update t set boolv=true, intv=1, shortv=short(), longv=1000l, doublev=1.2, datev=2020.01.01
+	re = select boolv,intv,shortv,longv,doublev,datev from t
+	ex = table(arrayvector_append([true],BOOL[],n,1) as boolv, arrayvector_append([1],INT[],n,1) as intv, arrayvector_append([short()],SHORT[],n,1) as shortv,arrayvector_append([1000],LONG[],n,1) as longv, arrayvector_append([1.2],DOUBLE[],n,1) as doublev, arrayvector_append([2020.01.01],DATE[],n,1) as datev)
+	//assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v
+	for(colName in  colNameList){
+	        //assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_diff_length_arrayvector_to_kind_diff_scalar",exception = 1
+n = 2000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+update t set boolv=true, intv=1, shortv=short(), longv=1000l, doublev=1.2, datev=2020.01.01
+re = select boolv,intv,shortv,longv,doublev,datev from t
+ex = table(arrayvector_append([true],BOOL[],n,1) as boolv, arrayvector_append([1],INT[],n,1) as intv, arrayvector_append([short()],SHORT[],n,1) as shortv,arrayvector_append([1000],LONG[],n,1) as longv, arrayvector_append([1.2],DOUBLE[],n,1) as doublev, arrayvector_append([2020.01.01],DATE[],n,1) as datev)
+//assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v
+for(colName in  colNameList){
+       // assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_same_length_arrayvector_kind_diff_vector"
+for(size in [0,3,260,65536]){
+	if(size==65536){
+		n=1000
+	}else{
+		n=2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	ext = t
+	update t set boolv=[bool()], intv=[1], shortv=short(1..10), longv=long(1..2000), doublev=[1.2,3.0], datev=[date(),2020.01.01]
+	re = select boolv,intv,shortv,longv,doublev,datev from t
+	ex = table(array(BOOL[],0,1000).append!(take([[bool()]],n)) as boolv, 
+	array(INT[],0,1000).append!(take([[1]],n))  as intv, 
+	array(SHORT[],0,1000).append!(take([1..10],n))  as shortv,
+	array(LONG[],0,1000).append!(take([1..2000],n))  as longv,
+	array(DOUBLE[],0,1000).append!(take([[1.2,3.0]],n))  as doublev, 
+	array(DATE[],0,1000).append!(take([[date(),2020.01.01]],n))  as datev)
+	assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v
+	for(colName in  colNameList){
+	        assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_diff_length_arrayvector_kind_diff_vector"
+n = 20000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newInt128 = rand(int128(),10)
+newUuid = take(uuid(),1)
+newIpaddr = rand(ipaddr(),2)
+update t set boolv=[bool()], intv=[1], shortv=short(1..10), longv=long(1..2000), doublev=[1.2,3.0], datev=take(date(),10), int128v=newInt128, ipaddrv=newIpaddr, uuidv=newUuid
+re = select boolv,intv,shortv,longv,doublev,datev,int128v,ipaddrv,uuidv from t
+ex = table(array(BOOL[],0,1000).append!(take([[bool()]],n)) as boolv, 
+array(INT[],0,1000).append!(take([[1]],n))  as intv, 
+array(SHORT[],0,1000).append!(take([1..10],n))  as shortv,
+array(LONG[],0,1000).append!(take([1..2000],n))  as longv,
+array(DOUBLE[],0,1000).append!(take([[1.2,3.0]],n))  as doublev, 
+array(DATE[],0,1000).append!(take([take(date(),10)],n))  as datev,
+array(INT128[],0,1000).append!(take([newInt128],n))  as int128v,
+array(IPADDR[],0,1000).append!(take([newIpaddr],n))  as ipaddrv,
+array(UUID[],0,1000).append!(take([newUuid],n))  as uuidv)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+	
+@testing:case="test_update_arrayvector_kind_diff_bigarray"
+n = 2000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+m = 10000
+new1 = bigarray(bool,0,10000000).append!(take(bool(),m))
+new2 = bigarray(int,0,10000000).append!(1..n)
+new3 = bigarray(short,0,10000000).append!(1..n)
+new4 = bigarray(long,0,10000000).append!(1..n)
+new5 = bigarray(double,0,10000000).append!(1..n)
+new6 = bigarray(date,0,10000000).append!(1..n)
+update t set boolv=new1, intv=new2, shortv=new3, longv=new4, doublev=new5, datev=new6
+re = select boolv,intv,shortv,longv,doublev,datev from t
+ex = table(array(BOOL[],0,1000).append!(take([new1],n)) as boolv, 
+array(INT[],0,1000).append!(take([new2],n))  as intv, 
+array(SHORT[],0,1000).append!(take([new3],n))  as shortv,
+array(LONG[],0,1000).append!(take([new4],n))  as longv,
+array(DOUBLE[],0,1000).append!(take([new5],n))  as doublev, 
+array(DATE[],0,1000).append!(take([new6],n))  as datev)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_kind_diff_subarray"
+n = 2000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+m = 10000
+new1 = subarray(take([true,false],10),0:5)
+new2 = subarray(1..10,0:1)
+new3 = subarray(short(1..10),0:5)
+new4 = subarray(long(1..10),0:5)
+new5 = subarray(double(1..10),0:5)
+new6 = subarray(date(1..10),0:5)
+update t set boolv=new1, intv=new2, shortv=new3, longv=new4, doublev=new5, datev=new6
+re = select boolv,intv,shortv,longv,doublev,datev from t
+ex = table(array(BOOL[],0,1000).append!(take([new1],n)) as boolv, 
+array(INT[],0,1000).append!(take([new2],n))  as intv, 
+array(SHORT[],0,1000).append!(take([new3],n))  as shortv,
+array(LONG[],0,1000).append!(take([new4],n))  as longv,
+array(DOUBLE[],0,1000).append!(take([new5],n))  as doublev, 
+array(DATE[],0,1000).append!(take([new6],n))  as datev)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_bool_char_int_short_long_double_float_arrayvector_to_diff_type"
+n=1000
+k=5
+bv = bool(rand([true, false],n))
+cv = char(rand(-100..100,  n))
+sv = short(rand(-100..100,  n))
+iv = int(rand(-100..100,  n))
+lv = long(rand(-100..100,  n))
+dv = double(rand(rand(-100..100, 10)*0.23, n))
+fv = float(rand(rand(-100..100, 10)*0.23, n))
+dav = date(rand(-100..100,  n))
+mv = month(1967.12M+rand(-100..100,  n))
+tv = time(rand(0..100,  n))
+miv = minute(12:13m+rand(-100..100,  n))
+sev = second(12:13:12+rand(-100..100,  n))
+dtv = datetime(1969.12.23+rand(-100..100,  n))
+tiv = timestamp(1970.01.01T00:00:00.023+rand(-100..100,  n))
+nav = nanotime(12:23:45.452623154+rand(-100..100,  n))
+ntv = nanotimestamp(rand(-100..100, n))
+dhv = datehour(datehour(1969.12.31T12:45:12)+rand(-100..100,  n))
+d32v = decimal32(rand(rand(-100..100, 10)*0.23, n), 6)
+d64v = decimal64(rand(rand(-100..100, 10)*0.23, n), 12)
+d128v = decimal128(rand(rand(-100..100, 10)*0.23, n), 32)
+dint128 = rand(int128(),100)
+dipaddr = rand(ipaddr(),100)
+duuid = rand(uuid(),100)
+boolv = arrayvector_append(bv,BOOL[],n,k)
+charv = arrayvector_append(cv,CHAR[],n,k)
+shortv = arrayvector_append(sv,SHORT[], n,k)
+intv = arrayvector_append(iv,INT[], n,k)
+longv = arrayvector_append(lv, LONG[], n,k)
+doublev = arrayvector_append(dv,DOUBLE[], n,k)
+floatv = arrayvector_append(fv, FLOAT[], n,k)
+datev = arrayvector_append(dav,DATE[], n,k)
+monthv = arrayvector_append(mv, MONTH[], n,k)
+timev = arrayvector_append(tv, TIME[], n,k)
+minutev = arrayvector_append(miv, MINUTE[], n,k)
+secondv = arrayvector_append(sev, SECOND[],  n,k)
+datetimev = arrayvector_append(dtv, DATETIME[], n,k)
+timestampv = arrayvector_append(tiv, TIMESTAMP[], n,k)
+nanotimev = arrayvector_append(nav, NANOTIME[], n,k)
+nanotimestampv = arrayvector_append(ntv, NANOTIMESTAMP[],  n,k)
+datehourv = arrayvector_append(dhv, DATEHOUR[], n,k)
+decimal32v = arrayvector_append(d32v, DECIMAL32(2)[],  n,k)
+decimal64v = arrayvector_append(d64v, DECIMAL64(4)[],  n,k)
+decimal128v = arrayvector_append(d128v, DECIMAL128(8)[], n,k)
+int128v = arrayvector_append(dint128, INT128[], n,k)
+ipaddrv = arrayvector_append(dipaddr, IPADDR[], n,k)
+uuidv = arrayvector_append(duuid, UUID[], n,k)
+new_arrays = [boolv, charv,  shortv,intv, longv, doublev,floatv, datev, monthv, timev,minutev, secondv,datetimev, timestampv, nanotimev, nanotimestampv, datehourv, decimal32v, decimal64v, decimal128v, int128v, ipaddrv, uuidv]
+for(new_array in new_arrays[0:20]){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set boolv=new_array,charv=new_array,intv=new_array,shortv=new_array,longv=new_array,floatv=new_array,doublev=new_array
+	re = select boolv,charv,intv,shortv,longv,floatv,doublev from t
+	ex = table(bool(new_array) as boolv, char(new_array) as charv, int(new_array) as intv, short(new_array) as shortv, long(new_array) as longv, float(new_array) as floatv,double(new_array) as doublev)
+	assert 1,each(eqObj, re.values(), ex.values())
+	colNameList = `id`sym`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	        assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_date_month_arrayvector_type_diff_date"
+new_arrays = [boolv, charv,  shortv,intv, longv, doublev,floatv,  decimal32v, decimal64v, decimal128v]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set datev=new_array,monthv=new_array
+	re = exec datev,monthv from t
+	ex = table(date(int(new_array)) as datev, month(int(new_array)) as monthv)
+	assert 1,each(eqObj, re.values(), ex.values())
+	colNameList = `doublev`boolv`intv`charv`longv`floatv`shortv`datetimev`timestampv`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	        assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+new_arrays = [datev, monthv, datetimev, timestampv,nanotimestampv, datehourv]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set datev=new_array,monthv=new_array
+	re = exec datev,monthv from t
+	ex = table(date(new_array) as datev, month(new_array) as monthv)
+	assert 3,each(eqObj, re.values(), ex.values())
+	colNameList = `id`sym`doublev`boolv`intv`charv`longv`floatv`shortv`datetimev`timestampv`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	        assert 4,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_minute_second_time_nanotime_arrayvector_to_diff_type"
+new_arrays = [boolv, charv,  shortv,intv, longv]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set minutev=new_array,secondv=new_array,timev=new_array,nanotimev=new_array
+	re = select minutev,secondv,timev,nanotimev from t
+	ex = table(minute(int(new_array)) as minutev,second(int(new_array)) as secondv,time(int(new_array)) as timev,nanotime(int(new_array)) as nanotimev)
+	assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`datev`boolv`intv`charv`longv`floatv`shortv`monthv`datetimev`timestampv`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in colNameList){
+	        assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+new_arrays = [ timev,minutev, secondv,datetimev, timestampv, nanotimev, nanotimestampv, datehourv]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set minutev=new_array,secondv=new_array,timev=new_array,nanotimev=new_array
+	re = select minutev,secondv,timev,nanotimev from t
+	ex = table(minute(new_array) as minutev,second(new_array) as secondv,time(new_array) as timev,nanotime(new_array) as nanotimev)
+	assert 3,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`datev`boolv`intv`charv`longv`floatv`shortv`monthv`datetimev`timestampv`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in colNameList){
+	        assert 4,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_datehour_datetime_timestamp_nanotimestamp_arrayvector_to_diff_type"
+new_arrays = [boolv, charv,  shortv,intv, longv, doublev,floatv,  decimal32v, decimal64v, decimal128v]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set datehourv=new_array, datetimev=new_array, timestampv=new_array, nanotimestampv=new_array
+	re = select datehourv,datetimev,timestampv,nanotimestampv from t
+	ex = table(datehour(int(new_array)) as datehourv,datetime(int(new_array)) as datetimev,timestamp(int(new_array)) as timestampv,nanotimestamp(int(new_array)) as nanotimestampv)
+	assert 1,each(eqObj,re.values(),ex.values())
+	 colNameList = `id`sym`doublev`boolv`intv`charv`longv`floatv`shortv`datev`monthv`decimal32v`decimal64v `decimal128v`timev`minutev`secondv`int128v`ipaddrv`uuidv
+	for(colName in colNameList){
+		assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+new_arrays = [datev, datetimev, timestampv,nanotimestampv, datehourv]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set datehourv=new_array, datetimev=new_array, timestampv=new_array, nanotimestampv=new_array
+	re = select datehourv,datetimev,timestampv,nanotimestampv from t
+	ex = table(datehour(new_array) as datehourv,datetime(new_array) as datetimev,timestamp(new_array) as timestampv,nanotimestamp(new_array) as nanotimestampv)
+	assert 3,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`doublev`boolv`intv`charv`longv`floatv`shortv`datev`monthv`decimal32v`decimal64v `decimal128v`timev`minutev`secondv`int128v`ipaddrv`uuidv
+	for(colName in colNameList){
+		assert 4,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_decimal_arrayvector_to_diff_type"
+new_arrays = [boolv, charv,  shortv,intv, longv,timev,minutev, secondv,datetimev, timestampv, nanotimestampv, datehourv]
+for(new_array in new_arrays){
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set decimal32v=new_array,decimal64v=new_array,decimal128v=new_array
+	re = select  decimal32v,decimal64v,decimal128v from t
+	ex = table(decimal32(new_array,2) as decimal32v, decimal64(new_array,4) as decimal64v, decimal128(new_array,8) as decimal128v)
+	assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`datev`boolv`intv`charv`longv`floatv`shortv`monthv`timev`secondv`datetimev`timestampv`minutev`nanotimestampv`datehourv`nanotimev`int128v`ipaddrv`uuidv
+	for(colName in colNameList){
+		assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_int128_arrayvector_to_diff_type"
+new_arrays = [int128v, ipaddrv, uuidv]
+for(new_array in new_arrays){
+	new_array = ipaddrv
+	t = createDataTable_notnull_eqlong(n,3)
+	ext = t
+	//print(typestr(new_array))
+	update t set int128v=new_array, ipaddr=new_array,  uuidv= new_array
+	re = select  int128v,ipaddrv,uuidv from t
+	//assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`datev`boolv`intv`charv`longv`floatv`shortv`monthv`timev`secondv`datetimev`timestampv`minutev`nanotimestampv`datehourv`nanotimev
+	for(colName in colNameList){
+		assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+
+@testing:case="test_update_arrayvector_table_1row"
+n=1
+t = createDataTable_notnull_eqlong(n,3)
+ext = t
+iv = int(rand(-100..100,  10))
+intv_new = arrayvector_append(iv,INT[],n,10)
+update t set intv=intv_new 
+re = exec intv from t
+assert 1,eqObj(re,intv_new)
+colNameList = `id`sym`boolv`charv`shortv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in colNameList){
+	assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_table_1col"
+n=10
+iv = int(rand(-100..100,  n))
+intv_new = arrayvector_append(iv,INT[],n,3)
+t = table(intv_new as intv)
+ext = t
+iv = int(rand(-100..100,  n))
+intv_new = arrayvector_append(iv,INT[],n,3)
+update t set intv=intv_new 
+ex = table(intv_new as intv )
+assert 1,eqObj(t.values(),ex.values())
+
+@testing:case="test_update_arrayvector_table_1025row"
+n=1025
+t = createDataTable_notnull_eqlong(n,3)
+ext = t
+iv = int(rand(-100..100,  n))
+intv_new = arrayvector_append(iv,INT[],n,3)
+update t set intv=intv_new 
+re = exec intv from t
+assert 1,eqObj(re,intv_new)
+colNameList = `id`sym`boolv`charv`shortv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v
+for(colName in colNameList){
+	assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_table_65537row"
+n=65537
+t = createDataTable_notnull_eqlong(n,3)
+ext = t
+iv = int(rand(-100..100,  n))
+intv_new = arrayvector_append(iv,INT[],n,3)
+update t set intv=intv_new 
+re = exec intv from t
+assert 1,eqObj(re,intv_new)
+colNameList = `id`sym`boolv`charv`shortv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in colNameList){
+	assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_table_empty_to_vector"
+t = createDataTable_notnull_eqlong(0,0)
+ext = t
+n=10
+k=5
+bv = bool(rand([true, false, NULL], k))
+cv = char(rand(rand(-100..100, 10) join take(char(), 4), k))
+sv = short(rand(rand(-100..100, 10) join take(short(), 4), k))
+iv = int(rand(rand(-100..100, 10) join take(int(), 4), k))
+lv = long(rand(rand(-100..100, 10) join take(long(), 4), k))
+dv = double(rand(rand(-100..100, 10)*0.23 join take(double(), 4), k))
+fv = float(rand(rand(-100..100, 10)*0.23 join take(float(), 4), k))
+dav = date(rand(rand(-100..100, 10) join take(date(), 4), k))
+mv = month(rand(1967.12M+rand(-100..100, 10) join take(month(), 4), k))
+tv = time(rand(rand(0..100, 10) join take(time(), 4), k))
+miv = minute(rand(12:13m+rand(-100..100, 10) join take(minute(), 4), k))
+sev = second(rand(12:13:12+rand(-100..100, 10) join take(second(), 4), k))
+dtv = datetime(rand(1969.12.23+rand(-100..100, 10) join take(datetime(), 4), k))
+tiv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 10) join take(timestamp(), 4), k))
+nav = nanotime(rand(12:23:45.452623154+rand(-100..100, 10) join take(nanotime(), 4), k))
+ntv = nanotimestamp(rand(rand(-100..100, 10) join take(nanotimestamp(), 4), k))
+dhv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 10) join take(datehour(), 4), k))
+d32v = decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), k), 6)
+d64v = decimal64(rand(rand(-100..100, 10)*0.23 join take(double(), 4), k), 12)
+d128v = decimal128(rand(rand(-100..100, 10)*0.23 join take(double(), 4), k), 32)
+update t set boolv=bv, charv=cv, shortv=sv, intv=iv, longv=lv, doublev=dv, floatv=fv, datev=dav,monthv=mv, timev=tv, minutev=miv, secondv=sev,datetimev=dtv,  timestampv=tiv, nanotimev=nav, nanotimestampv=ntv, datehourv=dhv, decimal32v=d32v, decimal64v=d64v, decimal128v=d128v
+assert 1,eqObj(t.values(),ext.values())
+update t set boolv=bv, charv=cv, shortv=sv, intv=iv, longv=lv, doublev=dv, floatv=fv, datev=dav,monthv=mv, timev=tv, minutev=miv, secondv=sev,datetimev=dtv,  timestampv=tiv, nanotimev=nav, nanotimestampv=ntv, datehourv=dhv, decimal32v=d32v, decimal64v=d64v, decimal128v=d128v context by id
+assert 2,eqObj(t.values(),ext.values())
+update t set boolv=bv, charv=cv, shortv=sv, intv=iv, longv=lv, doublev=dv, floatv=fv, datev=dav,monthv=mv, timev=tv, minutev=miv, secondv=sev,datetimev=dtv,  timestampv=tiv, nanotimev=nav, nanotimestampv=ntv, datehourv=dhv, decimal32v=d32v, decimal64v=d64v, decimal128v=d128v where id>0 context by id
+assert 3,eqObj(t.values(),ext.values())
+update t set boolv=bv, charv=cv, shortv=sv, intv=iv, longv=lv, doublev=dv, floatv=fv, datev=dav,monthv=mv, timev=tv, minutev=miv, secondv=sev,datetimev=dtv,  timestampv=tiv, nanotimev=nav, nanotimestampv=ntv, datehourv=dhv, decimal32v=d32v, decimal64v=d64v, decimal128v=d128v where id>0 context by id csort by id
+assert 4,eqObj(t.values(),ext.values())
+update t set boolv=bv, charv=cv, shortv=sv, intv=iv, longv=lv, doublev=dv, floatv=fv, datev=dav,monthv=mv, timev=tv, minutev=miv, secondv=sev,datetimev=dtv,  timestampv=tiv, nanotimev=nav, nanotimestampv=ntv, datehourv=dhv, decimal32v=d32v, decimal64v=d64v, decimal128v=d128v where id>0 context by id csort by id having avg(doublev)>0
+assert 5,eqObj(t.values(),ext.values())
+
+@testing:case="test_update_arrayvector_table_empty_to_arrayVector_size_0"
+t = createDataTable_notnull_eqlong(0,0)
+ext = createDataTable_notnull_eqlong(0,0)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v
+assert 1,eqObj(t.values(),ext.values())
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v context by id
+assert 2,eqObj(t.values(),ext.values())
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v where id>0 context by id
+assert 3,eqObj(t.values(),ext.values())
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v where id>0 context by id csort by id
+assert 4,eqObj(t.values(),ext.values())
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v where id>0 context by id csort by id having avg(doublev)>0
+assert 5,eqObj(t.values(),ext.values())
+
+@testing:case="test_update_all_same_length_arrayvector_to_all_same_length_arrayvector"
+t = createDataTable_notnull_eqlong(10,0)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, charv=ext.charv, shortv=ext.shortv, intv=ext.intv, longv=ext.longv, doublev=ext.doublev, floatv=ext.floatv, datev=ext.datev,monthv=ext.monthv, timev=ext.timev, minutev=ext.minutev, secondv=ext.secondv,datetimev=ext.datetimev,  timestampv=ext.timestampv, nanotimev=ext.nanotimev, nanotimestampv=ext.nanotimestampv, datehourv=ext.datehourv, decimal32v=ext.decimal32v, decimal64v=ext.decimal64v, decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 1,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,5)
+ext = createDataTable_notnull_eqlong(10,0)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 2,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,2)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 3,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,8)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 4,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,5)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 5,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,5)
+ext = createDataTable_notnull_eqlong(10,1024)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 6,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,5)
+ext = createDataTable_notnull_eqlong(10,65540)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 7,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,1024)
+ext = createDataTable_notnull_eqlong(10,50)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 8,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,65540)
+ext = createDataTable_notnull_eqlong(10,1024)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 9,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,65540)
+ext = createDataTable_notnull_eqlong(10,65580)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 10,eqObj(t.values(),ext.values())
+
+t = createDataTable_allnull_eqlong(10,2)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 11,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,8)
+ext = createDataTable_allnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 12,eqObj(t.values(),ext.values())
+
+t = createDataTable_allnull_eqlong(10,5)
+ext = createDataTable_notnull_eqlong(10,5)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 13,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,5)
+ext = createDataTable_allnull_eqlong(10,1024)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 14,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_eqlong(10,5)
+ext = createDataTable_allnull_eqlong(10,65540)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 15,eqObj(t.values(),ext.values())
+
+t = createDataTable_allnull_eqlong(10,1024)
+ext = createDataTable_includenull_eqlong(10,50)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 16,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_eqlong(10,65540)
+ext = createDataTable_notnull_eqlong(10,1024)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 17,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_eqlong(10,65540)
+ext = createDataTable_includenull_eqlong(10,65580)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 18,eqObj(t.values(),ext.values())
+
+@testing:case="test_update_not_same_length_arrayvector_to_not_same_length_arrayvector"
+t = createDataTable_notnull_noteqlong(100)
+ext = createDataTable_notnull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 1,eqObj(t.values(),ext.values())
+
+t = createDataTable_allnull_noteqlong(100)
+ext = createDataTable_notnull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 2,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_noteqlong(100)
+ext = createDataTable_allnull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 3,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_noteqlong(100)
+ext = createDataTable_allnull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 4,eqObj(t.values(),ext.values())
+
+t = createDataTable_allnull_noteqlong(100)
+ext = createDataTable_includenull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 5,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_noteqlong(100)
+ext = createDataTable_notnull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 6,eqObj(t.values(),ext.values())
+
+t = createDataTable_notnull_noteqlong(100)
+ext = createDataTable_includenull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 7,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_eqlong(100,0)
+ext = createDataTable_includenull_noteqlong(100)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 8,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_noteqlong(100)
+ext = createDataTable_includenull_eqlong(100,0)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 9,eqObj(t.values(),ext.values())
+
+t = createDataTable_includenull_noteqlong(20000)
+ext = createDataTable_includenull_noteqlong(20000)
+update t set boolv=ext.boolv, t.charv=ext.charv, t.shortv=ext.shortv, t.intv=ext.intv, t.longv=ext.longv, t.doublev=ext.doublev, t.floatv=ext.floatv, t.datev=ext.datev,t.monthv=ext.monthv, t.timev=ext.timev, t.minutev=ext.minutev, t.secondv=ext.secondv,t.datetimev=ext.datetimev,  t.timestampv=ext.timestampv, t.nanotimev=ext.nanotimev, t.nanotimestampv=ext.nanotimestampv, t.datehourv=ext.datehourv, t.decimal32v=ext.decimal32v, t.decimal64v=ext.decimal64v, t.decimal128v=ext.decimal128v, int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv
+assert 9,eqObj(t.values(),ext.values())
+
+@testing:case="test_update_arrayvector_to_arrayvector_vector"
+n = 2000
+t = createDataTable_notnull_noteqlong(2000)
+ext = t
+kt = shuffle(take([1,2,10],n-6).join(take([256,65535,65536],6)))
+av = rand(arrayVector(int(cumsum(kt)),rand([true,false,NULL],cumsum(kt)[n-1])).append!(take([[]],10)),n)
+v = 1..10
+new = array(INT[],0,1000).append!(take([v],n))
+update t set boolv=av , intv=v, shortv=[short()]
+re = select boolv,intv,shortv from t
+ex = table(av as boolv, new as intv, array(SHORT[],0,1000).append!(take([[short()]],n)) as shortv)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_same_length_arrayvector_compute"
+for(size in [0,3,260,65536]){
+	print(size)
+	if(size==65536){
+		n = 200
+	}else{
+		n = 2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	t[`val ]  = rand(10,n)
+	ext = t
+	update t set  intv=fixedLengthArrayVector(id,val),shortv= short(intv-1),longv= long(intv+shortv),doublev=rowSum(doublev),floatv=float(rowAvg(floatv))+1,decimal32v=nullFill(decimal32v,1),decimal64v=byRow(cumavg, decimal64v)
+	re = select intv,shortv,longv,doublev,floatv,decimal32v,decimal64v from t
+	ex = select fixedLengthArrayVector(id,val) as intv,short(intv-1) as shortv,intv+shortv as longv,array(DOUBLE[],0,1000).append!(take([rowSum(doublev)],n)) as doublev,array(FLOAT[],0,1000).append!(take([float(rowAvg(floatv))+1],n)) as floatv,nullFill(decimal32v,1) as decimal32v,decimal64(byRow(cumavg, decimal64v),12) as decimal64v from ext
+	assert 1,each(eqObj, re.values(), ex.values())
+}
+
+@testing:case="test_update_diff_length_arrayvector_compute"
+n = 20000
+t = createDataTable_includenull_noteqlong(n)
+t[`val ]  = rand(10,n)
+ext = t
+update t set  intv=fixedLengthArrayVector(id,val),shortv= short(intv-1),longv= long(longv+longv),doublev=rowSum(doublev),floatv=float(rowAvg(floatv))+1,decimal32v=nullFill(decimal32v,1),decimal64v=byRow(cumavg, decimal64v)
+re = select intv,shortv,longv,doublev,floatv,decimal32v,decimal64v from t
+ex = select fixedLengthArrayVector(id,val) as intv,short(intv-1) as shortv,longv+longv as longv,array(DOUBLE[],0,1000).append!(take([rowSum(doublev)],n)) as doublev,array(FLOAT[],0,1000).append!(take([float(rowAvg(floatv))+1],n)) as floatv,nullFill(decimal32v,1) as decimal32v,decimal64(byRow(cumavg, decimal64v),12) as decimal64v from ext
+assert 1,each(eqObj, re.values(), ex.values())
+colNameList = `id`sym`boolv`charv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_filter_no_data"
+n=100
+t = createDataTable_notnull_eqlong(n,10)
+ext = t
+new1 = -10..10
+new2 = array(LONG[],0,10)
+update t set  shortv=[short()],longv=new2 where id=101
+assert 1,each(eqObj,t.values(),ext.values())
+
+@testing:case="test_update_arrayvector_where_eq"
+n=10
+t = createDataTable_notnull_eqlong(n,10)
+ext = t
+new1 = -10..10
+new2 = array(LONG[],0,10).append!([[1,3]])
+update t set intv=new1,shortv=[short()],longv=new2 where id=1
+re = select intv,shortv,longv from t
+ex = table(array(INT[],0,10).append!([new1]).append!(ext[`intv][1:,]) as intv,array(SHORT[],0,10).append!([[short()]]).append!(ext[`shortv][1:,]) as shortv,array(LONG[],0,10).append!(new2).append!(ext[`longv][1:,]) as longv)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+t = table(1..3 as id, array(INT[],0,10).append!([[],[1],1..10]) as intv)
+new = array(INT[],0,10).append!([[,1]])
+update t set intv=new  where id=1
+ex = table(1..3 as id, array(INT[],0,10).append!([[,1],[1],1..10]) as intv)
+assert 3,each(eqObj,t.values(),ex.values())
+new = array(INT[],0,10).append!([[]])
+update t set intv=new  where id=2
+ex = table(1..3 as id, array(INT[],0,10).append!([[,1],[],1..10]) as intv)
+assert 4,each(eqObj,t.values(),ex.values())
+
+@testing:case="test_update_arrayvector_where_ge"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4 where id>=501
+re = select intv,doublev,datev,decimal32v from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`shortv`longv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_gt"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id>500
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_ne"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = take(1,500).append!(take(2,500))
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id!=1
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_le"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = n..1
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id<=500
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_lt"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = n..1
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id<501
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_in"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id in 501..1000
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_between"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(500)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id between 501:1000
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_and"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(400)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+select * from t where id >500 and id<=900
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id >500 and id<=900
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(ext[`intv][0:500,]).append!(new1).append!(ext[`intv][900:,]) as intv, 
+array(DOUBLE[],0,10).append!(ext[`doublev][0:500,]).append!(new2).append!(ext[`doublev][900:,]) as doublev,
+array(DATE[],0,10).append!(ext[`datev][0:500,]).append!(new3).append!(ext[`datev][900:,]) as datev,
+array(DECIMAL32(6)[],0,10).append!(ext[`decimal32v][0:500,]).append!(new4).append!(ext[`decimal32v][900:,]) as decimal32v,
+array(SHORT[],0,10).append!(ext[`shortv][0:500,]).append!(take([new5],400)).append!(ext[`shortv][900:,]) as shortv, 
+array(LONG[],0,10).append!(ext[`longv][0:500,]).append!(take([[new6]],400)).append!(ext[`longv][900:,]) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_where_or"
+n=1000
+t = createDataTable_includenull_noteqlong(n)
+ext = t
+newt = createDataTable_includenull_noteqlong(600)
+new1 = newt[`intv]
+new2 = newt[`doublev]
+new3 = newt[`datev]
+new4 = newt[`decimal32v]
+new5 = short(1..10)
+new6 = [long()]
+//select * from t where id >500 or id<=100
+update t set intv=new1,doublev=new2,datev=new3,decimal32v=new4,shortv=new5,longv=new6 where id >500 or id<=100
+re = select intv,doublev,datev,decimal32v,shortv,longv from t
+ex = table(array(INT[],0,10).append!(new1[0:100,]).append!(ext[`intv][100:500,]).append!(new1[100:,]) as intv, 
+array(DOUBLE[],0,10).append!(new2[0:100,]).append!(ext[`doublev][100:500,]).append!(new2[100:,]) as doublev,
+array(DATE[],0,10).append!(new3[0:100,]).append!(ext[`datev][100:500,]).append!(new3[100:,]) as datev,
+array(DECIMAL32(6)[],0,10).append!(new4[0:100,]).append!(ext[`decimal32v][100:500,]).append!(new4[100:,]) as decimal32v,
+array(SHORT[],0,10).append!(take([new5],100)).append!(ext[`shortv][100:500,]).append!(take([new5],500)) as shortv, 
+array(LONG[],0,10).append!(take([[new6]],100)).append!(ext[`longv][100:500,]).append!(take([[new6]],500)) as longv
+)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`boolv`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_to_compute_arrayvector_where"
+n = 20000
+t = createDataTable_includenull_noteqlong(n)
+t[`val ]  = rand(10,n)
+ext = t
+update t set  intv=fixedLengthArrayVector(id,val),shortv= short(intv-1),longv= long(longv+longv),doublev=rowSum(doublev),floatv=float(rowAvg(floatv))+1,decimal32v=nullFill(decimal32v,1),decimal64v=byRow(cumavg, decimal64v) where id>10000
+re = select intv,shortv,longv,doublev,floatv,decimal32v,decimal64v from t
+ex1 = select intv,shortv,longv,doublev,floatv,decimal32v,decimal64v from t  where id<=10000
+ex2 = select fixedLengthArrayVector(id,val) as intv,short(intv-1) as shortv,longv+longv as longv,array(DOUBLE[],0,1000).append!(take([rowSum(doublev)],n/2)) as doublev,array(FLOAT[],0,1000).append!(take([float(rowAvg(floatv))+1],n/2)) as floatv,nullFill(decimal32v,1) as decimal32v,decimal64(byRow(cumavg, decimal64v),12) as decimal64v from ext where id>10000
+ex = ex1.append!(ex2)
+assert 1,each(eqObj, re.values(), ex.values())
+colNameList = `id`sym`boolv`charv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_addColumn"
+n=2000
+t = createDataTable_includenull_noteqlong(n)
+ext=t
+addColumn(t, `col1`col2`col3, [INT[], DATE[], DECIMAL32(3)[]])
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n)
+new3 = arrayvector_append_noteq(decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 6),n)
+update t set col1=new1,col2=new2,col3=new3
+ext[`col1] = new1
+ext[`col2] = new2
+ext[`col3] = new3
+assert 1,each(eqObj,t.values(),ext.values())
+ext.append!(t)
+t.append!(t)
+n = 4000
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n)
+new3 = arrayvector_append_noteq(decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 6),n)
+update t set col1=new1,col2=new2,col3=new3
+assert 2,eqObj(t[`col1], new1)
+assert 3,eqObj(t[`col2], new2)
+assert 4,eqObj(t[`col3], new3)
+colNameList = `id`sym`boolv`charv`intv`shortv`longv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 5,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_replaceColumn"
+n= 2000
+t = createDataTable_includenull_noteqlong(n)
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n)
+replaceColumn!(t, `sym`boolv,[new1,new2])
+ext=t
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n)
+update t set sym=new1,boolv=new2
+assert 1,eqObj(t[`sym], new1)
+assert 2,eqObj(t[`boolv] , new2)
+colNameList = `id`charv`intv`shortv`longv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 3,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_addColumn_where"
+n=2000
+t = createDataTable_includenull_noteqlong(n)
+addColumn(t, `col1`col2`col3, [INT[], DATE[], DECIMAL32(3)[]])
+ext=t
+n1 = 1000
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n1)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n1)
+new3 = arrayvector_append_noteq(decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 6),n1)
+update t set col1=new1,col2=new2,col3=new3 where id>1000
+assert 1,eqObj(t[`col1], array(INT[],0,10).append!(ext[`col1][0:1000,]).append!(new1))
+assert 2,eqObj(t[`col2], array(DATE[],0,10).append!(ext[`col2][0:1000,]).append!(new2))
+assert 3,eqObj(t[`col3], array(DECIMAL32(3)[],0,10).append!(ext[`col3][0:1000,]).append!(new3))
+colNameList = `id`sym`boolv`charv`intv`shortv`longv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 4,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_arrayvector_replaceColumn_where"
+n= 2000
+t = createDataTable_includenull_noteqlong(n)
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n)
+replaceColumn!(t, `sym`boolv,[new1,new2])
+ext=t
+n1 = 1000
+new1 = arrayvector_append_noteq(int(rand(rand(-100..100, 10) join take(int(), 4), 100)),n1)
+new2 = arrayvector_append_noteq(date(rand(rand(-100..100, 10) join take(date(), 4), n)),n1)
+update t set sym=new1,boolv=new2 where id>1000
+assert 1,eqObj(t[`sym], array(INT[],0,10).append!(ext[`sym][0:1000,]).append!(new1))
+assert 2,eqObj(t[`boolv], array(DATE[],0,10).append!(ext[`boolv][0:1000,]).append!(new2))
+colNameList = `id`charv`intv`shortv`longv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 3,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_same_length_arrayvector_to_scalar_context_by",exception=1
+for(size in [0,3,260,65536]){
+	if(size==65536){
+		n=1000
+	}else{
+		n=2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	t[`id] = rand(10,n)
+	t[`sym] = rand("a"+string(1..10),n)
+	ext = t
+	update t set boolv=true, intv=1, shortv=short(), longv=1000l, doublev=1.2, datev=2020.01.01 
+	re = select boolv,intv,shortv,longv,doublev,datev from t context by id,sym
+	ex = table(arrayvector_append([true],BOOL[],n,1) as boolv, arrayvector_append([1],INT[],n,1) as intv, arrayvector_append([short()],SHORT[],n,1) as shortv,arrayvector_append([1000],LONG[],n,1) as longv, arrayvector_append([1.2],DOUBLE[],n,1) as doublev, arrayvector_append([2020.01.01],DATE[],n,1) as datev)
+	//assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	       // assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_diff_length_arrayvector_to_scalar_context_by",exception=1
+n = 2000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = rand(10,n)
+t[`sym] = rand("a"+string(1..10),n)
+ext = t
+update t set boolv=true, intv=1, shortv=short(), longv=1000l, doublev=1.2, datev=2020.01.01
+re = select boolv,intv,shortv,longv,doublev,datev from t context by id,sym
+ex = table(arrayvector_append([true],BOOL[],n,1) as boolv, arrayvector_append([1],INT[],n,1) as intv, arrayvector_append([short()],SHORT[],n,1) as shortv,arrayvector_append([1000],LONG[],n,1) as longv, arrayvector_append([1.2],DOUBLE[],n,1) as doublev, arrayvector_append([2020.01.01],DATE[],n,1) as datev)
+//assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        //assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_same_length_arrayvector_to_vector_context_by"
+for(size in [0,3,260,65536]){
+	if(size==65536){
+		n=1000
+	}else{
+		n=2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	t[`id] = rand(10,n)
+	t[`sym] = rand("a"+string(1..10),n)
+	ext = t
+	update t set boolv=[bool()], intv=[1], shortv=short(1..10), longv=long(1..2000), doublev=[1.2,3.0], datev=[date(),2020.01.01] context by id,sym
+	re = select boolv,intv,shortv,longv,doublev,datev from t 
+	ex = table(array(BOOL[],0,1000).append!(take([[bool()]],n)) as boolv, 
+	array(INT[],0,1000).append!(take([[1]],n))  as intv, 
+	array(SHORT[],0,1000).append!(take([1..10],n))  as shortv,
+	array(LONG[],0,1000).append!(take([1..2000],n))  as longv,
+	array(DOUBLE[],0,1000).append!(take([[1.2,3.0]],n))  as doublev, 
+	array(DATE[],0,1000).append!(take([[date(),2020.01.01]],n))  as datev)
+	assert 1,each(eqObj,re.values(),ex.values())
+	colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	        assert 2,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_diff_length_arrayvector_to_vector_context_by"
+n = 20000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = rand(10,n)
+t[`sym] = rand("a"+string(1..10),n)
+ext = t
+update t set boolv=[bool()], intv=[1], shortv=short(1..10), longv=long(1..2000), doublev=[1.2,3.0], datev=[date(),2020.01.01] context by id,sym
+re = select boolv,intv,shortv,longv,doublev,datev from t
+ex = table(array(BOOL[],0,1000).append!(take([[bool()]],n)) as boolv, 
+array(INT[],0,1000).append!(take([[1]],n))  as intv, 
+array(SHORT[],0,1000).append!(take([1..10],n))  as shortv,
+array(LONG[],0,1000).append!(take([1..2000],n))  as longv,
+array(DOUBLE[],0,1000).append!(take([[1.2,3.0]],n))  as doublev, 
+array(DATE[],0,1000).append!(take([[date(),2020.01.01]],n))  as datev)
+assert 1,each(eqObj,re.values(),ex.values())
+colNameList = `id`sym`charv`floatv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal32v`decimal64v `decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 2,eqObj(ext[colName], t[colName])
+}
+
+@testing:case="test_update_same_length_arrayvector_to_arrayvector_context_by"
+n = 20000
+n1 = [0,5,10,20]
+n2  = [5,10,5,0]
+for(i in 0..3){
+	t = createDataTable_notnull_eqlong(n,n1[i])
+	t[`id] = take(1..10,n)
+	t[`sym] = take("a"+string(1..10),n)
+	ext = createDataTable_notnull_eqlong(2000,n2[i])
+	update t set boolv=ext.boolv, charv=ext.charv, shortv=ext.shortv, intv=ext.intv, longv=ext.longv, doublev=ext.doublev, floatv=ext.floatv, datev=ext.datev,monthv=ext.monthv, timev=ext.timev, minutev=ext.minutev, secondv=ext.secondv,datetimev=ext.datetimev,  timestampv=ext.timestampv, nanotimev=ext.nanotimev, nanotimestampv=ext.nanotimestampv, datehourv=ext.datehourv, decimal32v=ext.decimal32v, decimal64v=ext.decimal64v, decimal128v=ext.decimal128v , int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv context by id,sym
+	ex = stretch(ext,n)
+	ex[`id] = take(1..10,n)
+	ex[`sym] = take("a"+string(1..10),n)
+	assert 1,each(eqObj,t.values(), ex.values())
+}
+
+@testing:case="test_update_diff_length_arrayvector_to_arrayvector_context_by"
+n = 20000
+t = createDataTable_notnull_noteqlong(n)
+t[`id] = take(1..10,n)
+t[`sym] = take("a"+string(1..10),n)
+ext = createDataTable_notnull_noteqlong(2000)
+update t set boolv=ext.boolv, charv=ext.charv, shortv=ext.shortv, intv=ext.intv, longv=ext.longv, doublev=ext.doublev, floatv=ext.floatv, datev=ext.datev,monthv=ext.monthv, timev=ext.timev, minutev=ext.minutev, secondv=ext.secondv,datetimev=ext.datetimev,  timestampv=ext.timestampv, nanotimev=ext.nanotimev, nanotimestampv=ext.nanotimestampv, datehourv=ext.datehourv, decimal32v=ext.decimal32v, decimal64v=ext.decimal64v, decimal128v=ext.decimal128v , int128v=ext.int128v, ipaddrv=ext.ipaddrv, uuidv=ext.uuidv context by id,sym
+ex = stretch(ext,n)
+ex[`id] = take(1..10,n)
+ex[`sym] = take("a"+string(1..10),n)
+assert 1,each(eqObj,t.values(), ex.values())
+
+@testing:case="test_update_same_length_arrayvector_to_compute_arrayvector_context_by"
+for(size in [0,3,260,65536]){
+	//print(size)
+	if(size==65536){
+		n = 200
+	}else{
+		n = 2000
+	}
+	t = createDataTable_includenull_eqlong(n,size)
+	t[`id] = take(1..10,n)
+	t[`val ]  = rand(10,n)
+	ext = t
+	update t set  intv=fixedLengthArrayVector(id,val),shortv= short(intv-1),longv= long(intv+shortv),doublev=rowSum(doublev),floatv=float(rowAvg(floatv))+1,decimal32v=nullFill(decimal32v,1),decimal64v=byRow(cumavg, decimal64v) context by id
+	re = select intv,shortv,longv,decimal32v,decimal64v from t
+	ex = select fixedLengthArrayVector(id,val) as intv,short(intv-1) as shortv,intv+shortv as longv,nullFill(decimal32v,1) as decimal32v,decimal64(byRow(cumavg, decimal64v),12) as decimal64v from ext
+	assert 1,each(eqObj, re.values(), ex.values())
+	re = select doublev,floatv from t
+	ex = take((select toArray(rowSum(doublev)) as doublev,toArray(float(rowAvg(floatv))+1) as floatv from ext group by id),n)[,1:3]
+	assert 2,each(eqObj, re.values(), ex.values())
+	colNameList = `id`sym`boolv`charv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal128v`int128v`ipaddrv`uuidv
+	for(colName in  colNameList){
+	        assert 3,eqObj(ext[colName], t[colName])
+	}
+}
+
+@testing:case="test_update_diff_length_arrayvector_to_compute_arrayvector_context_by"
+n = 20000
+t = createDataTable_includenull_noteqlong(n)
+t[`id] = take(1..2000,n)
+t[`val ]  = rand(10,n)
+ext = t
+update t set  intv=intv+1,shortv= short(intv-1),longv= longv+longv,doublev=rowSum(doublev),floatv=float(rowAvg(floatv))+1,decimal32v=nullFill(decimal32v,1),decimal64v=byRow(cumavg, decimal64v) context by id
+re = select intv,shortv,longv,decimal32v,decimal64v from t
+ex = select intv+1 as intv,short(intv-1) as shortv,longv+longv as longv,nullFill(decimal32v,1) as decimal32v,decimal64(byRow(cumavg, decimal64v),12) as decimal64v from ext
+assert 1,each(eqObj, re.values(), ex.values())
+re = select doublev,floatv from t
+ex = take((select toArray(rowSum(doublev)) as doublev,toArray(float(rowAvg(floatv))+1) as floatv from ext group by id),n)[,1:3]
+assert 2,each(eqObj, re.values(), ex.values())
+colNameList = `id`sym`boolv`charv`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`datehourv`decimal128v`int128v`ipaddrv`uuidv
+for(colName in  colNameList){
+        assert 3,eqObj(ext[colName], t[colName])
+}

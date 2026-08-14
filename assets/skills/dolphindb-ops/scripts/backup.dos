@@ -1,0 +1,107 @@
+// DolphinDB 备份恢复脚本
+// 包含备份状态查看和备份列表查询
+
+// @description 备份信息一站式查询：当前任务状态 + 指定目录下的备份列表 + 指定备份的元数据
+// @params backupDir:str:optional, backupId:str:optional
+// @permission readonly
+def checkBackup1(backupDir="", backupId="") {
+    d = dict(STRING, ANY)
+
+    // 1. 当前正在执行的备份/恢复任务状态（始终返回）
+    try {
+        d["status"] = getBackupStatus()
+    } catch(ex) {
+        d["status"] = "error: " + concat(string(ex), ": ")
+    }
+
+    // 2. 指定目录下的备份列表（仅当传入 backupDir）
+    if (strlen(backupDir) > 0) {
+        try {
+            d["list"] = parseExpr("getBackupList('" + backupDir + "')").eval()
+        } catch(ex) {
+            d["list"] = "error: " + concat(string(ex), ": ")
+        }
+    }
+
+    // 3. 指定备份的元数据（仅当 backupDir + backupId 都给）
+    if (strlen(backupDir) > 0 && strlen(backupId) > 0) {
+        try {
+            d["meta"] = parseExpr("getBackupMeta('" + backupDir + "', '" + backupId + "')").eval()
+        } catch(ex) {
+            d["meta"] = "error: " + concat(string(ex), ": ")
+        }
+    }
+
+    return d
+}
+
+// @description 执行数据库备份
+// @params backupDir:str:required, force:bool:optional, parallel:int:optional
+// @permission danger
+def backupDatabase(backupDir, force=false, parallel=1) {
+    if (strlen(backupDir) == 0) {
+        throw "backupDir cannot be empty"
+    }
+    if (parallel <= 0) {
+        throw "parallel must be positive"
+    }
+
+    try {
+        backup(backupDir, force=force, parallel=parallel)
+        return "backup started: backupDir=" + backupDir + " force=" + string(force) + " parallel=" + string(parallel)
+    } catch(ex) {
+        return "error: " + concat(string(ex), ": ")
+    }
+}
+
+// @description 从备份恢复数据库
+// @params backupDir:str:required, backupId:str:required, dbPath:str:optional, tableName:str:optional, partition:str:optional
+// @permission danger
+def restoreDatabase(backupDir, backupId, dbPath=NULL, tableName=NULL, partition=NULL) {
+    if (strlen(backupDir) == 0) {
+        throw "backupDir cannot be empty"
+    }
+    if (strlen(backupId) == 0) {
+        throw "backupId cannot be empty"
+    }
+
+    try {
+        // restore 函数 named arg 在某些版本与 positional 冲突，用 parseExpr 兜
+        code = "restore('" + backupDir + "', '" + backupId + "'"
+        if (!isNull(dbPath) and strlen(dbPath) > 0) {
+            code += ", dbPath='" + dbPath + "'"
+        }
+        if (!isNull(tableName) and strlen(tableName) > 0) {
+            code += ", tableName='" + tableName + "'"
+        }
+        if (!isNull(partition) and strlen(partition) > 0) {
+            code += ", partition='" + partition + "'"
+        }
+        code += ")"
+        parseExpr(code).eval()
+        return "restore started: backupDir=" + backupDir + " backupId=" + backupId
+    } catch(ex) {
+        return "error: " + concat(string(ex), ": ")
+    }
+}
+
+// @description 数据库迁移（跨集群）
+// @params backupDir:str:required, force:bool:optional, parallel:int:optional
+// @permission danger
+def migrateDatabase(backupDir, force=false, parallel=1) {
+    if (strlen(backupDir) == 0) {
+        throw "backupDir cannot be empty"
+    }
+    if (parallel <= 0) {
+        throw "parallel must be positive"
+    }
+
+    try {
+        // migrate 的 named arg 集合跨版本不稳定，用 parseExpr 兜
+        code = "migrate('" + backupDir + "', force=" + string(force) + ", parallel=" + string(parallel) + ")"
+        parseExpr(code).eval()
+        return "migration started: backupDir=" + backupDir + " force=" + string(force) + " parallel=" + string(parallel)
+    } catch(ex) {
+        return "error: " + concat(string(ex), ": ")
+    }
+}

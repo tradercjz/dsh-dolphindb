@@ -1,0 +1,179 @@
+
+login(`admin,`123456)
+
+@testing:case="test_data_perpare"
+def sortKeyfun(x){
+    return hashBucket(x,10);
+}
+
+def create_table(bdate, n){
+    symbol_data = take(`symbol_data, n)
+    string_data = take(`string_date, n)
+    date_data = bdate+(1..n)
+    double_data = take(1..n, n)
+
+    OID = string(take(1..n, n))     
+    ENTRY_ID = `HG + string(take(1..n, n))      
+    ENTRY_ITEM_NO = ENTRY_ID+`LH + string(take(1..n, n))  
+    DECLARE_DATE = date_data   
+    CUSTOM_MASTER = symbol_data 
+    DECLARE_CODE = symbol_data   
+    DECLARE_NAME = symbol_data    
+    OWNER_CODE = symbol_data      
+    OWNER_NAME = symbol_data      
+    TRADE_CODE  =  symbol(string(take(1..n, n)))  
+    TRADE_NAME = symbol_data      
+    DISTINATE_PORT = symbol_data  
+    DISTRICT_CODE = symbol_data  
+    I_E_MARK  = symbol(string(take([`O, `I], n)))      
+    I_E_PORT = symbol_data  
+    I_E_DATE = date_data         
+    TRADE_COUNTRY = symbol_data  
+    TRADE_MODE = symbol_data  
+    TRANS_MODE = symbol_data  
+    WRAP_TYPE = symbol_data 
+    BUSI_TYPE = symbol_data 
+    GROSS_WT =  double_data      
+    NET_WT=  double_data       
+    FEE_RATE =  double_data       
+    INSUR_RATE =  double_data      
+    OTHER_RATE=  double_data       
+    TRAF_NAME = symbol_data  
+    VOYAGE_NO = string_data  
+    CONTAINER_NO=  double_data      
+    CO_OWNER = symbol_data 
+    DUTY_MODE = symbol_data  
+    G_NO =  double_data       
+    ITEM_NO =  double_data       
+    UNIT = symbol_data  
+    DEC_PRICE=  double_data       
+    CURR = symbol_data  
+    RMB_PRICE = take(1..n, n)    
+    G_NAME = string_data  
+    G_MODEL = string_data 
+    DEC_PRICE_USD = take(1..n, n) 
+    HS_CODE = symbol_data  
+    GOODS_WEIGHT=  double_data      
+    GOODS_PASS_TIME= date_data      
+    FORM_PASS_TIME = date_data      
+    TRADE_SOCIAL_CODE = symbol_data  
+    TAX_REBATE_RATE=  double_data       
+    TAX_CHARGE_RATE=  double_data       
+    INFOTIME = take(date(bdate),n)        
+    
+    t = table(OID, ENTRY_ITEM_NO,ENTRY_ID, DECLARE_DATE,CUSTOM_MASTER,DECLARE_CODE,DECLARE_NAME,OWNER_CODE,OWNER_NAME,TRADE_CODE,TRADE_NAME,DISTINATE_PORT,
+DISTRICT_CODE,I_E_MARK,I_E_PORT,I_E_DATE,TRADE_COUNTRY,TRADE_MODE,TRANS_MODE,WRAP_TYPE,BUSI_TYPE,GROSS_WT,NET_WT,FEE_RATE,INSUR_RATE, OTHER_RATE,TRAF_NAME,
+VOYAGE_NO, CONTAINER_NO,CO_OWNER, DUTY_MODE, G_NO,ITEM_NO,UNIT,DEC_PRICE,CURR, RMB_PRICE, G_NAME,G_MODEL,DEC_PRICE_USD,HS_CODE, GOODS_WEIGHT,GOODS_PASS_TIME,
+FORM_PASS_TIME,TRADE_SOCIAL_CODE,TAX_REBATE_RATE,TAX_CHARGE_RATE,INFOTIME)	
+
+	return t
+}
+
+def write_data(begindate, enddate)
+{
+    bdate = begindate;
+    primary_key = 0;
+    do{
+        t = create_table(bdate, 14400)
+        bdate = bdate + 24*60*60;
+        SZ_ENTRY_INFO=loadTable("dfs://db_SZ_ENTRY_INFO","SZ_ENTRY_INFO")
+        SZ_ENTRY_INFO.append!(t)
+        t=NULL
+    }while(bdate<=enddate)
+}
+
+
+@testing:case="test_dfs_table_select_by_limit"
+if(existsDatabase("dfs://db_SZ_ENTRY_INFO")){
+	dropDatabase("dfs://db_SZ_ENTRY_INFO")
+}
+
+begindate = 2019.10.31 00:00:01   
+enddate = 2024.11.01 00:00:00 
+dbTime = database("",VALUE,2019.11M..2024.11M)
+dbId = database("",HASH,[SYMBOL, 2])
+db = database(directory="dfs://db_SZ_ENTRY_INFO", partitionType=COMPO, partitionScheme=[dbTime,dbId],engine="OLAP",atomic='TRANS')
+t = create_table(begindate, 100)
+pt = createPartitionedTable(db, t, `SZ_ENTRY_INFO, `DECLARE_DATE`TRADE_CODE)
+
+jobID = submitJob(`SZ_ENTRY_INFO_writeData, `SZ_ENTRY_INFO_writeData, write_data, begindate, enddate)
+getJobReturn(jobID, true)
+
+SZ_ENTRY_INFO = loadTable("dfs://db_SZ_ENTRY_INFO", `SZ_ENTRY_INFO)
+
+//test sql_1
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100 
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400..14301)) as TRADE_CODE, 2024.10.31T04:00:01..2024.10.31T03:58:22 as DECLARE_DATE, symbol(take(`I`O, 100)) as I_E_MARK, long(14400..14301) as RMB_PRICE, long(14400..14301) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 1, each(eqObj, ans1.values(), ex.values())
+assert 2, each(eqObj, ans2.values(), ex.values())
+assert 3, each(eqObj, ans3.values(), ex.values())
+//test sql_2
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400 - (0..99)*2)) as TRADE_CODE, 2024.10.31T04:00:01- (0..99)*2 as DECLARE_DATE, symbol(take(`I, 100)) as I_E_MARK, long(14400 - (0..99)*2) as RMB_PRICE, long(14400 - (0..99)*2) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 4, each(eqObj, ans1.values(), ex.values())
+assert 5, each(eqObj, ans2.values(), ex.values())
+assert 6, each(eqObj, ans3.values(), ex.values())
+//test sql_3
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400..14301)) as TRADE_CODE, 2022.10.31T04:00:01..2022.10.31T03:58:22 as DECLARE_DATE, symbol(take(`I`O, 100)) as I_E_MARK, long(14400..14301) as RMB_PRICE, long(14400..14301) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 7, each(eqObj, ans1.values(), ex.values())
+assert 8, each(eqObj, ans2.values(), ex.values())
+assert 9, each(eqObj, ans3.values(), ex.values())
+
+purgeCacheEngine()
+
+print("++++++++after purgeCacheEngine++++++++")
+//test sql_1
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100 
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400..14301)) as TRADE_CODE, 2024.10.31T04:00:01..2024.10.31T03:58:22 as DECLARE_DATE, symbol(take(`I`O, 100)) as I_E_MARK, long(14400..14301) as RMB_PRICE, long(14400..14301) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 10, each(eqObj, ans1.values(), ex.values())
+assert 11, each(eqObj, ans2.values(), ex.values())
+assert 12, each(eqObj, ans3.values(), ex.values())
+//test sql_2
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where I_E_MARK ="I" group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400 - (0..99)*2)) as TRADE_CODE, 2024.10.31T04:00:01- (0..99)*2 as DECLARE_DATE, symbol(take(`I, 100)) as I_E_MARK, long(14400 - (0..99)*2) as RMB_PRICE, long(14400 - (0..99)*2) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 13, each(eqObj, ans1.values(), ex.values())
+assert 14, each(eqObj, ans2.values(), ex.values())
+assert 15, each(eqObj, ans3.values(), ex.values())
+//test sql_3
+clearAllCache()
+timer ans1 = select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc limit 100
+clearAllCache()
+timer ans2 = select top 100 TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc
+clearAllCache()
+timer ans3 = select top 100 * from (select TRADE_CODE,DECLARE_DATE,I_E_MARK,sum(RMB_PRICE) as RMB_PRICE,sum(DEC_PRICE_USD) as SZ_ENTRY_INFO ,count(ENTRY_ID) as QTY from SZ_ENTRY_INFO where DECLARE_DATE>=2020.11.01 and DECLARE_DATE<2022.11.01 group by DECLARE_DATE,I_E_MARK,TRADE_CODE order by DECLARE_DATE desc)
+ex = table(symbol(string(14400..14301)) as TRADE_CODE, 2022.10.31T04:00:01..2022.10.31T03:58:22 as DECLARE_DATE, symbol(take(`I`O, 100)) as I_E_MARK, long(14400..14301) as RMB_PRICE, long(14400..14301) as SZ_ENTRY_INFO, take(1, 100) as QTY)
+assert 16, each(eqObj, ans1.values(), ex.values())
+assert 17, each(eqObj, ans2.values(), ex.values())
+assert 18, each(eqObj, ans3.values(), ex.values())
+
+
+
+
+
+

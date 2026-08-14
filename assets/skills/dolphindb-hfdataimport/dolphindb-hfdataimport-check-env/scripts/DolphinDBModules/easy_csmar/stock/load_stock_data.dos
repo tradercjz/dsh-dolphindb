@@ -1,0 +1,212 @@
+module easy_csmar::stock::stock_load_data
+/*
+*  @ brief  
+*  批量导入历史数据
+*/
+
+//引用其他module的函数
+use easy_csmar::utils
+use easy_csmar::stock::create_stock_db
+use easy_csmar::stock::create_stock_tb
+use easy_csmar::stock::stock_load_data::load_one_day_entrust
+use easy_csmar::stock::stock_load_data::load_one_day_trade
+use easy_csmar::stock::stock_load_data::load_one_day_snapshot
+use	easy_csmar::stock::stock_load_data::load_one_day_tick
+use	easy_csmar::stock::stock_load_data::load_one_day_orderqueue
+
+
+
+/*
+ * @FunctionName: load_days_stock_data
+ * @Brief: Loads daily trading data from specified files into the corresponding database tables.
+ *         Automatically detects and unzips compressed CSV files if no CSV files are found in the directory.
+ *         Temporary directories are created for unzipped files and cleaned up after loading (original zip files are preserved).
+ * @Param: file_list: A vector containing the paths of the files to load data from.
+ * @Param: db_names: A vector of database names where the data will be loaded.
+ * @Param: tb_names: A vector of table names corresponding to the databases.
+ * @Param: dtypes: A vector representing the data types for the import process.
+ */
+def load_days_stock_data(file_list, db_name, tb_names, dtypes){
+
+	// 初始化任务导入状态监控表
+	load_date = temporalParse(string(right(file_list, 8)), "yyyyMMdd")
+	job_list = cj(table(load_date), table(dtypes as data_type))
+	job_list = cj(job_list, table(`SZ`SH as exchange))
+	update job_list set job_status="waiting", error_msg=""
+	update_task_status(load_date=job_list["load_date"], 
+						data_type=job_list["data_type"], 
+						exchange=job_list["exchange"], 
+						job_status=job_list["job_status"], 
+						error_msg=job_list["error_msg"])
+
+	// 开始导入数据
+	for (file in file_list){	// file=file_list[0] // print(file_list)
+		msg = stringFormat("Start loading the data in path [%W]", file)
+		msg = write_log(msg, level="info")
+		
+		// 获取 flie 目录下的所有 csv 绝对路径
+		day = temporalParse(string(right(file, 8)),"yyyyMMdd")
+		csv_files_sz, csv_files_sh = file, file
+		csv_files_sz = file +  "/SZSEL2/STOCK/"
+		csv_files_sh = file +  "/SSEL2/STOCK/"
+		
+		// 导入数据
+		try{
+			for (i in 0..(size(dtypes)-1)){	// i=0
+				dtype = dtypes[i]
+				tb_name = tb_names[i]
+				if (dtype == "snapshot") {
+					load_one_day_snapshot_sh(csv_files_sh + "TAQ/", day, db_name, tb_name, true)
+					load_one_day_snapshot_sz(csv_files_sz + "TAQ/", day, db_name, tb_name, true)
+				} else if (dtype == "trade") {
+					load_one_day_trade_sh(csv_files_sh + "TRADE/", day, db_name, tb_name, true)
+					load_one_day_trade_sz(csv_files_sz + "TRADE/", day, db_name, tb_name, true)
+				} else if (dtype == "entrust") {
+					load_one_day_entrust_sh(csv_files_sh + "ORDER/", day, db_name, tb_name, true)
+					load_one_day_entrust_sz(csv_files_sz + "ORDER/", day, db_name, tb_name, true)
+				} else if (dtype == "tick") {
+					load_one_day_tick_sh(csv_files_sh, day, db_name, tb_name, true)
+					load_one_day_tick_sz(csv_files_sz, day, db_name, tb_name, true)
+				} else if (dtype == "orderqueue") {
+					load_one_day_orderqueue_sh(csv_files_sh + "ORDERQUEUE/", day, db_name, tb_name, true)
+					load_one_day_orderqueue_sz(csv_files_sz + "ORDERQUEUE/", day, db_name, tb_name, true)
+				}
+			}
+		}catch(ex){
+			msg = stringFormat("%W:%W", string(ex[0]), string(ex[1]))
+			msg = write_log(msg, level="error")
+			return msg
+		}
+	}
+}
+
+/*
+ 导入指定文件路径下的csmar股票数据
+ @param
+	file_dir:	数据文件路径
+	data_source:	导入的数据类型, 目前支持 "Snapshot"(快照数据), "Entrsut"(逐笔委托), "Trade"（逐笔成交）, "All"(快照+逐笔)
+	db_name:		数据库名
+	table_name:	分布式表名
+	market:		导入的交易所, 目前支持 "SH"(上交所), "SZ"(深交所), "ALL"(沪深交易所) 
+	start_date:	导入数据的起始日期，默认NULL，不限制起始日期
+	end_date:	导入数据的结束日期，默认NULL，不限制结束日期
+	parallel:	导入任务并行度, 即后台导入任务的数量
+	initial_db:	是否需要重建数据库
+	initial_tb:	是否需要重建分布式表
+ @example
+	file_dir = "/hdd/hdd2/data/xsm/csmar/"
+	data_types = ["snapshot","entrust","trade"]
+	db_name =  "dfs://level2_stock_db"
+	table_name = {
+		"snapshot": "snapshot",
+		"entrust": "entrust",
+		"trade": "trade"}
+	market = "SH"
+	start_date = NULL
+	end_date = NULL
+	parallel = 1
+	initial_db = false
+	auto_load_csmar_stock_data(file_dir, data_source, db_name, table_name, start_date, end_date, parallel, initial_db)
+*/
+def auto_load_csmar_stock_data(file_dir, data_types, 
+						db_name="dfs://level2_stock_db", table_name=NULL,
+						start_date=NULL, end_date=NULL, parallel=1, initial_db=false){
+
+	// 判断 dtypes 参数是否符合类型
+	if(typestr(data_types) like "%VECTOR%"){
+		dtypes = data_types
+	}else{
+		dtypes = [data_types]
+	}
+	data_type_values = ["snapshot", "entrust", "trade", "tick", "orderqueue"]
+	error_dtype = dtypes[!(string(dtypes) in data_type_values)]
+	dtypes = dtypes[string(dtypes) in data_type_values]
+	if(error_dtype.size()>0){
+		msg = stringFormat("数据源 [%W] 暂时不支持", concat(string(error_dtype), ","))
+		msg = write_log(msg, level="error")
+		return false
+	}
+	if(dtypes.size()>0){
+		msg = stringFormat("准备导入数据源 [%W]", concat(string(dtypes), ","))
+		msg = write_log(msg, level="info")
+	}else{
+		return false
+	}
+
+	// 确定分布式表的名称 tb_names
+	if(typestr(table_name)=="VOID"){
+		tb_names = dtypes
+	}else if(typestr(table_name)=="STRING" and size(dtypes)==1){
+		tb_names = take(table_name, size(dtypes))
+	}else if(typestr(table_name).strpos("DICTIONARY")!=-1){
+		tb_names = table_name[dtypes].flatten()
+		if(any(tb_names==NULL)){
+			msg = stringFormat("数据源 [%W] 未指定目标数据库名", concat(string(dtypes[tb_names==NULL]), ","))
+			msg = write_log(msg, level="error")
+			return false
+		}
+	}else{
+		msg = stringFormat("table_name 参数类型有误, 预期输入 NULL / STRING 类型(dataSource只有1个值)/ DICT 类型(key是dataSource)")
+		msg = write_log(msg, level="error")
+		return false
+	}
+
+	// 获取所有导入日期
+	file_dirs = get_file_date(file_dir, start_date, end_date) 
+	if(typestr(file_dirs)=="BOOL" or size(file_dirs)==0){ return false }
+	load_dates = temporalParse(string(right(file_dirs, 8)), "yyyyMMdd")
+
+	// 创建任务记录数据库表
+	msg = stringFormat("Start creating the job info database table.")
+	msg = write_log(msg, level="info")
+	task_status_db(iscreate=true)
+	msg = stringFormat("Job info database table created successfully.")
+	msg = write_log(msg, level="info")
+
+	// 创建行情数据库表
+	msg = stringFormat("Start creating the database [%W].", db_name)
+	msg = write_log(msg, level="info")
+	create_stock_db(db_name, initial=initial_db)
+	msg = stringFormat("database [%W] create successfully.", db_name)
+	msg = write_log(msg, level="info")
+	for(i in 0:size(tb_names)){	// i = 0
+		dtype = dtypes[i] // dtype = "orderqueue"
+		tb_name = tb_names[i]
+		
+		msg = stringFormat("Start creating the table [%W] in the database [%W].", tb_name, db_name)
+		msg = write_log(msg, level="info")
+		try{
+			funcByName("easy_csmar::stock::create_stock_tb::create_stock_" + dtype)(db_name, tb_name)
+		}catch(ex){
+			msg = stringFormat("%W:%W", string(ex[0]), string(ex[1]))
+			msg = write_log(msg, level="error")
+			return msg
+		}
+
+		// 将符合导入条件的日期的数据，在原来的数据库内删除（防止重复导入）
+		exist_date = (select count(*) from loadTable(db_name, tb_name) group by trade_date).trade_date
+		
+		target_date = load_dates[load_dates in exist_date]
+		if(size(target_date) > 0){
+			msg = stringFormat("Delete duplicate data in the database.")
+			msg = write_log(msg, level="info")
+			dropPartition(database(db_name), target_date, tableName=tb_name)
+		}
+	}
+
+	// 根据并行度拆分任务
+	my_cut = def(i, parallel, dirs){return dirs[rowNo(dirs)%parallel==i]}
+	file_lists = loop(my_cut{,parallel, file_dirs}, 0..(parallel-1))
+
+	// 提交导入任务
+	msg = stringFormat("Start loading the Csmar data.")
+	msg = write_log(msg, level="info")
+	jobid = rand(uuid(), 1)[0]
+	jobDesc = stringFormat("%W_%W_%W", concat(string(dtypes), "_"), temporalFormat(min(load_dates), "yyyyMMdd"), temporalFormat(max(load_dates), "yyyyMMdd"))
+	for(i in 0:size(file_lists)){//i = 0
+		file_list = file_lists[i]
+		if(typestr(file_list)=="ANY" or size(file_list)==0){ continue }
+		submitJob(jobDesc, string(jobid), load_days_stock_data{file_list, db_name, tb_names, dtypes})
+	}
+	return jobid
+}

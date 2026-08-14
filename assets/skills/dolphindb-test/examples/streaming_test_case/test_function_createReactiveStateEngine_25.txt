@@ -1,0 +1,912 @@
+
+/*ReactiveStateEngine support random length arrayVector*/
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_ex",exception=1
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`Price, [SYMBOL, TIMESTAMP, DOUBLE[]])
+output=table(1000:0, `sym`factor, [SYMBOL, DOUBLE])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMin(Price[-10:1030])>], dummyTable=dummy, outputTable=output, keyColumn="sym")
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_prepare"
+@state 
+def getRowfuncCalculate(rowfunc, colName){
+	//return rowfunc(colName)
+	return parseExpr(string(rowfunc)+"("+colName+")")
+}
+
+@state
+def getRowFuncSlice(rowfunc, colName){
+	//return rowfunc(colName[2:5])
+	return parseExpr(string(rowfunc)+"("+colName+"[2:5])")
+}
+
+def checkReactiveStateRowFunc(rowfunc, dtype1, dtype2, dtype3, data){
+	try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+	dummy=table(1000:0, `sym`timestampv`high`low`close`price, [SYMBOL, TIMESTAMP, INT, INT, INT, dtype1])
+	output=table(1000:0, `sym`factor1, [SYMBOL, dtype2])
+	//engine=createReactiveStateEngine(name="reactive", metrics=[<call(getRowfuncCalculate, rowfunc, Price)>], dummyTable=dummy, outputTable=output, keyColumn="sym")
+	m = getRowfuncCalculate(rowfunc, "price")
+	engine=createReactiveStateEngine(name="reactive", metrics=m, dummyTable=dummy, outputTable=output, keyColumn="sym")
+	dummy.append!(data)
+	engine.append!(dummy)
+	re=select * from output
+	ex=select sym, dtype3(rowfunc(price)) as factor1 from dummy 
+	return each(eqObj, re.values(), ex.values(), 6)
+}
+
+def checkReactiveStateRowFuncMultiKeyColumn(rowfunc, dtype1, dtype2, dtype3, data){
+	try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+	dummy=table(1000:0, `sym`timestampv`high`low`close`price, [SYMBOL, TIMESTAMP, INT, INT, INT, dtype1])
+	output=table(1000:0, `sym`timestampv`factor1, [SYMBOL, TIMESTAMP, dtype2])
+	//engine=createReactiveStateEngine(name="reactive", metrics=[<call(getRowfuncCalculate, rowfunc, Price)>], dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	m = getRowfuncCalculate(rowfunc, "price")
+	engine=createReactiveStateEngine(name="reactive", metrics=m, dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	dummy.append!(data)
+	engine.append!(dummy)
+	re=select * from output
+	ex=select sym, timestampv, dtype3(rowfunc(price)) as factor1 from dummy 
+	return each(eqObj, re.values(), ex.values(), 6)
+}
+
+def checkReactiveStateRowFuncSlice(rowfunc, dtype1, dtype2, dtype3, data){
+	try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+	dummy=table(1000:0, `sym`timestampv`high`low`close`price, [SYMBOL, TIMESTAMP, INT, INT, INT, dtype1])
+	output=table(1000:0, `sym`factor1, [SYMBOL, dtype2])
+	//engine=createReactiveStateEngine(name="reactive", metrics=[<call(getRowFuncSlice, rowfunc, Price)>], dummyTable=dummy, outputTable=output, keyColumn="sym")
+	m = getRowFuncSlice(rowfunc, "price")
+	engine=createReactiveStateEngine(name="reactive", metrics=m, dummyTable=dummy, outputTable=output, keyColumn="sym")
+	dummy.append!(data)
+	engine.append!(dummy)
+	re=select * from output
+	ex=select sym, dtype3(rowfunc(price[2:5])) as factor1 from dummy 
+	return each(eqObj, re.values(), ex.values(), 6)
+}
+
+def checkReactiveStateRowFuncMultiKeyColumnSlice(rowfunc, dtype1, dtype2, dtype3, data){
+	try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+	dummy=table(1000:0, `sym`timestampv`high`low`close`price, [SYMBOL, TIMESTAMP, INT, INT, INT, dtype1])
+	output=table(1000:0, `sym`timestampv`factor1, [SYMBOL, TIMESTAMP, dtype2])
+	//engine=createReactiveStateEngine(name="reactive", metrics=[<call(getRowFuncSlice, rowfunc, Price)>], dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	m = getRowFuncSlice(rowfunc, "price")
+	engine=createReactiveStateEngine(name="reactive", metrics=m, dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	dummy.append!(data)
+	engine.append!(dummy)
+	re=select * from output
+	ex=select sym, timestampv, dtype3(rowfunc(price[2:5])) as factor1 from dummy 
+	return each(eqObj, re.values(), ex.values(), 6)
+}
+
+def checkReactiveStateRowFuncMultiKeyColumnTypes(rowfunc, dtype1, data){
+	try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+	dummy=table(1000:0, `sym`timestampv`price, [SYMBOL, dtype1, DOUBLE[]])
+	output=table(1000:0, `sym`timestampv`fact, [SYMBOL, dtype1, DOUBLE])
+	//engine=createReactiveStateEngine(name="reactive", metrics=[<call(getRowfuncCalculate, rowfunc, price)>], dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	m=getRowfuncCalculate(rowfunc, "price")
+	engine=createReactiveStateEngine(name="reactive", metrics=m, dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+	dummy.append!(data)
+	engine.append!(dummy)
+	re=select * from output
+	ex=select sym, timestampv, double(rowfunc(price)) as factor1 from dummy 
+	return each(eqObj, re.values(), ex.values(), 6)
+}
+
+rowFunction=[rowMin, rowMax, rowSum, rowSum2, rowSize, rowCount, rowAvg, rowKurtosis, rowSkew, rowVarp, rowVar, rowStdp, rowStd]
+rowFuncLogical=[rowOr, rowAnd, rowXor]
+typeList=[DOUBLE[], FLOAT[], INT[], LONG[], SHORT[], CHAR[], TIMESTAMP[], TIME[], SECOND[], DATETIME[], DATE[], MINUTE[], MONTH[], NANOTIME[], NANOTIMESTAMP[], BOOL[]]
+dtypeList=[DOUBLE, FLOAT, INT, LONG, SHORT, CHAR, TIMESTAMP, TIME, SECOND, DATETIME, DATE, MINUTE, MONTH, NANOTIME, NANOTIMESTAMP]
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_in_function_all_null"
+n=1
+arr=array(DOUBLE[], 0, 10).append!([take(00i, 10)])
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=255
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+typestr(data)
+assert 3, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+typestr(data)
+assert 5, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1024
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+typestr(data)
+assert 7, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 8, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=65538
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+typestr(data)
+assert 9, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 10, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+dropStreamEngine("reactive")
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_in_function_part_null"
+n=1
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=255
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1024
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 7, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 8, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=65538
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 9, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 10, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+dropStreamEngine("reactive")
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_in_function_not_contain_null"
+n=1
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=255
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1024
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 7, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 8, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=65538
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 9, cross(checkReactiveStateRowFunc{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 10, each(checkReactiveStateRowFunc{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+dropStreamEngine("reactive")
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_in_function_rowProd"
+n=1000
+arr=rand([rand(rand(1.0, 10), rand(10, 1)[0]), rand(rand(1.0, 10), rand(100, 1)[0]), rand(rand(1.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, each(checkReactiveStateRowFunc{rowProd, , DOUBLE, double, data}, typeList)
+assert 2, checkReactiveStateRowFunc(rowProd, BOOL[], BOOL, bool, data)
+
+n=1000
+arr=rand([rand(rand(1.0, 10) join take(00i, 10), rand(10, 1)[0]), rand(rand(1.0, 10)  join take(00i, 10), rand(100, 1)[0]), rand(rand(1.0, 10)  join take(00i, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, each(checkReactiveStateRowFunc{rowProd, , DOUBLE, double, data}, typeList)
+assert 4, checkReactiveStateRowFunc(rowProd, BOOL[], BOOL, bool, data)
+
+n=1000
+arr=rand([take(00i, rand(10, 1)[0]), take(00i, rand(10, 1)[0]), take(00i, rand(10, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, each(checkReactiveStateRowFunc{rowProd, , DOUBLE, double, data}, typeList)
+assert 6, checkReactiveStateRowFunc(rowProd, BOOL[], BOOL, bool, data)
+dropStreamEngine("reactive")
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_in_function_MultiKeyColumn"
+n=1000
+arr=array(DOUBLE[], 0, 10).append!(rand([rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0]), rand(take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..20, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFuncMultiKeyColumn{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFuncMultiKeyColumn{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, cross(checkReactiveStateRowFuncMultiKeyColumn{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFuncMultiKeyColumn{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+arr=rand([rand(rand(1.0, 10), rand(100, 1)[0]), rand(rand(2.0, 10), rand(100, 1)[0]), rand(rand(-10..0, 10)\2, rand(10, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, cross(checkReactiveStateRowFuncMultiKeyColumn{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFuncMultiKeyColumn{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_slice"
+n=1
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1024
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 7, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 8, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 9, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 10, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1025
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 11, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 12, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 13, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 14, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 15, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 16, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1025
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 17, cross(checkReactiveStateRowFuncSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 18, each(checkReactiveStateRowFuncSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_slice_mutliKeyColumn"
+n=1
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 1, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 2, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..100, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 3, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 4, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1024
+arr=array(DOUBLE[], 0, 10).append!(rand([take(00i, 10)], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..100, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 5, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 6, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 7, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 8, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..100, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 9, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 10, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1025
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..100, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 11, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 12, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, take(1969.12.31T23:59:59.998+1..100, n) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 13, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 14, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1023
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 15, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 16, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+n=1025
+arr=rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n)
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr as price)
+assert 17, cross(checkReactiveStateRowFuncMultiKeyColumnSlice{, , DOUBLE, double, data}, rowFunction, typeList)
+assert 18, each(checkReactiveStateRowFuncMultiKeyColumnSlice{, BOOL[], BOOL, bool, data}, rowFuncLogical)
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_not_in_function"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price)>, <rowMax(Price)>, <rowAnd(Bprice)>, <rowOr(Bprice)>, <rowXor(Bprice)>, <rowProd(Price)>, <rowSum(Price)>, <rowSum2(Price)>, <rowSize(Price)>, <rowCount(Price)>, <rowAvg(Price)>, <rowKurtosis(Price)>, <rowSkew(Price)>, <rowVarp(Price)>, <rowVar(Price)>, <rowStdp(Price)>, <rowStd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price) as factor1, rowMax(price) as factor2, rowAnd(Bprice) as factor3, rowOr(Bprice) as factor4, rowXor(Bprice) as factor5, rowProd(price) as factor6, rowSum(price) as factor7, rowSum2(price) as factor8, rowSize(price) as factor9, rowCount(price) as factor10, rowAvg(price) as factor11, rowKurtosis(price) as factor12, rowSkew(price) as factor13, rowVarp(price) as factor14, rowVar(price) as factor15, rowStdp(price) as factor16, rowStd(price) as factor17 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..16), 16)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price)>, <rowMax(Price)>, <rowAnd(Bprice)>, <rowOr(Bprice)>, <rowXor(Bprice)>, <rowSum(Price)>, <rowSum2(Price)>, <rowSize(Price)>, <rowCount(Price)>, <rowAvg(Price)>, <rowKurtosis(Price)>, <rowSkew(Price)>, <rowVarp(Price)>, <rowVar(Price)>, <rowStdp(Price)>, <rowStd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0]), rand(rand(100.0, 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false], rand(100, 1)[0]), rand([true, false], rand(100, 1)[0]), rand([true, false], rand(100, 1)[0]), rand([true, false], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price) as factor1, rowMax(price) as factor2, rowAnd(Bprice) as factor3, rowOr(Bprice) as factor4, rowXor(Bprice) as factor5, rowSum(price) as factor7, rowSum2(price) as factor8, rowSize(price) as factor9, rowCount(price) as factor10, rowAvg(price) as factor11, rowKurtosis(price) as factor12, rowSkew(price) as factor13, rowVarp(price) as factor14, rowVar(price) as factor15, rowStdp(price) as factor16, rowStd(price) as factor17 from dummy 
+assert 2, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_not_in_function_rowProd"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor, [SYMBOL, DOUBLE])
+myMetricsList=[<rowProd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowProd(price) from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_slice_in_data"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:10])>, <rowMax(Price[0:10])>, <rowAnd(Bprice[0:10])>, <rowOr(Bprice[0:10])>, <rowXor(Bprice[0:10])>, <rowProd(Price[0:10])>, <rowSum(Price[0:10])>, <rowSum2(Price[0:10])>, <rowSize(Price[0:10])>, <rowCount(Price[0:10])>, <rowAvg(Price[0:10])>, <rowKurtosis(Price[0:10])>, <rowSkew(Price[0:10])>, <rowVarp(Price[0:10])>, <rowVar(Price[0:10])>, <rowStdp(Price[0:10])>, <rowStd(Price[0:10])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[0:10]) as factor1, rowMax(price[0:10]) as factor2, rowAnd(Bprice[0:10]) as factor3, rowOr(Bprice[0:10]) as factor4, rowXor(Bprice[0:10]) as factor5, rowProd(price[0:10]) as factor6, rowSum(price[0:10]) as factor7, rowSum2(price[0:10]) as factor8, rowSize(price[0:10]) as factor9, rowCount(price[0:10]) as factor10, rowAvg(price[0:10]) as factor11, rowKurtosis(price[0:10]) as factor12, rowSkew(price[0:10]) as factor13, rowVarp(price[0:10]) as factor14, rowVar(price[0:10]) as factor15, rowStdp(price[0:10]) as factor16, rowStd(price[0:10]) as factor17 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:10])>, <rowMax(Price[0:10])>, <rowAnd(Bprice[0:10])>, <rowOr(Bprice[0:10])>, <rowXor(Bprice[0:10])>, <rowProd(Price[0:10])>, <rowSum(Price[0:10])>, <rowSum2(Price[0:10])>, <rowSize(Price[0:10])>, <rowCount(Price[0:10])>, <rowAvg(Price[0:10])>, <rowKurtosis(Price[0:10])>, <rowSkew(Price[0:10])>, <rowVarp(Price[0:10])>, <rowVar(Price[0:10])>, <rowStdp(Price[0:10])>, <rowStd(Price[0:10])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[0:10]) as factor1, rowMax(price[0:10]) as factor2, rowAnd(Bprice[0:10]) as factor3, rowOr(Bprice[0:10]) as factor4, rowXor(Bprice[0:10]) as factor5, rowProd(price[0:10]) as factor6, rowSum(price[0:10]) as factor7, rowSum2(price[0:10]) as factor8, rowSize(price[0:10]) as factor9, rowCount(price[0:10]) as factor10, rowAvg(price[0:10]) as factor11, rowKurtosis(price[0:10]) as factor12, rowSkew(price[0:10]) as factor13, rowVarp(price[0:10]) as factor14, rowVar(price[0:10]) as factor15, rowStdp(price[0:10]) as factor16, rowStd(price[0:10]) as factor17 from dummy 
+assert 2, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:20])>, <rowMax(Price[0:20])>, <rowAnd(Bprice[0:20])>, <rowOr(Bprice[0:20])>, <rowXor(Bprice[0:20])>, <rowProd(Price[0:20])>, <rowSum(Price[0:20])>, <rowSum2(Price[0:20])>, <rowSize(Price[0:20])>, <rowCount(Price[0:20])>, <rowAvg(Price[0:20])>, <rowKurtosis(Price[0:20])>, <rowSkew(Price[0:20])>, <rowVarp(Price[0:20])>, <rowVar(Price[0:20])>, <rowStdp(Price[0:20])>, <rowStd(Price[0:20])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=1040
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[0:20]) as factor1, rowMax(price[0:20]) as factor2, rowAnd(Bprice[0:20]) as factor3, rowOr(Bprice[0:20]) as factor4, rowXor(Bprice[0:20]) as factor5, rowProd(price[0:20]) as factor6, rowSum(price[0:20]) as factor7, rowSum2(price[0:20]) as factor8, rowSize(price[0:20]) as factor9, rowCount(price[0:20]) as factor10, rowAvg(price[0:20]) as factor11, rowKurtosis(price[0:20]) as factor12, rowSkew(price[0:20]) as factor13, rowVarp(price[0:20]) as factor14, rowVar(price[0:20]) as factor15, rowStdp(price[0:20]) as factor16, rowStd(price[0:20]) as factor17 from dummy 
+assert 3, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:1024])>, <rowMax(Price[0:1024])>, <rowAnd(Bprice[0:1024])>, <rowOr(Bprice[0:1024])>, <rowXor(Bprice[0:1024])>, <rowProd(Price[0:1024])>, <rowSum(Price[0:1024])>, <rowSum2(Price[0:1024])>, <rowSize(Price[0:1024])>, <rowCount(Price[0:1024])>, <rowAvg(Price[0:1024])>, <rowKurtosis(Price[0:1024])>, <rowSkew(Price[0:1024])>, <rowVarp(Price[0:1024])>, <rowVar(Price[0:1024])>, <rowStdp(Price[0:1024])>, <rowStd(Price[0:1024])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=1025
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[0:1024]) as factor1, rowMax(price[0:1024]) as factor2, rowAnd(Bprice[0:1024]) as factor3, rowOr(Bprice[0:1024]) as factor4, rowXor(Bprice[0:1024]) as factor5, rowProd(price[0:1024]) as factor6, rowSum(price[0:1024]) as factor7, rowSum2(price[0:1024]) as factor8, rowSize(price[0:1024]) as factor9, rowCount(price[0:1024]) as factor10, rowAvg(price[0:1024]) as factor11, rowKurtosis(price[0:1024]) as factor12, rowSkew(price[0:1024]) as factor13, rowVarp(price[0:1024]) as factor14, rowVar(price[0:1024]) as factor15, rowStdp(price[0:1024]) as factor16, rowStd(price[0:1024]) as factor17 from dummy 
+assert 4, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:1030])>, <rowMax(Price[0:1030])>, <rowAnd(Bprice[0:1030])>, <rowOr(Bprice[0:1030])>, <rowXor(Bprice[0:1030])>, <rowProd(Price[0:1030])>, <rowSum(Price[0:1030])>, <rowSum2(Price[0:1030])>, <rowSize(Price[0:1030])>, <rowCount(Price[0:1030])>, <rowAvg(Price[0:1030])>, <rowKurtosis(Price[0:1030])>, <rowSkew(Price[0:1030])>, <rowVarp(Price[0:1030])>, <rowVar(Price[0:1030])>, <rowStdp(Price[0:1030])>, <rowStd(Price[0:1030])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=1040
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[0:1030]) as factor1, rowMax(price[0:1030]) as factor2, rowAnd(Bprice[0:1030]) as factor3, rowOr(Bprice[0:1030]) as factor4, rowXor(Bprice[0:1030]) as factor5, rowProd(price[0:1030]) as factor6, rowSum(price[0:1030]) as factor7, rowSum2(price[0:1030]) as factor8, rowSize(price[0:1030]) as factor9, rowCount(price[0:1030]) as factor10, rowAvg(price[0:1030]) as factor11, rowKurtosis(price[0:1030]) as factor12, rowSkew(price[0:1030]) as factor13, rowVarp(price[0:1030]) as factor14, rowVar(price[0:1030]) as factor15, rowStdp(price[0:1030]) as factor16, rowStd(price[0:1030]) as factor17 from dummy 
+assert 5, each(eqObj, re.values(), ex.values())
+
+// NULL : 100
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[NULL:100])>, <rowMax(Price[NULL:100])>, <rowAnd(Bprice[NULL:100])>, <rowOr(Bprice[NULL:100])>, <rowXor(Bprice[NULL:100])>, <rowProd(Price[NULL:100])>, <rowSum(Price[NULL:100])>, <rowSum2(Price[NULL:100])>, <rowSize(Price[NULL:100])>, <rowCount(Price[NULL:100])>, <rowAvg(Price[NULL:100])>, <rowKurtosis(Price[NULL:100])>, <rowSkew(Price[NULL:100])>, <rowVarp(Price[NULL:100])>, <rowVar(Price[NULL:100])>, <rowStdp(Price[NULL:100])>, <rowStd(Price[NULL:100])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=120
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[NULL:100]) as factor1, rowMax(price[NULL:100]) as factor2, rowAnd(Bprice[NULL:100]) as factor3, rowOr(Bprice[NULL:100]) as factor4, rowXor(Bprice[NULL:100]) as factor5, rowProd(price[NULL:100]) as factor6, rowSum(price[NULL:100]) as factor7, rowSum2(price[NULL:100]) as factor8, rowSize(price[NULL:100]) as factor9, rowCount(price[NULL:100]) as factor10, rowAvg(price[NULL:100]) as factor11, rowKurtosis(price[NULL:100]) as factor12, rowSkew(price[NULL:100]) as factor13, rowVarp(price[NULL:100]) as factor14, rowVar(price[NULL:100]) as factor15, rowStdp(price[NULL:100]) as factor16, rowStd(price[NULL:100]) as factor17 from dummy 
+assert 6, each(eqObj, re.values(), ex.values())
+
+// 10: NULL
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(10:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(10:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[10: NULL])>, <rowMax(Price[10: NULL])>, <rowAnd(Bprice[10: NULL])>, <rowOr(Bprice[10: NULL])>, <rowXor(Bprice[10: NULL])>, <rowProd(Price[10: NULL])>, <rowSum(Price[10: NULL])>, <rowSum2(Price[10: NULL])>, <rowSize(Price[10: NULL])>, <rowCount(Price[10: NULL])>, <rowAvg(Price[10: NULL])>, <rowKurtosis(Price[10: NULL])>, <rowSkew(Price[10: NULL])>, <rowVarp(Price[10: NULL])>, <rowVar(Price[10: NULL])>, <rowStdp(Price[10: NULL])>, <rowStd(Price[10: NULL])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[10: NULL]) as factor1, rowMax(price[10: NULL]) as factor2, rowAnd(Bprice[10: NULL]) as factor3, rowOr(Bprice[10: NULL]) as factor4, rowXor(Bprice[10: NULL]) as factor5, rowProd(price[10: NULL]) as factor6, rowSum(price[10: NULL]) as factor7, rowSum2(price[10: NULL]) as factor8, rowSize(price[10: NULL]) as factor9, rowCount(price[10: NULL]) as factor10, rowAvg(price[10: NULL]) as factor11, rowKurtosis(price[10: NULL]) as factor12, rowSkew(price[10: NULL]) as factor13, rowVarp(price[10: NULL]) as factor14, rowVar(price[10: NULL]) as factor15, rowStdp(price[10: NULL]) as factor16, rowStd(price[10: NULL]) as factor17 from dummy 
+assert 7, each(eqObj, re.values(), ex.values())
+
+//NULL:NULL
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(10:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(10:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[NULL:NULL])>, <rowMax(Price[NULL:NULL])>, <rowAnd(Bprice[NULL:NULL])>, <rowOr(Bprice[NULL:NULL])>, <rowXor(Bprice[NULL:NULL])>, <rowProd(Price[NULL:NULL])>, <rowSum(Price[NULL:NULL])>, <rowSum2(Price[NULL:NULL])>, <rowSize(Price[NULL:NULL])>, <rowCount(Price[NULL:NULL])>, <rowAvg(Price[NULL:NULL])>, <rowKurtosis(Price[NULL:NULL])>, <rowSkew(Price[NULL:NULL])>, <rowVarp(Price[NULL:NULL])>, <rowVar(Price[NULL:NULL])>, <rowStdp(Price[NULL:NULL])>, <rowStd(Price[NULL:NULL])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMin(price[NULL:NULL]) as factor1, rowMax(price[NULL:NULL]) as factor2, rowAnd(Bprice[NULL:NULL]) as factor3, rowOr(Bprice[NULL:NULL]) as factor4, rowXor(Bprice[NULL:NULL]) as factor5, rowProd(price[NULL:NULL]) as factor6, rowSum(price[NULL:NULL]) as factor7, rowSum2(price[NULL:NULL]) as factor8, rowSize(price[NULL:NULL]) as factor9, rowCount(price[NULL:NULL]) as factor10, rowAvg(price[NULL:NULL]) as factor11, rowKurtosis(price[NULL:NULL]) as factor12, rowSkew(price[NULL:NULL]) as factor13, rowVarp(price[NULL:NULL]) as factor14, rowVar(price[NULL:NULL]) as factor15, rowStdp(price[NULL:NULL]) as factor16, rowStd(price[NULL:NULL]) as factor17 from dummy 
+assert 8, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_slice_in_data_MultiKeyColumn"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:10])>, <rowMax(Price[0:10])>, <rowAnd(Bprice[0:10])>, <rowOr(Bprice[0:10])>, <rowXor(Bprice[0:10])>, <rowProd(Price[0:10])>, <rowSum(Price[0:10])>, <rowSum2(Price[0:10])>, <rowSize(Price[0:10])>, <rowCount(Price[0:10])>, <rowAvg(Price[0:10])>, <rowKurtosis(Price[0:10])>, <rowSkew(Price[0:10])>, <rowVarp(Price[0:10])>, <rowVar(Price[0:10])>, <rowStdp(Price[0:10])>, <rowStd(Price[0:10])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", `timestampv])
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, timestampv, rowMin(price[0:10]) as factor1, rowMax(price[0:10]) as factor2, rowAnd(Bprice[0:10]) as factor3, rowOr(Bprice[0:10]) as factor4, rowXor(Bprice[0:10]) as factor5, rowProd(price[0:10]) as factor6, rowSum(price[0:10]) as factor7, rowSum2(price[0:10]) as factor8, rowSize(price[0:10]) as factor9, rowCount(price[0:10]) as factor10, rowAvg(price[0:10]) as factor11, rowKurtosis(price[0:10]) as factor12, rowSkew(price[0:10]) as factor13, rowVarp(price[0:10]) as factor14, rowVar(price[0:10]) as factor15, rowStdp(price[0:10]) as factor16, rowStd(price[0:10]) as factor17 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:100])>, <rowMax(Price[0:100])>, <rowAnd(Bprice[0:100])>, <rowOr(Bprice[0:100])>, <rowXor(Bprice[0:100])>, <rowProd(Price[0:100])>, <rowSum(Price[0:100])>, <rowSum2(Price[0:100])>, <rowSize(Price[0:100])>, <rowCount(Price[0:100])>, <rowAvg(Price[0:100])>, <rowKurtosis(Price[0:100])>, <rowSkew(Price[0:100])>, <rowVarp(Price[0:100])>, <rowVar(Price[0:100])>, <rowStdp(Price[0:100])>, <rowStd(Price[0:100])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", `timestampv])
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, timestampv, rowMin(price[0:100]) as factor1, rowMax(price[0:100]) as factor2, rowAnd(Bprice[0:100]) as factor3, rowOr(Bprice[0:100]) as factor4, rowXor(Bprice[0:100]) as factor5, rowProd(price[0:100]) as factor6, rowSum(price[0:100]) as factor7, rowSum2(price[0:100]) as factor8, rowSize(price[0:100]) as factor9, rowCount(price[0:100]) as factor10, rowAvg(price[0:100]) as factor11, rowKurtosis(price[0:100]) as factor12, rowSkew(price[0:100]) as factor13, rowVarp(price[0:100]) as factor14, rowVar(price[0:100]) as factor15, rowStdp(price[0:100]) as factor16, rowStd(price[0:100]) as factor17 from dummy 
+assert 2, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:10])>, <rowMax(Price[0:10])>, <rowAnd(Bprice[0:10])>, <rowOr(Bprice[0:10])>, <rowXor(Bprice[0:10])>, <rowProd(Price[0:10])>, <rowSum(Price[0:10])>, <rowSum2(Price[0:10])>, <rowSize(Price[0:10])>, <rowCount(Price[0:10])>, <rowAvg(Price[0:10])>, <rowKurtosis(Price[0:10])>, <rowSkew(Price[0:10])>, <rowVarp(Price[0:10])>, <rowVar(Price[0:10])>, <rowStdp(Price[0:10])>, <rowStd(Price[0:10])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", `timestampv])
+n=1040
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, timestampv, rowMin(price[0:10]) as factor1, rowMax(price[0:10]) as factor2, rowAnd(Bprice[0:10]) as factor3, rowOr(Bprice[0:10]) as factor4, rowXor(Bprice[0:10]) as factor5, rowProd(price[0:10]) as factor6, rowSum(price[0:10]) as factor7, rowSum2(price[0:10]) as factor8, rowSize(price[0:10]) as factor9, rowCount(price[0:10]) as factor10, rowAvg(price[0:10]) as factor11, rowKurtosis(price[0:10]) as factor12, rowSkew(price[0:10]) as factor13, rowVarp(price[0:10]) as factor14, rowVar(price[0:10]) as factor15, rowStdp(price[0:10]) as factor16, rowStd(price[0:10]) as factor17 from dummy 
+assert 3, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:1024])>, <rowMax(Price[0:1024])>, <rowAnd(Bprice[0:1024])>, <rowOr(Bprice[0:1024])>, <rowXor(Bprice[0:1024])>, <rowProd(Price[0:1024])>, <rowSum(Price[0:1024])>, <rowSum2(Price[0:1024])>, <rowSize(Price[0:1024])>, <rowCount(Price[0:1024])>, <rowAvg(Price[0:1024])>, <rowKurtosis(Price[0:1024])>, <rowSkew(Price[0:1024])>, <rowVarp(Price[0:1024])>, <rowVar(Price[0:1024])>, <rowStdp(Price[0:1024])>, <rowStd(Price[0:1024])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", `timestampv])
+n=1040
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, timestampv, rowMin(price[0:1024]) as factor1, rowMax(price[0:1024]) as factor2, rowAnd(Bprice[0:1024]) as factor3, rowOr(Bprice[0:1024]) as factor4, rowXor(Bprice[0:1024]) as factor5, rowProd(price[0:1024]) as factor6, rowSum(price[0:1024]) as factor7, rowSum2(price[0:1024]) as factor8, rowSize(price[0:1024]) as factor9, rowCount(price[0:1024]) as factor10, rowAvg(price[0:1024]) as factor11, rowKurtosis(price[0:1024]) as factor12, rowSkew(price[0:1024]) as factor13, rowVarp(price[0:1024]) as factor14, rowVar(price[0:1024]) as factor15, rowStdp(price[0:1024]) as factor16, rowStd(price[0:1024]) as factor17 from dummy 
+assert 4, each(eqObj, re.values(), ex.values())
+
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:1030])>, <rowMax(Price[0:1030])>, <rowAnd(Bprice[0:1030])>, <rowOr(Bprice[0:1030])>, <rowXor(Bprice[0:1030])>, <rowProd(Price[0:1030])>, <rowSum(Price[0:1030])>, <rowSum2(Price[0:1030])>, <rowSize(Price[0:1030])>, <rowCount(Price[0:1030])>, <rowAvg(Price[0:1030])>, <rowKurtosis(Price[0:1030])>, <rowSkew(Price[0:1030])>, <rowVarp(Price[0:1030])>, <rowVar(Price[0:1030])>, <rowStdp(Price[0:1030])>, <rowStd(Price[0:1030])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", `timestampv])
+n=1040
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, timestampv, rowMin(price[0:1030]) as factor1, rowMax(price[0:1030]) as factor2, rowAnd(Bprice[0:1030]) as factor3, rowOr(Bprice[0:1030]) as factor4, rowXor(Bprice[0:1030]) as factor5, rowProd(price[0:1030]) as factor6, rowSum(price[0:1030]) as factor7, rowSum2(price[0:1030]) as factor8, rowSize(price[0:1030]) as factor9, rowCount(price[0:1030]) as factor10, rowAvg(price[0:1030]) as factor11, rowKurtosis(price[0:1030]) as factor12, rowSkew(price[0:1030]) as factor13, rowVarp(price[0:1030]) as factor14, rowVar(price[0:1030]) as factor15, rowStdp(price[0:1030]) as factor16, rowStd(price[0:1030]) as factor17 from dummy 
+assert 5, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_append_multiTimes"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+expected=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price)>, <rowMax(Price)>, <rowAnd(Bprice)>, <rowOr(Bprice)>, <rowXor(Bprice)>, <rowProd(Price)>, <rowSum(Price)>, <rowSum2(Price)>, <rowSize(Price)>, <rowCount(Price)>, <rowAvg(Price)>, <rowKurtosis(Price)>, <rowSkew(Price)>, <rowVarp(Price)>, <rowVar(Price)>, <rowStdp(Price)>, <rowStd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+for (i in 1..10){
+	print(i)
+	dummy.append!(data)
+	engine.append!(data)
+	re=select * from output
+	ex=select sym, rowMin(price) as factor1, rowMax(price) as factor2, rowAnd(Bprice) as factor3, rowOr(Bprice) as factor4, rowXor(Bprice) as factor5, rowProd(price) as factor6, rowSum(price) as factor7, rowSum2(price) as factor8, rowSize(price) as factor9, rowCount(price) as factor10, rowAvg(price) as factor11, rowKurtosis(price) as factor12, rowSkew(price) as factor13, rowVarp(price) as factor14, rowVar(price) as factor15, rowStdp(price) as factor16, rowStd(price) as factor17 from dummy 
+	assert 1, each(eqObj, re.values(), ex.values())
+}
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_append_tuple"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`Price`Bprice, [SYMBOL, TIMESTAMP, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price)>, <rowMax(Price)>, <rowAnd(Bprice)>, <rowOr(Bprice)>, <rowXor(Bprice)>, <rowProd(Price)>, <rowSum(Price)>, <rowSum2(Price)>, <rowSize(Price)>, <rowCount(Price)>, <rowAvg(Price)>, <rowKurtosis(Price)>, <rowSkew(Price)>, <rowVarp(Price)>, <rowVar(Price)>, <rowStdp(Price)>, <rowStd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+
+insert into engine values("A", 1970.01.01T00:00:00.001, array(DOUBLE[], 0, 10).append!([[1.23, -0.23, NULL, 2.34]]), array(BOOL[], 0, 10).append!([[true, false]]))
+insert into engine values("A", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[1.2354, NULL]]), array(BOOL[], 0, 10).append!([[true, NULL, false, true]]))
+insert into engine values("B", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[NULL, 1.23546, -9.5846, NULL]]), array(BOOL[], 0, 10).append!([[true, true, NULL]]))
+insert into engine values("A", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[2.3654, 2.36546, 52.314685]]), array(BOOL[], 0, 10).append!([[true, NULL]]))
+insert into engine values("B", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([take(00f, 1)]), array(BOOL[], 0, 10).append!([[true, NULL, false]]))
+
+// insert into dummy
+insert into dummy values("A", 1970.01.01T00:00:00.001, array(DOUBLE[], 0, 10).append!([[1.23, -0.23, NULL, 2.34]]), array(BOOL[], 0, 10).append!([[true, false]]))
+insert into dummy values("A", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[1.2354, NULL]]), array(BOOL[], 0, 10).append!([[true, NULL, false, true]]))
+insert into dummy values("B", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[NULL, 1.23546, -9.5846, NULL]]), array(BOOL[], 0, 10).append!([[true, true, NULL]]))
+insert into dummy values("A", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([[2.3654, 2.36546, 52.314685]]), array(BOOL[], 0, 10).append!([[true, NULL]]))
+insert into dummy values("B", 1970.01.01T00:00:00.002, array(DOUBLE[], 0, 10).append!([take(00f, 1)]), array(BOOL[], 0, 10).append!([[true, NULL, false]]))
+re=select * from output
+ex=select sym, rowMin(price) as factor1, rowMax(price) as factor2, rowAnd(Bprice) as factor3, rowOr(Bprice) as factor4, rowXor(Bprice) as factor5, rowProd(price) as factor6, rowSum(price) as factor7, rowSum2(price) as factor8, rowSize(price) as factor9, rowCount(price) as factor10, rowAvg(price) as factor11, rowKurtosis(price) as factor12, rowSkew(price) as factor13, rowVarp(price) as factor14, rowVar(price) as factor15, rowStdp(price) as factor16, rowStd(price) as factor17 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_bigData"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+expected=table(1000:0, `sym`timestampv`high`low`close`Price`Bprice, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym join factorList, [SYMBOL, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price)>, <rowMax(Price)>, <rowAnd(Bprice)>, <rowOr(Bprice)>, <rowXor(Bprice)>, <rowProd(Price)>, <rowSum(Price)>, <rowSum2(Price)>, <rowSize(Price)>, <rowCount(Price)>, <rowAvg(Price)>, <rowKurtosis(Price)>, <rowSkew(Price)>, <rowVarp(Price)>, <rowVar(Price)>, <rowStdp(Price)>, <rowStd(Price)>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn="sym")
+n=3000000
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price, arr2 as Bprice)
+dummy.append!(data)
+engine.append!(data)
+re=select * from output
+ex=select sym, rowMin(price) as factor1, rowMax(price) as factor2, rowAnd(Bprice) as factor3, rowOr(Bprice) as factor4, rowXor(Bprice) as factor5, rowProd(price) as factor6, rowSum(price) as factor7, rowSum2(price) as factor8, rowSize(price) as factor9, rowCount(price) as factor10, rowAvg(price) as factor11, rowKurtosis(price) as factor12, rowSkew(price) as factor13, rowVarp(price) as factor14, rowVar(price) as factor15, rowStdp(price) as factor16, rowStd(price) as factor17 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_bigData_slice"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`Price`Bprice, [SYMBOL, TIMESTAMP, DOUBLE[], BOOL[]])
+factorList=take(`factor + string(1..17), 17)
+output=table(1000:0, `sym`timestampv join factorList, [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, BOOL, BOOL, BOOL, DOUBLE, DOUBLE, DOUBLE, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE,DOUBLE, DOUBLE])
+myMetricsList=[<rowMin(Price[0:10])>, <rowMax(Price[0:10])>, <rowAnd(Bprice[0:10])>, <rowOr(Bprice[0:10])>, <rowXor(Bprice[0:10])>, <rowProd(Price[0:10])>, <rowSum(Price[0:10])>, <rowSum2(Price[0:10])>, <rowSize(Price[0:10])>, <rowCount(Price[0:10])>, <rowAvg(Price[0:10])>, <rowKurtosis(Price[0:10])>, <rowSkew(Price[0:10])>, <rowVarp(Price[0:10])>, <rowVar(Price[0:10])>, <rowStdp(Price[0:10])>, <rowStd(Price[0:10])>]
+engine=createReactiveStateEngine(name="reactive", metrics=myMetricsList, dummyTable=dummy, outputTable=output, keyColumn=["sym", "timestampv"])
+n=10
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join (rand(-100..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+arr2=array(BOOL[], 0, n).append!(rand([rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0]), rand([true, false, NULL], rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(-100..100, n))) as timestampv, arr1 as Price, arr2 as BPrice)
+dummy.append!(data)
+engine.append!(data)
+re=select * from output order by sym, timestampv
+ex=select sym, timestampv, rowMin(Price[0:10]) as factor1, rowMax(Price[0:10]) as factor2, rowAnd(BPrice[0:10]) as factor3, rowOr(BPrice[0:10]) as factor4, rowXor(BPrice[0:10]) as factor5, rowProd(Price[0:10]) as factor6, rowSum(Price[0:10]) as factor7, rowSum2(Price[0:10]) as factor8, rowSize(Price[0:10]) as factor9, rowCount(Price[0:10]) as factor10, rowAvg(Price[0:10]) as factor11, rowKurtosis(Price[0:10]) as factor12, rowSkew(Price[0:10]) as factor13, rowVarp(Price[0:10]) as factor14, rowVar(Price[0:10]) as factor15, rowStdp(Price[0:10]) as factor16, rowStd(Price[0:10]) as factor17 from dummy order by sym, timestampv
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_multiKeyColumn_different_types"
+n=1000
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(rand(-100..100, n)) as timestampv, arr as price)
+assert 1, cross(checkReactiveStateRowFuncMultiKeyColumnTypes{, , data}, rowFunction, dtypeList)
+
+n=1030
+arr=array(DOUBLE[], 0, n).append!(rand([rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0]), rand(rand(100.0, 10) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(rand(-100..100, n)) as timestampv, arr as price)
+assert 2, cross(checkReactiveStateRowFuncMultiKeyColumnTypes{, , data}, rowFunction, dtypeList)
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_support_random_length_arrayvector_time_before_1970"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor, [SYMBOL, DOUBLE])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMax(price) from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_support_random_length_arrayvector_time_arithmetic_operation"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8`factor9, [SYMBOL, DOUBLE, DOUBLE[], DOUBLE[], DOUBLE[], DOUBLE[], DOUBLE[], DOUBLE[], DOUBLE[], DOUBLE[]])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>, <Price+Price>, <Price+close>, <Price-close>, <Price*close>, <Price/close>, <Price+2>, <2+Price>, <Price+NULL>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMax(price), price+price as factor2, price+close as factor3, price-close as factor4, price*close as factor5, price/close as factor6, price+2 as factor7, 2+price as factor8, price+NULL as factor9 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_support_random_length_arrayvector_time_compare_operation"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [SYMBOL, DOUBLE, DOUBLE[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[]])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>, <Price>, <Price>10>, <Price>=10>, <Price!=10>, <Price==10>, <Price<10>, <Price<=10>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMax(price) as factor1, price as factor2, price>10 as factor3, price>=10 as factor4, price!=10 as factor5, price==10 as factor6, price<10 as factor7, price<=10 as factor8 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="test_function_createReactiveStateEngine_support_random_length_arrayvector_time_compare_with_null"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [SYMBOL, DOUBLE, DOUBLE[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[]])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>, <Price>, <Price>NULL>, <Price>=NULL>, <Price!=NULL>, <Price==NULL>, <Price<NULL>, <Price<=NULL>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+engine.append!(dummy)
+re=select * from output
+ex=select sym, rowMax(price) as factor1, price as factor2, price>NULL as factor3, price>=NULL as factor4, price!=NULL as factor5, price==NULL as factor6, price<NULL as factor7, price<=NULL as factor8 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+dropStreamEngine("reactive")
+engine=NULL 
+
+@testing:case="test_function_createReactiveStateEngine_rowfunction_in_no_state_function"
+setRandomSeed(27)
+perSym = 5      
+symSize = 2 
+sym = take(`a, perSym) join take(`b, perSym)
+BuyPrice1 = 3.5 + rand(1.0, perSym*symSize)
+BuyPrice2 = 2.5 + rand(1.0, perSym*symSize)
+BuyPrice3 = 1.5 + rand(1.0, perSym*symSize)
+BuyPrice4 = 4.5 + rand(1.0, perSym*symSize)
+BuyBOOL1 = rand([true, false, NULL], perSym*symSize)
+BuyBOOL2 = rand([true, false, NULL], perSym*symSize)
+BuyBOOL3 = rand([true, false, NULL], perSym*symSize)
+BuyBOOL4 = rand([true, false, NULL], perSym*symSize)
+Price1 = fixedLengthArrayVector(BuyPrice1, BuyPrice2, BuyPrice3, BuyPrice4)
+Price2 = fixedLengthArrayVector(BuyBOOL1, BuyBOOL2, BuyBOOL3, BuyBOOL4)
+data1=table(sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, perSym*symSize))) as timestampv, Price1)
+data2=table(sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, perSym*symSize))) as timestampv, Price2)
+
+def myRowFunction(funcName, Price){
+	//return funcName(Price)
+	return parseExpr(string(funcName)+"("+Price+")")
+}
+
+def checkNotStateFunction1(data, funcName){
+	try{dropStreamEngine("reactive")} catch(ex){ print(ex) }
+	dummy=table(1000:0, `sym`timestampv`Price1, [SYMBOL, TIMESTAMP, DOUBLE[]])
+	output=table(1000:0, `sym`timestampv`factor1, [SYMBOL, TIMESTAMP, DOUBLE])
+	//engine = createReactiveStateEngine(name="reactive", metrics=<[timestampv, call(myRowFunction, funcName, Price1)]>, dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine = createReactiveStateEngine(name="reactive", metrics=[<timestampv>, myRowFunction(funcName, "Price1")], dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine.append!(data)
+	re=select * from output 
+	ex=sql(select=(sqlCol(`sym), sqlCol(`timestampv), sqlColAlias(myRowFunction(funcName, "Price1"), `factor1)), from=data, groupBy=sqlCol(`sym), groupFlag=0).eval()
+	return each(eqObj, re.values(), ex.values())
+}
+
+def checkNotStateFunction2(data, funcName){
+	try{dropStreamEngine("reactive")} catch(ex){ print(ex) }
+	dummy=table(1000:0, `sym`timestampv`Price1, [SYMBOL, TIMESTAMP, DOUBLE[]])
+	output=table(1000:0, `sym`timestampv`factor1, [SYMBOL, TIMESTAMP, INT])
+	//engine = createReactiveStateEngine(name="reactive", metrics=<[timestampv, call(myRowFunction, funcName, Price1)]>, dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine = createReactiveStateEngine(name="reactive", metrics=[<timestampv>, myRowFunction(funcName, "Price1")], dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine.append!(data)
+	re=select * from output
+	ex=sql(select=(sqlCol(`sym), sqlCol(`timestampv), sqlColAlias(myRowFunction(funcName, "Price1"), `factor1)), from=data, groupBy=sqlCol(`sym), groupFlag=0).eval()
+	return each(eqObj, re.values(), ex.values())
+}
+
+def checkNotStateFunction3(data, funcName){
+	try{dropStreamEngine("reactive")} catch(ex){ print(ex) }
+	dummy=table(1000:0, `sym`timestampv`Price2, [SYMBOL, TIMESTAMP, BOOL[]])
+	output=table(1000:0, `sym`timestampv`factor1, [SYMBOL, TIMESTAMP, BOOL])
+	//engine = createReactiveStateEngine(name="reactive", metrics=<[timestampv, call(myRowFunction, funcName, Price2)]>, dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine = createReactiveStateEngine(name="reactive", metrics=[<timestampv>, myRowFunction(funcName, "Price2")], dummyTable=dummy, outputTable=output, keyColumn="sym")
+	engine.append!(data)
+	re=select * from output
+	ex=sql(select=(sqlCol(`sym), sqlCol(`timestampv), sqlColAlias(myRowFunction(funcName, "Price2"), `factor1)), from=data, groupBy=sqlCol(`sym), groupFlag=0).eval()
+	return each(eqObj, re.values(), ex.values())
+}
+
+assert 1, each(checkNotStateFunction1{data1, }, [rowMin, rowMax, rowSum, rowSum2,  rowAvg, rowKurtosis, rowSkew, rowVarp, rowVar, rowStdp, rowStd])
+assert 2, each(checkNotStateFunction2{data1, }, [rowSize, rowCount])
+assert 3, each(checkNotStateFunction3{data2, }, [rowOr, rowAnd, rowXor])
+
+@testing:case="test_function_createReactiveStateEngine_cal_arrayVector_tableInsert_tuple_ex", exception=1
+try{dropAggregator("test")}catch(ex){}
+share streamTable(1:0, `DateTime`SecurityID`Trade, [TIMESTAMP, SYMBOL, INT[]]) as tradesTable
+outputTable = table(1000:0, `SecurityID`DateTime`Trade, [SYMBOL, TIMESTAMP, INT])
+engine = createReactiveStateEngine(name="test", metrics = [<DateTime>, <Trade>], dummyTable=tradesTable, outputTable=outputTable, keyColumn=["SecurityID"])
+tableInsert(engine, [2022.09.15T09:00:00.001, 2022.09.15T09:00:00.002, 2022.09.15T09:00:00.003, 2022.09.15T09:00:00.004], ["600021", "600021", "600023", "600021"], [[12], [12], [12], [12]])
+
+@testing:case="test_function_createReactiveStateEngine_cal_arrayVector_tableInsert_tuple"
+try{dropAggregator("test")}catch(ex){}
+share streamTable(1:0, `DateTime`SecurityID`Trade, [TIMESTAMP, SYMBOL, INT[]]) as tradesTable
+outputTable = table(1000:0, `SecurityID`DateTime`Trade, [SYMBOL, TIMESTAMP, INT[]])
+engine = createReactiveStateEngine(name="test", metrics = [<DateTime>, <Trade>], dummyTable=tradesTable, outputTable=outputTable, keyColumn=["SecurityID"])
+tableInsert(engine, [2022.09.15T09:00:00.001, 2022.09.15T09:00:00.002, 2022.09.15T09:00:00.003, 2022.09.15T09:00:00.004], ["600021", "600021", "600023", "600021"], [[12], [12], [12], [12]])
+
+re = select * from outputTable
+arr = array(INT[], 0, 10).append!([[12], [12], [12], [12]])
+ex = table(["600021", "600021", "600023", "600021"] as SecurityID, [2022.09.15T09:00:00.001, 2022.09.15T09:00:00.002, 2022.09.15T09:00:00.003, 2022.09.15T09:00:00.004] as DateTime, arr as Trade)
+assert 1, each(eqObj, re.values(), ex.values())
+try{dropAggregator("test")}catch(ex){}
+engine = NULL
+try{dropStreamTable("tradesTable")}catch(ex){}
+
+@testing:case="test_function_createReactiveStateEngine_cal_arrayVector_tableInsert_tuple_singleData"
+try{dropAggregator("test")}catch(ex){}
+share streamTable(1:0, `DateTime`SecurityID`Trade, [TIMESTAMP, SYMBOL, INT[]]) as tradesTable
+outputTable = table(1000:0, `SecurityID`DateTime`Trade, [SYMBOL, TIMESTAMP, INT[]])
+engine = createReactiveStateEngine(name="test", metrics = [<DateTime>, <Trade>], dummyTable=tradesTable, outputTable=outputTable, keyColumn=["SecurityID"])
+tableInsert(engine, [2022.09.15T09:00:00.001], ["600021"], [[12]])
+
+re = select * from outputTable
+arr = array(INT[], 0, 10).append!([[12]])
+ex = table(["600021"] as SecurityID, [2022.09.15T09:00:00.001] as DateTime, arr as Trade)
+assert 1, each(eqObj, re.values(), ex.values())
+try{dropAggregator("test")}catch(ex){}
+engine = NULL
+try{dropStreamTable("tradesTable")}catch(ex){}
+
+@testing:case="test_function_createReactiveStateEngine_support_random_length_arrayvector_tableInsert_table"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [SYMBOL, DOUBLE, DOUBLE[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[]])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>, <Price>, <Price>NULL>, <Price>=NULL>, <Price!=NULL>, <Price==NULL>, <Price<NULL>, <Price<=NULL>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+tableInsert(engine, dummy)
+
+re=select * from output
+ex=select sym, rowMax(price) as factor1, price as factor2, price>NULL as factor3, price>=NULL as factor4, price!=NULL as factor5, price==NULL as factor6, price<NULL as factor7, price<=NULL as factor8 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+dropStreamEngine("reactive")
+engine=NULL 
+
+@testing:case="test_function_createReactiveStateEngine_support_random_length_arrayvector_tableInsert_dict"
+try{dropStreamEngine("reactive")}catch(ex){print(ex)}
+dummy=table(1000:0, `sym`timestampv`high`low`close`Price, [SYMBOL, TIMESTAMP, INT, INT, INT, DOUBLE[]])
+output=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [SYMBOL, DOUBLE, DOUBLE[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[], BOOL[]])
+engine=createReactiveStateEngine(name="reactive", metrics=[<rowMax(Price)>, <Price>, <Price>NULL>, <Price>=NULL>, <Price!=NULL>, <Price==NULL>, <Price<NULL>, <Price<=NULL>], dummyTable=dummy, outputTable=output, keyColumn="sym", keepOrder=true)
+
+n=100
+arr1=array(DOUBLE[], 0, n).append!(rand([rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(10, 1)[0]), rand(rand(10.0, 10) join (rand(-10..0, 10)\3) join take(double(), 10), rand(100, 1)[0])], n))
+data=table(take(`APLSBJ + string(1..10), n) as sym, sort(timestamp(rand(1969.12.31T12:23:56+1..100, n))) as timestampv, rand(rand(-100..100, 10) join take(00i, 10), n) as high, rand(rand(-100..100, 10) join take(00i, 10), n) as low, rand(rand(-100..100, 10) join take(00i, 10), n) as close, arr1 as price)
+dummy.append!(data)
+tableInsert(engine, dict(`sym`timestampv`high`low`close`Price , [dummy["sym"], dummy["timestampv"], dummy["high"], dummy["low"], dummy["close"], dummy["Price"]]))
+
+re=select * from output
+ex=select sym, rowMax(price) as factor1, price as factor2, price>NULL as factor3, price>=NULL as factor4, price!=NULL as factor5, price==NULL as factor6, price<NULL as factor7, price<=NULL as factor8 from dummy 
+assert 1, each(eqObj, re.values(), ex.values())
+dropStreamEngine("reactive")
+engine=NULL 
+
+@testing:case="test_function_createReactiveStateEngine_cal_arrayVector_insert_into_subarray"
+try{dropAggregator("test")}catch(ex){}
+share streamTable(1:0, `DateTime`SecurityID`Trade, [TIMESTAMP, SYMBOL, INT[]]) as tradesTable
+outputTable = table(1000:0, `SecurityID`DateTime`Trade, [SYMBOL, TIMESTAMP, INT[]])
+engine = createReactiveStateEngine(name="test", metrics = [<DateTime>, <Trade>], dummyTable=tradesTable, outputTable=outputTable, keyColumn=["SecurityID"])
+
+timev = subarray([2022.09.15T09:00:00.001, 2022.09.15T09:00:00.002, 2022.09.15T09:00:00.003, 2022.09.15T09:00:00.004], 0:4)
+symv = subarray(["600021", "600021", "600023", "600021"], 0:4)
+arr = array(INT[], 0, 10).append!([[12], [12], [12], [12]])
+insert into engine values(timev, symv, arr)
+
+re = select * from outputTable
+ex = table(symv as SecurityID, timev as DateTime, arr as Trade)
+assert 1, each(eqObj, re.values(), ex.values())
+try{dropAggregator("test")}catch(ex){}
+engine = NULL
+try{dropStreamTable("tradesTable")}catch(ex){}
+try{undef("tradesTable",SHARED)}catch(ex){}

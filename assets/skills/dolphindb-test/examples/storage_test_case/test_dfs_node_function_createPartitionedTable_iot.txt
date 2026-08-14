@@ -1,0 +1,307 @@
+
+login(`admin,`123456)
+
+n=1000000
+ID=rand(10, n)
+x1=double(rand(100, n))
+x2=bool(rand(100, n))
+x3=float(rand(100.0, n))
+t=table(ID,x1,x2,x3)
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_sortColumn_bool",exception=1
+dbName = "dfs://db"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x2)
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_sortColumn_float",exception=1
+dbName = "dfs://db"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x3)
+	
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_sortColumn_double",exception=1
+dbName = "dfs://db"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x1)
+
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_table_allTypes"
+def Symbol(data){
+	return symbol(string(data))
+}
+n=1000000
+ID=rand(10, n)
+x=rand(100, n)
+i128=take(int128("e1671797c52e15f763380b45e841ec32"),n)
+uid=take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"),n)
+ip=take([ipaddr("192.168.1.13"),NULL],n)
+t=table(ID,x,i128,ip,uid)
+types=[short,bool,char,long,date,month,time,minute,second,datetime,timestamp,nanotime,nanotimestamp,float,double,string,datehour,Symbol]
+i=0
+for(type1 in types){
+	t["x"+i]=type1(rand(100, n))
+	i+=1
+}
+dbName = "dfs://db"
+if(existsDatabase(dbName)){
+dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x)
+wt = db.createTable(t, `wt,,`x)
+pt.append!(t)
+wt.append!(t)
+assert 1,true
+//two sort columns
+if(existsDatabase(dbName)){
+dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x0`x4)
+wt = db.createTable(t, `wt, ,`x0`x4)
+pt.append!(t)
+wt.append!(t)
+assert 2,true
+
+//multi sort columns
+if(existsDatabase(dbName)){
+dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+pt = db.createPartitionedTable(t, `pt, `ID,,`x`x0`x4`x6)
+wt = db.createTable(t, `wt, ,`x`x0`x4`x6)
+pt.append!(t)
+wt.append!(t)
+assert 3,true
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_sortTypes_PartTypes"
+def Symbol(data){
+	return symbol(string(data))
+}
+dataTypes=[short,int,date,month,time,minute,second,datetime,datehour,Symbol,string]
+//sortTypes=[int, date,time, month,time,minute,second,datetime,datehour,short]
+sortTypes=[int, date, month,minute,second,datetime,datehour,short]
+//single sort column
+def checkTypes(dataType,sortType){
+	//print(dataType+"+"+sortType)
+	n=1000000
+	ID=dataType(rand(10, n))
+	x=sortType(rand(100, n))
+	i128=take(int128("e1671797c52e15f763380b45e841ec32"),n)
+	uid=take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"),n)
+	ip=take([ipaddr("192.168.1.13"),NULL],n)
+	t=table(ID,x,i128,ip,uid)
+	dbName = "dfs://db"
+	if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+	}
+	db = database(dbName, VALUE, dataType(0..9),engine="TSDB")
+	pt = db.createPartitionedTable(t, `pt, `ID,,`x)
+	wt = db.createTable(t, `wt,,`x)
+	pt.append!(t)
+	wt.append!(t)
+	return true
+}
+assert 1,cross(checkTypes,dataTypes,sortTypes)
+//two sort columns
+def checksortTypes(sortType1,sortType2){
+	//print(sortType1+"+"+sortType2)
+	n=1000000
+	ID=rand(10, n)
+	x1=sortType1(rand(100, n))
+	x2=sortType2(rand(100, n))
+	t=table(ID,x1,x2)
+	dbName = "dfs://db"
+	if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+	}
+	db = database(dbName, VALUE, 0..9,engine="TSDB")
+	pt = db.createPartitionedTable(t, `pt, `ID,,`x1`x2)
+	wt = db.createTable(t, `wt, ,`x1`x2)
+	pt.append!(t)
+	wt.append!(t)
+	return true
+}
+assert 2,cross(checksortTypes,sortTypes,sortTypes)
+
+/*
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_multitables_desc"
+n=500000
+ID=rand(10,n)
+t=table(ID)
+for (i in 0:20){
+	t["x"+i]=rand(300,n)
+}
+dbName = "dfs://db"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 0..9,engine="TSDB")
+for(i in 0:10){
+	createPartitionedTable()
+	pt = db.createPartitionedTable(t, "pt"+i, `ID,{ID:"delta"},`x1,false)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "pts"+i, `ID,{ID:"delta"},`x1`x2,false)
+	pt.append!(t)
+	if(existsTable(dbName,"pt"+i)){
+		dropTable(db,"pt"+i)
+	}
+	if(existsTable(dbName,"pts"+i)){
+		dropTable(db,"pts"+i)
+	}
+}
+assert 3,true
+*/
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_multiThreading_create_dropTable"
+def createDB(dbName){	
+	if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+	}		
+	dbDate = database(, HASH, [INT,5])
+	dbx = database(, VALUE, 1..10)
+	db = database(dbName, COMPO, [dbDate,dbx],engine="TSDB")
+}
+
+def writeDate(dbName,tableNames){
+	for(tableName in tableNames){
+		n=100
+		ID=rand(100, n)
+		dates=2017.08.07..2017.08.11
+		date=rand(dates, n)
+		x=rand(10, n)
+		ticker = string(1..n);
+		sym = rand(`MSFT`GOOG`FB`ORCL`IBM,n);
+		t=table(ID, date, x,ticker,sym)
+		loadTable(dbName,tableName).append!(t)
+	}
+}
+def createPartTables(dbName,tableNames){
+	db=database(dbName)
+	t=table(10:0,`ID`date`x`ticker`sym,[INT,DATE,INT,STRING,SYMBOL])	
+	for(tableName in tableNames){
+		if(!existsTable(dbName,tableName)){
+			m=rand(0 1,1)[0]
+			if(m==0){
+				db.createPartitionedTable(t, tableName, `ID`x,{date:"delta"},`date)
+			}
+			else if(m==1){
+				db.createPartitionedTable(t, tableName, `ID`x,{date:"delta"},`sym`ticker`date)
+			}
+		}
+	}
+}
+
+def createTables(dbName,tableNames){
+	db=database(dbName)
+	t=table(10:0,`ID`date`x`ticker`sym,[INT,DATE,INT,STRING,SYMBOL])	
+	for(tableName in tableNames){
+		if(!existsTable(dbName,tableName)){
+			m=rand(0 1,1)[0]
+			 if(m==0){
+				db.createTable(t, tableName,{date:"delta"},`date)
+			}
+			else if(m==1){
+				db.createTable(t, tableName,{date:"delta"},`sym`ticker`date)
+			}	
+		}
+	}
+}
+
+def dropPartTable(dbName,tableNames){
+	db=database(dbName)
+	tableName=rand(getTables(db),1)[0]
+	if(existsTable(dbName,tableName)){
+		db.dropTable(tableName)
+	}
+}
+
+def testcreate(dbName,tableNames){
+	for(i in 0:2){
+		if(existsDatabase(dbName)){
+			createPartTables(dbName,tableNames[0:10])
+			createTables(dbName,tableNames[10:20])
+			tableName=rand(tableNames,(tableNames.size()/2))
+			writeDate(dbName,tableName)
+			for(i in 0:20){
+			dropPartTable(dbName,tableNames)
+			}
+		}
+	}
+}
+createDB("dfs://test_db1")
+createDB("dfs://test_db2")
+createDB("dfs://test_db3")
+createDB("dfs://test_db4")
+job1=submitJob("test1","",testcreate,"dfs://test_db1","pt"+string(1..20))
+job2=submitJob("test2","",testcreate,"dfs://test_db2","pt"+string(1..20))
+job3=submitJob("test3","",testcreate,"dfs://test_db3","pt"+string(1..20))
+job4=submitJob("test4","",testcreate,"dfs://test_db4","pt"+string(1..20))
+jobs=array(STRING)
+jobs.append!([job1,job2,job3,job4])
+do{
+	s=select *  from getRecentJobs() where jobId in jobs
+	t=s[`endTime]
+	if(eqObj(t!=NULL,take(true,t.size()))){//finish
+		assert 1,true
+		break;
+	}
+	else{
+		sleep(1000)
+	}
+}while(!eqObj(t!=NULL,take(true,t.size())))
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_create_and_drop_empty_tables"
+dbName="dfs://test_db1"
+createDB(dbName)
+tableNames="t"+string(1..10)
+for(i in 0:10){
+	createPartTables(dbName,tableNames)
+	db=database(dbName)
+	for(tableName in tableNames){
+		if(existsTable(dbName,tableName)){
+			db.dropTable(tableName)
+		}
+	}
+}
+for(i in 0:10){
+	createTables(dbName,tableNames)
+	db=database(dbName)
+	for(tableName in tableNames){
+		if(existsTable(dbName,tableName)){
+			db.dropTable(tableName)
+		}
+	}
+}
+
+@testing:case="test_dfs_node_function_createPartitionedTable_iot_create_and_drop_tables"
+dbName="dfs://test_db1"
+createDB(dbName)
+tableNames="t"+string(1..10)
+for(i in 0:10){
+	createPartTables(dbName,tableNames[0:5])
+	createTables(dbName,tableNames[5:10])
+	writeDate(dbName,tableNames)
+	db=database(dbName)
+	for(tableName in tableNames){
+		if(existsTable(dbName,tableName)){
+			db.dropTable(tableName)
+		}
+	}
+}
+
+@testing:case="dropDB"
+allDBs=getClusterDFSDatabases()
+for(dbName in allDBs){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+}

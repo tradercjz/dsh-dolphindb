@@ -1,0 +1,128 @@
+// ============================================================
+// DolphinDB High-Frequency Factor — Full Template
+// Fill in: <FactorName>, <FieldsList>, <FactorBody>, <AdjustBody>
+// Choose: normal path or adjust path
+// Remember: division is `\`, not `/`
+// ============================================================
+
+/**
+    @ 1. Login (replace with actual credentials)
+ */
+login("admin","123456");
+go
+
+// ====== 2. Factor Database Setup ======
+// Scan if factor database exists; if not, create it
+if(!existsDatabase("dfs://factor_day")) {
+    create database "dfs://factor_day"
+    partitioned by RANGE(date(datetimeAdd(1980.01M,0..80*12,'M'))), VALUE(`f1`f2),
+    engine='TSDB',
+    atomic='CHUNK'
+}
+db = database("dfs://factor_day")
+if(!existsTable("dfs://factor_day", "factor_day")) {
+    create table "dfs://factor_day"."factor_day"(
+        SecurityID SYMBOL,
+        TradeDate DATE[comment="时间列", compress="delta"],
+        Value DOUBLE,
+        FactorName SYMBOL,
+        UpdateTime TIMESTAMP,
+    )
+    partitioned by TradeDate, FactorName
+    sortColumns=[`SecurityID, `TradeDate],
+    keepDuplicates=LAST,
+    sortKeyMappingFunction=[hashBucket{, 500}]
+}
+
+// ====== 3. Factor Computation Function ======
+// Input: intraday table (from mr's ds source)
+// Output: daily-frequency result table with columns:
+//   SecurityID, TradeDate, Value, FactorName, UpdateTime
+def <FactorName>(<dataTable>){
+    /*@test 少量数据临时调试
+    <dataTable> =
+        select <FieldsList>
+        from loadTable("<UserDataDB>", "<UserDataTable>")
+        where <filter conditions for a few stocks and days>
+    */
+    res =
+        select
+            SecurityID,
+            TradeDate,
+            // <FactorBody — compute Value from intraday fields>
+            <FactorBody> as Value,
+            "<FactorName>" as factorName,
+            now() as updateTime
+        from <dataTable>
+        group by SecurityID, TradeDate
+    return res
+}
+
+// ====== 4. (Optional) Adjust Factor Function — only for adjust type ======
+// Input: daily result table from factor computation
+// Output: adjusted daily result table (same columns)
+// NOTE: This runs locally, NOT distributed
+def adj<FactorName>(dayTB){
+    /*@test
+    dayTB = select * from res
+    */
+    res =
+        select
+            SecurityID,
+            TradeDate,
+            // <AdjustBody — further processing on daily factor Value>
+            <AdjustBody> as Value,
+            "<FactorName>" as factorName,
+            now() as updateTime
+        from dayTB
+        context by SecurityID
+    return res
+}
+
+// ====== 5. Job Function Template ======
+// This is the function submitted to the cluster for background execution
+def factorjob(conf){
+    dataTB = loadTable(conf[`dataDB], conf[`dataTB])
+    days = conf[`startDay]..conf[`endDay]
+    startTime = <StartTime>    // e.g., 09:27:00.000 for snapshot, 09:30:00.000 for minK
+    endTime = <EndTime>        // e.g., 14:57:00.000
+
+    // Generate distributed data source (sqlDS creates metacode)
+    ds = sqlDS(<select <FieldsList>
+        from dataTB
+        where <PartitionFilter> in days and (<TimeFilter> between startTime and endTime) and (SecurityID like "00%" or SecurityID like "30%" or SecurityID like "6%")>)
+
+    // ====== NORMAL PATH: single down-frequency ======
+    // res = mr(ds, conf[`func]).unionAll()
+
+    // ====== ADJUST PATH: down-frequency + post-processing ======
+    <IntermediateResult> = mr(ds, conf[`func]).unionAll()
+    res = conf[`funcsec](<IntermediateResult>)
+
+    // Write to factor database
+    loadTable(conf[`factorDB], conf[`factorTB]).append!(select * from res)
+}
+
+// ====== 6. Configuration ======
+conf = {
+    func : <FactorName>,
+    funcsec : <adjFuncOrNULL>,    // NULL for normal factor, adj<FactorName> for adjust factor
+    factorName : `<FactorName>,
+    dataDB : "<UserDataDB>",
+    dataTB : "<UserDataTable>",
+    factorDB : "dfs://factor_day",
+    factorTB : `factor_day,
+    startDay : <StartDate>,
+    endDay : <EndDate>
+}
+
+// ====== 7. Submit Job & Check Status ======
+id = submitJob("factor_job", conf[`factorName], factorjob, conf)
+
+// Check job status after submission
+getJobStatus(id)
+
+// ====== 8. (Optional) Preview Result ======
+// After job completes:
+// select top 10 * from loadTable("dfs://factor_day", "factor_day") where FactorName="<FactorName>"
+// select count(*) from loadTable("dfs://factor_day", "factor_day") where FactorName="<FactorName>" group by TradeDate

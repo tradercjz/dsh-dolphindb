@@ -1,0 +1,377 @@
+/*
+DolphinDB Web AI 的一次性特征工程脚本块库。
+不要运行整个文件。只把需要的脚本块复制到任务脚本中。
+不要定义或调用自定义 web* 函数。
+约束：输出特征方案、特征血缘、筛选原因和摘要。
+*/
+
+// 块索引：
+// 1、10-12：候选特征、排除原因、摘要和特征对齐。
+// 2-6：缺失指示、缩放、日历和布尔标记。
+// 7-9、22：lag、rolling 和变化量。
+// 13-16：winsorize+zscore、top-N、周期索引和聚类预处理表。
+// 17-23：特征选择报告、批量扩展、周期编码、one-hot、交互和宽特征摘要。
+
+// 块 1：根据 webColDefs 和角色向量选择数值特征候选。
+// 输入：webColDefs、webTimeCandidates、webEntityCandidates、webLabelCandidates。
+// 输出：webFeatureCandidates、webFeatureReport。
+// 适用：建模或聚类前的默认数值特征候选选择。
+webNumericTypes = ["BOOL","CHAR","SHORT","INT","LONG","FLOAT","DOUBLE","DECIMAL32","DECIMAL64","DECIMAL128"]
+webExcludedCols = webTimeCandidates join webEntityCandidates join webLabelCandidates
+webFeatureCandidates = exec name from webColDefs where upper(typeString) in webNumericTypes and not name in webExcludedCols
+webFeatureReport = table(webFeatureCandidates as feature_name, take("numeric", size(webFeatureCandidates)) as feature_family, take("numeric non-role column", size(webFeatureCandidates)) as reason, take(false, size(webFeatureCandidates)) as leakage_risk)
+webFeatureReport
+
+// 块 2：为一个数值特征添加缺失指示特征。
+// 输入：webCleaned、webFeatureCol。
+// 输出：webFeatures、webMissingFlagFeature。
+// 适用：缺失本身可能有业务含义。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webFlagCol = webFeatureCol + "_is_missing"
+webSql = "select *, isNull(" + webFeatureCol + ") as " + webFlagCol + " from webCleaned"
+webFeatures = eval(parseExpr(webSql))
+webMissingFlagFeature = table([webFlagCol] as feature_name, ["missing_flag"] as feature_family, [webFeatureCol] as source_column)
+webMissingFlagFeature
+
+// 块 3：为一个数值特征做 z-score 标准化。
+// 输入：webFeatures、webFeatureCol。
+// 输出：webFeatures、webScaledFeature。
+// 适用：线性模型、距离模型或需要尺度统一的场景。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webStatSql = "select avg(" + webFeatureCol + ") as mean_value, std(" + webFeatureCol + ") as std_value from webFeatures where not isNull(" + webFeatureCol + ")"
+webStat = eval(parseExpr(webStatSql))
+webMeanVector = exec mean_value from webStat
+webStdVector = exec std_value from webStat
+webMeanValue = double(webMeanVector[0])
+webStdValue = double(webStdVector[0])
+webScaledCol = webFeatureCol + "_zscore"
+webSql = "select *, (" + webFeatureCol + " - " + string(webMeanValue) + ") \ " + string(webStdValue) + " as " + webScaledCol + " from webFeatures"
+webFeatures = eval(parseExpr(webSql))
+webScaledFeature = table([webScaledCol] as feature_name, ["standardized_numeric"] as feature_family, [webFeatureCol] as source_column)
+webScaledFeature
+
+// 块 4：为一个数值特征做 min-max 归一化。
+// 输入：webFeatures、webFeatureCol。
+// 输出：webFeatures、webNormalizedFeature。
+// 适用：需要 0 到 1 尺度的特征。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webRangeSql = "select min(" + webFeatureCol + ") as min_value, max(" + webFeatureCol + ") as max_value from webFeatures where not isNull(" + webFeatureCol + ")"
+webRange = eval(parseExpr(webRangeSql))
+webMinVector = exec min_value from webRange
+webMaxVector = exec max_value from webRange
+webMinValue = double(webMinVector[0])
+webMaxValue = double(webMaxVector[0])
+webNormCol = webFeatureCol + "_minmax"
+webSql = "select *, (" + webFeatureCol + " - " + string(webMinValue) + ") \ (" + string(webMaxValue) + " - " + string(webMinValue) + ") as " + webNormCol + " from webFeatures"
+webFeatures = eval(parseExpr(webSql))
+webNormalizedFeature = table([webNormCol] as feature_name, ["normalized_numeric"] as feature_family, [webFeatureCol] as source_column)
+webNormalizedFeature
+
+// 块 5：从一个已确认时间列添加日历特征。
+// 输入：webCleaned、webTimeCol。
+// 输出：webFeatures、webCalendarFeatures。
+// 适用：时间字段可能带来季节性、工作日或小时效应。
+webTimeCol = "REPLACE_TIME_COL"
+webCalendarSql = "select *, year(" + webTimeCol + ") as web_year, monthOfYear(" + webTimeCol + ") as web_month, dayOfWeek(" + webTimeCol + ") as web_day_of_week, hour(" + webTimeCol + ") as web_hour, dayOfWeek(" + webTimeCol + ") in [0,6] as web_is_weekend from webCleaned"
+webFeatures = eval(parseExpr(webCalendarSql))
+webCalendarFeatures = table(["web_year","web_month","web_day_of_week","web_hour","web_is_weekend"] as feature_name, ["calendar","calendar","calendar","calendar","calendar"] as feature_family, [webTimeCol, webTimeCol, webTimeCol, webTimeCol, webTimeCol] as source_column)
+webCalendarFeatures
+
+// 块 6：从一个类别或状态列生成布尔标记特征。
+// 输入：webFeatures、webCategoryCol、webPositiveValue。
+// 输出：webFeatures、webBooleanFeature。
+// 适用：将明确状态转换为可解释标记。
+webCategoryCol = "REPLACE_CATEGORY_COL"
+webPositiveValue = "REPLACE_POSITIVE_VALUE"
+webFlagCol = webCategoryCol + "_is_" + webPositiveValue
+webSql = "select *, " + webCategoryCol + " = '" + webPositiveValue + "' as " + webFlagCol + " from webFeatures"
+webFeatures = eval(parseExpr(webSql))
+webBooleanFeature = table([webFlagCol] as feature_name, ["boolean_flag"] as feature_family, [webCategoryCol] as source_column)
+webBooleanFeature
+
+// 块 7：为有序实体时间数据添加一个滞后特征。
+// 输入：webFeatures、webEntityCol、webTimeCol、webValueCol、webLagN。
+// 输出：webFeatures、webLagFeature。
+// 适用：实体时间序列预测或趋势建模。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webLagN = 1
+webLagCol = webValueCol + "_lag" + string(webLagN)
+webLagSql = "select *, move(" + webValueCol + ", " + string(webLagN) + ") as " + webLagCol + " from (select * from webFeatures order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webFeatures = eval(parseExpr(webLagSql))
+webLagFeature = table([webLagCol] as feature_name, ["lag"] as feature_family, [webValueCol] as source_column)
+webLagFeature
+
+// 块 8：为实体时间数据添加滚动均值特征。
+// 输入：webFeatures、webEntityCol、webTimeCol、webValueCol、webWindowN。
+// 输出：webFeatures、webRollingAvgFeature。
+// 适用：平滑短期波动并保留历史趋势。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webWindowN = 5
+webRollCol = webValueCol + "_rolling_avg" + string(webWindowN)
+webRollSql = "select *, mavg(" + webValueCol + ", " + string(webWindowN) + ") as " + webRollCol + " from (select * from webFeatures order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webFeatures = eval(parseExpr(webRollSql))
+webRollingAvgFeature = table([webRollCol] as feature_name, ["rolling_avg"] as feature_family, [webValueCol] as source_column)
+webRollingAvgFeature
+
+// 块 9：为实体时间数据添加滚动最小值、最大值和计数。
+// 输入：webFeatures、webEntityCol、webTimeCol、webValueCol、webWindowN。
+// 输出：webFeatures、webRollingRangeFeatures。
+// 适用：需要刻画近期波动范围和观测密度。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webWindowN = 5
+webMinCol = webValueCol + "_rolling_min" + string(webWindowN)
+webMaxCol = webValueCol + "_rolling_max" + string(webWindowN)
+webCountCol = webValueCol + "_rolling_count" + string(webWindowN)
+webRollSql = "select *, mmin(" + webValueCol + ", " + string(webWindowN) + ") as " + webMinCol + ", mmax(" + webValueCol + ", " + string(webWindowN) + ") as " + webMaxCol + ", mcount(" + webValueCol + ", " + string(webWindowN) + ") as " + webCountCol + " from (select * from webFeatures order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webFeatures = eval(parseExpr(webRollSql))
+webRollingRangeFeatures = table([webMinCol, webMaxCol, webCountCol] as feature_name, ["rolling_min","rolling_max","rolling_count"] as feature_family, [webValueCol, webValueCol, webValueCol] as source_column)
+webRollingRangeFeatures
+
+// 块 10：生成特征排除原因摘要。
+// 输入：webColDefs、webTimeCandidates、webEntityCandidates、webLabelCandidates。
+// 输出：webFeatureExclusionReport。
+// 适用：解释为什么不把某些列作为特征。
+webAllCols = exec name from webColDefs
+webFeatureExclusionReport = table(100:0, `column_name`exclude_reason, [STRING,STRING])
+for(webCol in webAllCols){
+    webReason = iif(webCol in webTimeCandidates, "raw_time", iif(webCol in webEntityCandidates, "entity_id", iif(webCol in webLabelCandidates, "label_or_target", "")))
+    if(webReason != ""){
+        webFeatureExclusionReport.append!(table([webCol] as column_name, [webReason] as exclude_reason))
+    }
+}
+webFeatureExclusionReport
+
+// 块 11：紧凑特征摘要。
+// 输入：webFeatures、webFeatureCandidates、webExcludedCols。
+// 输出：webFeatureSummary。
+// 适用：向聊天答案说明特征数量、纳入列和排除列。
+webFeatureCount = size(webFeatureCandidates)
+webFeatureColumns = schema(webFeatures)["colDefs"].name
+webFeatureSummary = table([webFeatureCount] as selected_feature_count, [size(webFeatureColumns)] as feature_table_columns, [string(webFeatureCandidates)] as selected_features, [string(webExcludedCols)] as excluded_role_columns)
+webFeatureSummary
+
+// 块 12：训练/预测特征对齐检查。
+// 输入：webTrainFeatures、webPredictFeatures、webFeatureCandidates。
+// 输出：webFeatureAlignmentReport。
+// 适用：建模或打分前确认预测表包含训练所需特征。
+webTrainCols = exec name from schema(webTrainFeatures)["colDefs"]
+webPredictCols = exec name from schema(webPredictFeatures)["colDefs"]
+webFeatureAlignmentReport = table(100:0, `feature_name`in_train`in_predict`alignment_status, [STRING,BOOL,BOOL,STRING])
+for(webCol in webFeatureCandidates){
+    webInTrain = webCol in webTrainCols
+    webInPredict = webCol in webPredictCols
+    webStatus = iif(webInTrain && webInPredict, "aligned", iif(webInTrain && not webInPredict, "missing_in_predict", "missing_in_train"))
+    webFeatureAlignmentReport.append!(table([webCol] as feature_name, [webInTrain] as in_train, [webInPredict] as in_predict, [webStatus] as alignment_status))
+}
+webFeatureAlignmentReport
+
+// 块 13：winsorize 加 z-score 预处理。
+// 输入：webFeatures、webFeatureCol、webLowQuantile、webHighQuantile。
+// 输出：webFeatures、webPreprocessReport。
+// 适用：距离类模型、聚类或线性模型前，需要同时裁剪极端值并标准化。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webLowQuantile = 0.01
+webHighQuantile = 0.99
+webLower = percentile(webFeatures[webFeatureCol], webLowQuantile * 100)
+webUpper = percentile(webFeatures[webFeatureCol], webHighQuantile * 100)
+webClippedCol = webFeatureCol + "_winsor"
+webScaledCol = webFeatureCol + "_winsor_z"
+webClipSql = "select *, iif(" + webFeatureCol + " < " + string(webLower) + ", " + string(webLower) + ", iif(" + webFeatureCol + " > " + string(webUpper) + ", " + string(webUpper) + ", " + webFeatureCol + ")) as " + webClippedCol + " from webFeatures"
+webFeatures = eval(parseExpr(webClipSql))
+webMean = avg(webFeatures[webClippedCol])
+webStd = std(webFeatures[webClippedCol])
+webScaleSql = "select *, iif(" + string(webStd) + " == 0, 0.0, (" + webClippedCol + " - " + string(webMean) + ") \\ " + string(webStd) + ") as " + webScaledCol + " from webFeatures"
+webFeatures = eval(parseExpr(webScaleSql))
+webPreprocessReport = table([webFeatureCol] as source_feature, [webClippedCol] as clipped_feature, [webScaledCol] as model_feature, [webLower] as lower_bound, [webUpper] as upper_bound, [webMean] as train_mean, [webStd] as train_std, ["winsorized+zscore"] as preprocess_rule)
+webPreprocessReport
+
+// 块 14：按方差选择 top-N 特征。
+// 输入：webFeatures、webFeatureCandidates、webKeepN。
+// 输出：webTopVarianceFeatures。
+// 适用：特征过多或聚类前需要优先保留变化明显的连续数值特征。
+webKeepN = 20
+webVarianceRank = table(100:0, `feature_name`std_value, [STRING,DOUBLE])
+for(webCol in webFeatureCandidates){
+    webStdValue = std(webFeatures[webCol])
+    webVarianceRank.append!(table([webCol] as feature_name, [double(webStdValue)] as std_value))
+}
+webTopVarianceFeatures = select top webKeepN * from webVarianceRank order by std_value desc, feature_name
+webTopVarianceFeatures
+
+// 块 15：月度和周期索引特征。
+// 输入：webFeatures、webTimeCol。
+// 输出：webFeatures、webPeriodFeatureReport。
+// 适用：月度预测、周期报告或时间切分前，生成稳定的时间索引特征。
+webTimeCol = "REPLACE_TIME_COL"
+webYearCol = webTimeCol + "_year"
+webMonthCol = webTimeCol + "_month"
+webQuarterCol = webTimeCol + "_quarter"
+webIndexCol = webTimeCol + "_period_idx"
+webPeriodSql = "select *, year(" + webTimeCol + ") as " + webYearCol + ", monthOfYear(" + webTimeCol + ") as " + webMonthCol + ", quarterOfYear(" + webTimeCol + ") as " + webQuarterCol + " from webFeatures order by " + webTimeCol
+webFeatures = eval(parseExpr(webPeriodSql))
+webPeriodRows = exec count(*) from webFeatures
+webFeatures[webIndexCol] = 0..(webPeriodRows - 1)
+webPeriodFeatureReport = table([webYearCol, webMonthCol, webQuarterCol, webIndexCol] as feature_name, ["period_year","period_month","period_quarter","period_index"] as feature_family, [webTimeCol, webTimeCol, webTimeCol, webTimeCol] as source_column)
+webPeriodFeatureReport
+
+// 块 16：聚类预处理特征表。
+// 输入：webFeatures、webModelFeatureCols、webEntityCol。
+// 输出：webClusterPreprocessData、webClusterPreprocessSummary。
+// 适用：聚类技能调用前，只保留实体列和已预处理好的连续数值特征。
+webModelFeatureCols = ["REPLACE_MODEL_FEATURE_1","REPLACE_MODEL_FEATURE_2"]
+webEntityCol = "REPLACE_ENTITY_COL"
+webSelectExpr = webEntityCol
+for(webCol in webModelFeatureCols){
+    webSelectExpr = webSelectExpr + ", " + webCol
+}
+webClusterPreprocessSql = "select " + webSelectExpr + " from webFeatures"
+webClusterPreprocessData = eval(parseExpr(webClusterPreprocessSql))
+webClusterPreprocessSummary = table([exec count(*) from webClusterPreprocessData] as rows, [size(webModelFeatureCols)] as model_feature_count, [string(webModelFeatureCols)] as model_features)
+webClusterPreprocessSummary
+
+// 块 17：特征选择报告块。
+// 输入：webFeatureCandidates、webFeatureExclusionReport、webPreprocessReport。
+// 输出：webFeatureSelectionReport。
+// 适用：把特征工程结果交给分类、回归或聚类阶段时，提供可沿用的选择报告。
+webFeatureSelectionReport = table(webFeatureCandidates as feature_name, take("keep", size(webFeatureCandidates)) as decision, take("selected_by_feature_engineering", size(webFeatureCandidates)) as reason)
+if(size(webFeatureExclusionReport.column_name) > 0){
+    webFeatureSelectionReport.append!(select column_name as feature_name, "exclude" as decision, exclude_reason as reason from webFeatureExclusionReport)
+}
+webFeatureSelectionReport
+
+// 块 18：批量数值扩展特征。
+// 输入：webFeatures、webFeatureCandidates、webMaxExpandedFeatures。
+// 输出：webFeatures、webExpandedFeatureReport。
+// 适用：分类、回归或聚类前，默认尽量多构造安全的数值候选特征。
+webMaxExpandedFeatures = 80
+webExpandedFeatureReport = table(1000:0, `feature_name`feature_family`source_column`selection_note, [STRING,STRING,STRING,STRING])
+webExpandedCount = 0
+for(webCol in webFeatureCandidates){
+    if(webExpandedCount + 4 <= webMaxExpandedFeatures){
+        webMissingCol = webCol + "_is_missing"
+        webSqCol = webCol + "_sq"
+        webLogCol = webCol + "_log1p_abs"
+        webSqrtCol = webCol + "_sqrt_abs"
+        webExpandSql = "select *, isNull(" + webCol + ") as " + webMissingCol + ", " + webCol + " * " + webCol + " as " + webSqCol + ", log(1 + abs(" + webCol + ")) as " + webLogCol + ", sqrt(abs(" + webCol + ")) as " + webSqrtCol + " from webFeatures"
+        webFeatures = eval(parseExpr(webExpandSql))
+        webExpandedFeatureReport.append!(table([webMissingCol, webSqCol, webLogCol, webSqrtCol] as feature_name, ["missing_flag","numeric_square","numeric_log1p_abs","numeric_sqrt_abs"] as feature_family, [webCol, webCol, webCol, webCol] as source_column, ["safe_numeric_expansion","safe_numeric_expansion","safe_numeric_expansion","safe_numeric_expansion"] as selection_note))
+        webExpandedCount = webExpandedCount + 4
+    }
+}
+webExpandedFeatureReport
+
+// 块 19：周期字段 sin/cos 编码。
+// 输入：webFeatures、webCycleCol、webCyclePeriod、webCycleOffset。
+// 输出：webFeatures、webCycleFeatureReport。
+// 适用：小时、星期、月份、季度等周期字段，尤其适合线性模型、距离模型和聚类。
+webCycleCol = "REPLACE_CYCLE_COL"
+webCyclePeriod = 24.0
+webCycleOffset = 0.0
+webCycleSinCol = webCycleCol + "_sin"
+webCycleCosCol = webCycleCol + "_cos"
+webCycleSql = "select *, sin(6.283185307179586 * (" + webCycleCol + " - " + string(webCycleOffset) + ") \\ " + string(webCyclePeriod) + ") as " + webCycleSinCol + ", cos(6.283185307179586 * (" + webCycleCol + " - " + string(webCycleOffset) + ") \\ " + string(webCyclePeriod) + ") as " + webCycleCosCol + " from webFeatures"
+webFeatures = eval(parseExpr(webCycleSql))
+webCycleFeatureReport = table([webCycleSinCol, webCycleCosCol] as feature_name, ["cyclic_sin","cyclic_cos"] as feature_family, [webCycleCol, webCycleCol] as source_column)
+webCycleFeatureReport
+
+// 块 20：低基数类别 one-hot 特征。
+// 输入：webFeatures、webCategoryCol、webMaxCategoryLevels。
+// 输出：webFeatures、webOneHotFeatureReport。
+// 适用：低基数无序类别或状态字段；高基数列只输出跳过原因。
+webCategoryCol = "REPLACE_CATEGORY_COL"
+webMaxCategoryLevels = 20
+webCategorySql = "select top " + string(webMaxCategoryLevels + 1) + " category_value from (select string(" + webCategoryCol + ") as category_value from webFeatures where not isNull(" + webCategoryCol + ")) group by category_value"
+webCategoryValues = eval(parseExpr(webCategorySql))
+webCategoryLevelCount = exec count(*) from webCategoryValues
+webOneHotFeatureReport = table(100:0, `feature_name`feature_family`source_column`category_value`selection_note, [STRING,STRING,STRING,STRING,STRING])
+if(webCategoryLevelCount > 0 && webCategoryLevelCount <= webMaxCategoryLevels){
+    for(webI in 0..(webCategoryLevelCount - 1)){
+        webCategoryValue = string(webCategoryValues.category_value[webI])
+        webOneHotCol = webCategoryCol + "_oh_" + string(webI)
+        webOneHotSql = "select *, string(" + webCategoryCol + ") = '" + webCategoryValue + "' as " + webOneHotCol + " from webFeatures"
+        webFeatures = eval(parseExpr(webOneHotSql))
+        webOneHotFeatureReport.append!(table([webOneHotCol] as feature_name, ["one_hot"] as feature_family, [webCategoryCol] as source_column, [webCategoryValue] as category_value, ["low_cardinality_category"] as selection_note))
+    }
+} else {
+    webOneHotFeatureReport.append!(table([webCategoryCol] as feature_name, ["one_hot_skipped"] as feature_family, [webCategoryCol] as source_column, [""] as category_value, ["category_cardinality_exceeds_limit"] as selection_note))
+}
+webOneHotFeatureReport
+
+// 块 21：两两数值交互特征。
+// 输入：webFeatures、webFeatureCandidates、webMaxInteractionSourceCols、webInteractionFeatureLimit。
+// 输出：webFeatures、webInteractionFeatureReport。
+// 适用：数值列不多时，构造差值、比值和乘积候选；维度过多时按上限截断。
+webMaxInteractionSourceCols = 8
+webInteractionFeatureLimit = 60
+webInteractionFeatureReport = table(1000:0, `feature_name`feature_family`source_columns`selection_note, [STRING,STRING,STRING,STRING])
+webInteractionCount = 0
+webSourceCount = size(webFeatureCandidates)
+if(webSourceCount > 1){
+    for(webI in 0..(webSourceCount - 2)){
+        for(webJ in (webI + 1)..(webSourceCount - 1)){
+            if(webI < webMaxInteractionSourceCols && webJ < webMaxInteractionSourceCols && webInteractionCount + 3 <= webInteractionFeatureLimit){
+                webColA = webFeatureCandidates[webI]
+                webColB = webFeatureCandidates[webJ]
+                webDiffCol = webColA + "_minus_" + webColB
+                webRatioCol = webColA + "_div_" + webColB
+                webProductCol = webColA + "_mul_" + webColB
+                webInteractionSql = "select *, " + webColA + " - " + webColB + " as " + webDiffCol + ", iif(abs(" + webColB + ") == 0, 0.0, " + webColA + " \\ " + webColB + ") as " + webRatioCol + ", " + webColA + " * " + webColB + " as " + webProductCol + " from webFeatures"
+                webFeatures = eval(parseExpr(webInteractionSql))
+                webInteractionFeatureReport.append!(table([webDiffCol, webRatioCol, webProductCol] as feature_name, ["numeric_difference","numeric_ratio","numeric_product"] as feature_family, [webColA + "," + webColB, webColA + "," + webColB, webColA + "," + webColB] as source_columns, ["pairwise_numeric_interaction","pairwise_numeric_interaction","pairwise_numeric_interaction"] as selection_note))
+                webInteractionCount = webInteractionCount + 3
+            }
+        }
+    }
+}
+webInteractionFeatureReport
+
+// 块 22：实体时间变化量特征。
+// 输入：webFeatures、webEntityCol、webTimeCol、webValueCol、webLagN。
+// 输出：webFeatures、webChangeFeatureReport。
+// 适用：实体时间序列中构造上一期值、差值和百分比变化，默认只使用历史行。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webLagN = 1
+webPrevCol = webValueCol + "_prev" + string(webLagN)
+webDiffCol = webValueCol + "_diff" + string(webLagN)
+webPctCol = webValueCol + "_pct_change" + string(webLagN)
+webPrevSql = "select *, move(" + webValueCol + ", " + string(webLagN) + ") as " + webPrevCol + " from (select * from webFeatures order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webFeatures = eval(parseExpr(webPrevSql))
+webChangeSql = "select *, " + webValueCol + " - " + webPrevCol + " as " + webDiffCol + ", iif(isNull(" + webPrevCol + ") or abs(" + webPrevCol + ") == 0, 0.0, (" + webValueCol + " - " + webPrevCol + ") \\ " + webPrevCol + ") as " + webPctCol + " from webFeatures"
+webFeatures = eval(parseExpr(webChangeSql))
+webChangeFeatureReport = table([webPrevCol, webDiffCol, webPctCol] as feature_name, ["previous_value","delta","pct_change"] as feature_family, [webValueCol, webValueCol, webValueCol] as source_column)
+webChangeFeatureReport
+
+// 块 23：宽特征构造摘要和截断说明。
+// 输入：webFeatureReport、webExpandedFeatureReport、webOneHotFeatureReport、webInteractionFeatureReport、webFeatureSelectionReport。
+// 输出：webWideFeatureSummary。
+// 适用：向 ML 阶段交付宽特征候选前，汇总构造规模、截断和下一步筛选建议。
+webBaseFeatureRows = 0
+webExpandedRows = 0
+webOneHotRows = 0
+webInteractionRows = 0
+webSelectionRows = 0
+if(defined("webFeatureReport", VAR)){
+    webBaseFeatureRows = exec count(*) from webFeatureReport
+}
+if(defined("webExpandedFeatureReport", VAR)){
+    webExpandedRows = exec count(*) from webExpandedFeatureReport
+}
+if(defined("webOneHotFeatureReport", VAR)){
+    webOneHotRows = exec count(*) from webOneHotFeatureReport
+}
+if(defined("webInteractionFeatureReport", VAR)){
+    webInteractionRows = exec count(*) from webInteractionFeatureReport
+}
+if(defined("webFeatureSelectionReport", VAR)){
+    webSelectionRows = exec count(*) from webFeatureSelectionReport
+}
+webWideFeatureSummary = table([webBaseFeatureRows] as base_feature_rows, [webExpandedRows] as expanded_feature_rows, [webOneHotRows] as one_hot_rows, [webInteractionRows] as interaction_rows, [webSelectionRows] as selection_report_rows, ["construct_broad_safe_candidates_then_remove_leakage_and_select_for_model"] as next_action)
+webWideFeatureSummary

@@ -1,0 +1,67 @@
+// IMPORTANT: Before importing a binary file, use ask_user to confirm
+// the schema with the user. Schema mismatch causes garbled data.
+// Derive schema from user's writeRecord script when available.
+
+// Example: Import binary file using loadRecord and readRecord!
+
+// === IMPORTANT: Schema must match the ACTUAL file structure ===
+// NEVER blindly copy the schema from examples. Derive it from:
+//   - The writeRecord script that created the file, OR
+//   - User-provided column definitions, OR
+//   - File size and known record count to infer column count/types
+
+// === Method 1: loadRecord (supports string columns) ===
+// Use ONLY when the file actually contains string/symbol columns.
+// The schema below is for a SPECIFIC sample file — adapt to your file!
+
+// Example A: File with string column (code = SYMBOL, 32 bytes)
+schema_with_str = [("code", SYMBOL, 32), ("date", INT), ("time", INT),
+          ("last", FLOAT), ("volume", INT), ("value", FLOAT)]
+t1 = loadRecord("/data/sample_with_code.bin", schema_with_str) // ▶ 替换为你的文件路径
+
+// Example B: File with only numeric columns (no strings)
+// For pure numeric files, readRecord! is preferred (see Method 2)
+schema_numeric = [("date", INT), ("time", INT), ("last_price", INT), ("volume", INT)]
+t2 = loadRecord("/data/market.bin", schema_numeric) // ▶ 替换为你的文件路径
+
+// Post-import type conversion
+t2.replaceColumn!(`date, temporalParse(string(t2.date), "yyyyMMdd"))
+t2.replaceColumn!(`time, temporalParse(lpad(string(t2.time), 9, "0"), "HHmmssSSS"))
+
+// === Method 2: readRecord! (no string support, preferred for numeric files) ===
+
+// Pre-create holder table with matching column names and types
+f = file("/data/market.bin") // ▶ 替换为你的文件路径
+t3 = table(1000:0, `date`time`last_price`volume, [INT, INT, INT, INT])
+rowsRead = f.readRecord!(t3)
+
+// Post-import type conversion
+t3.replaceColumn!(`date, temporalParse(string(t3.date), "yyyyMMdd"))
+t3.replaceColumn!(`time, temporalParse(lpad(string(t3.time), 9, "0"), "HHmmssSSS"))
+
+// Read into tuple of vectors
+f2 = file("/data/market.bin") // ▶ 替换为你的文件路径
+vecs = loop(array, [INT, INT, INT, INT], 0, 500)
+f2.readRecord!(vecs, 0, 500)
+
+// === Write to database ===
+// Check DB/Table existence (4-branch handling)
+dbPath = "dfs://binaryDB" // ▶ 替换为你的数据库路径
+tableName = "market"
+dbExists = existsDatabase(dbPath)
+tableExists = iif(dbExists, existsTable(dbPath, tableName), false)
+
+if (!dbExists) {
+    // Branch 1: DB doesn't exist — create new DB and table
+    db = database(dbPath, VALUE, 2024.01.01..2024.12.31)
+    pt = db.createPartitionedTable(t2, tableName, `date)
+} else if (dbExists && !tableExists) {
+    // Branch 2: DB exists, table doesn't — reuse DB, create table
+    db = database(dbPath)
+    pt = db.createPartitionedTable(t2, tableName, `date)
+} else {
+    // Branch 3: DB exists, table exists — reuse both
+    db = database(dbPath)
+    pt = loadTable(dbPath, tableName)
+}
+pt.append!(t2)

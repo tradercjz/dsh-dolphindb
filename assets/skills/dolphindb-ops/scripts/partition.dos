@@ -1,0 +1,267 @@
+// DolphinDB 分区与元数据脚本
+// 包含分区状态、副本恢复等信息采集函数
+
+// @description 集群级 chunk/分区/副本/恢复全貌：DFS 库列表 + 集群所有 chunk + 异常 chunk + 副本数异常 + 恢复任务 + tablets 元数据
+// @collect metadata-repair, disk-full, disk-recovery, async-replication
+// @permission readonly
+def checkChunkOverview() {
+    d = dict(STRING, ANY)
+    
+    // DFS 数据库列表
+    try { d["dfs_databases_count"] = count(rpc(getControllerAlias(), getClusterDFSDatabases)) }
+    catch(ex) { d["dfs_databases_count"] = "error: " + concat(string(ex), ": ") }
+    
+    try { d["dfs_tables_count"] = count(rpc(getControllerAlias(), getClusterDFSTables)) }
+    catch(ex) { d["dfs_tables_count"] = "error: " + concat(string(ex), ": ") }
+
+    // 集群所有 chunk 状态 + 不完整统计 + 按 db 计数
+    try {
+        clusterChunksStatus = rpc(getControllerAlias(), getClusterChunksStatus)
+        status = exec count(*) as num from clusterChunksStatus group by state
+        dbChunksCount = select dbname, count(*) as count from clusterChunksStatus group by file.split('/').at(1) as dbname
+        clusterChunks = dict(STRING, ANY)
+        clusterChunks["status"] = status
+        d["cluster_chunks"] = clusterChunks
+        
+        num = int(rpc(getControllerAlias(), getConfig{"dfsReplicationFactor"}))
+        d["dfsReplicationFactor"] = num
+        d["replica_count_anomaly"] = select count(*) as n
+            from clusterChunksStatus
+            where replicaCount != num
+            group by replicaCount
+    } catch(ex) { d["cluster_chunks"] = "error: " + concat(string(ex), ": ") }
+
+    // 异常 chunk（state != FIN）
+    try { d["abnormal_chunks"] = select count(*) as n from pnodeRun(getAllChunks) where state != 0 group by node, state}
+    catch(ex) { d["abnormal_chunks"] = "error: " + concat(string(ex), ": ") }
+
+
+    // 恢复任务（最近 1 分钟）
+    try {
+        t = select * from rpc(getControllerAlias(), getRecoveryTaskStatus) where StartTime > temporalAdd(now(),-1,'m')
+        recoveryStatus = dict(STRING, ANY)
+        recoveryStatus["waiting_count"] = (exec count(*) from t where Status == "Waiting")
+        recoveryStatus["in_progress_count"] = (exec count(*) from t where Status == "In-Progress")
+        recoveryStatus["finished_count"] = (exec count(*) from t where Status == "Finished")
+        recoveryStatus["aborted_count"] = (exec count(*) from t where Status == "Aborted")
+        d["recovery_status"] = recoveryStatus
+    } catch(ex) { d["recovery_status"] = "error: " + concat(string(ex), ": ") }
+
+    // 数据条数，占用磁盘空间
+    chunkMeta1  = select first(dfsPath) as dfsPath, first(tableName) as tableName, mean(rowNum) as rowNum, mean(long(diskUsage) \ 1024 \ 1024) as diskUsage_mb from pnodeRun(getTabletsMeta{diskUsage=true, top=-1}) group by chunkId
+    
+    chunkMeta = select count(*) as chunkNum, sum(rowNum) as rowNum, sum(diskUsage_mb) as diskUsage_mb from chunkMeta1 group by tableName, "dfs:/" + split(dfsPath, "/")[1] as dfsPath order by dfsPath, tableName
+    try { d["chunk_meta_info"] = chunkMeta}
+    catch(ex) { d["chunk_meta_info"] = "error: " + concat(string(ex), ": ") }
+    
+    return d
+}
+
+// @description 复制分区副本到目标节点（用于修复副本数不足）
+// @permission danger
+def copyReplicas1() {
+    allNodes = exec value from pnodeRun(getNodeAlias)
+    relicationFactors = int(getConfig(`dfsReplicationFactor))
+    // relicationFactors = 2
+    chunks = select count(*) from pnodeRun(getAllChunks) group by chunkId having count(*) < relicationFactors
+    // 可能存在垃圾副本，通过控制节点元数据进行筛选
+    allChunks=pnodeRun(getAllChunks)
+    ids = select * from rpc(getControllerAlias(), getClusterChunksStatus) where chunkId in (chunks.chunkId)
+    for(cid in ids.chunkId){
+        nodes = exec site from allChunks  where chunkId = cid
+        dest = take(allNodes[not allNodes in nodes], relicationFactors-nodes.size())
+        src = rand(nodes, 1)
+        for(destNode in dest){
+            rpc(getControllerAlias(), copyReplicas{src[0], destNode, cid})
+        }
+    }
+    return "copyReplicas submitted for " + string(ids.rows()) + " chunks"   
+}
+
+// @description 移动分区副本到目标节点（用于坏盘迁移或负载均衡）
+// @params srcNode:str:required, destNode:str:required, chunkIds:str:required
+// @permission danger
+def moveReplicas1(srcNode, destNode, chunkIds) {
+    // 参数校验
+    if (srcNode == "" or destNode == "" or chunkIds == "") {
+        return "error: srcNode, destNode, and chunkIds cannot be empty"
+    }
+
+    try {
+        rpc(getControllerAlias(), moveReplicas{srcNode, destNode, chunkIds})
+        return "moveReplicas submitted: from " + srcNode + " to " + destNode
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 强制按副本修正chunk版本（修复元数据版本不一致）
+// @params chunkPath:str:required, chunkId:str:required
+// @permission danger
+def forceCorrectVersion(chunkPath, chunkId) {
+    // 参数校验
+    if (chunkPath == "" or chunkId == "") {
+        return "error: chunkPath and chunkId cannot be empty"
+    }
+
+    try {
+        rpc(getControllerAlias(), forceCorrectVersionByReplica{chunkPath, chunkId})
+        return "forceCorrectVersionByReplica done: " + chunkId
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 触发数据节点向controller汇报元数据状态
+// @permission danger
+def triggerNodeReport1() {
+    try {
+        res = []
+        for (node in (exec name from getClusterPerf() where mode == 0)){
+            rpc(getControllerAlias(), triggerNodeReport{node})
+            res.append!(node + " has reported.")
+        }
+        return res
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+
+// @description 触发TSDB引擎压缩整理指定库表
+// @params dbPath:str:required, tableName:str:required
+// @permission danger
+def triggerCompaction(dbPath, tableName) {
+    // 参数校验
+    if (dbPath == "" or tableName == "") {
+        return "error: dbPath and tableName cannot be empty"
+    }
+
+    try {
+        triggerTSDBCompaction(dbPath, tableName)
+        return "triggerTSDBCompaction done: " + dbPath + "/" + tableName
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 触发控制节点执行 checkpoint（持久化当前元数据状态）
+// @permission danger
+def takeMasterCheckpoint1() {
+    try {
+        rpc(getControllerAlias(), takeMasterCheckpoint)
+        return "takeMasterCheckpoint done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 触发数据节点执行 chunk checkpoint（持久化 chunk 元数据）
+// @permission danger
+def chunkCheckpoint() {
+    try {
+        chunkCheckPoint()
+        return "chunkCheckPoint done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 删除副本。scope 决定行为：controller=经控制节点删除（清异常副本，需 node）；datanode_meta=只删数据节点元数据（不删物理文件，清垃圾分区，需 node）；datanode_full=数据节点元数据+物理文件（清损坏副本，需 node）
+// @params chunkId:str:required, scope:str:required:pattern=^(controller|datanode_meta|datanode_full)$, node:str:required
+// @permission danger
+def deleteReplica(chunkId, scope, node) {
+    if (chunkId == "" or node == "") {
+        return "error: chunkId and node cannot be empty"
+    }
+
+    try {
+        if (scope == "controller") {
+            rpc(getControllerAlias(), deleteReplicas{node, chunkId})
+            return "deleteReplicas done: " + chunkId + " on " + node + " (via controller)"
+        } else if (scope == "datanode_meta") {
+            rpc(node, deleteReplicaMetaOnDataNode{chunkId})
+            return "deleteReplicaMetaOnDataNode done: " + chunkId + " on " + node
+        } else if (scope == "datanode_full") {
+            rpc(node, deleteReplicaOnDataNode{chunkId})
+            return "deleteReplicaOnDataNode done: " + chunkId + " on " + node
+        } else {
+            return "error: unknown scope '" + scope + "', must be one of controller / datanode_meta / datanode_full"
+        }
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 直接修改 chunk 版本号（用于修复版本不一致，高危操作）。target=master 改控制节点；target=datanode 改指定数据节点（需 node）
+// @params chunkId:str:required, version:int:required, target:str:required:pattern=^(master|datanode)$, node:str:optional
+// @permission danger
+def updateChunkVersion(chunkId, version, target, node="") {
+    if (chunkId == "") {
+        return "error: chunkId cannot be empty"
+    }
+    if (version < 0) {
+        return "error: version must be non-negative"
+    }
+
+    try {
+        if (target == "master") {
+            rpc(getControllerAlias(), updateChunkVersionOnMaster{chunkId, version})
+            return "updateChunkVersionOnMaster done: " + chunkId + " version=" + string(version)
+        } else if (target == "datanode") {
+            if (node == "") { return "error: target=datanode requires node" }
+            rpc(node, imtUpdateChunkVersionOnDataNode{chunkId, version})
+            return "imtUpdateChunkVersionOnDataNode done: " + chunkId + " version=" + string(version) + " on " + node
+        } else {
+            return "error: unknown target '" + target + "', must be master or datanode"
+        }
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 从数据节点恢复控制节点元数据（元数据丢失时的核心恢复操作，执行前需清空 dfsMetaDir）
+// @permission danger
+def restoreControllerMeta() {
+    try {
+        rpc(getControllerAlias(), restoreControllerMetaFromChunkNode)
+        return "restoreControllerMetaFromChunkNode done"
+    } catch(ex) { return "error: " + concat(string(ex), ": ") }
+}
+
+// @description 检查 domain分区的副本是否一致，返回异常的库表和节点信息（用于修复副本不一致导致的查询错误）
+// @collect metadata-repair
+// @permission readonly
+def checkReplicaDomain() {
+    dfsReplicationFactor = int(getConfig("dfsReplicationFactor"))
+    if (isNull(dfsReplicationFactor) or dfsReplicationFactor == 1) { // 单副本不用检查
+        return table(1:0, ["dbName", "domain_Path", "node1", "node2"], [STRING, STRING, STRING, STRING])
+    }
+    getDatabaseSchema = def (dbName) {
+        return database(dbName).schema()
+    }
+    meta = select * from rpc(getControllerAlias(), getClusterChunksStatus) where file.endsWith("domain")
+    ret = table(1:0, ["dbName", "domain_Path", "node1", "node2"], [STRING, STRING, STRING, STRING])
+    idx = 0
+    for (row in meta) {
+        // row = meta[0]
+        dfsPath = row["file"]
+        print("checking " + dfsPath + ", " + string(idx) + "/" + string(meta.size()))
+        dbName = "dfs:/" + dfsPath.substr(0, (dfsPath.strlen() - 7))
+        nodes = each(first, row["replicas"].split(",").split(":"))
+        if (nodes.size() <= 1) { // 单副本这里不检查，在 replicaNum 指标检查
+            continue
+        }
+        sc = rpc(nodes[0], getDatabaseSchema, dbName)
+        for (i in (1..(nodes.size()-1))) {
+            sc_ = rpc(nodes[i], getDatabaseSchema, dbName)
+            for (key in sc.keys()) {
+                res = false
+                if (sc[key].form() >= 0 and sc[key].form() <= 3) {
+                    res = eqObj(sc[key], sc_[key])
+                } else if (sc[key].form() == 6) {
+                    res = all(each(eqObj, sc[key].values(), sc_[key].values()))
+                } else { // 不支持比较的类型，跳过
+                    continue
+                }
+                if (!res) {
+                    print("error: " + dfsPath + ", " + nodes[0] + ", " + nodes[i])
+                    insert into ret values (dbName, dfsPath, nodes[0], nodes[i])
+                }
+            }
+        }
+        idx += 1
+    }
+    return ret
+}
+
+// @description 返回当前节点冷盘LOG目录路径（用于检查冷盘日志积压），本地文件就是正常路径，如果是远程s3冷盘则为s3://路径
+// @collect disk-full, file-cleanup
+// @permission readonly
+def getColdVolumeLogDir(){
+    return getConfig().coldVolumes.split(",").strReplace("file:/","")+"/LOG"
+}

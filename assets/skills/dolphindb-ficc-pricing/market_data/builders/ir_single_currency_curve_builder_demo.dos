@@ -1,0 +1,27 @@
+// irSingleCurrencyCurveBuilder demo: CNY FR007 deposit + IRS curve.
+
+referenceDate = 2021.05.26
+currency = "CNY"
+terms = [7d, 1M, 3M, 6M, 9M, 1y, 2y, 3y, 4y, 5y, 7y, 10y]
+
+instNames = take("CNY_FR_007", size(terms))
+instNames[0] = "FR_007"
+
+instTypes = take("IrVanillaSwap", size(terms))
+instTypes[0] = "Deposit"
+
+quotes = [2.3500, 2.3396, 2.3125, 2.3613, 2.4075, 2.4513,
+          2.5750, 2.6763, 2.7650, 2.8463, 2.9841, 3.1350] / 100
+
+curve = irSingleCurrencyCurveBuilder(referenceDate, currency, instNames, instTypes,
+                                     terms, quotes, "Actual365",
+                                     curveName="CNY_FR_007")
+
+curveDict = extractMktData(curve)
+values = curveDict["values"]
+
+table([curveDict["curveName"]] as curveName,
+      [referenceDate] as referenceDate,
+      [values.size()] as curvePoints,
+      [round(values[0] * 100, 4)] as firstRatePercent,
+      [round(values[values.size() - 1] * 100, 4)] as lastRatePercent)

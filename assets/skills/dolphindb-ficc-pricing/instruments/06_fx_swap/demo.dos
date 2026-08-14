@@ -1,0 +1,39 @@
+// ============================================================
+// FxSwap — parseInstrument 构建示例
+// 构建一笔 USDCNY 外汇掉期（近端买入 + 远端卖出）
+// ============================================================
+// 金融含义：
+//   外汇掉期 = 一对方向相反的外汇远期。近端(near)买入外汇，远端(far)
+//   卖出外汇。两腿的远期价格差就是掉期点(swap points)，反映了两种
+//   货币的利率差。FxSwap 是银行间外汇市场流动性最好的衍生品之一。
+//   direction = "Buy" 表示近端买入外币、远端卖出外币。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]      = "Swap"               // 互换类产品
+instDict["swapType"]         = "FxSwap"              // 外汇掉期
+
+// --- 掉期要素 ---
+instDict["currencyPair"]     = "USDCNY"              // 货币对
+instDict["direction"]        = "Buy"                 // 近端买入 USD
+instDict["notionalCurrency"] = "USD"
+instDict["notionalAmount"]   = 1000000.0             // 名义本金 100万 USD
+
+// --- 近端(near leg) ---
+instDict["nearStrike"]       = 7.25                  // 近端执行汇率
+instDict["nearExpiry"]       = 2026.04.20            // 近端到期日
+instDict["nearDelivery"]     = 2026.04.22            // 近端交割日
+
+// --- 远端(far leg) ---
+instDict["farStrike"]        = 7.30                  // 远端执行汇率（higher = 掉期升水）
+instDict["farExpiry"]        = 2026.09.20            // 远端到期日
+instDict["farDelivery"]      = 2026.09.22            // 远端交割日
+
+// --- 曲线标签 ---
+instDict["domesticCurve"]    = "CNY"
+instDict["foreignCurve"]     = "USD"
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

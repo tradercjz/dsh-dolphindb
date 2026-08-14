@@ -1,0 +1,36 @@
+module easy_csmar::stock::create_stock_db
+/*
+*  @ brief  
+*  创建数据库
+*/
+
+//引用其他module的函数
+use easy_csmar::utils
+
+/*
+*  @FunctionName: create_stock_db
+*  @Brief: 创建存储沪深股票和ETF的数据库
+*  @Param: db_name: 数据库的名称
+*  @Param: initial: 是否删除数据库后重建，默认false
+*  @SampleUsage1: create_stock_db(db_name="dfs://level2_stock_db", initial=false)
+*  @SampleUsage2: create_stock_db(db_name="dfs://level2_stock_db", initial=true)
+*/
+def create_stock_db(db_name="dfs://level2_stock_db", initial=false){
+	if(existsDatabase(db_name)){
+		if(initial==true){
+			dropDatabase(db_name)
+			msg = stringFormat("%W", "[" + db_name + "] 数据库已经删除")
+			msg = write_log(msg, level="info")
+		}else{
+			msg = stringFormat("%W", "[" + db_name + "] 数据库已经存在")
+			msg = write_log(msg, level="warning")
+			return false
+		}
+	}
+	db1 = database(,VALUE, 2021.01.01..2021.01.03) //第一层时间维度按天分区，VALUE分区会自动添加分区
+	db2 = database(,HASH, [SYMBOL, 50]) //第二层证券代码维度按HASH分区，均分50个分区
+	db = database(db_name, COMPO, [db1, db2], , "TSDB") //用TSDB存储引擎
+	msg = stringFormat("%W", "[" + db_name + "] 数据库已经成功创建")
+	msg = write_log(msg, level="info")
+	return true
+}

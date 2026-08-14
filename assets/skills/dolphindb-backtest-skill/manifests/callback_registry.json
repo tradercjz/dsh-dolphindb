@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "callbacks": {
+    "stock": {
+      "3": {
+        "refsRoot": "refs/callback/stock/datatype3",
+        "available": [
+          {"name": "onBar", "ref": "refs/callback/stock/datatype3/onBar.json", "defaultForKline": true},
+          {"name": "finalize", "ref": "refs/callback/stock/datatype3/finalize.json", "defaultForKline": false}
+        ],
+        "interfaces": [
+          "refs/callback/stock/datatype3/interfaces/getConfig.json",
+          "refs/callback/stock/datatype3/interfaces/getAvailableCash.json",
+          "refs/callback/stock/datatype3/interfaces/getPosition.json",
+          "refs/callback/stock/datatype3/interfaces/setPosition.json",
+          "refs/callback/stock/datatype3/interfaces/submitOrder.json"
+        ]
+      },
+      "4": {
+        "refsRoot": "refs/callback/stock/datatype4",
+        "available": [
+          {"name": "onBar", "ref": "refs/callback/stock/datatype4/onBar.json", "defaultForKline": true},
+          {"name": "finalize", "ref": "refs/callback/stock/datatype4/finalize.json", "defaultForKline": false}
+        ],
+        "interfaces": [
+          "refs/callback/stock/datatype4/interfaces/getConfig.json",
+          "refs/callback/stock/datatype4/interfaces/getAvailableCash.json",
+          "refs/callback/stock/datatype4/interfaces/getPosition.json",
+          "refs/callback/stock/datatype4/interfaces/setPosition.json",
+          "refs/callback/stock/datatype4/interfaces/submitOrder.json"
+        ]
+      }
+    },
+    "securityCreditAccount": {
+      "3": {
+        "refsRoot": "refs/callback/securityCreditAccount/datatype3",
+        "available": [
+          {"name": "onBar", "ref": "refs/callback/securityCreditAccount/datatype3/onBar.json", "defaultForKline": true},
+          {"name": "finalize", "ref": "refs/callback/securityCreditAccount/datatype3/finalize.json", "defaultForKline": false}
+        ],
+        "interfaces": [
+          "refs/callback/securityCreditAccount/datatype3/interfaces/getConfig.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/getAvailableCash.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/getMarginSecuPosition.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/getMarginTradingPosition.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/getSecuLendingPosition.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/setPosition.json",
+          "refs/callback/securityCreditAccount/datatype3/interfaces/submitOrder.json"
+        ]
+      },
+      "4": {
+        "refsRoot": "refs/callback/securityCreditAccount/datatype4",
+        "available": [
+          {"name": "onBar", "ref": "refs/callback/securityCreditAccount/datatype4/onBar.json", "defaultForKline": true},
+          {"name": "finalize", "ref": "refs/callback/securityCreditAccount/datatype4/finalize.json", "defaultForKline": false}
+        ],
+        "interfaces": [
+          "refs/callback/securityCreditAccount/datatype4/interfaces/getConfig.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/getAvailableCash.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/getMarginSecuPosition.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/getMarginTradingPosition.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/getSecuLendingPosition.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/setPosition.json",
+          "refs/callback/securityCreditAccount/datatype4/interfaces/submitOrder.json"
+        ]
+      }
+    }
+  },
+  "helperFunctions": [
+    "refs/callback/func/isort.json"
+  ]
+}

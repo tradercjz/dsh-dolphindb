@@ -1,0 +1,366 @@
+
+#include "setup/settings.txt"
+login(`admin, `123456)
+
+@testing:case = "test_dfs_sql_update_createTables_prepare"
+def createTables(){
+	if(existsDatabase("dfs://test_update")){
+		dropDatabase("dfs://test_update")
+	}
+	db1 = database("", VALUE, 2021.03.01+0..10)
+	db2 = database("", HASH, [INT, 5])
+	db = database("dfs://test_update", COMPO, [db1, db2], , "TSDB")
+	n = 6000
+	t = table(take(2021.03.01 + 1..30, n) as ts, take(time(10) + 1..30, n) as time, take(1..300000, n) as qty, take(`A`B`C`D, n) as sym, rand(10.0, n) as price)
+	dt = db.createPartitionedTable(t, `dt, `ts`qty, {ts: "delta", qty: "delta"}, `qty`ts)
+	empt = db.createPartitionedTable(t, `empt, `ts`qty, , `qty`ts)
+	wt = db.createTable(t, `wt, , `qty`ts)
+	dt.append!(t)
+	wt.append!(t)
+	n = 6
+	t1 = table(take(2021.03.01 + 1..6, n) as ts, take(time(10) + 1..6, n) as time, take(1..10000, n) as qty, take(`A`B`C`D, n) as sym, rand(100.0, n) as price)
+	dt1 = db.createPartitionedTable(t, `dt1, `ts`qty, , `qty`ts).append!(t1)
+	wt1 = db.createTable(t, `wt1, , `qty`ts).append!(t1)
+}
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+
+@testing:case = "test_dfs_sql_update_new_columns", exception = 1
+update dt set key = qty
+
+@testing:case = "test_dfs_sql_update_from_fj_partition", exception = 1
+update dt set dt.price = dt1.price from fj(dt, dt1, `ts`qty)
+
+@testing:case = "test_dfs_sql_update_from_fj_partition", exception = 1
+update dt set dt.price = dt1.price from cj(dt, dt1)
+
+@testing:case = "test_dfs_sql_update_from_aj_partition_wrong", exception = 1
+update dt set dt.price = dt1.price from aj(dt, dt1, `qty`ts)
+
+@testing:case = "test_dfs_sql_update_from_wj_partition_wrong", exception = 1
+update dt set dt.price = dt1.price  from  wj(dt, dt1, -1: 2, < [first(qty), avg(price)] >, `ts`qty)
+
+@testing:case = "test_dfs_sql_update_from_wj_partition_wrong", exception = 1
+update dt set dt.price = dt1.price  from  pwj(dt, dt1, -1: 2, < [wavg(qty, price)] >, `ts`qty)
+
+@testing:case = "test_dfs_sql_update_from_fj_DimensionalTable", exception = 1
+update wt set wt.price = wt1.price from fj(wt, wt1, `ts`qty)
+
+@testing:case = "test_dfs_sql_update_from_where_order-sensitive", exception = 1
+update dt set  price = price+1 where ts = next(ts)
+
+@testing:case = "test_dfs_sql_update_dfs_from_Memorytable", exception = 1
+n = 60
+t = table(take(2021.03.01 + 1..30, n) as ts, take(1..300000, n) as qty, take(`A`B`C`D, n) as sym, rand(10.0, n) as price)
+t1 = table(take(2021.03.01 + 1..30, n) as ts, take(1..300000, n) as qty, take(`A`B`C`D, n) as sym, rand(10.0, n) as price)
+update dt set price = 0 from lsj(t, t1, `ts`qty)
+
+@testing:case="test_dfs_sql_update_symbol_error_type",exception=1
+dbName = "dfs://test_update1"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName, VALUE, 2021.10.01..2021.10.02)
+dummy = table(1:0, `data`ticker, [DATE, SYMBOL])
+pt = db.createPartitionedTable(dummy, `pt, `data)
+data = table(take(2021.10.02,100) as datadata,take("1222",100) as ticker)
+pt.append!(data)
+update pt set  ticker = 1222 where data = 2021.10.02
+
+@testing:case = "test_dfs_sql_update_dfs_from_DimensionalTable", exception = 1
+update dt set price = 0 from ej(wt, wt1, `ts`qty)
+
+@testing:case = "test_dfs_sql_update_partitionColumn", exception = 1
+update dt set qty = qty+1
+
+// @testing:case = "test_dfs_sql_update_from", exception = 1
+//lj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price*qty from lj(dt, dt1, `ts`qty) where sym = "A"
+// update wt set wt.price = wt1.price*qty from lj(wt, wt1, `ts`qty)where sym = "A"
+// update t set t.price = t1.price*qty from lj(t, t1, `ts`qty) where sym = "A"
+// update empt set empt.price = dt1.price*qty from lj(empt, dt1, `ts`qty)
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// empts = select * from empt
+// assert 1, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //ej
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price+1 from ej(dt, dt1, `ts`qty)
+// update wt set wt.price = wt1.price+1 from ej(wt, wt1, `ts`qty)
+// update t set t.price = t1.price+1 from ej(t, t1, `ts`qty)
+// update empt set empt.price = mmin(dt1.price, 3) from ej(empt, dt1, `ts`qty)
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 2, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //lsj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price from lsj(dt, dt1, `ts`qty)
+// update wt set wt.price = wt1.price from lsj(wt, wt1, `ts`qty)
+// update t set t.price = t1.price from lsj(t, t1, `ts`qty)
+// update empt set t.price = dt1.price from lsj(empt, dt1, `ts`qty)
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 3, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //aj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price-1, dt.sym = dt1.sym from aj(dt, dt1, `ts`qty`ts)
+// update wt set wt.price = wt1.price-1, wt.sym = wt1.sym from aj(wt, wt1,  `ts`qty`ts)
+// update t set t.price = t1.price-1, t.sym = t1.sym from aj(t, t1,  `ts`qty`ts)
+// update empt set empt.price = dt1.price-1, empt.sym = dt1.sym from aj(empt, dt1,  `ts`qty`ts)
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 4, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //wj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set  price = avg_price-price    from  wj(dt, dt1, -1: 2, < [first(qty), avg(price)] >, `ts`qty`time)
+// update wt set  price = avg_price-price   from   wj(wt, wt1, -1: 2, < [first(qty), avg(price)] >, `ts`qty`time)
+// update t set price = avg_price-price  from  wj(t, t1, -1: 2, < [first(qty), avg(price)] > , `ts`qty`time)
+// update empt set  price = avg_price-price   from    wj(empt, dt1, -1: 2, < [first(qty), avg(price)] >, `ts`qty`time)
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 5, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //pwj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = wavg_qty  from  pwj(dt, dt1, -1: 2, < [wavg(qty, price)] >, `ts`qty`time) where sym in `A`B
+// update wt set wt.price = wavg_qty  from pwj(wt, wt1, -1: 2, < [wavg(qty, price)] > , `ts`qty`time) where sym in `A`B
+// update t set price = wavg_qty  from  pwj(t, t1, -1: 2, < [wavg(qty, price)] > , `ts`qty`time) where sym in `A`B
+// update empt set empt.price = wavg_qty  from  pwj(empt, dt1, -1: 2, < [wavg(qty, price)] >, `ts`qty`time) where sym in `A`B
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 6, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+
+@testing:case = "test_dfs_sql_update_from_both_dfs_table", exception = 1
+//lj
+t = select * from dt
+t1 = select * from dt1
+update dt set dt.price = dt1.price*qty from lj(dt, dt1, `ts`qty) where sym = "A"
+
+@testing:case = "test_dfs_sql_update_from_lj"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price*qty from lj(wt, wt1, `ts`qty) where sym = "A"
+update t set t.price = t1.price*qty from lj(t, t1, `ts`qty) where sym = "A"
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_from_ej"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price+1 from ej(wt, wt1, `ts`qty)
+update t set t.price = t1.price+1 from ej(t, t1, `ts`qty)
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_from_lsj"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price from lsj(wt, wt1, `ts`qty)
+update t set t.price = t1.price from lsj(t, t1, `ts`qty)
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_from_aj"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price-1, wt.sym = wt1.sym from aj(wt, wt1,  `ts`qty`ts)
+update t set t.price = t1.price-1, t.sym = t1.sym from aj(t, t1,  `ts`qty`ts)
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_from_wj"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set price = avg_price-price from wj(wt, wt1, -1:2, < [first(qty), avg(price)] >, `ts`qty`time)
+update t set price = avg_price-price from wj(t, t1, -1:2, < [first(qty), avg(price)] > , `ts`qty`time)
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_from_pwj"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wavg_qty  from pwj(wt, wt1, -1: 2, < [wavg(qty, price)] > , `ts`qty`time) where sym in `A`B
+update t set price = wavg_qty  from  pwj(t, t1, -1: 2, < [wavg(qty, price)] > , `ts`qty`time) where sym in `A`B
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 6, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_contextby"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update t set price = price+sum(qty) context by ts, qty, sym
+update dt set price = price+sum(qty) context by ts, qty, sym
+update wt set price = price+sum(qty) context by ts, qty, sym
+update empt set price = sum(price) context by ts, qty, sym
+dts = select * from dt order by ts, qty
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, dts.values(), expected.values())
+assert 2, each(eqObj, wts.values(), expected.values())
+
+update t set price = price+count(price) context by ts, sym, qty
+update dt set price = price+count(price) context by ts, sym, qty
+update wt set price = price+count(price) context by ts, sym, qty
+update empt set price = price+count(price) context by ts, sym, qty
+dts = select * from dt order by ts, qty
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 3, each(eqObj, dts.values(), expected.values())
+assert 4, each(eqObj, wts.values(), expected.values())
+
+// @testing:case = "test_dfs_sql_update_join_contextby", exception = 1
+// //lj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price*qty from lj(dt, dt1, `ts`qty) where sym = "A" context by sym
+// update wt set wt.price = wt1.price*qty from lj(wt, wt1, `ts`qty)where sym = "A"   context by sym
+// update t set t.price = t1.price*qty from lj(t, t1, `ts`qty) where sym = "A"  context by sym
+// update empt set empt.price = dt1.price*qty from lj(empt, dt1, `ts`qty) context by sym
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// empts = select * from empt
+// assert 1, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+// //lsj
+// t = select * from dt
+// t1 = select * from dt1
+// update dt set dt.price = dt1.price from lsj(dt, dt1, `ts`qty) context by ts, qty, sym
+// update wt set wt.price = wt1.price from lsj(wt, wt1, `ts`qty)   context by ts, qty, sym
+// update t set t.price = t1.price from lsj(t, t1, `ts`qty) context by ts, qty, sym
+// update empt set t.price = dt1.price from lsj(empt, dt1, `ts`qty) context by ts, qty, sym
+// dts = select * from dt order by ts, qty
+// wts = select * from wt order by ts, qty
+// expected = select * from t order by ts, qty
+// assert 2, each(eqObj, dts.values(), expected.values()).append!(each(eqObj, wts.values(), expected.values()))
+
+@testing:case = "test_dfs_sql_update_join_contextby"
+//lj
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price*qty from lj(wt, wt1, `ts`qty)where sym = "A" context by sym
+update t set t.price = t1.price*qty from lj(t, t1, `ts`qty) where sym = "A"  context by sym
+dts = select * from dt order by ts, qty
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, wts.values(), expected.values())
+//lsj
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+t1 = select * from dt1
+update wt set wt.price = wt1.price from lsj(wt, wt1, `ts`qty) context by ts, qty, sym
+update t set t.price = t1.price from lsj(t, t1, `ts`qty) context by ts, qty, sym
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 2, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_where_ordering_function"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+update t set price = price\prev(price) where sym ==`B context by ts, qty
+update dt set price = price\prev(price) where sym ==`B context by ts, qty
+update wt set price = price\prev(price) where sym ==`B context by ts, qty
+update empt set price = price\prev(price) where sym ==`B context by ts, qty
+dts = select * from dt order by ts, qty
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 1, each(eqObj, dts.values(), expected.values())
+assert 2, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_without_filter"
+//createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+for(i in 1:10){
+	update dt set price = price*i
+	update wt set price = price*i
+	update t set price = price*i
+	update empt set price = price*i
+	dts = select * from dt  order by ts, qty
+	wts = select * from wt   order by ts, qty
+	expected = select * from t order by  ts, qty
+	assert 1, each(eqObj, dts.values(), expected.values())
+	assert 2, each(eqObj, wts.values(), expected.values())
+}

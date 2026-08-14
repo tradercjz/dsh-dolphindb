@@ -1,0 +1,114 @@
+{
+  "id": "getPosition",
+  "name": "获取持仓信息",
+  "signature": "Backtest::getPosition(engine, symbol)",
+  "description": "在回调函数中调用该接口获取指定标的的持仓信息，返回持仓字典，适用于根据当前持仓状态决定后续交易动作。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常从 context[\"engine\"] 读取"
+    },
+    {
+      "name": "symbol",
+      "type": "STRING",
+      "description": "证券代码"
+    }
+  ],
+  "constraints": [
+    "engine 必须是当前回调上下文中的有效回测引擎句柄。",
+    "若指定 symbol，应传入合法的证券代码字符串，不要臆造不存在的标的代码。",
+    "如果之前没有下单过，通过该接口返回的字典中对应的字段会为空，需要对于返回的标量值做非空检验"
+  ],
+  "returns": {
+    "type": "DICT",
+    "description": "返回指定标的的持仓信息字典，包含以下字段。",
+    "fields": [
+      {
+        "name": "symbol",
+        "description": "标的代码"
+      },
+      {
+        "name": "lastDayLongPosition",
+        "description": "昨买持仓数量"
+      },
+      {
+        "name": "lastDayShortPosition",
+        "description": "昨卖持仓数量"
+      },
+      {
+        "name": "longPosition",
+        "description": "买持仓量"
+      },
+      {
+        "name": "shortPosition",
+        "description": "卖持仓量"
+      },
+      {
+        "name": "longPositionAvgPrice",
+        "description": "买成交均价"
+      },
+      {
+        "name": "shortPositionAvgPrice",
+        "description": "卖成交均价"
+      },
+      {
+        "name": "todayBuyVolume",
+        "description": "当日买成交数量"
+      },
+      {
+        "name": "todaySellVolume",
+        "description": "当日卖成交数量"
+      },
+      {
+        "name": "totalValue",
+        "description": "持仓总额"
+      },
+      {
+        "name": "accruedInterest",
+        "description": "应计利息"
+      },
+      {
+        "name": "fullBondPrice",
+        "description": "债券全价"
+      },
+      {
+        "name": "lastPrice",
+        "description": "债券净价"
+      },
+      {
+        "name": "yield",
+        "description": "收益率"
+      },
+      {
+        "name": "interestIncome",
+        "description": "利息收入"
+      },
+      {
+        "name": "floatingProfit",
+        "description": "浮动损益"
+      },
+      {
+        "name": "realizedProfit",
+        "description": "实际损益"
+      },
+      {
+        "name": "totalProfit",
+        "description": "总损益"
+      },
+      {
+        "name": "duration",
+        "description": "久期"
+      },
+      {
+        "name": "convexity",
+        "description": "凸性"
+      },
+      {
+        "name": "DV01",
+        "description": "DV01"
+      }
+    ]
+  },
+  "examples": []
+}

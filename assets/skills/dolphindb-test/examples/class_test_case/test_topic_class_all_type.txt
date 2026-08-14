@@ -1,0 +1,2407 @@
+
+@testing:case="test_topic_class_function_with_not_statement_member"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1.setId(3)
+assert 1, f1.id == 3
+
+@testing:case="test_topic_class_parament_same_with_function"
+class Foo{
+	id::INT
+	def f1(){return 1}
+	def Foo(f1){
+		id = f1
+	}
+}
+assert 1, Foo(3).id == 3
+
+@testing:case="test_topic_class_defined_function_without_statement"
+class Foo{
+	id:: int
+	def Foo(id_){id = id_}
+	def f1(){return 3}
+	def f2(){
+	 	return self.f1()+avg(1..10)
+	}
+}
+f = Foo(4)
+assert 1, f.f2() ==  8.5
+
+@testing:case="test_topic_class_defined_function_with_statement"
+class Foo{
+	id:: int
+	def f1()
+	def Foo(id_){id = id_}
+	def f2(){
+	 	return self.f1()+avg(1..10)
+	}
+	def f1(){return 3}
+}
+f = Foo(4)
+assert 1, f.f2() ==  8.5
+
+@testing:case="test_topic_class_attribute_CHAR"
+class Foo{
+                id :: int
+                value :: CHAR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,char(1)).getVal() == char(1)
+assert 2, (typestr Foo(1,char(1)).value) == "CHAR"
+
+@testing:case="test_topic_class_attribute_SHORT"
+class Foo{
+                id :: int
+                value :: SHORT
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,short(1)).getVal() == short(1)
+assert 2, (typestr Foo(1,short(1)).value) == "SHORT"
+
+@testing:case="test_topic_class_attribute_INT"
+class Foo{
+                id :: int
+                value :: INT
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,int(1)).getVal() == int(1)
+assert 2, (typestr Foo(1,int(1)).value) == "INT"
+
+@testing:case="test_topic_class_attribute_LONG"
+class Foo{
+                id :: int
+                value :: LONG
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,long(1)).getVal() == long(1)
+assert 2, (typestr Foo(1,long(1)).value) == "LONG"
+
+@testing:case="test_topic_class_attribute_FLOAT"
+class Foo{
+                id :: int
+                value :: FLOAT
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,float(1)).getVal() == float(1)
+assert 2, (typestr Foo(1,float(1)).value) == "FLOAT"
+
+@testing:case="test_topic_class_attribute_DOUBLE"
+class Foo{
+                id :: int
+                value :: DOUBLE
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,double(1)).getVal() == double(1)
+assert 2, (typestr Foo(1,double(1)).value) == "DOUBLE"
+
+@testing:case="test_topic_class_attribute_BOOL"
+class Foo{
+                id :: int
+                value :: BOOL
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(1,bool(1)).getVal() == true
+assert 2, (typestr Foo(1,bool(1)).value) == "BOOL"
+
+@testing:case="test_topic_class_attribute_MONTH"
+class Foo{
+                id :: bool
+                value :: MONTH
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],month(2021.01.01T12:32:33.653)).getVal() == month(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],month(2021.01.01T12:32:33.653)).value) == "MONTH"
+
+@testing:case="test_topic_class_attribute_DATE"
+class Foo{
+                id :: bool
+                value :: DATE
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],date(2021.01.01T12:32:33.653)).getVal() == date(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],date(2021.01.01T12:32:33.653)).value) == "DATE"
+
+@testing:case="test_topic_class_attribute_DATETIME"
+class Foo{
+                id :: bool
+                value :: DATETIME
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],datetime(2021.01.01T12:32:33.653)).getVal() == datetime(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],datetime(2021.01.01T12:32:33.653)).value) == "DATETIME"
+
+@testing:case="test_topic_class_attribute_datehour"
+class Foo{
+                id :: bool
+                value :: datehour
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],datehour(2021.01.01T12:32:33.653)).getVal() == datehour(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],datehour(2021.01.01T12:32:33.653)).value) == "DATEHOUR"
+
+@testing:case="test_topic_class_attribute_TIMESTAMP"
+class Foo{
+                id :: bool
+                value :: TIMESTAMP
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],timestamp(2021.01.01T12:32:33.653)).getVal() == timestamp(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],timestamp(2021.01.01T12:32:33.653)).value) == "TIMESTAMP"
+
+@testing:case="test_topic_class_attribute_NANOTIMESTAMP"
+class Foo{
+                id :: bool
+                value :: NANOTIMESTAMP
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],nanotimestamp(2021.01.01T12:32:33.653)).getVal() == nanotimestamp(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],nanotimestamp(2021.01.01T12:32:33.653)).value) == "NANOTIMESTAMP"
+
+@testing:case="test_topic_class_attribute_MINUTE"
+class Foo{
+                id :: bool
+                value :: MINUTE
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],minute(2021.01.01T12:32:33.653)).getVal() == minute(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],minute(2021.01.01T12:32:33.653)).value) == "MINUTE"
+
+@testing:case="test_topic_class_attribute_SECOND"
+class Foo{
+                id :: bool
+                value :: SECOND
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],second(2021.01.01T12:32:33.653)).getVal() == second(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],second(2021.01.01T12:32:33.653)).value) == "SECOND"
+
+@testing:case="test_topic_class_attribute_TIME"
+class Foo{
+                id :: bool
+                value :: TIME
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],time(2021.01.01T12:32:33.653)).getVal() == time(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],time(2021.01.01T12:32:33.653)).value) == "TIME"
+
+@testing:case="test_topic_class_attribute_NANOTIME"
+class Foo{
+                id :: bool
+                value :: NANOTIME
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],nanotime(2021.01.01T12:32:33.653)).getVal() == nanotime(2021.01.01T12:32:33.653)
+assert 2, (typestr Foo(rand(false true, 1)[0],nanotime(2021.01.01T12:32:33.653)).value) == "NANOTIME"
+
+@testing:case="test_topic_class_attribute_STRING"
+class Foo{
+                id :: bool
+                value :: STRING
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],"ttdasdfas").getVal() == "ttdasdfas"
+assert 2, (typestr  Foo(rand(false true, 1)[0],"ttdasdfas").value) == "STRING"
+
+@testing:case="test_topic_class_attribute_SYMBOL", syntaxError=1
+class Foo{
+                id :: bool
+                value :: SYMBOL
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+@testing:case="test_topic_class_attribute_BLOB"
+class Foo{
+                id :: bool
+                value :: BLOB
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],blob("ttdasdfas")).getVal() == "ttdasdfas"
+assert 2, (typestr  Foo(rand(false true, 1)[0],blob("ttdasdfas")).value) == "BLOB"
+
+@testing:case="test_topic_class_attribute_INT128"
+class Foo{
+                id :: bool
+                value ::INT128
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],int128("e1671797c52e15f763380b45e841ec32")).getVal() == int128("e1671797c52e15f763380b45e841ec32")
+assert 2, (typestr  Foo(rand(false true, 1)[0],int128("e1671797c52e15f763380b45e841ec32")).value) == "INT128"
+
+@testing:case="test_topic_class_attribute_UUID"
+class Foo{
+                id :: bool
+                value ::UUID
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")).getVal() == uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")
+assert 2, (typestr  Foo(rand(false true, 1)[0],uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")).value) == "UUID"
+
+@testing:case="test_topic_class_attribute_ipaddr"
+class Foo{
+                id :: bool
+                value ::ipaddr
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],ipaddr("192.168.1.13")).getVal() == ipaddr("192.168.1.13")
+assert 2, (typestr  Foo(rand(false true, 1)[0],ipaddr("192.168.1.13")).value) == "IPADDR"
+
+@testing:case="test_topic_class_attribute_point"
+class Foo{
+                id :: bool
+                value ::POINT
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],point(117.60972, 24.118418)).getVal() == point(117.60972, 24.118418)
+assert 2, (typestr  Foo(rand(false true, 1)[0],point(117.60972, 24.118418)).value) == "POINT"
+
+@testing:case="test_topic_class_attribute_complex"
+class Foo{
+                id :: bool
+                value ::COMPLEX
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],complex(117.60972, 24.118418)).getVal() == complex(117.60972, 24.118418)
+assert 2, (typestr  Foo(rand(false true, 1)[0],complex(117.60972, 24.118418)).value) == "COMPLEX"
+
+@testing:case="test_topic_class_attribute_duration"
+class Foo{
+                id :: bool
+                value ::DURATION
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return tmsum(2021.01.01..2021.01.10, 1..10, value)
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],2d).getVal() ==tmsum(2021.01.01..2021.01.10, 1..10, 2d)
+assert 2, (typestr Foo(rand(false true, 1)[0],2d).value) == "DURATION"
+
+@testing:case="test_topic_class_attribute_FUNCTIONDEF", syntaxError=1
+def f1(a, b){return a+b}
+class Foo{
+                id :: bool
+                value ::FUNCTIONDEF
+                def Foo(id_, value_){}
+}
+
+@testing:case="test_topic_class_attribute_CODE"
+class Foo{
+                id :: bool
+                value ::CODE
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return eval(self.value)
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],<1+3>).getVal()==4
+assert 2, (typestr Foo(rand(false true, 1)[0],<1+3>).value) == "CODE"
+
+@testing:case="test_topic_class_attribute_DECIMAL32(5)"
+class Foo{
+                id :: bool
+                value :: DECIMAL32(5)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],decimal32(32.4323,5)).getVal() == decimal32(32.4323,5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal()) == "DECIMAL32"
+
+@testing:case="test_topic_class_attribute_DECIMAL64(5)"
+class Foo{
+                id :: bool
+                value :: DECIMAL64(5)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal() == decimal64(32.4323,5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal64(32.4323,5)).getVal()) == "DECIMAL64"
+
+@testing:case="test_topic_class_attribute_DECIMAL128(7)"
+class Foo{
+                id :: bool
+                value :: DECIMAL128(7)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],decimal128(32.4323,7)).getVal() == decimal128(32.4323,7)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal128(32.4323,7)).getVal()) == "DECIMAL128"
+
+@testing:case="test_topic_class_attribute_numeric_type"
+class Foo_char{
+                value :: char
+                def Foo_char( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_short{
+                value :: short
+                def Foo_short( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_int{
+                value :: int
+                def Foo_int( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_long{
+                value :: long
+                def Foo_long( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_float{
+                value :: float
+                def Foo_float( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_double{
+                value :: double
+                def Foo_double( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+classVec = [Foo_char, Foo_short, Foo_int,Foo_long,Foo_float,Foo_double]
+for(cls in classVec){
+	func = string(cls).split("{")[0].split("_")[1]
+	for(type2 in [`CHAR, `LONG,`SHORT,`INT,`FLOAT,`DOUBLE]){
+		assert 1,  cls(funcByName(lower(type2))(3.32)).value ==   funcByName(func)(funcByName(lower(type2))(3.32))
+		assert 2, (typestr cls(funcByName(lower(type2))(3.32)).value) == func.upper()
+	}
+}
+
+assert 3, Foo_char(decimal32(9.323,4)).value == 9
+assert 4, (typestr Foo_char(decimal32(9.323,4)).value) == "CHAR"
+assert 5, Foo_int(decimal64(9.323,4)).value == 9
+assert 6, (typestr Foo_int(decimal32(9.323,4)).value) == "INT"
+assert 7, eqFloat(Foo_float(decimal128(9.323,4)).value ,9.323,6)
+assert 8, (typestr Foo_float(decimal32(9.323,4)).value) == "FLOAT"
+
+@testing:case="test_topic_class_attribute_numeric_overflow"
+class Foo_char{
+                value :: char
+                def Foo_char( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_short{
+                value :: short
+                def Foo_short( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_int{
+                value :: int
+                def Foo_int( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+class Foo_long{
+                value :: long
+                def Foo_long( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+assert 1, Foo_char(128).value == char()
+assert 11, Foo_char(128).value.isNull() == true
+assert 2, Foo_char(129).value == char(129)
+assert 3, Foo_short(32768).value == short()
+assert 31, Foo_short(32768).value.isNull()== true
+assert 4, Foo_short(32769).value == short(32769)
+assert 5, Foo_int(2147483648).value == int()
+assert 51, Foo_int(2147483648).value.isNull() == true
+assert 6, Foo_int(2147483649).value == int(2147483649)
+assert 7, Foo_long(9223372036854775808).value == long(9223372036854775808)
+assert 8, Foo_long(9223372036854775809).value == long(9223372036854775809)
+
+@testing:case="test_topic_class_attribute_decimal_overflow", exception=1
+class Foo{
+                id :: bool
+                value :: DECIMAL32(7)
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+Foo(true, 123784239.423)
+ 
+@testing:case="test_topic_class_attribute_temporal"
+class Foo_nanotimestamp{
+	date::nanotimestamp	
+	def Foo_nanotimestamp(date_){
+		date = date_	
+	}
+}
+
+for(type in [month, date, datehour, datetime, timestamp, nanotimestamp]){
+	assert 1, Foo_nanotimestamp(type(2021.01.01T23:11:32.123)).date == type(2021.01.01T23:11:32.123)
+	assert 2, typestr(Foo_nanotimestamp(type(2021.01.01T23:11:32.123)).date) == "NANOTIMESTAMP"
+}
+
+class Foo_nanotime{
+	date::nanotime	
+	def Foo_nanotime(date_){
+		date = date_	
+	}
+}
+
+for(type in [minute, second, time, nanotime]){
+	assert 3, Foo_nanotime(type(23:11:32.123)).date == type(23:11:32.123)
+	assert 4, typestr(Foo_nanotime(type(23:11:32.123)).date) == "NANOTIME"
+}
+
+@testing:case="test_topic_class_attribute_CHAR_array"
+class Foo{
+                value :: CHAR VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(char(1..10)).value == char(1..10)
+assert 2, (typestr Foo(CHAR(1..10)).value) =="FAST CHAR VECTOR"
+
+@testing:case="test_topic_class_attribute_SHORT_array"
+class Foo{
+                value :: SHORT VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(short(1..10)).value == short(1..10)
+assert 2, (typestr Foo(SHORT(1..10)).value) =="FAST SHORT VECTOR"
+
+@testing:case="test_topic_class_attribute_INT_array"
+class Foo{
+                value :: INT VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(int(1..10)).value == int(1..10)
+assert 2, (typestr Foo(INT(1..10)).value) =="FAST INT VECTOR"
+
+@testing:case="test_topic_class_attribute_LONG_array"
+class Foo{
+                value :: LONG VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(long(1..10)).value == long(1..10)
+assert 2, (typestr Foo(LONG(1..10)).value) =="FAST LONG VECTOR"
+
+@testing:case="test_topic_class_attribute_FLOAT_array"
+class Foo{
+                value :: FLOAT VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(float(1..10)).value == float(1..10)
+assert 2, (typestr Foo(FLOAT(1..10)).value) =="FAST FLOAT VECTOR"
+
+@testing:case="test_topic_class_attribute_DOUBLE_array"
+class Foo{
+                value :: DOUBLE VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(double(1..10)).value == double(1..10)
+assert 2, (typestr Foo(DOUBLE(1..10)).value) =="FAST DOUBLE VECTOR"
+
+@testing:case="test_topic_class_attribute_MONTH_array"
+class Foo{
+                value :: MONTH VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(month(1..10)).value == month(1..10)
+assert 2, (typestr Foo(MONTH(1..10)).value) =="FAST MONTH VECTOR"
+
+@testing:case="test_topic_class_attribute_DATE_array"
+class Foo{
+                value :: DATE VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(date(1..10)).value == date(1..10)
+assert 2, (typestr Foo(DATE(1..10)).value) =="FAST DATE VECTOR"
+
+@testing:case="test_topic_class_attribute_DATEHOUR_array"
+class Foo{
+                value :: DATEHOUR VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(datehour(1..10)).value == datehour(1..10)
+assert 2, (typestr Foo(DATEHOUR(1..10)).value) =="FAST DATEHOUR VECTOR"
+
+@testing:case="test_topic_class_attribute_DATETIME_array"
+class Foo{
+                value :: DATETIME VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(datetime(1..10)).value == datetime(1..10)
+assert 2, (typestr Foo(DATETIME(1..10)).value) =="FAST DATETIME VECTOR"
+
+@testing:case="test_topic_class_attribute_TIMESTAMP_array"
+class Foo{
+                value :: TIMESTAMP VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(timestamp(1..10)).value == timestamp(1..10)
+assert 2, (typestr Foo(TIMESTAMP(1..10)).value) =="FAST TIMESTAMP VECTOR"
+
+@testing:case="test_topic_class_attribute_NANOTIMESTAMP_array"
+class Foo{
+                value :: NANOTIMESTAMP VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(nanotimestamp(1..10)).value == nanotimestamp(1..10)
+assert 2, (typestr Foo(NANOTIMESTAMP(1..10)).value) =="FAST NANOTIMESTAMP VECTOR"
+
+@testing:case="test_topic_class_attribute_TIME_array"
+class Foo{
+                value :: TIME VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(time(1..10)).value == time(1..10)
+assert 2, (typestr Foo(TIME(1..10)).value) =="FAST TIME VECTOR"
+
+@testing:case="test_topic_class_attribute_MINUTE_array"
+class Foo{
+                value :: MINUTE VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(minute(1..10)).value == minute(1..10)
+assert 2, (typestr Foo(MINUTE(1..10)).value) =="FAST MINUTE VECTOR"
+
+@testing:case="test_topic_class_attribute_SECOND_array"
+class Foo{
+                value :: SECOND VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(second(1..10)).value == second(1..10)
+assert 2, (typestr Foo(SECOND(1..10)).value) =="FAST SECOND VECTOR"
+
+@testing:case="test_topic_class_attribute_NANOTIME_array"
+class Foo{
+                value :: NANOTIME VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(nanotime(1..10)).value == nanotime(1..10)
+assert 2, (typestr Foo(NANOTIME(1..10)).value) =="FAST NANOTIME VECTOR"
+
+
+@testing:case="test_topic_class_attribute_STRING_array"
+class Foo{
+                id :: bool
+                value :: STRING VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],"A"+string(1..10)).getVal() == "A"+string(1..10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],"A"+string(1..10)).value) == "STRING VECTOR"
+
+@testing:case="test_topic_class_attribute_SYMBOL_array"
+class Foo{
+                id :: bool
+                value :: SYMBOL VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],"A"+string(take(1..10, 2000))).getVal() == "A"+string(take(1..10, 2000))
+assert 2, (typestr  Foo(rand(false true, 1)[0],"A"+string(take(1..10, 2000))).value) == "FAST SYMBOL VECTOR"
+
+@testing:case="test_topic_class_attribute_BLOB_array"
+class Foo{
+                id :: bool
+                value :: BLOB VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+
+assert 1, Foo(rand(false true, 1)[0],blob(lpad(string(1..10),5,"0"))).getVal() == blob(lpad(string(1..10),5,"0"))
+assert 2, (typestr  Foo(rand(false true, 1)[0],blob(lpad(string(1..10),5,"0"))).value) == "BLOB VECTOR"
+
+@testing:case="test_topic_class_attribute_INT128_array"
+class Foo{
+                id :: bool
+                value ::INT128 VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],take([int128("e1671797c52e15f763380b45e841ec32"), int128("e1671797c52e15f763380b45e841ec33")], 10)).getVal() == take([int128("e1671797c52e15f763380b45e841ec32"), int128("e1671797c52e15f763380b45e841ec33")], 10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],take([int128("e1671797c52e15f763380b45e841ec32"), int128("e1671797c52e15f763380b45e841ec33")], 10)).value) == "FAST INT128 VECTOR"
+
+@testing:case="test_topic_class_attribute_UUID_array"
+class Foo{
+                id :: bool
+                value ::UUID VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 10)).getVal() ==take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],take(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 10)).value) == "FAST UUID VECTOR"
+
+@testing:case="test_topic_class_attribute_ipaddr_array"
+class Foo{
+                id :: bool
+                value ::IPADDR  VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],take(ipaddr("192.168.1.13"), 10)).getVal() == take(ipaddr("192.168.1.13"), 10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],take(ipaddr("192.168.1.13"), 10)).value) == "FAST IPADDR VECTOR"
+
+@testing:case="test_topic_class_attribute_point_array"
+class Foo{
+                id :: bool
+                value ::POINT VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],point(1..10, 1..10)).getVal() == point(1..10, 1..10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],point(1..10, 1..10)).value) == "FAST POINT VECTOR"
+
+@testing:case="test_topic_class_attribute_complex_array"
+class Foo{
+                id :: bool
+                value ::COMPLEX VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],complex(1..10,1..10)).getVal() == complex(1..10,1..10)
+assert 2, (typestr  Foo(rand(false true, 1)[0],complex(1..10,1..10)).value) == "FAST COMPLEX VECTOR"
+
+@testing:case="test_topic_class_attribute_duration_array"
+class Foo{
+                id :: bool
+                value ::DURATION VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return each(tmsum{2021.01.01..2021.01.10, 1..10,}, value)
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],[2d,3d,4B,5d]).getVal() ==each(tmsum{2021.01.01..2021.01.10, 1..10,}, [2d,3d,4B,5d])
+assert 2, (typestr Foo(rand(false true, 1)[0],[2d,3d,4B,5d]).value) == "ANY VECTOR"
+
+@testing:case="test_topic_class_attribute_CODE_array"
+class Foo{
+                id :: bool
+                value ::CODE VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return each(eval,value)
+                }
+}
+assert 1, Foo(true,[<1+3>, <id == true>,<4/2>]).getVal()==[4,true, 2]
+assert 2, (typestr Foo(rand(false true, 1)[0],[<1+3>, <id == true>,<4/2>]).value) == "ANY VECTOR"
+
+@testing:case="test_topic_class_attribute_DECIMAL32(5)_array"
+class Foo{
+                id :: bool
+                value :: DECIMAL32(5) VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],decimal32([32.4323,32.3,141.3455,865.5425],5)).getVal() == decimal32([32.4323,32.3,141.3455,865.5425],5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal32([32.4323,32.3,141.3455,865.5425],5)).getVal()) == "FAST DECIMAL32 VECTOR"
+
+@testing:case="test_topic_class_attribute_DECIMAL64(5)_array"
+class Foo{
+                id :: bool
+                value :: DECIMAL64(5) VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+    }
+assert 1, Foo(rand(false true, 1)[0],decimal64([32.4323,32.3,141.3455,865.5425],5)).getVal() == decimal64([32.4323,32.3,141.3455,865.5425],5)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal64([32.4323,32.3,141.3455,865.5425],5)).getVal()) == "FAST DECIMAL64 VECTOR"
+
+@testing:case="test_topic_class_attribute_DECIMAL128(7)_array"
+class Foo{
+                id :: bool 
+                value :: DECIMAL128(7) VECTOR
+                def Foo(id_, value_){
+                    id = id_
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+assert 1, Foo(rand(false true, 1)[0],decimal128([32.4323,32.3,141.3455,865.5425],7)).getVal() == decimal128([32.4323,32.3,141.3455,865.5425],7)
+assert 2, (typestr Foo(rand(false true, 1)[0],decimal128([32.4323,32.3,141.3455,865.5425],7)).getVal()) == "FAST DECIMAL128 VECTOR"
+
+@testing:case="test_topic_class_attribute_ANY_set"
+class Foo{
+	value :: ANY
+	def Foo(value_){
+		value  = set(value_)	
+	}
+	def append(para){
+		value.append!(para)	
+	}
+}
+f = Foo(take(1..10, 1000))
+assert 1,  eqObj(f.value.keys(), set(1..10).keys()) 
+f.append(2 3 4)
+assert 2, eqObj(f.value.keys(), set(1..10).keys()) 
+
+@testing:case="test_topic_class_attribute_set", syntaxError=1
+class Foo{
+	value :: set(STRING)
+	def Foo(value_){
+		value.append!(value_)
+	}
+	def append(para){
+		value.append!(para)	
+	}
+}
+
+@testing:case="test_topic_class_attribute_ANY_dictionary"
+class F1{
+	id::INT
+	value :: string
+	def F1(id_, value_){
+		id = id_
+		value = value_
+	}	
+}
+
+class Foo{
+	value :: ANY
+	def Foo(key_,value_){
+		keytype = (typestr key_)
+		value = dict(keytype ,ANY)
+		value[key_]  = value_	
+	}
+	def append(key,value_){
+		value[key] = value_	
+	}
+}
+
+f1 = F1(1, "name1")
+fo = Foo(1, f1)
+assert 1,  fo.value[1].id == 1
+assert 2, fo.value[1].value == "name1"
+index = 0
+for(i in 1 2 3 2 1){
+	f1 = F1(i, "name"+string(index))
+	fo.append(i, f1)
+	index += 1
+}
+assert 3,  fo.value[1].id == 1
+assert 4, fo.value[1].value == "name4"
+assert 5, fo.value.keys().size() == 3
+
+@testing:case="test_topic_class_attribute_dictionary", syntaxError=1
+class F1{
+	val :: dict(INT,STRING)
+	def F1( id_,value_){
+		val[id_] = value_
+	}	
+}
+
+@testing:case="test_topic_class_attribute_INT_arrayvector"
+class Foo{
+                value :: INT[] VECTOR
+                def Foo( value_){
+                    value = value_
+                }
+                def getVal(){
+                    return value
+                }
+}
+arr = arrayVector(take(1 4 5, 100).cumsum().int(), rand(100, 331))
+f1 = Foo(arr)
+assert 1, each(eqObj, f1.value, arr)
+assert 2, each(eqObj, f1.getVal() , arr)
+
+@testing:case="test_topic_class_attribute_matrix"
+class Foo{
+	value :: ANY
+	def Foo(value_){
+		value  = value_
+	}
+	def calculate(){
+		return each(avg, value)
+	}
+}
+f = Foo(take(1..10, 1000)$10:100)
+assert 1,  f.value == take(1..10, 1000)$10:100
+assert 2, eqObj(f.calculate(),  each(avg, take(1..10, 1000)$10:100)) 
+
+@testing:case="test_topic_class_as_dict_value"
+class Context {
+	buySignalRSI :: INT
+	
+	def Context() {
+		buySignalRSI = 70
+	}
+}
+
+d=dict(STRING,ANY)
+c = Context()
+d["c"] = c
+assert 1,  d["c"].buySignalRSI == 70
+for(i in 0:10){
+	d[string(i)] = c
+	assert 2, d[string(i)].buySignalRSI == 70
+}
+assert 3, d.size() == 11
+
+@testing:case="test_topic_class_inhert_as_dict_value"
+class F {
+	buySignalRSI :: INT
+	
+	def F() {
+		buySignalRSI = 70
+	}
+}
+
+class Context : F {
+	def Context() {
+		F()
+	}
+}
+
+d=dict(STRING,ANY)
+c = Context()
+d["c"] = c
+assert 1,  d["c"].buySignalRSI == 70
+for(i in 0:10){
+	d[string(i)] = c
+	assert 2, d[string(i)].buySignalRSI == 70
+}
+assert 3, d.size() == 11
+
+@testing:case="test_topic_class_as_dict_key", exception=1
+class Context {
+	buySignalRSI :: INT
+	
+	def Context() {
+		buySignalRSI = 70
+	}
+}
+c1 = Context()
+c2 = Context()
+d = dict([c1, c2], ["c1", "c2"])
+
+@testing:case="test_topic_class_as_set_key", exception=1
+class Context {
+	buySignalRSI :: INT
+	
+	def Context() {
+		buySignalRSI = 70
+	}
+}
+
+s = array(ANY)
+for(i in 0:10){
+	s.append!(Context())
+}
+d = set(s)
+
+@testing:case="test_topic_class_assignment_scalar_ex1",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1.id = 33
+
+@testing:case="test_topic_class_assignment_scalar_ex2",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1.id = [1,2,3]
+
+@testing:case="test_topic_class_assignment_scalar_ex3",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = [1,2]
+
+
+@testing:case="test_topic_class_assignment_scalar_ex4",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = {"a":1}
+
+@testing:case="test_topic_class_assignment_scalar_ex5",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = table(1..3 as x)
+
+
+@testing:case="test_topic_class_assignment_scalar_ex6",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = set(1 2 3)
+
+
+@testing:case="test_topic_class_assignment_scalar_ex7",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1:2
+
+@testing:case="test_topic_class_assignment_scalar_ex8",exception=1
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1..6$2:3
+
+@testing:case="test_topic_class_assignment_scalar_same_scalar_type"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 2222
+assert 1, eqObj(f1.id, 2222) 
+assert 2, eqObj(f1["id"], 2222) 
+
+f1["id"] = NULL
+assert 3, eqObj(f1.id, int()) 
+assert 4, eqObj(f1["id"], int()) 
+
+@testing:case="test_topic_class_assignment_scalar_not_same_scalar_type"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = "222"
+assert 1, eqObj(f1.id, 222) 
+assert 2, eqObj(f1["id"], 222) 
+
+f1["id"] = ""
+assert 3, eqObj(f1.id, int()) 
+assert 4, eqObj(f1["id"], int()) 
+
+f1["id"] = "sdfds"
+assert 5, eqObj(f1.id, int()) 
+assert 6, eqObj(f1["id"], int()) 
+
+
+
+@testing:case="test_topic_class_assignment_vector_syntaxError"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1.id = 1 2 3
+assert 1, eqObj(f1.id, 1 2 3)
+
+@testing:case="test_topic_class_assignment_vector_scalar", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1
+
+@testing:case="test_topic_class_assignment_vector_pair", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1:2
+
+@testing:case="test_topic_class_assignment_vector_matrix", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1..6$2:3
+
+@testing:case="test_topic_class_assignment_vector_set", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = set(1 2 3)
+
+
+@testing:case="test_topic_class_assignment_vector_dict", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = dict(1 2 3, 1 2 3)
+
+
+@testing:case="test_topic_class_assignment_vector_table", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = table(1 2 3 as x)
+
+@testing:case="test_topic_class_assignment_vector_tuple"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1 2 "3"
+assert 1, f1["id"] == 1 2 "3"
+
+@testing:case="test_topic_class_assignment_vector_arrayVector", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = arrayVector(2 4, 1..4)
+
+
+@testing:case="test_topic_class_assignment_vector"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1 2 3
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+
+f1["id"] = 1 NULL 2
+assert 3, eqObj(f1.id, 1 NULL 2) 
+assert 4, eqObj(f1["id"], 1 NULL 2) 
+
+
+f1["id"] = take(int(), 3)
+assert 5, eqObj(f1.id, take(int(), 3)) 
+assert 6, eqObj(f1["id"], take(int(), 3)) 
+
+f1["id"] = `a`b`1
+assert 7, eqObj(f1.id, NULL NULL 1) 
+assert 8, eqObj(f1["id"],  NULL NULL 1) 
+
+f1["id"] = 1 2 3
+f1["id"][1]=1000.22
+assert 9, eqObj(f1.id, 1 1000 3) 
+assert 10, eqObj(f1["id"],  1 1000 3) 
+
+
+@testing:case="test_topic_class_assignment_arrayVector_syntaxError"
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1.id = arrayVector(2 4, 1 2 3 4)
+assert 1, eqObj(f1.id, arrayVector(2 4, 1 2 3 4))
+
+@testing:case="test_topic_class_assignment_arrayVector_ex1", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1
+
+@testing:case="test_topic_class_assignment_arrayVector_ex2", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1 2 3
+
+@testing:case="test_topic_class_assignment_arrayVector_ex3", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1 "a" 3
+
+
+@testing:case="test_topic_class_assignment_arrayVector_ex4", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1:2
+
+
+@testing:case="test_topic_class_assignment_arrayVector_ex5", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = 1..6$2:3
+
+@testing:case="test_topic_class_assignment_arrayVector_ex6", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = dict(1 2 3, 1 2 3)
+
+@testing:case="test_topic_class_assignment_arrayVector_ex7", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = table(1 2 3 as x)
+
+@testing:case="test_topic_class_assignment_arrayVector_ex8", exception=1
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = NULL
+
+@testing:case="test_topic_class_assignment_arrayVector"
+class Foo{
+	id :: INT[] VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1["id"] = arrayVector(2 4, 1 2 3 4)
+assert 1, eqObj(f1.id, arrayVector(2 4, 1 2 3 4)) 
+assert 2, eqObj(f1["id"], arrayVector(2 4, 1 2 3 4)) 
+
+f1["id"] = arrayVector(2 4, NULL NULL NULL 4)
+assert 3, eqObj(f1.id, arrayVector(2 4, NULL NULL NULL 4)) 
+assert 4, eqObj(f1["id"], arrayVector(2 4, NULL NULL NULL 4)) 
+
+f1["id"] = arrayVector(2 4, take(int(),4))
+assert 5, eqObj(f1.id,  arrayVector(2 4, take(int(),4))) 
+assert 6, eqObj(f1["id"],  arrayVector(2 4, take(int(),4))) 
+
+f1["id"] = arrayVector(2 4, 1 2.3 3 100.0)
+assert 7, eqObj(f1.id, arrayVector(2 4, int(1 2.3 3 100.0))) 
+assert 8, eqObj(f1["id"], arrayVector(2 4,  int(1 2.3 3 100.0))) 
+
+f1["id"] = arrayVector(2 4, 1 2.3 3 100.0)
+f1["id"][1]=1000.22
+assert 9, eqObj(f1.id, arrayVector(2 4, 1 1000 3 1000)) 
+assert 10, eqObj(f1["id"],  arrayVector(2 4, 1 1000 3 1000)) 
+
+@testing:case="test_topic_class_assignment_multi_times"
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+for(i in 1..1000){
+    f1["id"] = 1
+    assert 1, eqObj(f1.id, 1) 
+    assert 2, eqObj(f1["id"], 1) 
+
+    f1["id"] = 222
+    assert 1, eqObj(f1.id, 222) 
+    assert 2, eqObj(f1["id"], 222) 
+
+}
+
+@testing:case="test_topic_class_assignment_multi_jobs"
+def submitJob_class_assignment(mutable f1){
+    f1["id"] = 1
+    f1["id"] = 222 
+}
+
+
+class Foo{
+	id :: INT
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+
+job1 = submitJob("job_class", "job_class", submitJob_class_assignment, f1)
+job2 = submitJob("job_class", "job_class", submitJob_class_assignment, f1)
+
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+
+assert 1, eqObj(f1.id, 222) 
+assert 2, eqObj(f1["id"], 222) 
+
+@testing:case="test_topic_class_append!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_append(num_list){
+        id.append!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_append(2 3)
+assert 1, eqObj(f1.id, 1 2 3 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_append!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_append(num_list){
+        id.append!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].append!(2 3)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_clear!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_clear(){
+        id.clear!()
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_clear()
+assert 1, eqObj(f1.id, take(int(), 0)) 
+assert 2, eqObj(f1["id"], take(int(), 0)) 
+
+@testing:case="test_topic_class_clear!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_clear(){
+        id.clear!()
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].clear!()
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], take(int(),0)) 
+
+@testing:case="test_topic_class_pop!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_pop(){
+        id.pop!()
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_pop()
+assert 1, eqObj(f1.id, 1 2) 
+assert 2, eqObj(f1["id"], 1 2) 
+
+@testing:case="test_topic_class_pop!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_pop(){
+        id.pop!()
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].pop!()
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 2) 
+
+@testing:case="test_topic_class_removeHead!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_removeHead(count){
+        id.removeHead!(count)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_removeHead(2)
+assert 1, eqObj(f1.id, [3]) 
+assert 2, eqObj(f1["id"], [3]) 
+
+@testing:case="test_topic_class_removeHead!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_removeHead(count){
+        id.removeHead!(count)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].removeHead!(2)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], [3]) 
+
+
+@testing:case="test_topic_class_appendTuple!_1", exception=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_appendTuple(count){
+        id.appendTuple!(count)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_appendTuple(1 2)
+ 
+@testing:case="test_topic_class_removeTail!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_removeTail(count){
+        id.removeTail!(count)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_removeTail(2)
+assert 1, eqObj(f1.id, [1]) 
+assert 2, eqObj(f1["id"], [1]) 
+
+@testing:case="test_topic_class_removeTail!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_removeTail(count){
+        id.removeTail!(count)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].removeTail!(2)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], [1]) 
+
+@testing:case="test_topic_class_push!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_push(num_list){
+        id.push!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_push(2 3)
+assert 1, eqObj(f1.id, 1 2 3 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_push!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_push(num_list){
+        id.push!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].push!(2 3)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_sort!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_sort(){
+        id.sort!()
+    }
+}
+f1 = Foo()
+f1.setId(2 1 3)
+f1.class_sort()
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+
+@testing:case="test_topic_class_sort!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_sort(){
+        id.sort!()
+    }
+}
+f1 = Foo()
+f1.setId(2 1 3)
+
+r = attributeValues(f1)
+r["id"].sort!()
+assert 1, eqObj(f1.id, 2 1 3) 
+assert 2, eqObj(f1["id"], 2 1 3) 
+assert 3, eqObj(r["id"], 1 2 3) 
+
+@testing:case="test_topic_class_bfill!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_bfill(){
+        id.bfill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+f1.class_bfill()
+assert 1, eqObj(f1.id, 1 3 3) 
+assert 2, eqObj(f1["id"], 1 3 3) 
+
+@testing:case="test_topic_class_bfill!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_bfill(){
+        id.bfill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+
+r = attributeValues(f1)
+r["id"].bfill!()
+assert 1, eqObj(f1.id, 1 NULL 3) 
+assert 2, eqObj(f1["id"], 1 NULL 3) 
+assert 3, eqObj(r["id"], 1 3 3) 
+
+
+@testing:case="test_topic_class_ffill!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_ffill(){
+        id.ffill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+f1.class_ffill()
+assert 1, eqObj(f1.id, 1 1 3) 
+assert 2, eqObj(f1["id"], 1 1 3) 
+
+@testing:case="test_topic_class_ffill!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_ffill(){
+        id.ffill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+
+r = attributeValues(f1)
+r["id"].ffill!()
+assert 1, eqObj(f1.id, 1 NULL 3) 
+assert 2, eqObj(f1["id"], 1 NULL 3) 
+assert 3, eqObj(r["id"], 1 1 3) 
+
+@testing:case="test_topic_class_fill!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_fill(index, value){
+        id.fill!(index, value)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_fill(1, 100)
+assert 1, eqObj(f1.id, 1 100 3) 
+assert 2, eqObj(f1["id"], 1 100 3) 
+
+@testing:case="test_topic_class_fill!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_fill(index, value){
+        id.fill!(index, value)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].fill!(1, 100)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 100 3) 
+
+@testing:case="test_topic_class_lfill!_1"
+class Foo{
+	id :: DOUBLE VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_lfill(){
+        id.lfill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 4)
+f1.class_lfill()
+assert 1, eqObj(f1.id, 1 2.5 4) 
+assert 2, eqObj(f1["id"], 1 2.5 4) 
+
+@testing:case="test_topic_class_lfill!_2"
+class Foo{
+	id :: DOUBLE VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_lfill(){
+        id.lfill!()
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 4)
+
+r = attributeValues(f1)
+r["id"].lfill!()
+assert 1, eqObj(f1.id, 1.0 NULL 4) 
+assert 2, eqObj(f1["id"], 1.0 NULL 4) 
+assert 3, eqObj(r["id"], 1 2.5 4) 
+
+
+@testing:case="test_topic_class_nullFill!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_nullFill(num){
+        id.nullFill!(num)
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+f1.class_nullFill(2)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+
+@testing:case="test_topic_class_nullFill!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_nullFill(num){
+        id.nullFill!(num)
+    }
+}
+f1 = Foo()
+f1.setId(1 NULL 3)
+
+r = attributeValues(f1)
+r["id"].nullFill!(2)
+assert 1, eqObj(f1.id, 1 NULL 3) 
+assert 2, eqObj(f1["id"], 1 NULL 3) 
+assert 3, eqObj(r["id"], 1 2 3) 
+
+
+@testing:case="test_topic_class_replace!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_replace(oldValue, newValue){
+        id.replace!(oldValue, newValue)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_replace(2, 100)
+assert 1, eqObj(f1.id, 1 100 3) 
+assert 2, eqObj(f1["id"], 1 100 3) 
+
+@testing:case="test_topic_class_replace!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_replace(oldValue, newValue){
+        id.replace!(oldValue, newValue)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].replace!(2, 100)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 100 3) 
+
+@testing:case="test_topic_class_join!_1"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_join(num_list){
+        id.join!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+f1.class_join(2 3)
+assert 1, eqObj(f1.id, 1 2 3 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_join!_2"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_join(num_list){
+        id.join!(num_list)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+
+r = attributeValues(f1)
+r["id"].join!(2 3)
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+assert 3, eqObj(r["id"], 1 2 3 2 3) 
+
+@testing:case="test_topic_class_memberModify!"
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_memberModify(function, indices, parameters){
+        id.memberModify!(function, indices, parameters)
+    }
+}
+f1 = Foo()
+f1.setId(1 2 3)
+memberModify!(f1, append!, "id", 1)
+assert 1, eqObj(f1.id, 1 2 3 1) 
+assert 2, eqObj(f1["id"], 1 2 3 1) 
+
+@testing:case="test_topic_class_shuffle!_1",syntaxError=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_shuffle_sort(){
+        id.shuffle!().sort!()
+    }
+}
+f1 = Foo()
+f1.setId(2 1 3)
+f1.class_shuffle_sort()
+assert 1, eqObj(f1.id, 1 2 3) 
+assert 2, eqObj(f1["id"], 1 2 3) 
+
+@testing:case="test_topic_class_shuffle!_2",syntaxError=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_shuffle_sort(){
+        id.shuffle!()
+    }
+}
+f1 = Foo()
+f1.setId(2 1 3)
+
+r = attributeValues(f1)
+r["id"].shuffle!().sort!()
+assert 1, eqObj(f1.id, 2 1 3) 
+assert 2, eqObj(f1["id"], 2 1 3) 
+assert 3, eqObj(r["id"], 1 2 3) 
+
+
+@testing:case="test_topic_class_mutableFunc!_3_1",syntaxError=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_mutableFunc_3(){
+        id.ffill!().shuffle!().sort!()
+    }
+}
+f1 = Foo()
+f1.setId(4 NULL 3)
+f1.class_mutableFunc_3()
+assert 1, eqObj(f1.id, 3 4 4) 
+assert 2, eqObj(f1["id"],3 4 4) 
+
+@testing:case="test_topic_class_mutableFunc!_3_2",syntaxError=1
+class Foo{
+	id :: INT VECTOR
+	def Foo(){}
+	def setId(id_){id = id_}
+    def class_mutableFunc_3(){
+        id.ffill!().shuffle!().sort!()
+    }
+}
+f1 = Foo()
+f1.setId(4 NULL 3)
+
+r = attributeValues(f1)
+r["id"].ffill!().shuffle!().sort!()
+assert 1, eqObj(f1.id, 1 NULL 3) 
+assert 2, eqObj(f1["id"], 1 NULL 3) 
+assert 3, eqObj(r["id"], 3 4 4) 
+
+
+@testing:case="test_topic_class_tuple_="
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id[0]=100
+    }
+}
+f1 = Foo()
+f1.setId((1,[1,2],3))
+f1.change()
+
+assert 1, each(eqObj, f1.id, [100,[1,2],3]) 
+assert 2, each(eqObj, f1["id"], [100,[1,2],3]) 
+
+
+@testing:case="test_topic_class_dict_="
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"][1]=100
+    }
+}
+f1 = Foo()
+f1.setId({"a":1 2 3, "b":2 1 3})
+f1.change()
+ex = {"a":1 100 3, "b":2 1 3}
+assert 1, each(eqObj, f1.id.keys(), ex.keys()) 
+assert 2, each(eqObj, f1.id.values(), ex.values()) 
+assert 3, each(eqObj, f1[`id].keys(), ex.keys()) 
+assert 4, each(eqObj, f1[`id].values(), ex.values()) 
+
+@testing:case="test_topic_dict_class_="
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"][1]=100
+    }
+}
+
+f1 = Foo()
+a = (1, f1, 2)
+a[1].setId({"a":1 2 3, "b":2 1 3})
+a[1].change()
+ex = {"a":1 100 3, "b":2 1 3}
+assert 1, each(eqObj, a[1].id.keys(), ex.keys()) 
+assert 2, each(eqObj, a[1].id.values(), ex.values()) 
+assert 3, each(eqObj, a[1][`id].keys(), ex.keys()) 
+assert 4, each(eqObj, a[1][`id].values(), ex.values()) 
+assert 5, eqObj(a.size(),3)
+assert 6, eqObj(a[0],1)
+assert 7, eqObj(a[2],2)
+
+@testing:case="test_topic_tuple_class_="
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id[0]=100
+    }
+}
+f1 = Foo()
+a = (1, f1, 2)
+a[1].setId((1,[1,2],3))
+a[1].change()
+
+assert 1, eqObj(a.size(),3)
+assert 2, eqObj(a[0],1)
+assert 3, each(eqObj, a[1].id, [100,[1,2],3]) 
+assert 4, each(eqObj, a[1]["id"], [100,[1,2],3]) 
+assert 5, eqObj(a[2],2)
+
+
+@testing:case="test_topic_class_tuple_mutableFunc!"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id[1].append!(NULL 1)
+    }
+}
+f1 = Foo()
+f1.setId((1,[1,2],3))
+f1.change()
+
+assert 1, each(eqObj, f1.id, [1,[1,2,NULL,1],3]) 
+assert 2, each(eqObj, f1["id"], [1,[1,2,NULL,1],3]) 
+
+
+@testing:case="test_topic_class_dict_mutableFunc!"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"].append!(NULL 100)
+    }
+}
+f1 = Foo()
+f1.setId({"a":1 2 3, "b":2 1 3})
+f1.change()
+ex = {"a":1 2 3 NULL 100, "b":2 1 3}
+assert 1, each(eqObj, f1.id.keys(), ex.keys()) 
+assert 2, each(eqObj, f1.id.values(), ex.values()) 
+assert 3, each(eqObj, f1[`id].keys(), ex.keys()) 
+assert 4, each(eqObj, f1[`id].values(), ex.values()) 
+
+@testing:case="test_topic_dict_class_mutableFunc!"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"].append!(100 NULL)
+    }
+}
+
+f1 = Foo()
+a = (1, f1, 2)
+a[1].setId({"a":1 2 3, "b":2 1 3})
+a[1].change()
+ex = {"a":1 2 3 100 NULL, "b":2 1 3}
+assert 1, each(eqObj, a[1].id.keys(), ex.keys()) 
+assert 2, each(eqObj, a[1].id.values(), ex.values()) 
+assert 3, each(eqObj, a[1][`id].keys(), ex.keys()) 
+assert 4, each(eqObj, a[1][`id].values(), ex.values()) 
+assert 5, eqObj(a.size(),3)
+assert 6, eqObj(a[0],1)
+assert 7, eqObj(a[2],2)
+
+
+@testing:case="test_topic_tuple_class_mutableFunc!"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id[1].append!(100 NULL)
+    }
+}
+f1 = Foo()
+a = (1, f1, 2)
+a[1].setId((1,[1,2],3))
+a[1].change()
+
+assert 1, eqObj(a.size(),3)
+assert 2, eqObj(a[0],1)
+assert 3, each(eqObj, a[1].id, [1,[1,2,100,NULL],3]) 
+assert 4, each(eqObj, a[1]["id"], [1,[1,2,100,NULL],3]) 
+assert 5, eqObj(a[2],2)
+
+@testing:case="test_topic_class_outside_=_ex"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id[0]=100
+    }
+}
+f1 = Foo()
+f1.id=100
+assert 1, f1.id==100
+
+@testing:case="test_topic_class_outside_mutableFunc!"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+}
+f1 = Foo()
+f1.setId((1,[1,2],3))
+f1.id[1].append!(100 NULL)
+
+assert 1, f1.id.size()==3
+assert 2,  eqObj(f1.id[0], 1)
+assert 3, eqObj(f1.id[1], 1 2 100 NULL)
+assert 4, eqObj(f1.id[2], 3)
+
+assert 5, f1["id"].size()==3
+assert 6,  eqObj(f1["id"][0], 1)
+assert 7, eqObj(f1["id"][1], 1 2 100 NULL)
+assert 8, eqObj(f1["id"][2], 3)
+
+@testing:case="test_topic_class_.id_1"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"]=100
+    }
+}
+f1 = Foo()
+f1.id = 100
+assert 1, eqObj(f1.id,100)
+
+
+@testing:case="test_topic_class.id_2"
+class Foo{
+	id :: ANY
+	def Foo(){}
+	def setId(id_){id = id_}
+    def change(){
+        id["a"]=100
+    }
+}
+f1 = Foo()
+f1.setId({"a":1 2 3, "b":2})
+f1.id["a"].append!(2)
+assert 1, eqObj(f1.id.keys().sort(), `a`b)
+assert 2, eqObj(f1.id["a"],  1 2 3 2)
+assert 3, eqObj(f1.id["b"], 2)
+
+
+

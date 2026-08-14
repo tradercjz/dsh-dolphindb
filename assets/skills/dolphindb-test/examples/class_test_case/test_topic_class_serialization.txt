@@ -1,0 +1,268 @@
+#include "checkChunk.txt"
+@testing:case="test_topic_class_with_persional_function"
+def f1(val){
+	return val * 0.56
+}
+
+class F1{
+	val :: DOUBLE
+	def F1(){}
+	def getval(value){
+		val = value + f1(value)
+		return val	
+	}		
+}
+
+f = F1()
+assert 1, each(eqObj,f.getval(10.0), (10+f1(10)))
+assert 2, each(eqObj,f.val , (10+f1(10)))
+assert 3, each(eqObj,f.getval(f.val), (15.6+f1(15.6)))
+
+@testing:case="test_topic_class_with_presional_function_2"
+def f1(val){
+	return val * 0.56
+}
+
+class F1{
+	val :: DOUBLE
+	def F1(){}
+	def getval(value){
+		val = value + f1(val)
+		return val	
+	}		
+}
+class F2:F1{
+	def F2(){
+		val = 0.0	
+	}
+	def getval2(beta){
+		return getval(beta)\beta
+	}
+}
+
+f = F2()
+assert 1, each(eqObj,f.getval(10.0), (10+f1(0)))
+assert 2, each(eqObj,f.val , (10+f1(0)))
+assert 3, each(eqObj,f.getval2(f.val), (10+f1(10))\10)
+
+@testing:case="test_topic_class_with_presional_function_use_class"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+}
+
+def speak(mutable F){
+	str = F.getS()
+	return str
+}
+f = F1("tt1")
+assert 1, speak(f) == "all"
+
+@testing:case="test_topic_class_with_presional_function_use_class_with_inherit"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+}
+
+class F2:F1{
+	def F2(){name = "default"}
+	def getS(){return "F2"}	
+}
+def speak(mutable F){
+	str = F.getS()
+	return str
+}
+f = F2()
+assert 1, speak(f) == "F2"
+
+@testing:case="test_topic_class_with_presional_function_init_class"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+}
+
+def speak(){
+	f = F1("tt1")
+	return f.getS()
+}
+assert 1, speak() == "all"
+
+@testing:case="test_topic_class_with_presional_function_init_class_with_inherit"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+}
+class F2:F1{
+	def F2(name_="default"){name = name_}
+	def getS(){return "F2"}	
+}
+def speak(){
+	f = F2("tt1")
+	return f.getS()
+}
+assert 1, speak() == "F2"
+
+@testing:case="test_topic_class_with_presional_function_with_rpc"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+	def setName(name_){
+		name = name_	
+	}
+	def getName(){
+		return name	
+	}
+}
+def getName(mutable f){
+	str = f.getName()
+	return str	
+}
+nodes = exec node from pnodeRunAllNodes(getNodeAlias) where node != getNodeAlias()
+f  = F1("tt1")
+rpc(nodes[0], getName, f)
+
+@testing:case="test_topic_class_with_presional_function_init_class_with_rpc"
+class F1{
+	name :: STRING
+	def F1(name_){
+		name = name_
+	}
+	def getS(){
+		return "all"	
+	}	
+	def setName(name_){
+		name = name_	
+	}
+	def getName(){
+		return name	
+	}
+}
+def getName(name){
+	f = F1(name)
+	return f.getS()
+}
+nodes = exec node from pnodeRunAllNodes(getNodeAlias) where node != getNodeAlias()
+assert 1, rpc(nodes[0], getName, "tt1") == "all"
+
+@testing:case="test_topic_class_defined_class_other_node", exception=1
+script = "class F1{ name::STRING\n def F1(name_){name= name_}\n }"
+nodes = exec node from pnodeRunAllNodes(getNodeAlias) where node != getNodeAlias()
+h = xdb(nodes[0], "admin","123456")
+remoteRun(h, script)
+f = h(F1,"tt1")
+f.name 
+//assert 1, f.name == "tt1"
+
+@testing:case="test_topic_class_defined_class_other_node_2"
+script = "class F1{ name::STRING\n def F1(name_){name= name_}\n }\nf=F1('tt1')\nf.name"
+nodes = exec node from pnodeRunAllNodes(getNodeAlias) where node != getNodeAlias()
+h = xdb(nodes[0], "admin","123456")
+str = remoteRun(h, script)
+assert 1, str == "tt1"
+
+@testing:case="test_topic_class_function_view"
+class F2{
+	name :: STRING
+	def F2(){name = "default"}
+	def getS(){return "F2"}	
+	def setName(name_){
+		name = name_
+	}
+	def getName(){
+		return name	
+	}
+}
+
+login("admin","123456")
+if("f1" in getFunctionViews()["name"]){
+	dropFunctionView("f1")	
+}
+def f1(){
+	F = F2()
+	F.setName("newName")
+	str = F.getName()
+	return str
+}
+addFunctionView(f1)
+
+assert 1, f1() == "newName"
+go
+nodes = exec name from rpc(getControllerAlias(), getClusterPerf) where mode = 0
+for(node in nodes){
+	assert 2, rpc(node , f1)	== "newName"
+}
+
+@testing:case="test_topic_class_function_view_2"
+login("admin","123456")
+if("f1" in getFunctionViews()["name"]){
+	dropFunctionView("f1")	
+}
+def f2(mutable F){
+	F.setName("newName")
+	str = F.getName()
+	print(str)	
+}
+addFunctionView(f1)
+F = F2()
+//f1(F)
+
+nodes = exec name from rpc(getControllerAlias(), getClusterPerf) where mode = 0
+for(node in nodes){
+	rpc(node , f2, F)	
+}
+
+//https://dolphindb1.atlassian.net/browse/D20-20318
+@testing:case="test_topic_class_run_in cluster", exception=1
+login("admin", "123456")
+dbName = "dfs://testClass"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 1..10, ,`TSDB)
+t1 = table(take(1..10,100).sort() as id, take("A"+string(1..10), 100) as name, array(DECIMAL64(4)[]).append!(arrayVector(take(1 3 5, 100).cumsum().int(), rand(100.0,298).double())) as value)
+pt = db.createPartitionedTable(t1, `pt, `id, ,`id).append!(t1)
+
+class F{
+	res:: DOUBLE
+	def F(){
+		sum = 0.0	
+	}
+	defg func1(value){
+		res = sum(value)\res
+		return res
+	}
+	def func2(value){
+		res = (res+value)\(res-value)
+		return res
+	}
+	defg func3(value){
+		return avg(value)	
+	}
+}
+f = F()
+re = select f.func3(value) from loadTable(dbName, `pt)

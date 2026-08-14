@@ -1,0 +1,179 @@
+module easy_datayes::loadTLData
+
+/* 
+*  @ brief  
+*  The module is designed to facilitate the automatic loading of trading data from DataYes into DolphinDB databases.
+*  @ Author: DolphinDB
+*  @ Last modification time: 2025.01.15
+*  @ DolphinDB server version: 2.00.15/3.00.3
+*/
+
+use easy_datayes::utils
+use easy_datayes::setconfig
+use easy_datayes::createDbAndTb::createTB
+use easy_datayes::loadData::loadData
+
+
+def autoLoadTongLianData(fileDir, dataSource,
+						dbName="dfs://TL_Level2", tableName=NULL, startDate=NULL, endDate=NULL, parallel=1){
+	data_type_map = reverse_dict(set_data_type()) 
+	// 检查 dataSource 参数, 判断是否满足支持的枚举值。
+	// 对于满足条件的形成最后需要导入最终数据类型 dtypes
+	data_type_values = data_type_map.keys()
+	if(typestr(dataSource) like "%VECTOR%"){
+		data_source = dataSource
+	}else{
+		data_source = [dataSource]
+	}
+	error_dtype = data_source[!(string(data_source) in data_type_values)]
+	dtypes = data_source[string(data_source) in data_type_values]
+	if(error_dtype.size()>0){
+		msg = stringFormat("数据源 [%W] 暂时不支持", concat(string(error_dtype), ","))
+		msg = write_log(msg, level="error")
+		return false
+	}
+	if(dtypes.size()>0){
+		msg = stringFormat("准备导入数据源 [%W]", concat(string(dtypes), ","))
+		msg = write_log(msg, level="info")
+	}else{
+		return false
+	}
+
+	// 确定要导入的数据库名 dbNames
+	if(typestr(dbName)=="VOID"){
+		dbNames = take("dfs://TL_Level2", size(dtypes))
+	}else if(typestr(dbName)=="STRING"){
+		dbNames = take(dbName, size(dtypes))
+	}else if(typestr(dbName).strpos("DICTIONARY")!=-1){
+		dbNames = dbName[dtypes].flatten()
+		if(any(dbNames==NULL)){
+			msg = stringFormat("数据源 [%W] 未指定目标数据库名", concat(string(dtypes[dbNames==NULL]), ","))
+			msg = write_log(msg, level="error")
+			return false
+		}
+	}else{
+		msg = "dbName 参数类型有误, 预期输入 NULL / STRING 类型/ DICT 类型(key是dataSource)"
+		msg = write_log(msg, level="error")
+		return false
+	}
+
+	// 确定分布式表的名称 tbNames
+	if(typestr(tableName)=="VOID"){
+		tbNames = data_type_map[dtypes]
+	}else if(typestr(tableName)=="STRING" and size(dtypes)==1){
+		tbNames = take(tableName, size(dtypes))
+	}else if(typestr(tableName).strpos("DICTIONARY")!=-1){
+		tbNames = tableName[dtypes].flatten()
+		if(any(tbNames==NULL)){
+			msg = stringFormat("数据源 [%W] 未指定目标数据库名", concat(string(dtypes[tbNames==NULL]), ","))
+			msg = write_log(msg, level="error")
+			return false
+		}
+	}else{
+		msg = "tableName 参数类型有误, 预期输入 NULL / STRING 类型(dataSource只有1个值)/ DICT 类型(key是dataSource)"
+		msg = write_log(msg, level="error")
+		return false
+	}
+
+	// 获取所有可导入的日期 fileDirs
+	if(typestr(startDate)=="STRING" and regexFind(string(startDate), "^[0-9]{8}$")==0){
+		st = temporalParse(startDate, "yyyyMMdd")
+	}else if(typestr(startDate) in ["DATE", "VOID"]){
+		st = startDate
+	}else{
+		msg = "开始日期 startDate 参数类型有误, 预期输入 NULL / yyyyMMdd 格式 STRING/ DATE 类型"
+		msg = write_log(msg, level="error")
+		return false
+	}
+	if(typestr(endDate)=="STRING" and regexFind(string(endDate), "^[0-9]{8}$")==0){
+		et = temporalParse(endDate, "yyyyMMdd")
+	}else if(typestr(endDate) in ["DATE", "VOID"]){
+		et = endDate
+	}else{
+		msg = "结束日期 endDate 参数类型有误, 预期输入 NULL / yyyyMMdd 格式 STRING/ DATE 类型"
+		msg = write_log(msg, level="error")
+		return false
+	}
+	fileDirs = get_file_date(fileDir, startDate, endDate)
+	if(typestr(fileDirs)=="BOOL" or size(fileDirs)==0){ 
+		msg = stringFormat("[%W] 路径下没有找到指定日期的文件夹，请确认文件路径", string(fileDir))
+		msg = write_log(msg, level="error")
+		return false 
+	}
+	load_date = temporalParse(string(right(fileDirs, 8)), "yyyyMMdd")
+	filedir_map = dict(load_date, fileDirs)
+	load_date = load_date.sort()
+	fileDirs = filedir_map[load_date]
+
+	// 创建所有相关的数据库和表
+	for(i in 0:size(dbNames)){	// i = 0
+		dbname = dbNames[i]
+		tbname = tbNames[i]
+		dtype = dtypes[i]
+		write_log(stringFormat("检查存储 [%W] 的数据库表 [%W, %W] 是否存在", string(dtype), string(dbname), string(tbname)))
+		try{
+			is_table_exsits, time_col = createTB(dbname, tbname, dtype)
+		}catch(ex){
+			msg = string(ex[0])+":"+string(ex[1])
+			write_log(msg, level="error")
+			is_table_exsits = false
+		}
+		if(is_table_exsits==false){
+			msg = "相关库表创建失败"
+			write_log(msg, level="error")
+			return false
+		}
+
+		// Remove any existing data that meets the import conditions from the original database (to prevent duplicates)
+		exist_date = sql(select=<count(*)>, from=loadTable(dbname, tbname), groupBy=parseExpr(stringFormat("date(%W) as trade_date", time_col)), groupFlag=1).eval()
+		exist_date = exist_date["trade_date"]
+		target_date = load_date[load_date in exist_date]
+		if(size(target_date) > 0){
+			write_log("避免重复导入，先删库库内待导入的数据："+concat(string(sort(target_date)), ","))
+			dropPartition(database(dbname), target_date, tableName=tbname)
+		}
+	}
+
+	// 根据指定的并行度拆分任务
+	myCut = def(i, parallel, dirs){return dirs[rowNo(dirs)%parallel==i]}
+	fileLists = loop(myCut{,parallel, fileDirs}, 0..(parallel-1))
+
+	// 创建任务状态记录表
+	task_status_db(true)
+	
+	// 提交数据导入任务
+	write_log("提交数据导入任务")
+	jobid = rand(uuid(), 1)[0]
+	jobDesc = stringFormat("%W_%W_%W", concat(string(dtypes), "_"), temporalFormat(min(load_date), "yyyyMMdd"), temporalFormat(max(load_date), "yyyyMMdd"))
+	for(i in 0:size(fileLists)){//i = 0
+		fileList = fileLists[i]
+		if(typestr(fileList)=="ANY" or size(fileList)==0){ continue }
+			submitJob(jobDesc+"_"+string(i), string(jobid), loadDaysData{fileList, dbNames, tbNames, dtypes})
+	}
+	return jobid
+}
+
+/*
+ * @FunctionName: getTLJobStatus
+ * @Brief: Retrieves the status of a specific job.
+ * @Param: jobid: The unique identifier of the job whose status is to be retrieved.
+ * @Return: A table containing the status information for the specified job.
+ */
+def getTLJobStatus(jobid){
+	temp = string(jobid)
+	return select * from getRecentJobs() where jobDesc=temp
+}
+
+/*
+ * @FunctionName: getTLJobDetails
+ * @Brief: Retrieves detailed information about a specific job.
+ * @Param: jobid: The unique identifier of the job whose details are to be retrieved.
+ * @Return: A concatenated string containing detailed messages about the specified job
+ */
+def getTLJobDetails(jobid){
+	//查询一个主作业下所有任务实例的执行详情，用于调试或监控。
+	jobStatus = getTLJobStatus(jobid)
+	jobMessage = each(getJobMessage, jobStatus.jobId)
+	jobMessage = concat(jobMessage, "\n////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////\n")
+	return jobMessage
+}

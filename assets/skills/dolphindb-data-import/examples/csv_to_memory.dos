@@ -1,0 +1,19 @@
+// Example: Import CSV to memory table with type correction
+
+// Step 1: Preview schema
+schema = extractTextSchema("/data/trades.csv")
+// name     type
+// date     DATE
+// ticker   INT      <-- wrong! should be SYMBOL
+// price    DOUBLE
+// volume   INT
+
+// Step 2: Correct types
+update schema set type = `SYMBOL where name = "ticker"
+
+// Step 3: Import
+t = loadText("/data/trades.csv", schema=schema)
+
+// Step 4: Verify
+select top 5 * from t
+select count(*) as totalRows from t

@@ -1,0 +1,31 @@
+{
+    "db_name": "dfs://tushare_daily_db",
+    "tb_name": "index_weight",
+    "desc": "存放指数成分及其权重信息，包含指数代码、指数名称、成分股代码、交易日期、权重和数据更新时间。",
+    "columns": {
+        "index_code": {
+            "type": "SYMBOL",
+            "desc": "指数代码"
+        },
+        "index_name": {
+            "type": "STRING",
+            "desc": "指数名称"
+        },
+        "con_code": {
+            "type": "SYMBOL",
+            "desc": "股票代码"
+        },
+        "trade_date": {
+            "type": "DATE",
+            "desc": "交易日期"
+        },
+        "weight": {
+            "type": "DOUBLE",
+            "desc": "权重"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "更新时间"
+        }
+    }
+}

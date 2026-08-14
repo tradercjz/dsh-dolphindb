@@ -1,0 +1,745 @@
+t=table(1..100 as id)
+db=database("")
+@testing:case="createPartitionedTable_ex1", exception=1
+t1 = createPartitionedTable(db,111,`test,`id)
+@testing:case="createPartitionedTable_ex2", exception=1
+t1 = createPartitionedTable(11,t,`test,`id)
+@testing:case="createPartitionedTable_ex3", exception=1
+t1 = createPartitionedTable(db,t,111,`id)
+@testing:case="createPartitionedTable_ex4", exception=1
+t1 = createPartitionedTable(db,t,`tests,1)
+
+@testing:case="createPartitionedTable_long_tablename"
+if(getOS()=="linux"){
+login("admin","123456")
+if(existsDatabase("dfs://test_long_tablename")){
+	dropDatabase("dfs://test_long_tablename")
+}
+db = database("dfs://test_long_tablename", VALUE, 2019.01.01..2019.01.31, , "TSDB")
+data = table(100:0, `dt`value, [NANOTIMESTAMP, INT])
+s = take("tb", 66 ).concat("a")
+try{
+	db.createPartitionedTable(data, s, "dt", , "value")
+	assert 1, 1==1
+}catch(ex){
+	assert 1, 1==0
+}
+
+dropDatabase("dfs://test_long_tablename")
+}
+
+@testing:case="createPartitionedTable_duplicate_sortColumns",exception=1
+login("admin","123456")
+if(existsDatabase("dfs://test_duplicate_sortColumns")){
+	dropDatabase("dfs://test_duplicate_sortColumns")
+}
+db = database("dfs://test_duplicate_sortColumns", VALUE, 2019.01.01..2019.01.31, , "TSDB")
+data = table(100:0, `dt`value, [NANOTIMESTAMP, INT])
+db.createPartitionedTable(data, `s, "dt", , `dt`value`dt)
+
+
+// https://dolphindb1.atlassian.net/browse/D20-18613
+// value
+@testing:case="createPartitionedTable_value_schema_date_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_date_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_date_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_date_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_month_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_month_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_month_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_month_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// range
+@testing:case="createPartitionedTable_range_schema_date_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_date_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_date_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_date_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_month_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_month_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_month_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_month_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// list
+@testing:case="createPartitionedTable_list_schema_date_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_date_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_date_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_date_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, date(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_month_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_month_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_month_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_month_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, 2012.02M..2012.06M,,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// hash
+@testing:case="createPartitionedTable_hash_schema_date_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATE, 5],,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_date_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH,  [DATE, 5],,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_date_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH,  [DATE, 5],,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_date_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH,  [DATE, 5],,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_month_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH,  [MONTH, 3],,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_month_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [MONTH, 3],,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_month_prtitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [MONTH, 3],,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_month_prtitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [MONTH, 3],,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// compo
+@testing:case="createPartitionedTable_compo_schema_date_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+dbrange = database(, RANGE, 0 30 60 90 100)
+dbhash = database(, HASH, [DATE, 5])
+db = database(dbName, COMPO, [dbrange, dbhash],,`TSDB)
+t = table(n:n,[`id, `time,`value],[INT, TIME,DOUBLE])
+t[`id] = rand(100,n)
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `id`time,,`id`time)
+
+@testing:case="createPartitionedTable_compo_schema_date_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+dbrange = database(, RANGE, 0 30 60 90 100)
+dbhash = database(, HASH, [DATE, 5])
+db = database(dbName, COMPO, [dbhash, dbrange],,`TSDB)
+t = table(n:n,[`id, `time,`value],[INT, MINUTE,DOUBLE])
+t[`id] = rand(100,n)
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time`id,,`id`time)
+
+
+// https://dolphindb1.atlassian.net/browse/D20-18774
+// value
+@testing:case="createPartitionedTable_value_schema_datehour_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datehour_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datehour_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datehour_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datetime_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datetime_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datetime_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_value_schema_datetime_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, VALUE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// range
+@testing:case="createPartitionedTable_range_schema_datehour_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datehour_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datehour_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datehour_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datetime_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datetime_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datetime_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_range_schema_datetime_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, RANGE, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// list
+@testing:case="createPartitionedTable_list_schema_datehour_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datehour_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datehour_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datehour_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datehour(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datetime_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datetime_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datetime_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_list_schema_datetime_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, LIST, datetime(2012.02.01..2012.02.10),,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// hash
+@testing:case="createPartitionedTable_hash_schema_datehour_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATEHOUR, 5],,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datehour_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATEHOUR, 5],,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datehour_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATEHOUR, 5],,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datehour_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATEHOUR, 5],,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datetime_partitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATETIME, 7],,`TSDB)
+t = table(n:n,[`time,`value],[TIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datetime_partitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATETIME, 7],,`TSDB)
+t = table(n:n,[`time,`value],[MINUTE,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datetime_partitioncol_second", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATETIME, 7],,`TSDB)
+t = table(n:n,[`time,`value],[SECOND,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+@testing:case="createPartitionedTable_hash_schema_datetime_partitioncol_nanotime", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+db = database(dbName, HASH, [DATETIME, 7],,`TSDB)
+t = table(n:n,[`time,`value],[NANOTIME,DOUBLE])
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time,,`time)
+
+// compo
+@testing:case="createPartitionedTable_compo_schema_datehour_prtitioncol_time", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+dbrange = database(, RANGE, 0 30 60 90 100)
+dbhash = database(, HASH, [DATEHOUR, 5])
+db = database(dbName, COMPO, [dbrange, dbhash],,`TSDB)
+t = table(n:n,[`id, `time,`value],[INT, TIME,DOUBLE])
+t[`id] = rand(100,n)
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `id`time,,`id`time)
+
+@testing:case="createPartitionedTable_compo_schema_datetime_prtitioncol_minute", exception =1
+n = 100
+dbName ="dfs://test_createpartition"
+if(existsDatabase(dbName)) {dropDatabase(dbName)}
+dbrange = database(, RANGE, 0 30 60 90 100)
+dbhash = database(, HASH, [DATETIME, 5])
+db = database(dbName, COMPO, [dbhash, dbrange],,`TSDB)
+t = table(n:n,[`id, `time,`value],[INT, MINUTE,DOUBLE])
+t[`id] = rand(100,n)
+t[`time] = take([13:30:10.008,13:30:11.008,13:31:10.008,13:30:10.007,14:30:10.008],n)
+t[`value] = rand(100.0,n)
+pt = db.createPartitionedTable(t, `pt, `time`id,,`id`time)
+

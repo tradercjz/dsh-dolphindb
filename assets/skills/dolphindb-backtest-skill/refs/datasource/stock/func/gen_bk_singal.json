@@ -1,0 +1,91 @@
+{
+    "name": "gen_bk_singal",
+    "desc": "用于基于已前复权的股票行情表生成板块信号，并构造包含股票行情与板块指数行情的 all_data，同时返回板块数字到板块代码的映射字典 bk_map_dict_reverse。",
+    "syntax": "gen_bk_singal(data)",
+    "notes": [
+        "该函数用于在已经完成前复权处理的股票行情表上补充板块信息信号。",
+        "data 必须包含字段：symbol, tradeTime, open, low, high, close, volume, amount, upLimitPrice, downLimitPrice, prevClosePrice。",
+        "data 可以额外包含 signal 列；若存在，该列必须为数组向量列，函数会在原有 signal 向量末尾追加一列板块数字标签。",
+        "若 data 不包含 signal 列，函数会自动创建 signal 数组向量列，并写入板块数字标签。",
+        "由于 signal 数组向量列不能存放字符串，板块信息不会直接写入板块代码字符串，而是写入板块数字标签。",
+        "bk_map_dict_reverse 是板块数字到板块 code 的映射字典，用于在后续 onBar 中根据 signal 内的数字标签反查板块 CODE。",
+        "返回的 all_data 包含股票行情、板块指数行情，以及股票行情 signal 中追加的板块数字标签。",
+        "后续策略若需要按板块做轮动或在 onBar 中读取股票所属板块，应优先使用该函数生成板块信号。",
+        "调用该函数后，不需要再在脚本中重复构造股票到板块的映射逻辑。",
+        "使用该函数时，应同时接收两个返回值：all_data, bk_map_dict_reverse = gen_bk_singal(data)。",
+        "使用该函数时，应在 signal_schema 中声明追加的板块数字标签列；若输入已有 signal，则该列索引为原 signal_schema.size，若输入没有 signal，则该列索引为 0。",
+        "使用该函数时，应在 datasource_constraints 中声明板块信号映射 handoff：bk_map_dict_reverse 会写入 context，callback 通过 signal 中的板块数字标签反查板块 CODE。",
+        "调用该函数并生成最终 data 后，应将 signal 列统一转为 DOUBLE 类型，避免只有板块标签时产生 INT[]。"
+    ],
+    "args": {
+        "data": {
+            "type": "TABLE",
+            "desc": "已完成前复权处理的股票行情表，需包含字段：symbol, tradeTime, open, low, high, close, volume, amount, upLimitPrice, downLimitPrice, prevClosePrice；可选包含 signal 数组向量列"
+        }
+    },
+    "return": {
+        "type": "TUPLE",
+        "desc": "返回两个值：all_data 和 bk_map_dict_reverse",
+        "values": {
+            "all_data": {
+                "type": "TABLE",
+                "desc": "包含股票行情与伪板块指数行情的行情表，字段结构与输入 data 保持一致；若输入 data 没有 signal 列，则输出会新增 signal 列；股票行情的 signal 中会追加板块数字标签",
+                "columns": {
+                    "symbol": {
+                        "type": "SYMBOL",
+                        "desc": "股票代码或板块 code；板块指数行情中该字段为板块 code"
+                    },
+                    "tradeTime": {
+                        "type": "TIMESTAMP",
+                        "desc": "交易时间"
+                    },
+                    "open": {
+                        "type": "DOUBLE",
+                        "desc": "前复权开盘价；板块指数行情中为按成分股收益率聚合后的板块开盘值"
+                    },
+                    "low": {
+                        "type": "DOUBLE",
+                        "desc": "前复权最低价；板块指数行情中为按成分股收益率聚合后的板块最低值"
+                    },
+                    "high": {
+                        "type": "DOUBLE",
+                        "desc": "前复权最高价；板块指数行情中为按成分股收益率聚合后的板块最高值"
+                    },
+                    "close": {
+                        "type": "DOUBLE",
+                        "desc": "前复权收盘价；板块指数行情中为按成分股收益率聚合后的板块收盘值"
+                    },
+                    "volume": {
+                        "type": "LONG",
+                        "desc": "成交量；板块指数行情中为板块内成分股成交量求和"
+                    },
+                    "amount": {
+                        "type": "DOUBLE",
+                        "desc": "成交额；板块指数行情中为板块内成分股成交额求和"
+                    },
+                    "upLimitPrice": {
+                        "type": "DOUBLE",
+                        "desc": "前复权涨停价；板块指数行情中固定为 999999.0"
+                    },
+                    "downLimitPrice": {
+                        "type": "DOUBLE",
+                        "desc": "前复权跌停价；板块指数行情中固定为 0.0"
+                    },
+                    "prevClosePrice": {
+                        "type": "DOUBLE",
+                        "desc": "前复权昨收价；板块指数行情中固定为 1000.0"
+                    },
+                    "signal": {
+                        "type": "ANY",
+                        "desc": "数组向量列；股票行情中包含板块数字标签，板块指数行情中使用 -1 填充"
+                    }
+                }
+            },
+            "bk_map_dict_reverse": {
+                "type": "DICT",
+                "desc": "板块数字到板块 code 的映射字典，用于将 signal 中的板块数字标签反查为 STRING 类型板块 CODE"
+            }
+        }
+    },
+    "body": "def gen_bk_singal(data){\n\n    // 用于空值填充值\n    NULL_BK_CODE = \"999999.SI\"\n    NULL_BK_CODE_NUM = -1\n\n    // data 本身是否有 signal\n    is_contain_signal = \"signal\" in data.columnNames()\n    signal_len = 0\n    if (is_contain_signal) {\n        signal_len = count(data[0][\"signal\"])\n    }\n    \n    // 1. 先获取目前的所有的2级板块有哪些\n    bk_code_list = exec index_code from loadTable(\"dfs://tushare_basic_db\", \"index_classify\") where level == \"L2\"\n    \n    // 2. 构建 板块和int的映射表\n    nums = 1..count(bk_code_list)-1\n    bk_map_dict = dict(bk_code_list, nums)\n    bk_map_dict[NULL_BK_CODE] = NULL_BK_CODE_NUM\n\n    bk_map_dict_reverse = dict(nums, bk_code_list)\n\n    if (count(data)==0){\n        return data, bk_map_dict_reverse\n    }\n    \n    // 3. 根据股票 和 时间 添加 行业分类 signal\n    // 交易日 从data中推算\n    trade_dates = exec distinct date(tradeTime) from data\n    // 形成 每日板块标签表\n    bk_table = cj(table(trade_dates), table(bk_code_list))\n    bk_table.rename!([\"tradeDate\", \"index_code\"])\n    // left join 添加成分股数据 形成 时间 板块 个股 窄表\n    bk_table = select a.*, b.code\n        from bk_table a \n        left join (select * from loadTable(\"dfs://tushare_basic_db\", \"index_member_all\")) b \n        on a.index_code == b.l2_code\n        where a.tradeDate >= b.in_date and (isNull(b.out_date) or a.tradeDate < b.out_date) \n        order by tradeDate\n    bk_table = select * from bk_table where not isNull(code)\n    // left join 合并到行情表上 作为 板块标签\n    data_with_bk = select a.*, b.index_code \n                    from data a \n                    left join bk_table b \n                    on date(a.tradeTime) == b.tradeDate and a.symbol == b.code\n                order by a.tradeTime, a.symbol\n    update data_with_bk set index_code=nullFill(index_code, NULL_BK_CODE)\n\n    index_code_col = data_with_bk.index_code\n    \n    // 4. 计算伪板块指数行情\n    x = select * from data_with_bk where not isNull(prevClosePrice) and prevClosePrice > 0\n    x = select *, open  / prevClosePrice - 1.0 as open_ret, high  / prevClosePrice - 1.0 as high_ret, low   / prevClosePrice - 1.0 as low_ret, close / prevClosePrice - 1.0 as close_ret from x\n\n    sectorAgg = select symbol, tradeTime, 1000.0 * (avg(open_ret)+1) as open, 1000.0 * (avg(low_ret)+1) as low, 1000.0 * (avg(high_ret)+1) as high, 1000.0 * (avg(close_ret)+1) as close, sum(volume).long() as volume, sum(amount) as amount, 999999.0 as upLimitPrice, 0.0 as downLimitPrice, 1000.0 as prevClosePrice from x where index_code != NULL_BK_CODE group by tradeTime, index_code as symbol order by tradeTime, symbol\n\n    // 5. 数据合并 以及 调整到signal中\n    drop!(data_with_bk, \"index_code\")\n\n    // 将 板块 合并到 个股的signal中\n    if (is_contain_signal){\n        // 原先的 data 中包含 signal\n        update data_with_bk set signal=fixedLengthArrayVector(data_with_bk.signal, bk_map_dict[index_code_col])\n    } else {\n        // 不含  signal\n        update data_with_bk set signal=arrayVector(1..count(index_code_col), bk_map_dict[index_code_col])\n    }\n    signal_len = signal_len+1\n\n    // 给板块行情添加signal列\n    sector_num = count(sectorAgg)\n\n    // 没有板块行情的时候，直接返回\n    if (sector_num == 0){\n        return data_with_bk, bk_map_dict_reverse\n    }\n\n    update sectorAgg set signal=arrayVector((1..sector_num)*signal_len, take(-1, sector_num*signal_len))\n\n    // 数据合并\n    all_data = select * from unionAll([data_with_bk, sectorAgg], 0) order by tradeTime, symbol\n\n    // 返回值 \n        // all_data 包含了板块行情和股票行情，以及股票包含板块标签\n        // bk_map_dict_reverse 表示 股票中的signal标签对应的板块 code\n    return all_data, bk_map_dict_reverse\n}"
+}

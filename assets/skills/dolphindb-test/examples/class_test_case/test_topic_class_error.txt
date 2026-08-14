@@ -1,0 +1,356 @@
+@testing:case="test_topic_class_className_same_with_typeName", syntaxError=1
+class int {
+	def int(){}
+}
+a = int(4)
+
+@testing:case="test_topic_class_not_defined", syntaxError=1
+class Int
+int()
+
+@testing:case="test_topic_class_member_error_type", syntaxError=1
+class Int{
+	id : INT		
+}
+
+@testing:case="test_topic_class_member_error_type_2", syntaxError=1
+class Int{
+	id :: type1
+}
+
+@testing:case="test_topic_class_member_error_type_3"
+class Int{
+	id :: Int
+	def Int(v){if(v < 3){return v } 
+		else{int(v/2)}
+	}
+}
+s = Int(100)
+assert 1, s.id == NULL
+
+@testing:case="test_topic_class_defined_function_out_class_struct", syntaxError=1
+class Int{
+	id :: Int
+	defg Int(v){}
+	def f1(v)
+}
+Int::f1(v){return avg(v)}
+
+@testing:case="test_topic_class_className_same_with_functionName", syntaxError=1
+class avg {
+	id::INT
+	def avg(){
+		id = 1	
+	}	
+}
+
+@testing:case="test_topic_class_member_same_with_typeName", syntaxError=1
+class Foo{
+	INT::DOUBLE	
+}
+
+
+@testing:case="test_topic_class_function_same_with_typeName", syntaxError=1
+class Foo{
+	avg::DOUBLE	
+	def Foo(){
+		avg = sum(1..10)
+	}
+	def DOUBLE(){
+		return 1	
+	}
+}
+
+@testing:case="test_topic_class_without_constructor", syntaxError=1
+class Foo{
+	id::INT
+}
+Foo()
+
+@testing:case="test_topic_class_with_more_constructor", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(){
+		id = 1
+	}
+	def Foo(id){id = id}
+}
+Foo()
+
+@testing:case="test_topic_class_constructor_with_error_parament_1", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(){
+		id = 1
+	}
+}
+Foo(3)
+
+@testing:case="test_topic_class_constructor_with_error_parament_2", exception=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = 1
+	}
+}
+Foo()
+
+@testing:case="test_topic_class_constructor_with_error_parament_3", exception=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+}
+Foo(3).Foo(3)
+
+@testing:case="test_topic_class_parament_same_with_attribute", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id){
+		id = id
+	}
+}
+
+@testing:case="test_topic_class_get_not_exists_attribute", exception=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+}
+Foo(3).id1
+
+@testing:case="test_topic_class_get_not_exists_function", exception=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+}
+Foo(3).f1(3)
+
+@testing:case="test_topic_class_get_attribute_error", exception=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+	def f1(){return 1}
+}
+Foo(3).id()
+
+@testing:case="test_topic_class_contructor_with_new_attribute", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_,name_){
+		id = id_
+		name = name_
+	}
+	def f1(){return name}
+}
+Foo(3,"name").f1()
+
+@testing:case="test_topic_class_assign_self", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+	def f1(){
+		self = 3	
+	}
+}
+
+@testing:case="test_topic_class_assign_self_attribute", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+	def f1(){
+		self.id = 3	
+	}
+}
+
+@testing:case="test_topic_class_without_close", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_){
+		id = id_
+	}
+
+@testing:case="test_topic_class_function_with_not_exsits_attribute", syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_){id = id_}
+	def f1(value_){return value == value_}
+}
+
+@testing:case="test_topic_class_with_same_name_function",syntaxError=1
+class Foo{
+	id::INT
+	def Foo(id_){id = id_}
+	def f1(a,b){return a+b}
+	def f1(a,b,c){return a+b+c}
+}
+
+@testing:case="test_topic_class_override_error",syntaxError=1
+class F1{
+	id :: INT
+	def F1(id_){id =id_}
+	def f2(){}
+}
+class F2: F1{
+	name::STRING	
+	def F2(id_,name_){
+		F1(id_)
+		name = name_
+	}
+	def f2(value){return value}
+}
+
+@testing:case="test_topic_class_inherit_with_same_attribute",syntaxError=1
+class F1{
+	id :: INT
+	def F1(id_){id =id_}
+	def f2(){}
+}
+class F2:F1{
+	id::INT
+	name::STRING	
+	def f1()
+	def F2(id_,name_){
+		id = id_
+		name = name_
+	}
+	def f2(){return f1()+12}
+	def f1(){return 3}
+}
+
+@testing:case="test_topic_class_not_difined_with_statement", exception=1
+class F2{
+	id::INT
+	name::STRING	
+	def f1()
+	def F2(id_,name_){
+		id = id_
+		name = name_
+	}
+	def f2(){return 12}
+}
+F2(3,"name").f1()
+
+@testing:case="test_topic_class_not_difined_error",syntaxError=1
+class F2{
+	id::INT
+	name::STRING	
+	def f1()
+	def F2(id_,name_){
+		id = id_
+		name = name_
+	}
+	def f2(){return 12}
+	def f1(value)(return value)
+}
+
+@testing:case="test_topic_class_attibute_init_error", syntaxError=1
+class F1{
+	id::INT
+	name :: STRING
+	def F1(id_,name_){
+		id = id_
+		name = name_
+	}
+}
+class F2{
+	Flag :: bool
+	value :: F1
+	def F2(id_,name_){
+		value = F1(id_)
+		if(like(name_, "%F")){
+			Flag = true
+		}else{
+			Flag = false	
+		}
+	}
+}
+
+@testing:case="test_topic_class_attibute_definition_after_contructor",syntaxError = 1
+class F1{
+	def F1(id_,name_){
+		id ,name= id_, name_	
+	}	
+	id :: INT
+	name :: STRING
+	
+}
+
+@testing:case="test_topic_class_attibute_definition_Duplicated",syntaxError = 1
+class F1{
+	id :: INT
+	id :: STRING
+	def F1(id_,name_){
+		id ,name= id_, name_	
+	}
+}
+
+@testing:case="test_topic_class_functionName_same_sql_operator_1", syntaxError = 1
+class F1{
+	def F1(){}
+	def DELETE(){return 0}
+}
+
+
+@testing:case="test_topic_class_functionName_same_sql_operator_2", syntaxError = 1
+class F1{
+	def F1(){}
+	def DROP(){return 0}
+}
+
+@testing:case="test_topic_class_functionName_same_sql_operator_3", syntaxError = 1
+class F1{
+	def F1(){}
+	def update(){return 0}
+}
+
+@testing:case="test_topic_class_defined_error", syntaxError = 1
+class F1(){
+	def F1(){}
+	def f1(){return 0}
+}
+
+@testing:case="test_topic_class_defined_error_2", syntaxError = 1
+class F1{
+	id, name :: INT, STRING
+	defg F1(){}	
+}
+
+@testing:case="test_topic_class_assign_out_of_class"//, syntaxError = 1
+class F1{
+	id::INT
+	defg F1(){}	
+}
+f = F1()
+f.id = 12
+assert 1, f.id ==  12
+
+@testing:case="test_topic_class_with_parseExpr", exception = 1
+class F1{
+	value :: 	ANY
+	t1 :: ANY
+	def F1(value_, t1_){
+		value = value_
+		t1 = t1_	
+	}
+	def getf1(){
+		return eval(parseExpr(value))	
+	}
+	def setvalue(value_){
+		value = value_	
+	}
+}
+t1 = table(1..10 as id, take(1 2 3, 10) as name)
+f = F1("select * from t1 as t2 inner t1 on t1.name = t2.name", t1)
+f.getf1()
+

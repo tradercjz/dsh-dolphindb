@@ -1,0 +1,41 @@
+// ============================================================
+// AssetPriceCurve — parseMktData 构建示例
+// 构建资产价格曲线（IRS 定盘利率 / 商品期货价格）
+// ============================================================
+// 金融含义：
+//   AssetPriceCurve 存储标的资产在不同日期的价格/利率值。
+//   两个典型场景：
+//   1. IRS 浮动端定盘利率：记录 FR007/SHIBOR 最近的 fixing 值，
+//      irFixedFloatingSwapPricer 用它来确定当期已定盘的浮动端利率。
+//   2. 商品期货价格曲线：记录标的期货的到期日-价格，
+//      cmFutVolatilitySurfaceBuilder 用它从期权价格反推隐含波动率。
+// ============================================================
+
+// ---- 场景 1: IRS 浮动端定盘利率（FR007）----
+apDict = dict(STRING, ANY)
+apDict["mktDataType"]         = "Curve"             // 曲线类
+apDict["curveType"]           = "AssetPriceCurve"    // 资产价格曲线
+apDict["referenceDate"]       = 2026.03.20
+apDict["currency"]            = "CNY"
+apDict["asset"]               = "FR_007"             // 挂钩资产名称
+apDict["interpMethod"]        = "CubicSpline"
+apDict["extrapMethod"]        = "Flat"
+// 最近两个定盘日的 FR007 利率
+apDict["dates"]   = [2026.03.13, 2026.03.20]
+apDict["values"]  = [0.0180, 0.0175]                 // 利率值（非百分比）
+
+assetPriceCurve = parseMktData(apDict)
+
+// ---- 场景 2: 商品期货价格曲线（豆粕 M2509）----
+futDict = dict(STRING, ANY)
+futDict["mktDataType"]   = "Curve"
+futDict["curveType"]     = "AssetPriceCurve"
+futDict["referenceDate"] = 2025.03.20
+futDict["currency"]      = "CNY"
+futDict["asset"]         = "M"                        // 豆粕期货品种代码
+futDict["interpMethod"]  = "Linear"
+futDict["extrapMethod"]  = "Flat"
+futDict["dates"]  = [2025.08.06]                      // 期货到期日
+futDict["values"] = [3150.0]                          // 期货结算价
+
+futPriceCurve = parseMktData(futDict)

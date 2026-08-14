@@ -1,0 +1,157 @@
+// ============================================================
+// 延时成交订单因子 Orca 声明式 DStream API 实现
+// 原始案例参考《处理 Level-2 行情数据实例》4.2 节
+// 将 createLeftSemiJoinEngine + createReactiveStateEngine + createTimeSeriesEngine
+// 改写为 Orca 声明式 DStream API
+// ============================================================
+
+// ---------- 1. 环境准备 ----------
+if (!existsCatalog("orca")) { createCatalog("orca") }
+go
+use catalog orca
+
+// 清理旧流图（调试环境）
+try { dropStreamGraph("delayedTradeBuy", true) } catch(ex) {}
+try { dropStreamGraph("delayedTradeSell", true) } catch(ex) {}
+
+// ---------- 2. 定义状态函数 ----------
+@state
+def delayedTradeNum(bsFlag, flag, side) {
+    return iif(bsFlag == side && flag <= 1, flag, 0).cumsum()
+}
+
+@state
+def delayedTradeQty(bsFlag, flag, tradeQty, cumTradeQty, side) {
+    return iif(bsFlag == side && flag > 1, tradeQty,
+               iif(bsFlag == side && flag == 1, cumTradeQty, 0)).cumsum()
+}
+
+// ---------- 3. 买方流图 ----------
+gBuy = createStreamGraph("delayedTradeBuy")
+
+eBuy = gBuy.source("entrust", `SecurityID`DateTime`ApplSeqNum`Price`OrderQty`Side,
+                   [SYMBOL, TIMESTAMP, LONG, DOUBLE, LONG, SYMBOL])
+tBuy = gBuy.source("trade", `SecurityID`DateTime`BidApplSeqNum`OfferApplSeqNum`TradePrice`TradeQty,
+                   [SYMBOL, TIMESTAMP, LONG, LONG, DOUBLE, LONG])
+
+// 左半连接：trade.BidApplSeqNum = entrust.ApplSeqNum
+jBuy = tBuy.leftSemiJoinEngine(
+    eBuy,
+    metrics = <[
+        trade.DateTime as TradeTime,
+        entrust.DateTime as EntrustTime,
+        TradePrice,
+        TradeQty,
+        "B" as BuySellFlag,
+        cumsum(iif((trade.DateTime - entrust.DateTime) > 60000, 1, 0)) as DelayedTradeFlag,
+        cumsum(TradeQty) as cumTradeQty
+    ]>,
+    matchingColumn = [["SecurityID", "BidApplSeqNum"], ["SecurityID", "ApplSeqNum"]],
+    updateRightTable = false
+)
+
+// 响应式状态引擎：按股票累计延时成交订单数和成交量
+sBuy = jBuy.reactiveStateEngine(
+    metrics = <[
+        TradeTime,
+        delayedTradeNum(BuySellFlag, DelayedTradeFlag, "B") as DelayedTradeBuyOrderNum,
+        delayedTradeQty(BuySellFlag, DelayedTradeFlag, TradeQty, cumTradeQty, "B") as DelayedTradeBuyOrderQty
+    ]>,
+    keyColumn = "SecurityID"
+)
+
+// 时间序列引擎：每分钟取最新值
+tsBuy = sBuy.timeSeriesEngine(
+    windowSize = 60000, step = 60000,
+    metrics = <[last(DelayedTradeBuyOrderNum), last(DelayedTradeBuyOrderQty)]>,
+    timeColumn = `TradeTime, useSystemTime = false, keyColumn = `SecurityID
+)
+
+tsBuy.sink("buyResult")
+gBuy.submit()
+
+// ---------- 4. 卖方流图 ----------
+gSell = createStreamGraph("delayedTradeSell")
+
+eSell = gSell.source("entrust", `SecurityID`DateTime`ApplSeqNum`Price`OrderQty`Side,
+                     [SYMBOL, TIMESTAMP, LONG, DOUBLE, LONG, SYMBOL])
+tSell = gSell.source("trade", `SecurityID`DateTime`BidApplSeqNum`OfferApplSeqNum`TradePrice`TradeQty,
+                     [SYMBOL, TIMESTAMP, LONG, LONG, DOUBLE, LONG])
+
+// 左半连接：trade.OfferApplSeqNum = entrust.ApplSeqNum
+jSell = tSell.leftSemiJoinEngine(
+    eSell,
+    metrics = <[
+        trade.DateTime as TradeTime,
+        entrust.DateTime as EntrustTime,
+        TradePrice,
+        TradeQty,
+        "S" as BuySellFlag,
+        cumsum(iif((trade.DateTime - entrust.DateTime) > 60000, 1, 0)) as DelayedTradeFlag,
+        cumsum(TradeQty) as cumTradeQty
+    ]>,
+    matchingColumn = [["SecurityID", "OfferApplSeqNum"], ["SecurityID", "ApplSeqNum"]],
+    updateRightTable = false
+)
+
+// 响应式状态引擎：按股票累计延时成交订单数和成交量
+sSell = jSell.reactiveStateEngine(
+    metrics = <[
+        TradeTime,
+        delayedTradeNum(BuySellFlag, DelayedTradeFlag, "S") as DelayedTradeSellOrderNum,
+        delayedTradeQty(BuySellFlag, DelayedTradeFlag, TradeQty, cumTradeQty, "S") as DelayedTradeSellOrderQty
+    ]>,
+    keyColumn = "SecurityID"
+)
+
+// 时间序列引擎：每分钟取最新值
+tsSell = sSell.timeSeriesEngine(
+    windowSize = 60000, step = 60000,
+    metrics = <[last(DelayedTradeSellOrderNum), last(DelayedTradeSellOrderQty)]>,
+    timeColumn = `TradeTime, useSystemTime = false, keyColumn = `SecurityID
+)
+
+tsSell.sink("sellResult")
+gSell.submit()
+
+// ---------- 5. 写入 Mock 数据 ----------
+sleep(3000)
+
+// 委托数据
+eData = table(
+    `000001`000001`000001`000002`000002`000002 as SecurityID,
+    [2023.01.01T09:30:00.000, 2023.01.01T09:30:05.000, 2023.01.01T09:31:00.000,
+     2023.01.01T09:30:10.000, 2023.01.01T09:30:15.000, 2023.01.01T09:32:00.000] as DateTime,
+    [1001, 1002, 1003, 2001, 2002, 2003] as ApplSeqNum,
+    [10.0, 10.1, 10.5, 20.0, 20.2, 21.0] as Price,
+    [1000, 2000, 3000, 500, 1500, 1000] as OrderQty,
+    ["B", "S", "B", "B", "S", "B"] as Side
+)
+
+// 成交数据（延时 > 60s 的标记为延时成交）
+tData = table(
+    `000001`000001`000001`000002`000002`000002 as SecurityID,
+    [2023.01.01T09:30:01.000,   // 000001 B 延时 1s
+     2023.01.01T09:31:20.000,   // 000001 S 延时 75s > 60s ✓
+     2023.01.01T09:32:30.000,   // 000001 B 延时 90s > 60s ✓
+     2023.01.01T09:30:11.000,   // 000002 B 延时 1s
+     2023.01.01T09:30:16.000,   // 000002 S 延时 1s
+     2023.01.01T09:33:00.000] as DateTime,  // 000002 B 延时 60s
+    [1001, 1002, 1003, 2001, 2002, 2003] as BidApplSeqNum,
+    [0, 1002, 1003, 2001, 2002, 2003] as OfferApplSeqNum,
+    [10.05, 10.15, 10.55, 20.1, 20.25, 21.1] as TradePrice,
+    [500, 1500, 2500, 300, 1200, 800] as TradeQty
+)
+
+// 先写委托，再写成交
+appendOrcaStreamTable("entrust", eData)
+sleep(500)
+appendOrcaStreamTable("trade", tData)
+
+// ---------- 6. 查询结果 ----------
+sleep(3000)
+
+// 买方延时成交因子
+select * from orca_table.buyResult
+// 卖方延时成交因子
+select * from orca_table.sellResult

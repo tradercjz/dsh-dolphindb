@@ -1,0 +1,69 @@
+// ============================================================
+// 实时净买入金额监控 (Orca 声明式 DStream API)
+// ============================================================
+// 每只股票每 1 分钟统计 buyAmount, sellAmount, netBuyAmount, netBuyRatio
+// netBuyAmount > 1000000 且 netBuyRatio > 0.3 时输出告警
+// ============================================================
+
+// 切换到 catalog
+use catalog orca
+
+// 1. 销毁流图（连同其内部创建的流表一并清理）
+try { dropStreamGraph("netBuyMonitor", true) } catch(ex) {}
+go
+"cleanup done"
+
+// 清理旧流图（如果存在）
+use catalog orca
+try { dropStreamGraph('netBuyMonitor') } catch(ex) {}
+go
+
+use catalog orca
+
+// 定义告警后处理函数
+def calcAlert(msg) {
+    t = select *,
+             (buyAmount - sellAmount) as netBuyAmount,
+             (buyAmount - sellAmount) / (buyAmount + sellAmount) as netBuyRatio
+        from msg
+        where buyAmount + sellAmount > 0
+    return select * from t where netBuyAmount > 1000000.0 and netBuyRatio > 0.3
+}
+
+// 创建流图
+g = createStreamGraph('netBuyMonitor')
+
+// 数据源 → 1分钟滑动窗口聚合 → 告警过滤 → 输出
+g.source('tradeStream', `SecurityID`TradeTime`TradeAmount`BSFlag, [SYMBOL, TIMESTAMP, DOUBLE, SYMBOL])
+ .timeSeriesEngine(
+     60000,              // windowSize: 1分钟
+     60000,              // step: 1分钟
+     <[sum(iif(BSFlag == "B", TradeAmount, 0.0)) as buyAmount,
+        sum(iif(BSFlag == "S", TradeAmount, 0.0)) as sellAmount]>,
+     'TradeTime',
+     false,
+     'SecurityID'        // 按股票分组
+ )
+ .map(calcAlert)
+ .sink('alertTable')
+
+// 提交流图（启动实时监控）
+g.submit()
+
+// ============================================================
+// 以下为测试数据注入（生产环境需替换为真实数据流）
+// ============================================================
+securityID = [`AAPL, `AAPL, `AAPL, `AAPL, `MSFT, `MSFT, `MSFT, `MSFT, `MSFT, `MSFT]
+tradeTime  = [
+    2025.01.01T09:30:01.000, 2025.01.01T09:30:02.000, 2025.01.01T09:30:03.000,
+    2025.01.01T09:31:05.000,
+    2025.01.01T09:31:10.000, 2025.01.01T09:31:15.000, 2025.01.01T09:31:20.000,
+    2025.01.01T09:32:10.000, 2025.01.01T09:32:30.000,
+    2025.01.01T09:33:05.000
+]
+tradeAmount = [1200000, 300000, 200000, 500000,  900000, 2000000, 800000, 1500000, 3000000, 4000000]
+bsFlag      = ["B", "B", "S", "B",             "B", "S", "S", "B", "B", "B"]
+data = table(securityID, tradeTime, tradeAmount, bsFlag)
+appendOrcaStreamTable('orca.orca_table.tradeStream', data)
+
+select * from orca.orca_table.alertTable

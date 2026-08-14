@@ -1,0 +1,1614 @@
+#include "setup/settings.txt"
+
+login("admin","123456")
+
+try{
+	loadPlugin(getHomeDir()+"/plugins/gp/PluginGp.txt")
+}catch(ex){}
+go 
+
+@testing:case="test_gp_plot_prepare"
+def clear(WORK_DIR){
+	if(exists(WORK_DIR+"/test.eps")){
+		rm(WORK_DIR+"/test.eps")
+	}
+	if(exists(WORK_DIR+"/test.jpeg")){
+		rm(WORK_DIR+"/test.jpeg")
+	}
+	if(exists(WORK_DIR+"/test.png")){
+		rm(WORK_DIR+"/test.png")
+	}
+	if(exists(WORK_DIR)){
+		rmdir(WORK_DIR,true)
+		mkdir(WORK_DIR)
+	}else{
+		mkdir(WORK_DIR)
+	}
+}
+
+@testing:case="test_gp_plot_wrong_data_scalar",exception=1
+re=gp::plot(1,"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_null",exception=1
+re=gp::plot(take(int(),10),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null",exception=1
+re=gp::plot(1 2 NULL,"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null_short",exception=1
+re=gp::plot(short(1 2 NULL),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null_long",exception=1
+re=gp::plot(long(1 2 NULL),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null_char",exception=1
+re=gp::plot(char(1 2 NULL),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null_float",exception=1
+re=gp::plot(float(1 2 NULL),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null_double",exception=1
+re=gp::plot(double(1 2 NULL),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_tuple_include_null",exception=1
+re=gp::plot((double(1 2 ),()),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_matrix",exception=1
+re=gp::plot(matrix(1..10),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_pair",exception=1
+re=gp::plot(1:10,"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_set",exception=1
+re=gp::plot(set(1..10),"point",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_time_table",exception=1
+re=gp::plot(table(time(1..10) as time,1..10 as val),"line",WORK_DIR+"/test.eps")
+
+// @testing:case="test_gp_plot_wrong_data_time_table2",exception=1
+// re=gp::plot(table(1..10 as val,date(1..10) as time),"line",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_scalar_jpeg",exception=1
+re=gp::plot(1,"point",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_matrix_jpeg",exception=1
+re=gp::plot(matrix(1..10),"point",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_pair_jpeg",exception=1
+re=gp::plot(1:10,"point",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_set_jpeg",exception=1
+re=gp::plot(set(1..10),"point",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_time_table_jpeg",exception=1
+re=gp::plot(table(time(1..10) as time,1..10 as val),"line",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_scalar_png",exception=1
+re=gp::plot(1,"point",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_matrix_png",exception=1
+re=gp::plot(matrix(1..10),"point",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_pair_png",exception=1
+re=gp::plot(1:10,"point",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_set_png",exception=1
+re=gp::plot(set(1..10),"point",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_time_table_png",exception=1
+re=gp::plot(table(time(1..10) as time,1..10 as val),"line",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_table_one_col"
+clear(WORK_DIR)
+data=table([1,2,3,4,-4] as v1)
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1"],4]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_wrong_data_time",exception=1
+re=gp::plot(time(1..10),"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_time_jpeg",exception=1
+re=gp::plot(time(1..10),"line",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_data_time_png",exception=1
+re=gp::plot(time(1..10),"line",WORK_DIR+"/test.png")
+
+// @testing:case="test_gp_plot_wrong_data_date",exception=1
+// re=gp::plot(date(1..10),"line",WORK_DIR+"/test.eps")
+
+// @testing:case="test_gp_plot_wrong_data_date_jpeg",exception=1
+// re=gp::plot(date(1..10),"line",WORK_DIR+"/test.jpeg")
+
+// @testing:case="test_gp_plot_wrong_data_date_png",exception=1
+// re=gp::plot(date(1..10),"line",WORK_DIR+"/test.png")
+
+// @testing:case="test_gp_plot_wrong_data_datetime",exception=1
+// re=gp::plot(datetime(1..10),"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_string",exception=1
+re=gp::plot(string(1..10),"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_symbol",exception=1
+re=gp::plot(symbol(string(1..10)),"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_vector_include_null",exception=1
+re=gp::plot([1,2,3,NULL],"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_data_table_include_null",exception=1
+data=table(take(int(),100) as v1,take(1..10,100) as v2)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_style",exception=1
+re=gp::plot(1..10,"lin",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_wrong_style_jpeg",exception=1
+re=gp::plot(1..10,"lin",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_wrong_style_png",exception=1
+re=gp::plot(1..10,"lin",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_style_number",exception=1
+re=gp::plot(1..10,1,WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_style_table",exception=1
+re=gp::plot(1..10,table(1..10 as id),WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_null_data",exception=1
+re=gp::plot(,"line",WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_null_data_jpeg",exception=1
+re=gp::plot(,"line",WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_null_data_png",exception=1
+re=gp::plot(,"line",WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_null_path",exception=1
+re=gp::plot(1..10,"line",)
+
+@testing:case="test_gp_plot_new_path",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/pt/pa.eps")
+
+@testing:case="test_gp_plot_new_vector",exception=1
+re=gp::plot((1..10,1..2),"line",[WORK_DIR+"/test.eps",WORK_DIR+"/test1.eps"])
+
+@testing:case="test_gp_plot_new_path_jpeg",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/pt/pa.jpeg")
+
+@testing:case="test_gp_plot_new_path_png",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/pt/pa.png")
+
+@testing:case="test_gp_plot_props_string",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",`title)
+
+@testing:case="test_gp_plot_props_NULL",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",)
+
+@testing:case="test_gp_plot_props_tuple",exception=1
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",(["title"],["s"]))
+
+@testing:case="test_gp_plot_props_key_wrong",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title1"]
+val=[[""]]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_title_number",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title"]
+val=[[2]]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_title_number_jpeg",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title"]
+val=[[2]]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_title_number_scalar",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title"]
+val=[2]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_title_number_png",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title"]
+val=[[2]]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_title_scalar",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title"]
+val=[`m1]
+prop=dict (name, val)
+re=gp::plot(1..10,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_xLabel_number", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],5,""]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_yLabel_number", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],"",9]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_xLabel_number_jpeg", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],5,""]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_yLabel_number_jpeg", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],"",9]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_xLabel_number_png", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],5,""]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_yLabel_number_png", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],"",9]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_xLabel_null", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],,""]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_yLabel_null", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],"",]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_size_0", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","size"]
+size=["",0]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_size_<0", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","size"]
+size=["",-10]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_size_scalar", exception=1
+data=(take(0..10,10) ,take(0..10,10) )
+name=["title","size"]
+size=1
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_size_one_elements", exception=1
+data=(take(0..10,10) ,take(0..10,10) )
+name=["title","size"]
+size=[1]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_color_notexist", exception=1
+x=-9..10
+y=rand(20,20)
+z=rand(20,20)
+p=rand(20,20)
+data=(x,y,z,p)
+data=1..10
+prop=dict(STRING,ANY)
+prop[`lineColor]="blck"
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_xTics_<0", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["xTics"]=-2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_yTics_<0", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["yTics"]=-2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_xTics_vector", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["xTics"]=1 2
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_yTics_vector", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["yTics"]=1 2
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_xTics_any", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["xTics"]=(1 2)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_yTics_any", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["yTics"]=(1 2)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_lineColor_number", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["lineColor"]=-2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_lineColor_table", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["lineColor"]=table(`black`red as d)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_lineWidth_string", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["lineWidth"]=`2.3
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_lineWidth_vector"
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop["lineWidth"]=2 3
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_plot_props_pointType_string", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointType"]=`23
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointType_float", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointType"]=2.3
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointSize_string", exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointSize"]=`14
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointType_vector"
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointType"]=3 2
+re=gp::plot(data,"point",WORK_DIR+"/test.png",prop)
+assert 3,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_pointSize_vector"
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointSize"]=3 2
+re=gp::plot(data,"point",WORK_DIR+"/test.png",prop)
+assert 3,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_lines_toolong",exception=1
+k=38
+d=rand(10.0,1000)
+data=array(ANY,k)
+for(i in 0:k){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..k),4,[0,10],[0,10]]
+
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_lines_toolong_jpeg",exception=1
+d=rand(10.0,10)
+data=array(ANY,100)
+for(i in 0:100){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..100),4,[0,10],[0,10]]
+
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_lines_toolong_png",exception=1
+d=rand(10.0,10)
+data=array(ANY,100)
+for(i in 0:100){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..100),4,[0,10],[0,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_empty_lines",exception=1
+d=rand(10.0,10)
+data=array(ANY,100)
+for(i in 0:10){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..100),4,[0,10],[0,10]]
+
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_empty_lines_png",exception=1
+d=rand(10.0,10)
+data=array(ANY,100)
+for(i in 0:10){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..100),4,[0,10],[0,10]]
+
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_empty_lines_jpeg",exception=1
+d=rand(10.0,10)
+data=array(ANY,100)
+for(i in 0:10){
+	data[i]=	rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..100),4,[0,10],[0,10]]
+
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_pointSize<0_eps", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["pointSize"]=-10
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointSize<0_png", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["pointSize"]=-10
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_pointSize<0_jpeg", exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["pointSize"]=-10
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_smooth_other", exception=1
+data=table(take(0..10,10) as v1,rand((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["smooth"]=`bez
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_smooth_other_jpeg", exception=1
+data=table(take(0..10,10) as v1,rand((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["smooth"]=`cspline
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_smooth_other_png", exception=1
+data=table(take(0..10,10) as v1,rand((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["smooth"]=`cspline
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_smooth_number", exception=1
+data=table(take(0..10,10) as v1,rand((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["smooth"]=2
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_props_smooth_table", exception=1
+data=table(take(0..10,10) as v1,rand((10..20),10) as v2)
+prop=dict (STRING, ANY)
+prop["smooth"]=data
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+
+@testing:case="test_gp_plot_style"
+
+def  checktypes(d,WORK_DIR,prop,dt){	
+	clear(WORK_DIR)
+	data=char(d)
+	re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 1,exists(WORK_DIR+"/test.eps")
+	assert 2,exists(WORK_DIR+"/test.jpeg")
+	assert 3,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data=short(d)
+	re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"point",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"point",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 4,exists(WORK_DIR+"/test.eps")
+	assert 5,exists(WORK_DIR+"/test.jpeg")
+	assert 6,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data=int(d)
+	re=gp::plot(data,"linespoint",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"linespoint",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"linespoint",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 7,exists(WORK_DIR+"/test.eps")
+	assert 8,exists(WORK_DIR+"/test.jpeg")
+	assert 9,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data=long(d)
+	re=gp::plot(data,"impulses",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"impulses",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"impulses",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 10,exists(WORK_DIR+"/test.eps")
+	assert 11,exists(WORK_DIR+"/test.jpeg")
+	assert 12,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data=float(d)
+	re=gp::plot(data,"dots",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"dots",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"dots",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 13,exists(WORK_DIR+"/test.eps")
+	assert 14,exists(WORK_DIR+"/test.jpeg")
+	assert 15,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data=double(d)
+	re=gp::plot(data,"step",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"step",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"step",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 16,exists(WORK_DIR+"/test.eps")
+	assert 17,exists(WORK_DIR+"/test.jpeg")
+	assert 18,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	data1=table([1,2,3] as x,[3,2,1] as y)
+	re=gp::plot(data1,"errorbars",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data1,"errorbars",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data1,"errorbars",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 19,exists(WORK_DIR+"/test.eps")
+	assert 20,exists(WORK_DIR+"/test.jpeg")
+	assert 21,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	if(dt==1){
+		re=gp::plot(data,"histogram",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"histogram",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"histogram",WORK_DIR+"/test.jpeg",prop)//一维坐标序列才能画
+	sleep(3000)
+	assert 22,exists(WORK_DIR+"/test.eps")
+	assert 23,exists(WORK_DIR+"/test.jpeg")
+	assert 24,exists(WORK_DIR+"/test.png")
+	}
+	clear(WORK_DIR)
+	re=gp::plot(data,"boxes",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"boxes",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"boxes",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 25,exists(WORK_DIR+"/test.eps")
+	assert 26,exists(WORK_DIR+"/test.jpeg")
+	assert 27,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	re=gp::plot(data,"boxerrorbars",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"boxerrorbars",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"boxerrorbars",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 28,exists(WORK_DIR+"/test.eps")
+	assert 29,exists(WORK_DIR+"/test.jpeg")
+	assert 30,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	re=gp::plot(data,"ellipses",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"ellipses",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"ellipses",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 31,exists(WORK_DIR+"/test.eps")
+	assert 32,exists(WORK_DIR+"/test.jpeg")
+	assert 33,exists(WORK_DIR+"/test.png")
+	clear(WORK_DIR)
+	re=gp::plot(data,"circles",WORK_DIR+"/test.eps",prop)
+	re=gp::plot(data,"circles",WORK_DIR+"/test.png",prop)
+	re=gp::plot(data,"circles",WORK_DIR+"/test.jpeg",prop)
+	sleep(3000)
+	assert 34,exists(WORK_DIR+"/test.eps")
+	assert 35,exists(WORK_DIR+"/test.jpeg")
+	assert 36,exists(WORK_DIR+"/test.png")
+	//print(type)
+}
+
+
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1"],4]
+prop=dict (name, val)
+d=1..10
+dt=1
+checktypes(d,WORK_DIR,prop,dt)
+
+@testing:case="test_gp_plot_data",exception=1
+//vector
+clear(WORK_DIR)
+data=rand(100.0,100)
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1","m2"],4]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+//table
+clear(WORK_DIR)
+data=table([1,2,3,4,5] as v1,[2,3,4,5,-6] as v2)
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1","m2"],4]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+t=table(-5..5 as v1)
+data=select v1,sin(v1) from t
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange","smooth"]
+val=[["m2"],4,[-5,5],[-1,1],`csplines]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+t=table(-5..5 as v1)
+data=select v1,sin(v1) from t
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange","smooth","lineColor",'lineWidth','pointType']
+val=[["m2"],4,[-5,5],[-1,1],`csplines,`green`green,1 2,3 4]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 10,exists(WORK_DIR+"/test.eps")
+assert 11,exists(WORK_DIR+"/test.jpeg")
+assert 12,exists(WORK_DIR+"/test.png")
+
+//tuple
+clear(WORK_DIR)
+d=rand(10.0,10)
+data=array(ANY,2)
+d1=rand(10.0,10)
+data[0]=d
+data[1]=d1
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange"]
+val=[["m1","m2"],4,[-5,10],[-1,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 13,exists(WORK_DIR+"/test.eps")
+assert 14,exists(WORK_DIR+"/test.jpeg")
+assert 15,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+d=rand(10.0,10)
+data=array(ANY,1)
+data[0]=d
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange"]
+val=[["m1","m2"],4,[-5,10],[-1,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 16,exists(WORK_DIR+"/test.eps")
+assert 17,exists(WORK_DIR+"/test.jpeg")
+assert 18,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=array(ANY,0)
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange"]
+val=[["m1","m2"],4,[-5,10],[-1,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 19,exists(WORK_DIR+"/test.eps")
+assert 20,exists(WORK_DIR+"/test.jpeg")
+assert 21,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+d=rand(10.0,1025)
+data=array(ANY,3)
+d1=rand(10.0,1025)
+data[0]=d
+data[1]=d1
+data[2]=d1
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 22,exists(WORK_DIR+"/test.eps")
+assert 23,exists(WORK_DIR+"/test.jpeg")
+assert 24,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+k=30
+data=array(ANY,k)
+for(i in 0:k){
+ data[i]= rand(10.0,10)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..k),4,[0,40],[0,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 25,exists(WORK_DIR+"/test.eps")
+assert 26,exists(WORK_DIR+"/test.jpeg")
+assert 27,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+d=rand(10.0,10000)
+data=array(ANY,2)
+d1=rand(10.0,10000)
+data[0]=d
+data[1]=d1
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1","m2"],4]
+prop=dict (name, val)
+prop["xTics"]=2000
+prop["yTics"]=0.2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 28,exists(WORK_DIR+"/test.eps")
+assert 29,exists(WORK_DIR+"/test.jpeg")
+assert 30,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+d=rand(10.0,10000)
+data=array(ANY,3)
+d1=rand(10.0,10) join rand(100.0,10) 
+d2= rand(100.0,10) 
+data[0]=d
+data[1]=d1
+data[2]=d2
+prop=dict (string, any)
+name=["title","pointSize"]
+val=[["m1","m2","m3"],4]
+prop=dict (name, val)
+prop["xTics"]=2000
+prop["yTics"]=10
+prop["pointType"]=1 10 12
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"point",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"point",WORK_DIR+"/test.jpeg",prop)
+assert 31,exists(WORK_DIR+"/test.eps")
+assert 32,exists(WORK_DIR+"/test.jpeg")
+assert 33,exists(WORK_DIR+"/test.png")
+
+//vector DT_ANY -table
+clear(WORK_DIR)
+tabledata1=table(1..10 as col1,[1,4,5,9,2,9,3,0,-10,-0.3] as col2)
+tabledata2=table(1..10  as col1,rand(10.0,10) as col2)
+data=array(ANY,2)
+data[0]=tabledata1
+data[1]=tabledata2
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange"]
+val=[["m1","m2"],4,[0,4],[-10,10]]
+prop=dict (name, val)
+prop["xTics"]=2
+prop["yTics"]=2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 34,exists(WORK_DIR+"/test.eps")
+assert 35,exists(WORK_DIR+"/test.jpeg")
+assert 36,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+tabledata1=table(1..10 as col1,rand(10.0,10) as col2)
+tabledata2=table(11..20 as col1,rand(10.0,10) as col2)
+tabledata3=table(31..40 as col1,rand(10.0,10) as col2)
+data=array(ANY,3)
+data[0]=tabledata1
+data[1]=tabledata2
+data[2]=tabledata3
+prop=dict (string, any)
+name=["title","pointSize","xRange","yRange"]
+val=[["m1","m2"],4,[1,40],[-1,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 37,exists(WORK_DIR+"/test.eps")
+assert 38,exists(WORK_DIR+"/test.jpeg")
+assert 39,exists(WORK_DIR+"/test.png")
+
+
+clear(WORK_DIR)
+tabledata1=table(1..10000 as col1,rand(10.0,10000) as col2)
+tabledata2=table(1..10000 as col1,rand(10.0,10000) as col2)
+data=array(ANY,2)
+data[0]=tabledata1
+data[1]=tabledata2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 40,exists(WORK_DIR+"/test.eps")
+assert 41,exists(WORK_DIR+"/test.jpeg")
+assert 42,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+k=37
+data=array(ANY,k)
+for(i in 0:k){
+ data[i]= table(1..100 as col1,rand(10.0,100) as col2)
+}
+name=["title","pointSize","xRange","yRange"]
+val=["m"+string(1..k),4,[0,100],[0,10]]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 43,exists(WORK_DIR+"/test.eps")
+assert 44,exists(WORK_DIR+"/test.jpeg")
+assert 45,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_title"
+clear(WORK_DIR)
+data=rand(10.0,10)
+prop=dict(STRING,ANY)
+prop[`title]=`title1
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=rand(10.0,10)
+prop=dict(STRING,ANY)
+prop[`title]=`title1`title2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=(rand(10.0,10),rand(10.0,10),rand(10.0,10))
+prop=dict(STRING,ANY)
+prop[`title]=`title1`title2`title3
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=(rand(10.0,10),rand(10.0,10),rand(10.0,10))
+prop=dict(STRING,ANY)
+prop[`title]=`title1`title2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 10,exists(WORK_DIR+"/test.eps")
+assert 11,exists(WORK_DIR+"/test.jpeg")
+assert 12,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_Range"
+clear(WORK_DIR)
+data=rand(10.0,10)
+prop=dict(STRING,ANY)
+prop[`xRange]=[-10,20]
+prop[`yRange]=[-10,20]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=(rand(10.0,10),rand(10.0,10),rand(10.0,10))
+prop=dict(STRING,ANY)
+prop[`xRange]=[-2.2,5.2]
+prop[`yRange]=[-2.2,5.2]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_Label"
+clear(WORK_DIR)
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],"xxx","yyy"]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_xLabel_vector",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],`xxx`ew,"yyy"]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_yLabel_vector",exception=1
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","xLabel","yLabel"]
+val=[["m1"],`xxx,`yyy`342]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_size"
+clear(WORK_DIR)
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","size"]
+size=[2,3]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+name=["title","size"]
+size=[1,0.5]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+data=table(take(0..10,10) as v1,take((10..20),10) as v2)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=(take(0..10,10),take(0..10,10))
+name=["title","size"]
+size=[0.5,0.5]
+val=[["m1"],size]
+prop=dict (name, val)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_lineColor"
+//lineColor
+clear(WORK_DIR)
+data=(rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20),rand(20,20))
+//data=1..10
+prop=dict(STRING,ANY)
+prop[`lineColor]=["black", "red", "green", "blue", "cyan", "magenta", "yellow", "navy", "purple", "olive",  "orange", "violet", "pink", "white", "gray"]
+prop["xTics"]=2
+prop["yTics"]=5
+prop["title"]="l"+string(1..15)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop[`lineColor]=["black", "red", "green", "green"]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop[`lineColor]="black"
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_lineColor",exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop[`lineColor]=table(`f`j as t)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_lineWidth",exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop[`lineWidth]=table(`f`j as t)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointType",exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop[`pointType]=table(`f`j as t)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointSize",exception=1
+data=1..10
+prop=dict(STRING,ANY)
+prop[`pointSize]=table(`f`j as t)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_props_pointType&&pointSize",exception=1
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop["pointType"]=10
+prop["pointSize"]=5
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"linespoint",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+prop["pointType"]=0
+prop["pointSize"]=10
+re=gp::plot(data,"point",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"linespoint",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+k=25
+d=rand(10.0,10)
+data=array(ANY,k)
+for(i in 0:k){
+	data[i]=	rand(10.0,10)
+}
+prop=dict(STRING,ANY)
+prop["pointType"]=1..k
+prop["pointSize"]=10
+prop["title"]="l"+string(1..k)
+prop[`xRange]=[1,30]
+re=gp::plot(data,"linespoint",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"linespoint",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"linespoint",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_lineWidth"
+clear(WORK_DIR)
+y=1..10
+z=2..12
+p=4..14
+data=(y,z,p)
+prop=dict(STRING,ANY)
+prop["lineWidth"]=[1,1,1]
+prop["lineWidth"]=[10,10,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=1..10
+prop["lineWidth"]=-20
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+prop["lineWidth"]=0
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_xTics&&yTics"
+clear(WORK_DIR)
+data=1..10
+prop=dict(STRING,ANY)
+prop["xTics"]=2
+prop["yTics"]=2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop["xTics"]=0.2
+prop["yTics"]=0.5
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop["xTics"]=0.2f
+prop["yTics"]=0.5f
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop["xTics"]=2l
+prop["yTics"]=5l
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 10,exists(WORK_DIR+"/test.eps")
+assert 11,exists(WORK_DIR+"/test.jpeg")
+assert 12,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop["xTics"]=short(2)
+prop["yTics"]=short(2)
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 13,exists(WORK_DIR+"/test.eps")
+assert 14,exists(WORK_DIR+"/test.jpeg")
+assert 15,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop["xTics"]=char(2)
+prop["yTics"]=char(2)
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 16,exists(WORK_DIR+"/test.eps")
+assert 17,exists(WORK_DIR+"/test.jpeg")
+assert 18,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_xRange&&yRange"
+clear(WORK_DIR)
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop[`xRange]=[1,5]
+prop[`yRange]=[0,10]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_props_xRange&&yRangesize<2",exception=1
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop[`xRange]=[1]
+prop[`yRange]=[0]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_xRange&&yRangesize_scalar",exception=1
+data=table(1..10 as col1,rand(10.0,10) as col2)
+prop=dict(STRING,ANY)
+prop[`xRange]=1
+prop[`yRange]=2
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+
+@testing:case="test_gp_plot_props_smooth"
+clear(WORK_DIR)
+data=(1 4 5 3 2 8 0 ,2 8 4 7 5 6 0)
+prop=dict(STRING,ANY)
+prop["xTics"]=1
+prop["yTics"]=1
+prop[`smooth]=`csplines`bezier
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.jpeg")
+assert 3,exists(WORK_DIR+"/test.png")
+
+data=table(1..5 as col1, 1 5 3 7 4 as col2)
+clear(WORK_DIR)
+//saveText(data,'/home/dolphindb/ynxu/data.csv',,,false)
+prop=dict(STRING,ANY)
+prop[`smooth]=`csplines
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 4,exists(WORK_DIR+"/test.eps")
+assert 5,exists(WORK_DIR+"/test.jpeg")
+assert 6,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=table(1..50 as col1, rand(10.0,50) as col2)
+prop=dict(STRING,ANY)
+prop[`smooth]=`bezier
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 7,exists(WORK_DIR+"/test.eps")
+assert 8,exists(WORK_DIR+"/test.jpeg")
+assert 9,exists(WORK_DIR+"/test.png")
+
+clear(WORK_DIR)
+data=1 3 45 7 78 4
+prop=dict(STRING,ANY)
+prop[`smooth]=`bezier
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 10,exists(WORK_DIR+"/test.eps")
+assert 11,exists(WORK_DIR+"/test.jpeg")
+assert 12,exists(WORK_DIR+"/test.png")
+
+@testing:case="test_gp_plot_multithreading"
+for(i in 0:5){
+	if(exists(WORK_DIR+"/test"+i+".eps")){
+		rm(WORK_DIR+"/test"+i+".eps")
+	}
+	if(exists(WORK_DIR+"/test"+i+".png")){
+		rm(WORK_DIR+"/test"+i+".png")
+	}
+	if(exists(WORK_DIR+"/test"+i+".jpeg")){
+		rm(WORK_DIR+"/test"+i+".jpeg")
+	}
+}
+def pgThread(WORK_DIR){
+	n=100
+	tabledata1=table(rand(10.0,n) as col1,rand(10.0,n) as col2)
+	tabledata2=table(rand(10.0,n) as col1,rand(10.0,n) as col2)
+	data=array(ANY,2)
+	data[0]=tabledata1
+	data[1]=tabledata2
+	for(i in 0:30){
+	re=gp::plot(data,"line",WORK_DIR)
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("pgThread"+i+"","",pgThread,WORK_DIR+"/test"+i+".eps"))
+	jobs.append!(submitJob("pgThread"+i+"","",pgThread,WORK_DIR+"/test"+i+".png"))
+	jobs.append!(submitJob("pgThread"+i+"","",pgThread,WORK_DIR+"/test"+i+".jpeg"))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+for(i in 0:5){
+	assert 1,exists(WORK_DIR+"/test"+i+".eps")
+	assert 2,exists(WORK_DIR+"/test"+i+".png")
+	assert 3,exists(WORK_DIR+"/test"+i+".jpeg")
+}
+
+@testing:case="test_gp_plot_date_vector"
+clear(WORK_DIR)
+re=gp::plot(date(1..10),"line",WORK_DIR+"/test.eps")
+re=gp::plot(date(1..10),"line",WORK_DIR+"/test.png")
+re=gp::plot(date(1..10),"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_minute_vector"
+clear(WORK_DIR)
+re=gp::plot(minute(1..10),"line",WORK_DIR+"/test.eps")
+re=gp::plot(minute(1..10),"line",WORK_DIR+"/test.png")
+re=gp::plot(minute(1..10),"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_second_vector"
+clear(WORK_DIR)
+re=gp::plot(second(1..10),"line",WORK_DIR+"/test.eps")
+re=gp::plot(second(1..10),"line",WORK_DIR+"/test.png")
+re=gp::plot(second(1..10),"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datetime_vector"
+clear(WORK_DIR)
+re=gp::plot(datetime(1..10),"line",WORK_DIR+"/test.eps")
+re=gp::plot(datetime(1..10),"line",WORK_DIR+"/test.png")
+re=gp::plot(datetime(1..10),"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datehour_vector"
+clear(WORK_DIR)
+re=gp::plot(datehour(1..10),"line",WORK_DIR+"/test.eps")
+re=gp::plot(datehour(1..10),"line",WORK_DIR+"/test.png")
+re=gp::plot(datehour(1..10),"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_date_vector_tuple"
+clear(WORK_DIR)
+data=(date(1..10),date(11..25),date(31..40))
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_minute_vector_tuple"
+clear(WORK_DIR)
+data=(minute(1..10),minute(25..11),minute(31..40))
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_second_vector_tuple"
+clear(WORK_DIR)
+data=(second(1..10),second(10..25),second(26..40))
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datetime_vector_tuple"
+clear(WORK_DIR)
+data=(datetime(1..10),datetime(10..25),datetime(26..40))
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datehour_vector_tuple"
+clear(WORK_DIR)
+data=(datehour(1..10),datehour(10..25),datehour(26..40))
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_date_table"
+clear(WORK_DIR)
+data=table(date(1..10) as x,rand(date(10..1),10) as y)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_minute_table"
+clear(WORK_DIR)
+data=table(minute(1..10) as x,rand(minute(10..1),10) as y)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_second_table"
+clear(WORK_DIR)
+data=table(second(1..10) as x,rand(second(10..1),10) as y)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datetime_table"
+clear(WORK_DIR)
+data=table(datetime(1..10) as x,rand(datetime(10..1),10) as y)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_datehour_table"
+clear(WORK_DIR)
+data=table(datehour(1..10) as x,rand(datehour(10..1),10) as y)
+re=gp::plot(data,"line",WORK_DIR+"/test.eps")
+re=gp::plot(data,"line",WORK_DIR+"/test.png")
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg")
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+@testing:case="test_gp_plot_set_resolution_error",exception=1
+clear(WORK_DIR)
+data=table(datehour(1..10) as x,rand(datehour(10..1),10) as y)
+prop=dict(STRING,ANY)
+prop[`resolution]=[600l,400l]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_set_resolution_negative_number",exception=1
+clear(WORK_DIR)
+data=table(datehour(1..10) as x,rand(datehour(10..1),10) as y)
+prop=dict(STRING,ANY)
+prop[`resolution]=[-600,-400]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+
+@testing:case="test_gp_plot_set_resolution"
+clear(WORK_DIR)
+data=table(datehour(1..10) as x,rand(datehour(10..1),10) as y)
+prop=dict(STRING,ANY)
+prop[`resolution]=[500,500]
+re=gp::plot(data,"line",WORK_DIR+"/test.eps",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.png",prop)
+re=gp::plot(data,"line",WORK_DIR+"/test.jpeg",prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+assert 2,exists(WORK_DIR+"/test.png")
+assert 3,exists(WORK_DIR+"/test.jpeg")
+
+/***************syntax*********************/
+@testing:case="test_gp_syntax"
+assert 1,syntax(gp::plot)=="plot(data, style, filePath, [option])"
+
+
+/***************keyword*********************/
+@testing:case="test_gp_keyword"
+clear(WORK_DIR)
+data=table(datehour(1..10) as x,rand(datehour(10..1),10) as y)
+prop=dict(STRING,ANY)
+prop[`resolution]=[500,500]
+re=gp::plot(data=data,style="line",filePath=WORK_DIR+"/test.eps",option=prop)
+assert 1,exists(WORK_DIR+"/test.eps")
+clear(WORK_DIR)
+re=gp::plot(data,"line",filePath=WORK_DIR+"/test.eps",option=prop)
+assert 2,exists(WORK_DIR+"/test.eps")
+
+@testing:case="test_gp_keyword_syntaxError",syntaxError=1
+re=gp::plot(data,"line",filePath1=WORK_DIR+"/test.eps",option=prop)
+
+/**********************************Loglevel****************************/
+
+@testing:case="test_setLoglevel_error",exception=1
+gp::setLogLevel(4)
+
+@testing:case="test_setLoglevel_syntaxError1",exception=1
+gp::setLogLevel()
+
+@testing:case="test_setLoglevel_syntaxError2",syntaxError=1
+gp::setLogLevel(DEBUG,DEBUG)
+
+@testing:case="test_getLogLevel_syntaxError",syntaxError=1
+gp::getLogLevel(4)
+
+@testing:case="test_gp_setLogLevel"
+gp::setLogLevel(DEBUG) 
+assert 1 ,gp::getLogLevel()==DEBUG
+gp::setLogLevel(INFO)
+assert 2 ,gp::getLogLevel()==INFO
+gp::setLogLevel(WARNING)
+assert 3 ,gp::getLogLevel()==WARNING
+gp::setLogLevel(ERROR)
+assert 4 ,gp::getLogLevel()==ERROR

@@ -1,0 +1,24 @@
+{
+    "name": "move",
+    "desc": "将 X 按指定位置或时间移动，返回与 X 相同数据类型和形式的对象。",
+    "syntax": "move(X, steps)",
+    "parameters": {
+        "X": {
+            "type": "VECTOR | MATRIX | TABLE",
+            "desc": "向量、矩阵或表"
+        },
+        "steps": {
+            "type": "INT | DURATION",
+            "desc": "移动的位置数或时间长度；正数表示向右移动，负数表示向左移动，0 表示不移动；当为 DURATION 时，X 必须是行索引为时间类型的索引矩阵或者索引序列"
+        }
+    },
+    "results": {
+        "result": {
+            "type": "VECTOR | MATRIX | TABLE",
+            "desc": "与输入 X 相同数据类型和形式的对象"
+        }
+    },
+    "example": [
+        "move(close, 1)"
+    ]
+}

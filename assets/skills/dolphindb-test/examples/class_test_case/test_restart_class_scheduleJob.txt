@@ -1,0 +1,157 @@
+#include "setup/settings.txt"
+#include "util.txt"
+
+//https://dolphindb1.atlassian.net/browse/D20-18415
+@testing:case="test_topic_class_with_scheduleJob"
+if (isSingleMode == false) {
+	classInit = "class F2{\n\tname :: STRING\n\tdef F2(){name = 'default'}\n\tdef getS(){return 'F2'}	\n\tdef setName(name_){\n\tname = name_\n\t}\n\tdef getName(){\n\t\treturn name\n\t}\n}"
+	getTInit = "def getT(mutable F, newName){\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}"
+	speakInit = "def speak(mutable F, mutable d){\n\td['2'] = string(now())\n\tgetT(F, 'newName')\n\td['1'] = F.getName()\n\t}"
+	
+	clearAndRestartCluster(path,ctlSite,nodeSites,nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	conn = buildConn(nodeSites[0])
+	remoteRun(conn, classInit)
+	remoteRun(conn, getTInit )
+	remoteRun(conn, speakInit )
+	remoteRun(conn, "F = F2()")
+	remoteRun(conn,"d = dict(STRING, ANY)")
+	funcview = 'if("speak" in getFunctionViews()["name"]){\n\tdropFunctionView("speak")\n}'
+	remoteRun(conn, funcview)
+	remoteRun(conn, "addFunctionView(speak)")
+	remoteRun(conn, 'scheduleJob("speak", "speakTest", speak{F, d}, temporalAdd(minute(now()), 1 6 11, "m"), date(now()), date(now())+1, "D")')
+	sleep(30000)
+	restartCluster(path, ctlSite, nodeSites, nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	sleep(60000)
+	conn = buildConn(nodeSites[0])
+	assert 1, "speak" in conn(getFunctionViews)["name"]
+	assert 2, "speakTest" in conn(getRecentJobs)["jobDesc"]
+	conn(dropFunctionView{"speak"})
+	assert 3, not "speak" in conn(getFunctionViews)["name"]
+}
+
+@testing:case="test_topic_class_with_scheduleJob_2"
+if (isSingleMode == false) {
+	classInit = "class F2{\n\tname :: STRING\n\tdef F2(){name = 'default'}\n\tdef getS(){return 'F2'}	\n\tdef setName(name_){\n\tname = name_\n\t}\n\tdef getName(){\n\t\treturn name\n\t}\n}"
+	getTInit = "def getT(mutable F, newName){\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}"
+	speakInit = 'def speak(){\n\tF = F2()\n\tF.setName("newName")\n\tstr = F.getName()\n\tprint(str)\n}'
+	
+	clearAndRestartCluster(path,ctlSite,nodeSites,nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	conn = buildConn(nodeSites[0])
+	remoteRun(conn, classInit)
+	remoteRun(conn, getTInit )
+	remoteRun(conn, speakInit )
+	remoteRun(conn, "F = F2()")
+	remoteRun(conn,"d = dict(STRING, ANY)")
+	funcview = 'if("speak" in getFunctionViews()["name"]){\n\tdropFunctionView("speak")\n}'
+	remoteRun(conn, funcview)
+	remoteRun(conn, "addFunctionView(speak)")
+	remoteRun(conn, 'scheduleJob("speak", "speakTest", speak, temporalAdd(minute(now()), 1 6 11, "m"), date(now()), date(now())+1, "D")')
+	sleep(30000)
+	restartCluster(path, ctlSite, nodeSites, nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	sleep(60000)
+	conn = buildConn(nodeSites[0])
+	assert 1, "speak" in conn(getFunctionViews)["name"]
+	assert 2, "speakTest" in conn(getRecentJobs)["jobDesc"]
+	conn(dropFunctionView{"speak"})
+	assert 3, not "speak" in conn(getFunctionViews)["name"]
+}
+
+@testing:case="test_topic_class_with_scheduleJob_3"
+if (isSingleMode == false) {
+	classInit = "class F2{\n\tname :: STRING\n\tdef F2(){name = 'default'}\n\tdef getS(){return 'F2'}	\n\tdef setName(name_){\n\tname = name_\n\t}\n\tdef getName(){\n\t\treturn name\n\t}\n}"
+	getTInit = "def getT(mutable F, newName){\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}"
+	speakInit = 'def speak(newName){\n\tF = F2()\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}'
+	
+	clearAndRestartCluster(path,ctlSite,nodeSites,nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	conn = buildConn(nodeSites[0])
+	remoteRun(conn, classInit)
+	remoteRun(conn, getTInit )
+	remoteRun(conn, speakInit )
+	remoteRun(conn, "F = F2()")
+	remoteRun(conn,"d = dict(STRING, ANY)")
+	funcview = 'if("speak" in getFunctionViews()["name"]){\n\tdropFunctionView("speak")\n}'
+	remoteRun(conn, funcview)
+	remoteRun(conn, "addFunctionView(speak)")
+	remoteRun(conn, 'scheduleJob("speak", "speakTest", speak{"name1"}, temporalAdd(minute(now()), 1 6 11, "m"), date(now()), date(now())+1, "D")')
+	sleep(30000)
+	restartCluster(path, ctlSite, nodeSites, nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	sleep(60000)
+	conn = buildConn(nodeSites[0])
+	assert 1, "speak" in conn(getFunctionViews)["name"]
+	assert 2, "speakTest" in conn(getRecentJobs)["jobDesc"]
+	conn(dropFunctionView{"speak"})
+	assert 3, not "speak" in conn(getFunctionViews)["name"]
+}
+
+@testing:case="test_topic_class_with_scheduleJob_with_arrayvector"
+if (isSingleMode == false) {
+	classInit = "class F2{\n\tname :: DOUBLE[] VECTOR\n\tdef F2(){name =arrayVector(take(5, 10).cumsum().int(), 1..50)}\n\tdef getS(){return 'F2'}	\n\tdef setName(name_){\n\tname = name_\n\t}\n\tdef getName(){\n\t\treturn name\n\t}\n}"
+	getTInit = "def getT(mutable F, newName){\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}"
+	speakInit = 'def speak(newName){\n\tF = F2()\n\tF.setName(newName)\n\tstr = F.getName()\n\tprint(str)\n}'
+	
+	clearAndRestartCluster(path,ctlSite,nodeSites,nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	conn = buildConn(nodeSites[0])
+	remoteRun(conn, classInit)
+	remoteRun(conn, getTInit )
+	remoteRun(conn, speakInit )
+	remoteRun(conn, "F = F2()")
+	remoteRun(conn,"d = dict(STRING, ANY)")
+	funcview = 'if("speak" in getFunctionViews()["name"]){\n\tdropFunctionView("speak")\n}'
+	remoteRun(conn, funcview)
+	remoteRun(conn, "addFunctionView(speak)")
+	remoteRun(conn, 'name = arrayVector(take(2 4 6 8, 10).cumsum().int(), rand(100, 46))\nscheduleJob("speak", "speakTest", speak{name}, temporalAdd(minute(now()), 1 6 11, "m"), date(now()), date(now())+1, "D")')
+	sleep(30000)
+	restartCluster(path, ctlSite, nodeSites, nodeAlias)
+	waitCtlReady(ctlSite, "dfs://test_ready", "pt")
+	for(nodeSite in nodeSites){
+		waitChunkNodeInit(nodeSite)
+	}
+	waitChunkNodeOnline(ctlSite)
+	
+	sleep(60000)
+	conn = buildConn(nodeSites[0])
+	assert 1, "speak" in conn(getFunctionViews)["name"]
+	assert 2, "speakTest" in conn(getRecentJobs)["jobDesc"]
+	conn(dropFunctionView{"speak"})
+	assert 3, not "speak" in conn(getFunctionViews)["name"]
+}

@@ -1,0 +1,229 @@
+/*
+DolphinDB Web AI 的一次性 schema 角色脚本块库。
+不要运行整个文件。请在 query_reference.dos 已创建 webColDefs 后复制所需脚本块。
+不要定义或调用自定义 web* 函数。
+约束：只输出字段角色、数据源模式和下游角色摘要。
+*/
+
+// 块索引：
+// 1-2：基础角色候选和评分表。
+// 3-5：实体、时间和标签 profile。
+// 6-8：领域适配、监督学习适配和未来窗口必要条件。
+// 9-13：角色结论、工业语义角色、source mode、确认清单和下游角色包。
+// 原始建模数据选择通常参考块 1-9、13。
+
+// 块 1：从 webColDefs 推断基础角色候选列。
+// 输入：webColDefs。
+// 输出：webTimeCandidates、webEntityCandidates、webLabelCandidates、webFeatureCandidates、webValueCandidates。
+// 适用：任何需要角色判断的查询、清洗、报告或机器学习任务。
+webTemporalTypes = ["DATE","MONTH","TIME","MINUTE","SECOND","DATETIME","TIMESTAMP","NANOTIME","NANOTIMESTAMP"]
+webNumericTypes = ["BOOL","CHAR","SHORT","INT","LONG","FLOAT","DOUBLE","DECIMAL32","DECIMAL64","DECIMAL128"]
+webTimeCandidates = exec name from webColDefs where upper(typeString) in webTemporalTypes or like(lower(name), "%time%") or like(lower(name), "%date%") or like(lower(name), "%timestamp%") or like(lower(name), "%start%") or like(lower(name), "%end%") or like(lower(name), "%ts%")
+webEntityCandidates = exec name from webColDefs where like(lower(name), "%device%") or like(lower(name), "%equipment%") or like(lower(name), "%machine%") or like(lower(name), "%asset%") or like(lower(name), "%id%") or like(lower(name), "%line%") or like(lower(name), "%factory%") or like(lower(name), "%customer%") or like(lower(name), "%order%") or like(lower(name), "%product%")
+webLabelCandidates = exec name from webColDefs where like(lower(name), "%label%") or like(lower(name), "%target%") or like(lower(name), "%status%") or like(lower(name), "%fault%") or like(lower(name), "%failure%") or like(lower(name), "%fail%") or like(lower(name), "%alarm%") or like(lower(name), "%error%") or like(lower(name), "%down%") or like(lower(name), "%maintenance%") or like(lower(name), "%class%") or like(lower(name), "%result%")
+webExcludedForFeatures = webTimeCandidates join webEntityCandidates join webLabelCandidates
+webFeatureCandidates = exec name from webColDefs where upper(typeString) in webNumericTypes and not name in webExcludedForFeatures
+webValueCandidates = exec name from webColDefs where upper(typeString) in webNumericTypes and not name in webLabelCandidates
+webTimeCandidates
+webEntityCandidates
+webLabelCandidates
+webFeatureCandidates
+webValueCandidates
+
+// 块 2：构建角色候选评分表。
+// 输入：webColDefs、块 1 的角色候选向量。
+// 输出：webRoleScore。
+// 适用：需要把角色判断依据解释给用户。
+webColumnNames = exec name from webColDefs
+webRoleScore = table(100:0, `column_name`type_string`time_score`entity_score`label_score`feature_score`matched_rules, [STRING,STRING,INT,INT,INT,INT,STRING])
+for(webCol in webColumnNames){
+    webType = exec typeString from webColDefs where name = webCol
+    webLower = lower(webCol)
+    webTimeScore = int(webCol in webTimeCandidates)
+    webEntityScore = int(webCol in webEntityCandidates)
+    webLabelScore = int(webCol in webLabelCandidates)
+    webFeatureScore = int(webCol in webFeatureCandidates)
+    webRules = iif(webTimeScore == 1, "time;", "") + iif(webEntityScore == 1, "entity;", "") + iif(webLabelScore == 1, "label;", "") + iif(webFeatureScore == 1, "numeric_feature;", "")
+    webRoleScore.append!(table([webCol] as column_name, [string(webType[0])] as type_string, [webTimeScore] as time_score, [webEntityScore] as entity_score, [webLabelScore] as label_score, [webFeatureScore] as feature_score, [webRules] as matched_rules))
+}
+webRoleScore
+
+// 块 3：实体候选列基数检查。
+// 输入：webSource、webEntityCandidates。
+// 输出：webEntityProfile。
+// 适用：从多个 ID 类字段中选择实体粒度。
+webEntityProfile = table(100:0, `column_name`rows`distinct_values`distinct_ratio, [STRING,LONG,LONG,DOUBLE])
+webRows = exec count(*) from webSource
+for(webCol in webEntityCandidates){
+    webSql = "select count(*) as distinct_values from (select distinct " + webCol + " from webSource)"
+    webDistinctResult = eval(parseExpr(webSql))
+    webDistinct = exec distinct_values from webDistinctResult
+    webEntityProfile.append!(table([webCol] as column_name, [webRows] as rows, [long(webDistinct[0])] as distinct_values, [long(webDistinct[0]) \ double(webRows)] as distinct_ratio))
+}
+webEntityProfile
+
+// 块 4：时间候选列范围检查。
+// 输入：webSource、webTimeCandidates。
+// 输出：webTimeProfile。
+// 适用：确认时间列覆盖范围和非空程度。
+webTimeProfile = table(100:0, `column_name`rows`null_rows`min_time`max_time, [STRING,LONG,LONG,STRING,STRING])
+webRows = exec count(*) from webSource
+for(webCol in webTimeCandidates){
+    webSql = "select count(*) as null_rows, min(" + webCol + ") as min_time, max(" + webCol + ") as max_time from webSource"
+    webTmp = eval(parseExpr(webSql))
+    webNullRows = exec null_rows from webTmp
+    webMinTime = exec min_time from webTmp
+    webMaxTime = exec max_time from webTmp
+    webTimeProfile.append!(table([webCol] as column_name, [webRows] as rows, [long(webNullRows[0])] as null_rows, [string(webMinTime[0])] as min_time, [string(webMaxTime[0])] as max_time))
+}
+webTimeProfile
+
+// 块 5：标签候选列分布检查。
+// 输入：webSource、webLabelCandidates。
+// 输出：webLabelProfile。
+// 适用：监督学习或状态分析前确认标签可用性。
+webLabelProfile = table(100:0, `column_name`rows`null_rows`distinct_values`top_values, [STRING,LONG,LONG,LONG,STRING])
+webRows = exec count(*) from webSource
+for(webCol in webLabelCandidates){
+    webNullSql = "select count(*) as null_rows from webSource where isNull(" + webCol + ")"
+    webDistinctSql = "select count(*) as distinct_values from (select distinct " + webCol + " from webSource)"
+    webTopSql = "select top 5 " + webCol + " as label_value, count(*) as rows from webSource group by " + webCol + " order by rows desc"
+    webNullResult = eval(parseExpr(webNullSql))
+    webDistinctResult = eval(parseExpr(webDistinctSql))
+    webNullRows = exec null_rows from webNullResult
+    webDistinctValues = exec distinct_values from webDistinctResult
+    webTopValues = string(eval(parseExpr(webTopSql)))
+    webLabelProfile.append!(table([webCol] as column_name, [webRows] as rows, [long(webNullRows[0])] as null_rows, [long(webDistinctValues[0])] as distinct_values, [webTopValues] as top_values))
+}
+webLabelProfile
+
+// 块 6：设备故障数据源适配检查。
+// 输入：webColDefs、块 1 的角色候选向量。
+// 输出：webEquipmentFit。
+// 适用：设备故障预测或类似实体-时间-事件任务。
+webColumnNamesLower = lower(exec name from webColDefs)
+webHasEquipmentEntity = any(like(webColumnNamesLower, "%device%") || like(webColumnNamesLower, "%equipment%") || like(webColumnNamesLower, "%machine%") || like(webColumnNamesLower, "%asset%"))
+webHasTime = size(webTimeCandidates) > 0
+webHasFailureSignal = any(like(webColumnNamesLower, "%fault%") || like(webColumnNamesLower, "%failure%") || like(webColumnNamesLower, "%fail%") || like(webColumnNamesLower, "%alarm%") || like(webColumnNamesLower, "%error%") || like(webColumnNamesLower, "%status%") || like(webColumnNamesLower, "%event%") || like(webColumnNamesLower, "%maintenance%"))
+webLooksLikeSales = any(like(webColumnNamesLower, "%order%") || like(webColumnNamesLower, "%customer%") || like(webColumnNamesLower, "%product%") || like(webColumnNamesLower, "%sales%") || like(webColumnNamesLower, "%amount%"))
+webEquipmentFit = table([webHasEquipmentEntity] as has_equipment_entity, [webHasTime] as has_time, [webHasFailureSignal] as has_failure_signal, [webLooksLikeSales] as looks_like_sales)
+webEquipmentFit
+
+// 块 7：监督学习标签适配检查。
+// 输入：webLabelCol、webLabelProfile。
+// 输出：webSupervisedLabelCheck。
+// 适用：分类或回归训练前。
+webLabelCol = "REPLACE_LABEL_COL"
+webLabelRows = exec rows from webLabelProfile where column_name = webLabelCol
+webLabelNullRows = exec null_rows from webLabelProfile where column_name = webLabelCol
+webLabelDistinctValues = exec distinct_values from webLabelProfile where column_name = webLabelCol
+webSupervisedLabelCheck = table([webLabelCol] as label_col, [long(webLabelRows[0])] as rows, [long(webLabelNullRows[0])] as null_rows, [long(webLabelDistinctValues[0])] as distinct_values, [webLabelNullRows[0] == 0 && webLabelDistinctValues[0] > 1] as usable_for_supervised_ml)
+webSupervisedLabelCheck
+
+// 块 8：未来窗口预测必要条件检查。
+// 输入：webEntityCol、webTimeCol、webFailureCol、webHorizonDays。
+// 输出：webFutureWindowCheck、webLabelRule。
+// 适用：未来 N 天/周是否发生事件的预测。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webFailureCol = "REPLACE_FAILURE_COL"
+webHorizonDays = 7
+webKnownCols = exec name from webColDefs
+webHasEntityCol = webEntityCol in webKnownCols
+webHasTimeCol = webTimeCol in webKnownCols
+webHasFailureCol = webFailureCol in webKnownCols
+webLabelRule = "future_" + string(webHorizonDays) + "d_event = entity has event/status in (as_of_time, as_of_time + " + string(webHorizonDays) + "d]"
+webFutureWindowCheck = table([webEntityCol] as entity_col, [webTimeCol] as time_col, [webFailureCol] as failure_col, [webHasEntityCol] as has_entity_col, [webHasTimeCol] as has_time_col, [webHasFailureCol] as has_failure_col, [webLabelRule] as label_rule)
+webFutureWindowCheck
+
+// 块 9：构建紧凑角色结论摘要。
+// 输入：已确认或推断出的 webEntityCol、webTimeCol、webLabelCol、webFeatureCandidates。
+// 输出：webRoleSummary。
+// 适用：向下游清洗、特征工程或机器学习阶段传递角色结论。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webLabelCol = "REPLACE_LABEL_COL"
+webRoleSummary = table(["entity","time","label","feature_candidates"] as role, [webEntityCol, webTimeCol, webLabelCol, string(webFeatureCandidates)] as columns, ["confirmed or inferred entity grain","confirmed or inferred event/as-of time","confirmed supervised target or status","numeric non-role candidates"] as note)
+webRoleSummary
+
+// 块 10：工业语义角色候选扫描。
+// 输入：webColDefs。
+// 输出：webIndustrialRoleCandidates。
+// 适用：从旧版工业清洗 pipeline 提炼质量、单位、状态、事件和工艺相关字段角色。
+webIndustrialRoleCandidates = table(100:0, `column_name`type_string`semantic_role`hit_rule, [STRING,STRING,STRING,STRING])
+for(webI in 0..(size(webColDefs.name) - 1)){
+    webCol = string(webColDefs.name[webI])
+    webColLower = lower(webCol)
+    webTypeString = string(webColDefs.typeString[webI])
+    if(like(webColLower, "%quality%") || like(webColLower, "%valid%") || like(webColLower, "%qc%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["quality"] as semantic_role, ["name contains quality/valid/qc"] as hit_rule))
+    }
+    if(like(webColLower, "%unit%") || like(webColLower, "%uom%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["unit"] as semantic_role, ["name contains unit/uom"] as hit_rule))
+    }
+    if(like(webColLower, "%status%") || like(webColLower, "%state%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["status"] as semantic_role, ["name contains status/state"] as hit_rule))
+    }
+    if(like(webColLower, "%start%") || like(webColLower, "%begin%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["start_time"] as semantic_role, ["name contains start/begin"] as hit_rule))
+    }
+    if(like(webColLower, "%end%") || like(webColLower, "%finish%") || like(webColLower, "%stop%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["end_time"] as semantic_role, ["name contains end/finish/stop"] as hit_rule))
+    }
+    if(like(webColLower, "%duration%") || like(webColLower, "%elapsed%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["duration"] as semantic_role, ["name contains duration/elapsed"] as hit_rule))
+    }
+    if(like(webColLower, "%update%") || like(webColLower, "%modified%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["update_time"] as semantic_role, ["name contains update/modified"] as hit_rule))
+    }
+    if(like(webColLower, "%ingest%") || like(webColLower, "%created%") || like(webColLower, "%insert%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["ingest_time"] as semantic_role, ["name contains ingest/created/insert"] as hit_rule))
+    }
+    if(like(webColLower, "%point%") || like(webColLower, "%tag%") || like(webColLower, "%sensor%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["point"] as semantic_role, ["name contains point/tag/sensor"] as hit_rule))
+    }
+    if(like(webColLower, "%alarm%") || like(webColLower, "%fault%") || like(webColLower, "%error%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["alarm_code"] as semantic_role, ["name contains alarm/fault/error"] as hit_rule))
+    }
+    if(like(webColLower, "%maintenance%") || like(webColLower, "%repair%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["maintenance_type"] as semantic_role, ["name contains maintenance/repair"] as hit_rule))
+    }
+    if(like(webColLower, "%work_order%") || like(webColLower, "%workorder%") || like(webColLower, "%ticket%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["work_order"] as semantic_role, ["name contains work_order/workorder/ticket"] as hit_rule))
+    }
+    if(like(webColLower, "%batch%") || like(webColLower, "%lot%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["batch"] as semantic_role, ["name contains batch/lot"] as hit_rule))
+    }
+    if(like(webColLower, "%process%") || like(webColLower, "%step%") || like(webColLower, "%recipe%")){
+        webIndustrialRoleCandidates.append!(table([webCol] as column_name, [webTypeString] as type_string, ["process"] as semantic_role, ["name contains process/step/recipe"] as hit_rule))
+    }
+}
+webIndustrialRoleCandidates
+
+// 块 11：数据源模式摘要。
+// 输入：webIndustrialRoleCandidates、webTimeCandidates、webEntityCandidates、webFeatureCandidates。
+// 输出：webSourceModeSummary。
+// 适用：为清洗、特征工程和 ML 决定是否采用工业时序、状态区间或业务记录策略。
+webHasPoint = sum(int(webIndustrialRoleCandidates.semantic_role == "point")) > 0
+webHasQuality = sum(int(webIndustrialRoleCandidates.semantic_role == "quality")) > 0
+webHasUnit = sum(int(webIndustrialRoleCandidates.semantic_role == "unit")) > 0
+webHasStatus = sum(int(webIndustrialRoleCandidates.semantic_role == "status")) > 0
+webHasStartEnd = sum(int(webIndustrialRoleCandidates.semantic_role == "start_time")) > 0 && sum(int(webIndustrialRoleCandidates.semantic_role == "end_time")) > 0
+webHasBatchOrProcess = sum(int(webIndustrialRoleCandidates.semantic_role == "batch")) > 0 || sum(int(webIndustrialRoleCandidates.semantic_role == "process")) > 0
+webSourceMode = iif(webHasPoint && size(webTimeCandidates) > 0, "timeseries_sensor", iif(webHasStatus && webHasStartEnd, "equipment_status", iif(webHasBatchOrProcess, "production_record", iif(webHasQuality, "quality_record", "generic_table"))))
+webSourceModeSummary = table([webSourceMode] as source_mode, [webHasPoint] as has_point, [webHasQuality] as has_quality, [webHasUnit] as has_unit, [webHasStatus] as has_status, [webHasStartEnd] as has_start_end, [webHasBatchOrProcess] as has_batch_or_process)
+webSourceModeSummary
+
+// 块 12：工业角色确认清单。
+// 输入：webIndustrialRoleCandidates。
+// 输出：webIndustrialRoleChecklist。
+// 适用：向用户确认质量列、单位列、状态列和事件列是否可用于清洗策略。
+webIndustrialRoleChecklist = select semantic_role, count(*) as candidate_columns, string(column_name) as candidate_names from webIndustrialRoleCandidates group by semantic_role order by semantic_role
+webIndustrialRoleChecklist
+
+// 块 13：下游角色包摘要。
+// 输入：webRoleSummary、webIndustrialRoleCandidates、webSourceModeSummary。
+// 输出：webDownstreamRoleBundle。
+// 适用：交给清洗、特征工程、报告或 ML 技能前，压缩角色结论和工业模式。
+webDownstreamRoleBundle = table([string(webRoleSummary)] as core_roles, [string(webIndustrialRoleChecklist)] as industrial_roles, [string(webSourceModeSummary)] as source_mode_summary)
+webDownstreamRoleBundle

@@ -1,0 +1,77 @@
+module easy_csmar::stock::stock_csv_schema::entrust_csv_schema
+/*
+*  @ brief  
+*  读取csv数据到DolphinDB内存中时，强制指定schema
+*/
+
+/*
+*  @FunctionName: entrust_csv_schema_sh
+*  @Brief: 上交所逐笔委托csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: entrust_csv_schema_sh(day=2026.05.26)
+*/
+def entrust_csv_schema_sh(day){
+	if(day<2024.03.01){
+		schema_tb = table(
+			array(SYMBOL, 0) as Symbol,
+			array(DATE, 0) as TradingDate,
+			array(TIMESTAMP, 0) as TradingTime,
+			array(INT, 0) as SetID,
+			array(LONG, 0) as RecID,
+			array(DOUBLE, 0) as OrderPrice,
+			array(SYMBOL, 0) as OrderType,
+			array(LONG, 0) as UNIX,
+			array(SYMBOL, 0) as Market,
+			array(SYMBOL, 0) as OrderCode,
+			array(LONG, 0) as SecurityID,
+			array(LONG, 0) as OrderID,
+			array(DOUBLE, 0) as Balance,
+			array(LONG, 0) as RecNO
+		).schema().colDefs
+	}else{
+		// 2024.03.01 后新增字段 TradeVolume
+		schema_tb = table(
+			array(SYMBOL, 0) as Symbol,
+			array(DATE, 0) as TradingDate,
+			array(TIMESTAMP, 0) as TradingTime,
+			array(INT, 0) as SetID,
+			array(LONG, 0) as RecID,
+			array(DOUBLE, 0) as OrderPrice,
+			array(SYMBOL, 0) as OrderType,
+			array(LONG, 0) as UNIX,
+			array(SYMBOL, 0) as Market,
+			array(SYMBOL, 0) as OrderCode,
+			array(LONG, 0) as SecurityID,
+			array(LONG, 0) as OrderID,
+			array(DOUBLE, 0) as Balance,
+			array(LONG, 0) as RecNO,
+			array(DOUBLE, 0) as TradeVolume
+		).schema().colDefs
+	}
+	return table(schema_tb.name, schema_tb.typeString)	
+}
+
+/*
+*  @FunctionName: entrust_csv_schema_sz
+*  @Brief: 深交所逐笔委托csv数据指定schema
+*  @Param: day: 交易日
+*  @SampleUsage: entrust_csv_schema_sz(day=2026.05.26)
+*/
+def entrust_csv_schema_sz(day){
+	schema_tb = table(
+		array(SYMBOL, 0) as Symbol,
+		array(DATE, 0) as TradingDate,
+		array(TIMESTAMP, 0) as TradingTime,
+		array(INT, 0) as SetID,
+		array(LONG, 0) as RecID,
+		array(DOUBLE, 0) as OrderPrice,
+		array(DOUBLE, 0) as OrderVolume,
+		array(SYMBOL, 0) as OrderType,
+		array(LONG, 0) as UNIX,
+		array(SYMBOL, 0) as Market,
+		array(SYMBOL, 0) as SymbolSource,
+		array(SYMBOL, 0) as OrderCode,
+		array(LONG, 0) as SecurityID
+	).schema().colDefs
+	return table(schema_tb.name, schema_tb.typeString)	
+}

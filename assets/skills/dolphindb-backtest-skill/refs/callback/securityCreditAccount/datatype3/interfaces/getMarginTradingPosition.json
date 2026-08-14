@@ -1,0 +1,74 @@
+{
+  "id": "getMarginTradingPosition",
+  "name": "获取融资买入持仓",
+  "signature": "Backtest::getMarginTradingPosition(engine, [symbolList])",
+  "description": "在 securityCreditAccount 回测中查询融资买入持仓信息。若 symbolList 省略，则返回所有股票的融资买入持仓表；若 symbolList 长度为 1，则返回对应股票的持仓字典。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，在回调函数中可通过 context[\"engine\"] 获取。"
+    },
+    {
+      "name": "symbolList",
+      "type": "STRING[]",
+      "description": "可选参数，股票代码列表。省略时返回全部融资买入持仓；长度为 1 时返回单只股票的持仓字典。"
+    }
+  ],
+  "constraints": [
+    "仅在 securityCreditAccount 策略中使用该接口。",
+    "需要读取融资买入持仓时使用该接口，不要再用 getPosition 解释信用账户仓位。",
+    "融资买入持仓与担保品买入持仓语义不同，不要混用 getMarginSecuPosition。"
+  ],
+  "returns": {
+    "type": "DICT | TABLE",
+    "description": "返回融资买入持仓信息。单标的场景通常返回字典，多标的或省略 symbolList 时返回表。",
+    "fields": [
+      {
+        "name": "symbol",
+        "description": "标的代码。"
+      },
+      {
+        "name": "lastDayLongPosition",
+        "description": "昨日收盘时融资买入持仓量。"
+      },
+      {
+        "name": "lastDayBuyValue",
+        "description": "昨日收盘时融资买入金额。"
+      },
+      {
+        "name": "lastDayMarginDebt",
+        "description": "昨日收盘时融资买入负债。"
+      },
+      {
+        "name": "longPosition",
+        "description": "当前融资买入持仓量。"
+      },
+      {
+        "name": "buyValue",
+        "description": "当前融资买入金额。"
+      },
+      {
+        "name": "todayBuyVolume",
+        "description": "当日融资买入成交数量。"
+      },
+      {
+        "name": "todayBuyValue",
+        "description": "当日融资买入成交金额。"
+      },
+      {
+        "name": "marginBuyProfit",
+        "description": "融资盈亏。"
+      },
+      {
+        "name": "financialFee",
+        "description": "融资利息。"
+      }
+    ]
+  },
+  "examples": [
+    "pos = Backtest::getMarginTradingPosition(context[\"engine\"], [symbol])",
+    "longQty = pos[\"longPosition\"]",
+    "marginDebt = pos[\"lastDayMarginDebt\"]"
+  ]
+}

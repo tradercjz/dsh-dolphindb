@@ -1,0 +1,25 @@
+// Example: MQTT real-time data ingestion to IOTDB table
+
+// Step 1: Create stream table with persistence
+t = streamTable(1:0, `tag`ts`value, [SYMBOL, TIMESTAMP, FLOAT])
+enableTableShareAndPersistence(table=t, tableName=`iotStream,
+    cacheSize=1000000, preCache=0)
+
+// Step 2: Load MQTT plugin
+try { loadPlugin("mqtt") } catch(ex) { if (strpos(string(ex[1]), "already in use") == -1) { installPlugin("mqtt"); loadPlugin("mqtt") } }
+
+// Step 3: Create JSON parser and subscribe
+sp = mqtt::createJsonParser([SYMBOL, TIMESTAMP, FLOAT], `tag`ts`value)
+conn = mqtt::subscribe("broker_host", 1883, "sensor/#", sp, iotStream)    // ▶ 替换为实际的 MQTT broker 地址
+
+// Step 4: (Optional) Subscribe stream to distributed table
+// pt = loadTable("dfs://iot_db", "sensors")
+// subscribeTable(tableName="iotStream", actionName="toDB",
+//     handler=append!{pt}, msgAsTable=true)
+
+// Step 5: Verify data is arriving
+select top 10 * from iotStream
+select count(*) from iotStream
+
+// Cleanup when done
+// mqtt::unsubscribe(conn)

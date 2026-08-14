@@ -1,0 +1,508 @@
+
+def toDecimal32(x){
+	return decimal32(x,5)
+}
+
+def toDecimal64(x){
+	return decimal64(x,10)
+}
+
+def toDecimal128(x){
+	return decimal128(x,18)
+}
+
+@testing:case="test_function_rowCovarp_null_scalar",exception=1
+rowCovarp(NULL, NULL)
+
+@testing:case="test_function_rowCovarp_numeric_scalar",exception=1
+rowCovarp(1.1, 2.1)
+
+@testing:case="test_function_rowCovarp_pair"
+rowCovarp(1:2, 1:3)
+
+@testing:case="test_function_rowCovarp_string_vector",exception=1
+rowCovarp(`A`B, 1 3)
+
+@testing:case="test_function_rowCovarp_vector"
+rowCovarp(1 3, 1 3)
+
+@testing:case="test_function_rowCovarp_symbol_matrix",exception=1
+rowCovarp(matrix(symbol, 2, 3,,`A), matrix(symbol, 2, 3,,`A))
+
+@testing:case="test_function_rowCovarp_size_not_match",exception=1
+rowCovarp(1..6$3:2, 1..6$3:3)
+
+@testing:case="test_function_rowCovarp_set",exception=1
+rowCovarp(set([5, 5, 3, 4]), set([5, 5, 3, 4]))
+
+@testing:case="test_function_rowCovarp_dict",exception=1
+x=1 2 3 1
+y=2.3 4.6 5.3 6.4
+z=dict(x, y)
+rowCovarp(z, z)
+
+@testing:case="test_function_rowCovarp_table",exception=1
+t=table(1..10 as sq, rand(100.0, 10) as val)
+rowCovarp(t, t)
+
+@testing:case="test_function_rowCovarp_Matrix_only_one_row"
+def test_one_row_matrix1(dtype, data1, data2){
+	m=matrix([dtype], [data1],[data2])
+	x=rowCovarp(m, m)
+	return eqObj(x[0], covarp(m.row(0), m.row(0)))
+}
+assert 1, loop(test_one_row_matrix1{, 2, 3}, [int(), long(), short(), double(), float()])== take(true, 5)
+
+def test_one_row_matrix2(dtype, data1, data2){
+	m=matrix([dtype], [data1],[data2])
+	n=matrix([dtype], [data2],[data1])
+	x=rowCovarp(m, n)
+	return eqObj(x[0], covarp(m.row(0), n.row(0)))
+}
+assert 2, loop(test_one_row_matrix2{, 2, 3}, [int(), long(), short(), double(), float()])== take(true, 5)
+
+@testing:case="test_function_rowCovarp_Matrix_only_one_col"
+def test_one_col_matrix1(dtype, data1, data2){
+	m=1..30$30:1
+	m=dtype(m)
+	x=rowCovarp(m, m)
+	return eqObj(x[0], covarp(m.row(0), m.row(0)))
+}
+assert 1, loop(test_one_col_matrix1{, 2, 3}, [int, long, short, double, float])==take(true, 5)
+
+@testing:case="test_function_rowCovarp_Matrix_null"
+def test_matrix_null(dtype, data1, data2, data3){
+	m=matrix(dtype, data1, data2,, data3)
+	x=rowCovarp(m, m)
+	return eqObj(x[0], covarp(m.row(0), m.row(0)))
+}
+assert 1, loop(test_matrix_null{, 2, 3, int()}, [int, long, short, double, float])==take(true, 5)
+
+@testing:case="test_function_rowCovarp_Matrix_part_is_null"
+def test_matrix_part_null(dtype, data1){
+	m=1 2 2.3 4.5 NULL 5.6 NULL NULL 2 3$2:5
+	n=10 2.9 12.3 14.5 NULL 15.6 NULL NULL 7 3.3$2:5
+	m=dtype(m)
+	n=dtype(n)
+	x=rowCovarp(m, n)
+	return eqObj(x, [covarp(m.row(0), n.row(0)), covarp(m.row(1), n.row(1))], 5)
+}
+assert 1, loop(test_matrix_part_null{, 2}, [int, long, short, double, float])==take(true, 5)
+
+@testing:case="test_function_rowCovarp_Matrix_double_float_1024"
+def checkType(dtype, m, n, expected){
+	re=rowCovarp(dtype(m), dtype(n))
+	return eqObj(re, expected, 4)
+}
+m=take(2 2.3 4.5 NULL 5.6 NULL NULL 2 3 4, 1020)$1:1020
+n=take(2.9 12.3 14.5 NULL 15.6 NULL NULL 7 3.3 2, 1020)$1:1020
+assert 1, loop(checkType{, m, n, [3.7216326530612243]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(1 2 2.3 4.5 NULL 5.6 NULL NULL 2 3,1024*1024)$1024:1024
+n=take(10 2.9 12.3 14.5 NULL 15.6 NULL NULL 7 3.3, 1024*1024)$1024:1024
+assert 2, loop(checkType{, m, n, take([0.17555555555555552,7.8193750,0.17689458243588782,7.823451050374126,0.17613330114908418,7.815523189332706,0.1736373860730617,7.824114252319387,0.17555555555555524,7.8143648781011255], 1024)}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(1 2 2.3 4.5 1.1 5.6 1.2 5 2 3, 1024)$1:1024
+n=take(10 2.9 12.3 14.5 14 15.6 7.8 4.9 7 3.3, 1024)$1:1024
+assert 3, loop(checkType{, m, n, [1.4242840576171865]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+//all NULL
+m=take(double(),1024)$1:1024
+n=take(double(), 1024)$1:1024
+assert 4, loop(checkType{, m, n, [double()]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+//小数点后面的数据长度超过十位
+m=take(1.34729424765719106 2.52729424765719106 2.19729424765719106 4.19729424765719106 1.19729424765719106 5.19729424765719106 1.19729424765719106 5.19729424765719106 2.19729424765719106 3.19729424765719106,2000)$1:2000
+n=take(10.485230301 2.45638236542 12.352135843312 14.52568413515 14.23512659415 15.62549413351 7.826954361214 4.974861330352 7.23695545112 3.32548746113, 2000)$1:2000
+assert 5, loop(checkType{, m, n, [0.3721287431710611]}, [double, float, toDecimal64, toDecimal128])==take(true, 4)
+
+@testing:case="test_function_rowCovarp_Matrix_1048576"
+m=take(1 2 2.3 4.5 NULL 5.6 NULL NULL 2 3,1048576)$1:1048576
+n=take(10 2.9 12.3 14.5 NULL 15.6 NULL NULL 7 3.3, 1048576)$1:1048576
+assert 1, loop(checkType{, m, n, [4.203274514200412]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(1 2 21.3 4.5 NULL 53.6 NULL 24.6 2 3,88*1024)$44:2048
+n=take(10 2.9 32.3 14.5 NULL 15.6 NULL NULL 7 3.3, 88*1024)$44:2048
+assert 2, loop(checkType{, m, n, take([104.1342470179239,86.20926125358804,104.25794128999406,86.02880328462764,104.26760469293409,86.11998930879815,104.17229598589911,86.21682607515943,104.26760469293409,86.02191765025101], 44)}, [double])==take(true, 1)
+
+m=take(1 2 2.3 4.5 11.1 5.6 22.4 33.6 2 3,1048576)$1:1048576
+n=take(10 2.9 12.3 14.5 5.6 15.6 8.9 24.6 7 3.3, 1048576)$1:1048576
+assert 3, loop(checkType{, m, n, [39.25527366699558]}, [double])==take(true, 1)
+
+m=take(double(),1048576)$1:1048576
+n=take(double(), 1048576)$1:1048576
+assert 4, loop(checkType{, m, n, [double()]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(1.34729424765719106 2.52729424765719106 2.19729424765719106 4.19729424765719106 1.19729424765719106 5.19729424765719106 1.19729424765719106 5.19729424765719106 2.19729424765719106 3.19729424765719106,1048576)$1:1048576
+n=take(10.485230301 2.45638236542 12.352135843312 14.52568413515 14.23512659415 15.62549413351 7.826954361214 4.974861330352 7.23695545112 3.32548746113, 1048576)$1:1048576
+assert 5, loop(checkType{, m, n, [0.37213864]}, [double, float, toDecimal64, toDecimal128])==take(true, 4)
+
+@testing:case="test_function_rowCovarp_Matrix_double_3000000"
+m=take(1 2 2.3 4.5 NULL 5.6 NULL NULL 2 3, 3000000)$1:3000000
+n=take(10 2.9 12.3 14.5 NULL 15.6 NULL NULL 7 3.3, 3000000)$1:3000000
+assert 1, loop(checkType{, m, n, [4.203265306122905]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(1 2 2.3 4.5 2.3 5.6 9.8 10.4 2 3, 3000000)$1:3000000
+n=take(10 2.9 12.3 14.5 12.3 15.6 7.8 4.5 7 3.3, 3000000)$1:3000000
+assert 2, loop(checkType{, m, n, [-1.4827999999999197]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+m=take(double(), 3000000)$1:3000000
+n=take(double(), 3000000)$1:3000000
+assert 3, loop(checkType{, m, n, [double()]}, [double, float, toDecimal32, toDecimal64, toDecimal128])==take(true, 5)
+
+@testing:case="test_function_rowCovarp_Matrix_int_long_short_1024"
+def checkType(dtype, m, n, expected){
+	re=rowCovarp(dtype(m), dtype(n))
+	return eqObj(re, expected, 6)
+}
+m=take(1 2 2 4 NULL 5 NULL NULL 2 3,1024)$1:1024
+n=take(10 2 12 14 NULL 15 NULL NULL 7 3, 1024)$1:1024
+assert 1, loop(checkType{, m, n, [2.993839278093745]}, [int, long, short])==take(true, 3)
+
+///arrayVector
+@testing:case="test_function_rowCovarp_arrayVector"
+x = array(BOOL[], 0, 10).append!([true true true, false, false, false true])
+re = rowCovarp(x, x)
+assert 1, re == 0 0 0 0.25
+
+@testing:case="test_function_rowCovarp_arrayVector"
+x=[0.385478125885129,0.604414627188817,0.267393107758835,0.823116458486766,0.270095932297409,0.378373318817466,0.168616053415462,0.972598328022286,0.485768221551552,0.115409600082785]
+y=[0.567480038153008,0.404618501896039,0.606928472174332,0.768051800550893,0.504928501555696,0.33879641443491,0.337857777718455,0.062920790165663,0.683774252887815,0.996331500122324]
+assert 1, eqObj(rowCovarp(x[movingWindowIndex(x, 5)], y[movingWindowIndex(y, 5)]), [0.0, -0.00891408373626113, -0.012055268618947922, 0.00926899987428631, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463], 6)
+
+x=take([0.385478125885129,0.604414627188817,0.267393107758835,0.823116458486766,0.270095932297409,0.378373318817466,0.168616053415462,0.972598328022286,0.485768221551552,0.115409600082785], 1024)
+y=take([0.567480038153008,0.404618501896039,0.606928472174332,0.768051800550893,0.504928501555696,0.33879641443491,0.337857777718455,0.062920790165663,0.683774252887815,0.996331500122324], 1024)
+assert 2, eqObj(rowCovarp(x[movingWindowIndex(x, 5)], y[movingWindowIndex(y, 5)]), [0.0, -0.00891408373626113, -0.012055268618947922, 0.00926899987428631, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463] join take([-0.06860342464756541, -0.08409783759116099, -0.027731396086863994, -0.01910415447914404, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463], 1014), 6)
+
+x=take([0.385478125885129,0.604414627188817,0.267393107758835,0.823116458486766,0.270095932297409,0.378373318817466,0.168616053415462,0.972598328022286,0.485768221551552,0.115409600082785], 1048576)
+y=take([0.567480038153008,0.404618501896039,0.606928472174332,0.768051800550893,0.504928501555696,0.33879641443491,0.337857777718455,0.062920790165663,0.683774252887815,0.996331500122324], 1048576)
+assert 3, eqObj(rowCovarp(x[movingWindowIndex(x, 5)], y[movingWindowIndex(y, 5)]), [0.0, -0.00891408373626113, -0.012055268618947922, 0.00926899987428631, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463] join take([-0.06860342464756541, -0.08409783759116099, -0.027731396086863994, -0.01910415447914404, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463], 1048566), 6)
+
+x=take([0.385478125885129,0.604414627188817,0.267393107758835,0.823116458486766,0.270095932297409,0.378373318817466,0.168616053415462,0.972598328022286,0.485768221551552,0.115409600082785], 3000000)
+y=take([0.567480038153008,0.404618501896039,0.606928472174332,0.768051800550893,0.504928501555696,0.33879641443491,0.337857777718455,0.062920790165663,0.683774252887815,0.996331500122324], 3000000)
+assert 4, eqObj(rowCovarp(x[movingWindowIndex(x, 5)], y[movingWindowIndex(y, 5)]), [0.0, -0.00891408373626113, -0.012055268618947922, 0.00926899987428631, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463] join take([-0.06860342464756541, -0.08409783759116099, -0.027731396086863994, -0.01910415447914404, 0.010688908822486748, 0.014823331909062898, 0.028129238249543484, -0.007349857911598587, -0.03252985379775721, -0.06656332972109463], 2999990), 6)
+
+@testing:case="test_function_rowCovarp_vector_vector"
+assert 1, rowCovarp(rand(1.0, 20), rand(1.0, 20)) == take(0.0, 20)
+
+@testing:case="test_function_rowCovarp_arrayVector_arrayVector"
+def checkType(types, x, y, expected){
+	re=rowCovarp(types(x), types(y))
+	return eqObj(re, expected, 4)
+}
+types=[double, float, toDecimal32, toDecimal64, toDecimal128]
+num1=[0.1073, 0.2348, 0.4482, 0.5616, 0.3019, 0.6739, 0.1284, 0.0322, 0.5316, 0.4849]
+num2=[0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308]
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.01207425, -0.01832286222222222, 0.009080648125000004, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002]
+assert 1, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, 0.2348, 0.4482, 0.5616, 0.3019, 0.6739, 0.1284, 0.0322, 0.5316, 0.4849], 1025)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 1025)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.01207425, -0.01832286222222222, 0.009080648125000004, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002] join take([-0.009408212400000004, -0.014386071600000001, -0.005914398000000001, -0.0013917147999999982, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002], 1015)
+assert 2, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, 0.2348, 0.4482, 0.5616, 0.3019, 0.6739, 0.1284, 0.0322, 0.5316, 0.4849], 1048580)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 1048580)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.01207425, -0.01832286222222222, 0.009080648125000004, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002] join take([-0.009408212400000004, -0.014386071600000001, -0.005914398000000001, -0.0013917147999999982, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002], 1048570)
+assert 3, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, 0.2348, 0.4482, 0.5616, 0.3019, 0.6739, 0.1284, 0.0322, 0.5316, 0.4849], 3000000)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 3000000)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.01207425, -0.01832286222222222, 0.009080648125000004, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002] join take([-0.009408212400000004, -0.014386071600000001, -0.005914398000000001, -0.0013917147999999982, 0.009909393200000002, 0.018668960800000006, 0.033452164, 0.016012452000000003, 0.011818331999999999, -0.003946392000000002], 2999990)
+assert 4, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=[0.1073, NULL, 0.4482, NULL, 0.3019, NULL, 0.1284, 0.0322, NULL, 0.4849]
+num2=[0.3503, 0.7291, NULL, 0.8052, 0.0408, 0.6816, NULL, 0.7923, 0.7393, 0.1308]
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.0, 0.0, 0.0, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625]
+assert 5, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, NULL, 0.4482, NULL, 0.3019, NULL, 0.1284, 0.0322, NULL, 0.4849], 1030)
+num2=take([0.3503, 0.7291, NULL, 0.8052, 0.0408, 0.6816, NULL, 0.7923, 0.7393, 0.1308], 1030)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.0, 0.0, 0.0, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625] join take([-0.04617093888888888, -0.04617093888888888, -0.0207208, -0.0207208, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625], 1020)
+assert 6, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, NULL, 0.4482, NULL, 0.3019, NULL, 0.1284, 0.0322, NULL, 0.4849], 1048580)
+num2=take([0.3503, 0.7291, NULL, 0.8052, 0.0408, 0.6816, NULL, 0.7923, 0.7393, 0.1308], 1048580)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.0, 0.0, 0.0, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625] join take([-0.04617093888888888, -0.04617093888888888, -0.0207208, -0.0207208, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625], 1048570)
+assert 7, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([0.1073, NULL, 0.4482, NULL, 0.3019, NULL, 0.1284, 0.0322, NULL, 0.4849], 3000000)
+num2=take([0.3503, 0.7291, NULL, 0.8052, 0.0408, 0.6816, NULL, 0.7923, 0.7393, 0.1308], 3000000)
+x=num1[movingWindowIndex(num1, 5)]
+y=num2[movingWindowIndex(num2, 5)]
+expected=[0.0, 0.0, 0.0, 0.0, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625] join take([-0.04617093888888888, -0.04617093888888888, -0.0207208, -0.0207208, -0.015057174999999999, 0.0, 0.0, -0.050669887499999997, -0.050669887499999997, -0.0748652625], 2999990)
+assert 8, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+n=array(INT[], 0, 100).append!([take(int(),10)])
+x=take(n, 100)
+y=take(n, 100)
+expected=take(double(), 100)
+assert 9, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+n=array(INT[], 0, 1024).append!([take(int(),10)])
+x=take(n, 1024)
+y=take(n, 1024)
+expected=take(double(), 1024)
+assert 10, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+n=array(INT[], 0, 1048580).append!([take(int(),10)])
+x=take(n, 1048580)
+y=take(n, 1048580)
+expected=take(double(), 1048580)
+assert 11, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+n=array(INT[], 0, 3000000).append!([take(int(),10)])
+x=take(n, 3000000)
+y=take(n, 3000000)
+expected=take(double(), 3000000)
+assert 12, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+@testing:case="test_function_rowCovarp_vector_arrayVector"
+def checkType(types, x, y, expected){
+	re=rowCovarp(types(x), types(y))
+	return eqObj(re, expected, 4)
+}
+types=[double, float, toDecimal32, toDecimal64, toDecimal128]
+num1=take([1,5,10,1.3,4.2,60,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 100)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[,,,,-0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003] join take([0.6136760000000001, -0.495066, -0.509974, 0.7108840000000001, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003], 90)
+
+assert 1, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 2, loop(checkType{, y, x, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,1.3,4.2,60,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 1030)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003] join take([0.6136760000000001, -0.495066, -0.509974, 0.7108840000000001, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003], 1020)
+assert 3, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 4, loop(checkType{, y, x, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,1.3,4.2,60,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 1048580)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003] join take([0.6136760000000001, -0.495066, -0.509974, 0.7108840000000001, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003], 1048570)
+assert 5, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 6, loop(checkType{, y, x, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,1.3,4.2,60,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, 0.8052, 0.0408, 0.6816, 0.3857, 0.7923, 0.7393, 0.1308], 3000010)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003] join take([0.6136760000000001, -0.495066, -0.509974, 0.7108840000000001, -0.4859500000000001, 0.4142200000000001, -0.331024, 0.004037999999999966, 0.018027999999999936, 0.06116800000000003], 3000000)
+assert 7, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 8, loop(checkType{, y, x, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,NULL,4.2,NULL,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, NULL, 0.0408, NULL, 0.3857, NULL, 0.7393, 0.1308], 100)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984] join take([0.5917022222222221, -0.7227199999999999, -0.34037375000000003, 0.9063, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984], 90)
+assert 9, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 10, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,NULL,4.2,NULL,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, NULL, 0.0408, NULL, 0.3857, NULL, 0.7393, 0.1308], 1030)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984] join take([0.5917022222222221, -0.7227199999999999, -0.34037375000000003, 0.9063, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984], 1020)
+assert 11, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 12, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,NULL,4.2,NULL,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, NULL, 0.0408, NULL, 0.3857, NULL, 0.7393, 0.1308], 1048580)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984] join take([0.5917022222222221, -0.7227199999999999, -0.34037375000000003, 0.9063, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984], 1048570)
+assert 13, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 14, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+num1=take([1,5,10,NULL,4.2,NULL,6.7,7.9,8.0,10.0], 5)
+num2=take([0.3503, 0.7291, 0.1115, NULL, 0.0408, NULL, 0.3857, NULL, 0.7393, 0.1308], 3000010)
+x=num1
+y=num2[movingWindowIndex(num2, 5)]
+expected=[NULL, NULL, NULL, NULL, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984] join take([0.5917022222222221, -0.7227199999999999, -0.34037375000000003, 0.9063, -0.23448125000000006, -0.6175999999999999, -0.19547555555555554, 0.0, 0.36538000000000004, 0.050979999999999984], 3000000)
+assert 15, loop(checkType{, x, y, expected}, types)==take(true, 5)
+assert 16, loop(checkType{, x, y, expected}, types)==take(true, 5)
+
+@testing:case="test_prepare"
+type_all_1 = ['BOOL', 'SHORT', 'CHAR','INT', 'LONG','FLOAT', 'DOUBLE']
+type_all_2 = ['SYMBOL', 'STRING', 'BLOB']
+type_all_3 = ['UUID', 'IPADDR', 'INT128']
+type_all_4 = ['DURATION']
+type_all_5 = ['DECIMAL32', 'DECIMAL64', 'DECIMAL128']
+
+@testing:case="test_rowCovarp_column_tuple"
+for(i in type_all_1){
+	T = array(ANY, 0, 10)
+	for(k in 1..4){
+		V = rand(10, 1)[0]$i
+		T.append!(V)
+	}
+	T.setColumnarTuple!()
+	re = rowCovarp(T,T)
+	typestr(T)
+	find_ex = "FAST " + "DOUBLE " + "VECTOR"
+	assert 1, typestr(re) like "FAST DOUBLE VECTOR"
+	for(r in 0..(re.rows()-1)){
+		ex = covarp(T.row(r),T.row(r))
+		assert 2, eqObj(re.row(r), ex)
+	}
+}
+
+@testing:case="test_rowCovarp_column_tuple_scalar"
+for(i in type_all_1){
+	T = array(ANY, 0, 10)
+	for(k in 1..4){
+		V = rand(10, 1)[0]$i
+		T.append!(V)
+	}
+	T.setColumnarTuple!()
+	typestr(T)
+	re = rowCovarp(T,T)
+	find_ex = "FAST " +"DOUBLE"+ "VECTOR"
+	assert 1, typestr(re) like "FAST DOUBLE VECTOR"
+	for(r in 0..(re.rows()-1)){
+		ex = covarp(T.row(r),T.row(r))
+		assert 2, eqObj(re.row(r), ex)
+	}
+}
+
+@testing:case="test_rowCovarp_column_tuple_decimal"
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-100..100, rand(10, 1)[0])$DECIMAL32(3)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+re = rowCovarp(T,T)
+find_ex = "FAST " + `DECIMAL32 + "[] " + "VECTOR"
+assert 1, typestr(re) like "FAST DOUBLE VECTOR"
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 2, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-100..100, rand(10, 1)[0])$DECIMAL64(3)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+re = rowCovarp(T,T)
+find_ex = "FAST " + `DECIMAL64 + "[] " + "VECTOR"
+assert 1, typestr(re) like "FAST DOUBLE VECTOR"
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 2, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-100..100, rand(10, 1)[0])$DECIMAL128(3)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+re = rowCovarp(T,T)
+find_ex = "FAST " + `DECIMAL128 + "[] " + "VECTOR"
+assert 1, typestr(re) like "FAST DOUBLE VECTOR"
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 2, eqObj(re.row(r), ex)
+}
+
+@testing:case="test_rowCovarp_column_tuple_double"
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-10..100, rand(10, 1)[0])$DOUBLE
+	T.append!(V)
+}
+T.setColumnarTuple!()
+T = T/3
+re = rowCovarp(T,T)
+find_ex ="FAST DOUBLE VECTOR"
+assert 1, typestr(re) == find_ex
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 2, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-10..100, rand(10, 1)[0])$FLOAT
+	T.append!(V)
+}
+T.setColumnarTuple!()
+T = T/3
+re = rowCovarp(T,T)
+find_ex = "FAST DOUBLE VECTOR"
+assert 3, typestr(re) == find_ex
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 4, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-10..100, rand(10, 1)[0])$DECIMAL32(5)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+T = T/3
+re = rowCovarp(T,T)
+find_ex = "FAST DOUBLE VECTOR"
+assert 5, typestr(re) == find_ex
+for(r in 0..(re.rows()-1)){
+	ex =covarp(T.row(r),T.row(r))
+	assert 6, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-10..100, rand(10, 1)[0])$DECIMAL64(5)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+T = T/3
+re = rowCovarp(T,T)
+find_ex = "FAST DOUBLE VECTOR"
+assert 7, typestr(re) == find_ex
+for(r in 0..(re.rows()-1)){
+	ex =covarp(T.row(r),T.row(r))
+	assert 8, eqObj(re.row(r), ex)
+}
+
+T = array(ANY, 0, 10)
+for(k in 1..4){
+	V = rand(-10..100, rand(10, 1)[0])$DECIMAL128(5)
+	T.append!(V)
+}
+T.setColumnarTuple!()
+T = T/3
+re = rowCovarp(T,T)
+find_ex = "FAST DOUBLE VECTOR"
+assert 9, typestr(re) == find_ex
+for(r in 0..(re.rows()-1)){
+	ex = covarp(T.row(r),T.row(r))
+	assert 10, eqObj(re.row(r), ex)
+}
+
+
+

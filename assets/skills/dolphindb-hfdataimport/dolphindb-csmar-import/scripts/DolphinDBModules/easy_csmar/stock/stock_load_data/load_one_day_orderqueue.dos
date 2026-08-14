@@ -1,0 +1,265 @@
+module easy_csmar::stock::stock_load_data::load_one_day_orderqueue
+
+use easy_csmar::utils
+use easy_csmar::stock::stock_csv_schema::orderqueue_csv_schema
+
+/*
+*  @FunctionName: transform_orderqueue_sh
+*  @Brief: 
+   @Param: t: 
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = orderqueue_csv_schema_sh(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDERQUEUE/600008.csv", schema=schema_tb)
+tmp_data = transform_orderqueue_sh(day=2026.04.29, t=tb)
+*/
+def transform_orderqueue_sh(day, t){
+	tmp_data =
+		select
+			Symbol + ".SH" as code,
+			"SH" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			double(NULL) as last_price,
+			Side as side,
+			Price as order_price,
+		    Volume as order_qty1,
+			Numorders as order_num,
+			Noorders as order_no,
+			fixedLengthArrayVector(
+				OrderVolume01, OrderVolume02, OrderVolume03, OrderVolume04, OrderVolume05,
+				OrderVolume06, OrderVolume07, OrderVolume08, OrderVolume09, OrderVolume10,
+				OrderVolume11, OrderVolume12, OrderVolume13, OrderVolume14, OrderVolume15,
+				OrderVolume16, OrderVolume17, OrderVolume18, OrderVolume19, OrderVolume20,
+				OrderVolume21, OrderVolume22, OrderVolume23, OrderVolume24, OrderVolume25,
+				OrderVolume26, OrderVolume27, OrderVolume28, OrderVolume29, OrderVolume30,
+				OrderVolume31, OrderVolume32, OrderVolume33, OrderVolume34, OrderVolume35,
+				OrderVolume36, OrderVolume37, OrderVolume38, OrderVolume39, OrderVolume40,
+				OrderVolume41, OrderVolume42, OrderVolume43, OrderVolume44, OrderVolume45,
+				OrderVolume46, OrderVolume47, OrderVolume48, OrderVolume49, OrderVolume50
+			) as order_qtys,
+			NoPriceLevel as level_num,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: transform_orderqueue_sz
+*  @Brief: 
+*  @Param: t: 
+*  @SampleUsage:
+day = 2026.04.29
+schema_tb = orderqueue_csv_schema_sz(day)
+tb = loadText("/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/ORDERQUEUE/000572.csv", schema=schema_tb)
+tmp_data = transform_orderqueue_sz(day=2026.04.29, t=tb)
+*/
+def transform_orderqueue_sz(day, t){
+	tmp_data =
+		select
+			Symbol + ".SZ" as code,
+			"SZ" as exchange,
+			TradingDate as trade_date,
+			time(TradingTime) as trade_time,
+			LastPrice as last_price,
+			Side as side,
+			Price as order_price,
+			Volume as order_qty1,
+			Numorders as order_num,
+			Noorders as order_no,
+			fixedLengthArrayVector(
+				OrderVolume01, OrderVolume02, OrderVolume03, OrderVolume04, OrderVolume05,
+				OrderVolume06, OrderVolume07, OrderVolume08, OrderVolume09, OrderVolume10,
+				OrderVolume11, OrderVolume12, OrderVolume13, OrderVolume14, OrderVolume15,
+				OrderVolume16, OrderVolume17, OrderVolume18, OrderVolume19, OrderVolume20,
+				OrderVolume21, OrderVolume22, OrderVolume23, OrderVolume24, OrderVolume25,
+				OrderVolume26, OrderVolume27, OrderVolume28, OrderVolume29, OrderVolume30,
+				OrderVolume31, OrderVolume32, OrderVolume33, OrderVolume34, OrderVolume35,
+				OrderVolume36, OrderVolume37, OrderVolume38, OrderVolume39, OrderVolume40,
+				OrderVolume41, OrderVolume42, OrderVolume43, OrderVolume44, OrderVolume45,
+				OrderVolume46, OrderVolume47, OrderVolume48, OrderVolume49, OrderVolume50
+			) as order_qtys,
+			NoPriceLevel as level_num,
+			now() as update_time
+		from t
+	return tmp_data
+}
+
+/*
+*  @FunctionName: load_one_day_orderqueue_sh
+*  @Brief: Import one day SH order queue data.
+*  @Param: csv_zip_dir: Zip/csv directory. Accepts either STOCK/ or STOCK/ORDERQUEUE/.
+*  @Param: day: Trading date.
+*  @Param: db_name: Database name.
+*  @Param: tb_name: Table name.
+*  @Param: is_need_etf: Whether to import ETF data.
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SSEL2/STOCK/ORDERQUEUE/"
+load_one_day_orderqueue_sh(csv_zip_dir, 2026.04.29, "dfs://level2_stock_db", "orderqueue", true)
+*/
+def load_one_day_orderqueue_sh(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="orderqueue", is_need_etf=false){
+
+    update_task_status([day], ["orderqueue"], ["SH"], ["progress"], [""])
+    if (!exists(csv_zip_dir)){
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["orderqueue"], ["SH"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+        return false
+    }
+
+    csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+    unziped_csv_path = csv_zip_dir
+    if (size(csv_zip_files)>0) {
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+        msg = write_log(msg, level="info")
+        try{
+            unziped_path = csv_zip_dir + "csv_temp_dir"
+            if (exists(unziped_path)) {
+                rmdir(unziped_path,true)
+            }
+            mkdir(unziped_path)
+            for(csv_zip_file in csv_zip_files){
+                zip::unzip(csv_zip_file, unziped_path)
+            }
+        }catch(ex){
+            msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+            msg = write_log(msg, level="error")
+            update_task_status([day], ["orderqueue"], ["SH"], ["failed"], ["Data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+            return false
+        }
+
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip completed, start importing data")
+        msg = write_log(msg, level="info")
+        // 解压完成
+        unziped_csv_path = unziped_path + "/"
+    }
+    
+    pt = loadTable(db_name, tb_name)
+    tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+    schema_tb = orderqueue_csv_schema_sh(day)
+    csv_files = unziped_csv_path + exec filename from files(unziped_csv_path) where filename like "%.csv"
+    // 没有csv文件
+    if (size(csv_files)==0) {
+        update_task_status([day], ["orderqueue"], ["SH"], ["failed"], [unziped_csv_path + " is empty, please check!"])
+        return false
+    }
+    try{
+        for(csv_file in csv_files){
+            one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+            one_code_tb = transform_orderqueue_sh(day, one_code_tb_tmp)
+            one_code_tb.reorderColumns!(pt.schema().colDefs.name)
+            tmp_mem_tb.append!(one_code_tb)
+            if(memSize(tmp_mem_tb)\1024\1024 >= 200){
+                pt.append!(tmp_mem_tb)
+                tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+            }
+        }
+        pt.append!(tmp_mem_tb)
+    }catch(ex){
+        msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["orderqueue"], ["SH"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+        return false
+    }
+
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] Data import completed")
+    msg = write_log(msg, level="info")
+    update_task_status([day], ["orderqueue"], ["SH"], ["completed"], [""])
+	// 只删除临时创建的解压csv目录
+	try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+    if (is_need_etf){
+        csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+        load_one_day_orderqueue_sh(csv_zip_dir_etf, day, db_name, tb_name, false)
+    }
+}
+
+/*
+*  @FunctionName: load_one_day_orderqueue_sz
+*  @Brief: Import one day SZ order queue data.
+*  @Param: csv_zip_dir: Zip/csv directory. Accepts either STOCK/ or STOCK/ORDERQUEUE/.
+*  @Param: day: Trading date.
+*  @Param: db_name: Database name.
+*  @Param: tb_name: Table name.
+*  @Param: is_need_etf: Whether to import ETF data.
+*  @SampleUsage:
+csv_zip_dir = "/hdd/hdd0/data/csmar/20260429/SZSEL2/STOCK/ORDERQUEUE/"
+load_one_day_orderqueue_sz(csv_zip_dir, 2026.04.29, "dfs://level2_stock_db", "orderqueue", true)
+*/
+def load_one_day_orderqueue_sz(csv_zip_dir, day, db_name="dfs://level2_stock_db", tb_name="orderqueue", is_need_etf=false){
+
+    update_task_status([day], ["orderqueue"], ["SZ"], ["progress"], [""])
+    if (!exists(csv_zip_dir)){
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] path does not exist")
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["orderqueue"], ["SZ"], ["failed"], ["[" + csv_zip_dir + "] path does not exist"])
+        return false
+    }
+
+    csv_zip_files = csv_zip_dir + exec filename from files(csv_zip_dir) where filename like "%.zip"
+    unziped_csv_path = csv_zip_dir
+    if (size(csv_zip_files)>0) {
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] start unzip data")
+        msg = write_log(msg, level="info")
+        try{
+            unziped_path = csv_zip_dir + "csv_temp_dir"
+            if (exists(unziped_path)) {
+                rmdir(unziped_path,true)
+            }
+            mkdir(unziped_path)
+            for(csv_zip_file in csv_zip_files){
+                zip::unzip(csv_zip_file, unziped_path)
+            }
+        }catch(ex){
+            msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+            msg = write_log(msg, level="error")
+            update_task_status([day], ["orderqueue"], ["SZ"], ["failed"], ["Data unzip failed:" + string(ex[0])+":"+string(ex[1])])
+            return false
+        }
+
+        msg = stringFormat("%W", "[" + csv_zip_dir + "] unzip completed, start importing data")
+        msg = write_log(msg, level="info")
+        // 解压完成
+        unziped_csv_path = unziped_path + "/"
+    }
+    
+    pt = loadTable(db_name, tb_name)
+    tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+    schema_tb = orderqueue_csv_schema_sz(day)
+    csv_files = unziped_csv_path + exec filename from files(unziped_csv_path) where filename like "%.csv"
+    // 没有csv文件
+    if (size(csv_files)==0) {
+        update_task_status([day], ["orderqueue"], ["SZ"], ["failed"], [unziped_csv_path + " is empty, please check!"])
+        return false
+    }
+    try{
+        for(csv_file in csv_files){
+            one_code_tb_tmp = loadText(filename=csv_file, schema=schema_tb)
+            one_code_tb = transform_orderqueue_sz(day, one_code_tb_tmp)
+            one_code_tb.reorderColumns!(pt.schema().colDefs.name)
+            tmp_mem_tb.append!(one_code_tb)
+            if(memSize(tmp_mem_tb)\1024\1024 >= 200){
+                pt.append!(tmp_mem_tb)
+                tmp_mem_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+            }
+        }
+        pt.append!(tmp_mem_tb)
+    }catch(ex){
+        msg = stringFormat("%W", string(ex[0])+":"+string(ex[1]))
+        msg = write_log(msg, level="error")
+        update_task_status([day], ["orderqueue"], ["SZ"], ["failed"], ["Data import failed:" + string(ex[0])+":"+string(ex[1])])
+        return false
+    }
+
+    msg = stringFormat("%W", "[" + csv_zip_dir + "] Data import completed")
+    msg = write_log(msg, level="info")
+    update_task_status([day], ["orderqueue"], ["SZ"], ["completed"], [""])
+	// remove temp csv files
+	try{rmdir(csv_zip_dir + "csv_temp_dir", true)}catch(ex){}
+
+    if (is_need_etf){
+        csv_zip_dir_etf = strReplace(csv_zip_dir, "STOCK", "FUND")
+        load_one_day_orderqueue_sz(csv_zip_dir_etf, day, db_name, tb_name, false)
+    }
+}
+

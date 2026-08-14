@@ -1,0 +1,37 @@
+module easy_datayes::tbSchema::dfsSchema::orderQueueSchema
+
+def orderQueueSchemaTb(){
+    schemaTable = table(
+        array(SYMBOL, 0) as code,
+        array(SYMBOL, 0) as exchange,
+        array(DATE, 0) as trade_date,
+        array(TIME, 0) as trade_time,
+        array(DOUBLE, 0) as last_price,
+        array(SYMBOL, 0) as side,
+        array(DOUBLE, 0) as order_price,
+        array(INT, 0) as total_order_qty,
+        array(INT, 0) as order_num,
+        array(INT, 0) as order_no,
+        array(LONG[], 0) as order_qty,
+        array(INT, 0) as level_num,
+        array(TIMESTAMP, 0) as update_time)
+    return schemaTable
+}
+
+def orderQueueComments(){
+    comments = dict(STRING, STRING)
+    comments["code"] = "证券代码"
+    comments["exchange"] = "交易所代码"
+    comments["trade_date"] = "交易日期"
+    comments["trade_time"] = "交易发生时间"
+    comments["last_price"] = "最新价"
+    comments["side"] = "买卖方向"
+    comments["order_price"] = "委托价格"
+    comments["total_order_qty"] = "委托总量"
+    comments["order_num"] = "委托总笔数"
+    comments["order_no"] = "委托订单号"
+    comments["order_qty"] = "前50笔明细委托量"
+    comments["level_num"] = "价格档位数量"
+    comments["update_time"] = "数据写入数据库时间"
+    return comments
+}

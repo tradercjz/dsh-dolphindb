@@ -1,0 +1,74 @@
+{
+    "name": "getSecurityMarginBasicData",
+    "desc": "生成融资融券回测所需的每日 securityReference 模拟表，包含可充抵保证金标识、担保品折算率、融资融券保证金比例，以及可融资、可融券资格字段。",
+    "syntax": "getSecurityMarginBasicData(startDate, endDate, codes)",
+    "notes": [
+        "当 strategyGroup 为 securityCreditAccount 且融资融券回测需要 securityReference 表时使用该函数。",
+        "该函数不从专门的 securityReference 数据表读取数据，而是根据传入的股票 symbol 列表和交易日历生成模拟的每日融资融券基本信息表。",
+        "codes 参数应传入带 DolphinDB 市场后缀的股票 symbol，例如 600000.XSHG 或 000001.XSHE。",
+        "函数会直接从传入 symbol 的后缀解析 symbolSource；XSHG 表示上海证券交易所，XSHE 表示深圳证券交易所。",
+        "当前实现中 securityRating、conversionRatio、tradingMargin、lendingMargin、eligibleForMarginTrading、eligibleForLending 都是模拟常量。",
+        "不要把该函数返回的字段当作 datasource signal 字段；这些字段用于构造融资融券回测引擎的 securityReference 参数。"
+    ],
+    "args": {
+        "startDate": {
+            "type": "DATE",
+            "desc": "回测开始日期。"
+        },
+        "endDate": {
+            "type": "DATE",
+            "desc": "回测结束日期。"
+        },
+        "codes": {
+            "type": "VECTOR",
+            "desc": "用于生成每日融资融券基本信息表的股票 symbol 列表，元素应带 DolphinDB 市场后缀，例如 600000.XSHG 或 000001.XSHE。"
+        }
+    },
+    "return": {
+        "type": "TABLE",
+        "desc": "融资融券回测使用的 DolphinDB securityReference 模拟表。",
+        "columns": {
+            "symbol": {
+                "type": "SYMBOL",
+                "desc": "带 DolphinDB 市场后缀的股票代码，例如 600000.XSHG 或 000001.XSHE。"
+            },
+            "tradeDate": {
+                "type": "DATE",
+                "desc": "交易日期。"
+            },
+            "symbolSource": {
+                "type": "STRING",
+                "desc": "股票所属交易所标识，XSHG 表示上海证券交易所，XSHE 表示深圳证券交易所。"
+            },
+            "securityRating": {
+                "type": "STRING",
+                "desc": "融资融券引擎使用的证券评级；当前模拟函数固定设置为 1。"
+            },
+            "marginable": {
+                "type": "BOOL",
+                "desc": "该证券是否可作为担保品。"
+            },
+            "conversionRatio": {
+                "type": "DOUBLE",
+                "desc": "担保品折算率。"
+            },
+            "tradingMargin": {
+                "type": "DOUBLE",
+                "desc": "融资买入保证金比例。"
+            },
+            "lendingMargin": {
+                "type": "DOUBLE",
+                "desc": "融券卖出保证金比例。"
+            },
+            "eligibleForMarginTrading": {
+                "type": "BOOL",
+                "desc": "该证券是否可融资买入。"
+            },
+            "eligibleForLending": {
+                "type": "BOOL",
+                "desc": "该证券是否可融券卖出。"
+            }
+        }
+    },
+    "body": "def getSecurityMarginBasicData(startDate, endDate, codes){\n    /*\n     * Generate a simulated securityReference table for security credit account backtests.\n     */\n    tradeDates = getMarketCalendar(\"XSHG\", startDate, endDate)\n    tb = select * from table(cj(table(codes as symbol), table(tradeDates as tradeDate))) order by tradeDate\n    update tb set symbolSource = upper(substr(symbol, strpos(symbol, \".\") + 1))\n    update tb set securityRating = \"1\"\n    update tb set marginable = true\n    update tb set conversionRatio = 0.8\n    update tb set tradingMargin = 0.75\n    update tb set lendingMargin = 0.75\n    update tb set eligibleForMarginTrading = true\n    update tb set eligibleForLending = true\n    return tb\n}"
+}

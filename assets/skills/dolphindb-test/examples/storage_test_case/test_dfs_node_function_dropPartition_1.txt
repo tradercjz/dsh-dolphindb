@@ -1,0 +1,1818 @@
+#include "checkChunk.txt"
+#include "setup/settings.txt"
+login("admin","123456")
+
+def CreateDB(){
+    login("admin","123456")
+	if(existsDatabase("dfs://testDropPartition"))
+		dropDatabase("dfs://testDropPartition")
+	partitions = 10001..10010
+	tdata1 = table(31 as PRC1,10002 as PERMNO)
+	tdata2 = table(32 as PRC2,10002 as PERMNO)
+	db1= database("dfs://testDropPartition",VALUE,partitions, , "TSDB")
+	t1 = db1.createPartitionedTable(tdata1, "tb1", `PERMNO, , `PERMNO)
+	t1.append!(tdata1)
+	t2 = db1.createPartitionedTable(tdata2, "tb2", `PERMNO, , `PERMNO)
+	t2.append!(tdata2)
+}
+
+def CreateRangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionRange"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)	
+	db=database(dbPath, RANGE,  0 5 10, , "TSDB")		
+	
+	t=table(take(1..10, 100) as ID,rand(1.0, 100) as x)
+	pt = db.createPartitionedTable(t, `tb1, `ID, , `ID)
+	pt.append!(t);
+	pt = db.createPartitionedTable(t, `tb2, `ID, , `ID)
+	pt.append!(t);
+
+	return dbPath
+}
+
+def CreateHashDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionHash"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	db=database(dbPath, HASH,  [INT, 2], , "TSDB")
+	
+	t=table(take(1..10, 100) as ID,rand(1.0, 100) as x)
+	pt = db.createPartitionedTable(t, `tb1, `ID, , `ID)
+	pt.append!(t);
+	pt = db.createPartitionedTable(t, `tb2, `ID, , `ID)
+	pt.append!(t);
+	return dbPath
+}
+
+def CreateValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionValue"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	t=table(take(1..10, 100) as ID, take(2017.08.07..2017.08.11, 100)as date,rand(10.0, 100)as x);
+	db = database(dbPath, VALUE, 2017.08.07..2017.08.11, , "TSDB")
+	pt = db.createPartitionedTable(t, `tb1, `date, , `date);
+	pt.append!(t);
+	pt = db.createPartitionedTable(t, `tb2, `date, , `date);
+	pt.append!(t);
+	return dbPath
+}
+
+def CreateListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionList"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+		
+	t=table(take(`MSFT`GOOG`FB`ORCL`IBM,100)as ticker);
+	db=database(dbPath, LIST, [`IBM`ORCL`MSFT, `GOOG`FB], , "TSDB")
+      pt = db.createPartitionedTable(t, `tb1, `ticker, , `ticker)
+      pt.append!(t);   
+      pt = db.createPartitionedTable(t, `tb2, `ticker, , `ticker);
+      pt.append!(t);
+	return dbPath
+}
+
+
+def CreateCompo2RangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2RangeDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, RANGE,  0 10 20 30)		
+	db2=database(, RANGE,  0 5 10 15 20 25)
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..10000  as PRC1,take(1..30,10000) as ID, take(1..25,10000) as num)
+	pt = db.createPartitionedTable(t, "tb1", `ID`num, , `ID`num)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `ID`num, , `ID`num)
+	pt.append!(t)
+	return dbPath
+}
+def CreateCompo2RangeHashDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2RangeHashDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, RANGE,  0 10 20 30 40 50)		
+	db2=database(, HASH, [INT,5])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1,take(1..50,100) as ID, take(1..10,100) as num)
+	pt = db.createPartitionedTable(t, "tb1", `ID`num, , `ID`num)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `ID`num, , `ID`num)
+	pt.append!(t)
+	
+	return dbPath
+}
+def CreateCompo2RangeValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2RangeValueDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, RANGE,  0 10 20 30 40 50)	
+	db2= database(,VALUE,2007.08.01..2007.08.03)	
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1,take(1..50,100) as ID, take(2007.08.01..2007.08.03, 100) as date)
+	pt = db.createPartitionedTable(t, "tb1", `ID`date, , `ID`date)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `ID`date, , `ID`date)
+	pt.append!(t)
+	
+	return dbPath
+}
+def CreateCompo2RangeListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2RangeListDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, RANGE,  0 10 20 30 40 50)		
+	db2=database(, LIST, [`A,`B,`C,`D,`E` ])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1,take(1..50,100) as ID,take(`A`B`C`D`E,100) as symbol)
+	pt = db.createPartitionedTable(t, "tb1", `ID`symbol, , `symbol`ID)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `ID`symbol, , `symbol`ID)
+	pt.append!(t)
+	return dbPath
+}
+
+
+def CreateCompo2HashRangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2HashRangeDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, HASH, [INT,5])
+	db2=database(, RANGE,  0 10 20 30 40 50)		
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1, take(1..10,100) as num,take(1..50,100) as ID)
+	pt = db.createPartitionedTable(t, "tb1", `num`ID, , `num`ID)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `num`ID, , `num`ID)
+	pt.append!(t)
+	return dbPath
+}
+def CreateCompo2HashValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2HashValueDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+
+	db1=database(, HASH,  [INT, 3])
+	db2= database(,VALUE,2007.08.01..2007.08.06)
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+
+	t = table(1..100  as PRC1,take(1..6,100)as ID, take(2007.08.01..2007.08.06, 100) as date)
+	pt = db.createPartitionedTable(t, "tb1", `ID`date, , `ID`date)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `ID`date, , `ID`date)
+	pt.append!(t)
+	return dbPath
+}
+def CreateCompo2HashDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2HashDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+
+	db1=database(, HASH,  [INT, 3])
+	db2=database(, HASH,  [INT, 5])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+
+	tdata1 = table(1..100  as PRC1,take(1..6,100)as ID, take(1..10,100)as num)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `ID`num, , `ID`num)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `ID`num, , `ID`num)
+	t1.append!(tdata1)
+	return dbPath
+}
+def CreateCompo2HashListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2HashListDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+
+	db1=database(, HASH,  [INT, 3])
+	db2=database(, LIST, [`A,`B,`C,`D,`E`])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+
+	tdata1 = table(1..100  as PRC1,take(1..6,100)as ID,take(`A`B`C`D`E,100) as symbol)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `ID`symbol, , `symbol`ID)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `ID`symbol, , `symbol`ID)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+def CreateCompo2ValueRangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ValueRangeDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	        
+	db1= database(,VALUE,2007.08.01..2007.08.03)	
+	db2=database(, RANGE,  0 10 20 30 40 50)	
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1, take(2007.08.01..2007.08.03, 100) as date,take(1..50,100) as ID)
+	pt = db.createPartitionedTable(t, "tb1", `date`ID, , `date`ID)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `date`ID, , `date`ID)
+	pt.append!(t)
+	return dbPath
+}
+def CreateCompo2ValueHashDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ValueHashDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+
+	db1= database(,VALUE,2007.08.01..2007.08.03)
+	db2=database(, HASH,  [INT, 2])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+
+	tdata1 = table(1..100  as PRC1, take(2007.08.01..2007.08.03, 100) as date,take(1..6,100)as ID)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `date`ID, , `date`ID)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `date`ID, , `date`ID)
+	t1.append!(tdata1)
+	return dbPath
+}
+def CreateCompo2ValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ValueDB"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	db1= database(,VALUE,2007.08.01..2007.08.03)
+	db2= database(,VALUE,symbol(`A`B`C`D`E))
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+	
+	tdata1 = table(1..100  as PRC1,take(2007.08.01..2007.08.03, 100) as date, take(`A`B`C`D`E,100) as symbol)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `date`symbol, , `symbol`date)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `date`symbol, , `symbol`date)
+	t1.append!(tdata1)
+	return dbPath
+}
+def CreateCompo2ValueListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ValueListDB"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	db1= database(,VALUE,2007.08.01..2007.08.03)
+	db2=database(, LIST, [`A,`B,`C,`D,`E`])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+	
+	tdata1 = table(1..100  as PRC1,take(2007.08.01..2007.08.03, 100) as date, take(`A`B`C`D`E,100) as symbol)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `date`symbol, , `symbol`date)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `date`symbol, , `symbol`date)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+
+def CreateCompo2ListRangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ListRangeDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, LIST, [`A,`B,`C,`D,`E` ])
+	db2=database(, RANGE,  0 10 20 30 40 50)		
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+		
+	t=table(1..100  as PRC1,take(`A`B`C`D`E,100) as symbol,take(1..50,100) as ID)
+	pt = db.createPartitionedTable(t, "tb1", `symbol`ID, , `symbol`ID)
+	pt.append!(t)
+	pt = db.createPartitionedTable(t, "tb2", `symbol`ID, , `symbol`ID)
+	pt.append!(t)
+	return dbPath
+}
+def CreateCompo2ListHashDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ListHashDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)
+	
+	db1=database(, LIST, [`A,`B,`C,`D,`E`])
+	db2=database(, HASH,  [INT, 3])
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+
+	tdata1 = table(1..100  as PRC1,take(`A`B`C`D`E,100) as symbol,take(1..6,100)as ID)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `symbol`ID, , `symbol`ID)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `symbol`ID, , `symbol`ID)
+	t1.append!(tdata1)
+	return dbPath
+}
+def CreateCompo2ListValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ListValueDB"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	db1=database(, LIST, [`A,`B,`C,`D,`E`])
+	db2= database(,VALUE,2007.08.01..2007.08.03)
+	db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+	
+	tdata1 = table(1..100  as PRC1,take(`A`B`C`D`E,100) as symbol,take(2007.08.01..2007.08.03, 100) as date)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `symbol`date, ,  `symbol`date)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `symbol`date, ,  `symbol`date)
+	t1.append!(tdata1)
+	return dbPath
+}
+def CreateCompo2ListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo2ListDB"
+	if(existsDatabase(dbPath))
+	        dropDatabase(dbPath)           
+	        
+	db1=database(, LIST, [`ORCL`MSFT,`IBM `FB,`GOOG])
+	db2=database(, LIST, [`A,`B,`C,`D,`E` ])
+            db = database(dbPath, COMPO, [db1,db2], , "TSDB")
+      	
+	tdata1 = table(1..100  as PRC1, take(`MSFT`GOOG`FB`ORCL`IBM,100) as ticker,take(`A`B`C,100) as symbol)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `ticker`symbol, , `ticker`symbol`PRC1)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `ticker`symbol, , `ticker`symbol`PRC1)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+
+
+def CreateCompo3HashRangeValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo3HahsRangeValue"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+		
+	db1= database(,HASH,[INT,3])
+	db2= database(,RANGE,0 10 20 30 40 50)
+	db3= database(,VALUE,2007.08.01..2007.08.03)
+	db = database(dbPath, COMPO, [db1,db2,db3], , "TSDB")
+	
+	tdata1 = table(1..10000  as PRC1,take(1..10,10000) as hash, take(1..50,10000) as ID, take(2007.08.01..2007.08.03,10000) as date)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `hash`ID`date, , `hash`ID`date)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `hash`ID`date, , `hash`ID`date)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+def CreateCompo3RangeHashListDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo3RangeHashList"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+
+	db1= database(,RANGE,0 10 20 30 40 50)
+	db2= database(,HASH,[INT,3])
+	db3= database(,LIST,[`A,`B,`C,`D,`E])
+	db = database(dbPath, COMPO, [db1,db2,db3], , "TSDB")
+	
+	tdata1 = table(1..10000  as PRC1, take(1..50,10000) as ID,take(1..10,10000) as hash, take(`A`B`C`D`E,10000) as symbol)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `ID`hash`symbol, , `hash`symbol`ID)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `ID`hash`symbol, , `hash`symbol`ID)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+def CreateCompo3ListValueRangeDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo3ListValueRange"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+
+	db1= database(,LIST,[`A,`B,`C,`D,`E])
+	db2= database(,VALUE,2007.08.01..2007.08.03)
+	db3=database(,RANGE,0 10 20 30 40 50)
+	db = database(dbPath, COMPO, [db1,db2,db3], , "TSDB")
+	
+	tdata1 = table(1..10000  as PRC1,take(`A`B`C`D`E,10000) as symbol,take(2007.08.01..2007.08.03, 10000) as date,  take(1..50,10000) as ID)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `symbol`date`ID, , `symbol`date`ID)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `symbol`date`ID, , `symbol`date`ID)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+def CreateCompo3ValueDB(){
+    login("admin","123456")
+    dbPath = "dfs://testDropPartitionCompo3Value"
+	if(existsDatabase(dbPath))
+		dropDatabase(dbPath)
+	dates = 2007.08.01..2007.08.03
+	syms = symbol(`A`B`C`D`E)
+	prices=1..10
+	db1= database(,VALUE,dates)
+	db2= database(,VALUE,syms)
+	db3= database(,VALUE,prices)
+	db = database(dbPath, COMPO, [db1,db2,db3], , "TSDB")
+	
+	tdata1 = table(1..10000  as PRC1,take(2007.08.01..2007.08.03, 10000) as date, take(`A`B`C`D`E,10000) as symbol, take(1..10,10000) as price)
+	t1 = db.createPartitionedTable(tdata1, "tb1", `date`symbol`price, , `date`symbol`price)
+	t1.append!(tdata1)
+	t1 = db.createPartitionedTable(tdata1, "tb2", `date`symbol`price, , `date`symbol`price)
+	t1.append!(tdata1)
+	return dbPath
+}
+
+@testing:case="dfs_node_function_dropPartition_ex1", exception=1
+dropPartition(1,2,3)
+
+@testing:case="dfs_node_function_dropPartition_ex2", exception=1
+//must be dfs
+db = database("")
+dropPartition(db,2,3)
+
+@testing:case="dfs_node_function_dropPartition_ex3", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,2,3)
+
+@testing:case="dfs_node_function_dropPartition_ex4", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,"/",3)
+
+@testing:case="dfs_node_function_dropPartition_ex5", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,set(string(1..3)),3)
+
+@testing:case="dfs_node_function_dropPartition_ex6", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,["10001","10002"],3)
+
+@testing:case="dfs_node_function_dropPartition_ex6", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,["10001","10002"])
+
+@testing:case="dfs_node_function_dropPartition_ex7", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,["10001","10002"],)
+
+@testing:case="dfs_node_function_dropPartition_ex8", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,["/10001","/10002"],)
+
+@testing:case="dfs_node_function_dropPartition_ex9", exception=1
+db = database("dfs://testDropPartition")
+dropPartition(db,["/10001","/10002"],string(1..3))
+
+@testing:case="dfs_node_function_dropPartition_ex10", exception=1
+h=xdb(NODE1)
+dropPartition(h,["/10001","/10002"],string(1..3))
+
+@test:case="dfs_node_function_dropPartition_path_duplicated",exception=1
+CreateDB()
+db = database("dfs://testDropPartition")
+dropPartition(db, ["/10001","/10001"], "tb1")
+
+@testing:case="test_dropPartition_withoutTableName"
+CreateDB()
+db = database("dfs://testDropPartition")
+sites = exec distinct site from pnodeRunAllNodes(getAllChunks) where path like "%testDropPartition/10002%"
+h = xdb(sites[0],"admin","123456")
+h('db = database("dfs://testDropPartition")')
+h('dropPartition(db, "/10002", `tb1)')
+h('dropPartition(db, "/10002", `tb2)')
+//rpc(sites[0], dropPartition,db,"/10002")//thow exception: All specified partitions don't exist
+assert 1,!rpc(sites[0],existsPartition, "dfs://testDropPartition/10002/"+listTables("dfs://testDropPartition")[`physicalIndex][0])
+
+@testing:case="test_dropPartition"
+CreateDB()
+db = database("dfs://testDropPartition")
+sites = exec distinct site from pnodeRunAllNodes(getAllChunks) where path like "%testDropPartition/10002%"
+for(site in sites){
+	assert 1,rpc(site, existsPartition,"dfs://testDropPartition/10002/"+listTables("dfs://testDropPartition")[`physicalIndex][0])
+}
+h = xdb(sites[0],"admin","123456")
+h('db = database("dfs://testDropPartition")')
+h('dropPartition(db, "/10002", "tb1")')
+Index=exec physicalIndex from listTables("dfs://testDropPartition") where tableName = `tb1
+assert 2, !rpc(sites[0], exists, "dfs://testDropPartition/10002/tb1/"+Index[0])
+
+
+@testing:case="test_dropPartition_Range_withoutTableName"
+dbPath = CreateRangeDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/0_5", `tb1)  
+dropPartition(db, "/0_5", `tb2) 
+assert 1, !exists(dbPath+ "/0_5/"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Range_withoutTableName_filter_contain_null",exception=1
+dbPath = CreateRangeDB()
+db =database(dbPath)
+dropPartition(db,[int(),0])
+
+@testing:case="test_dropPartition_forceDelete_Range_withoutTableName"
+dbPath = CreateRangeDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,"/0_5",`tb1,true)
+dropPartition(db,"/0_5",`tb2,true)
+assert 1,  !exists(dbPath+ "/0_5/"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Range"
+dbPath = CreateRangeDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/0_5",`tb1)  
+Index1=exec physicalIndex from listTables(dbPath) where tableName = `tb1
+Index2=exec physicalIndex from listTables(dbPath) where tableName = `tb2
+assert 1, !existsTable(dbPath+"/0_5/"+Index1[0], `tb1)
+assert 2, existsTable(dbPath+"/0_5/"+Index2[0], `tb2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-1
+
+@testing:case="test_dropPartition_Range_withTableName_filter_contain_null",exception=1
+dbPath = CreateRangeDB()
+db =database(dbPath)
+dropPartition(db,[int(),0],`tb1)
+
+@testing:case="test_dropPartition_forceDelete_Range"
+dbPath = CreateRangeDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,"/0_5",`tb1,true)
+
+@testing:case="test_dropPartition_Hash_withoutTableName"
+dbPath = CreateHashDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 8, `tb1)  
+dropPartition(db, 8, `tb2)  
+cnt1 = exec count(*) from db.loadTable("tb1") where ID=8
+cnt2 = exec count(*) from db.loadTable("tb2") where ID=8
+cnt=cnt1+cnt2
+assert 1, cnt==0
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Hash_withoutTableName_filter_contain_null",exception=1
+dbPath = CreateHashDB()
+db =database(dbPath)
+dropPartition(db, [int(),8])  
+
+@testing:case="test_dropPartition_forceDelete_Hash_withoutTableName"
+dbPath = CreateHashDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 8,`tb1,true)  
+dropPartition(db, 8,`tb2,true)  
+cnt1 = exec count(*) from db.loadTable("tb1") where ID=8
+cnt2 = exec count(*) from db.loadTable("tb2") where ID=8
+cnt=cnt1+cnt2
+assert 1, cnt==0
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Hash"
+dbPath = CreateHashDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 8,`tb1)  
+cnt = exec count(*) from db.loadTable("tb1") where ID=8
+cnt2= exec count(*) from db.loadTable("tb2") where ID=8
+assert 1, cnt1==0
+assert 2, cnt2!=0
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-1
+
+@testing:case="test_dropPartition_Hash_withTableName_filter_contain_null",exception=1
+dbPath = CreateHashDB()
+db =database(dbPath)
+dropPartition(db, [int(),8],`tb1)  
+
+@testing:case="test_dropPartition_forceDelete_Hash"
+dbPath = CreateHashDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 8,`tb1,true)  
+cnt = exec count(*) from db.loadTable("tb1") where ID=8
+
+
+@testing:case="test_dropPartition_Value_withoutTableName"
+dbPath = CreateValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/20170808", `tb1)  
+dropPartition(db, "/20170808", `tb2)  
+assert 1,  !existsPartition(dbPath+ "/20170808/"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Value_withoutTableName_filter_contain_null",exception=1
+dbPath = CreateValueDB()
+db =database(dbPath)
+dropPartition(db,[date(),2017.08.08])
+
+@testing:case="test_dropPartition_forceDelete_Value_withoutTableName"
+dbPath = CreateValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/20170808",`tb1,true)  
+dropPartition(db, "/20170808",`tb2,true)  
+assert 1,  !existsPartition(dbPath+ "/20170808/"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_Value"
+dbPath = CreateValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/20170807", `tb1)  
+Index1=exec physicalIndex from listTables(dbPath) where tableName = `tb1
+Index2=exec physicalIndex from listTables(dbPath) where tableName = `tb2
+assert 1,  !existsTable(dbPath+"/20170807/"+Index1[0], `tb1)
+assert 2,  existsTable(dbPath+"/20170807/"+Index2[0], `tb2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-1   //only delete table one, table two partition exists, 
+
+@testing:case="test_dropPartition_Value_withTableName_filter_contain_null",exception=1
+dbPath = CreateValueDB()
+db =database(dbPath)
+dropPartition(db,[date(),2017.08.08],`tb1)
+
+@testing:case="test_dropPartition_forceDelete_Value"
+dbPath = CreateValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, "/20170807", `tb1,true)  
+
+@testing:case="test_dropPartition_List_withoutTableName"
+dbPath = CreateListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,  "/List0", `tb1)  
+dropPartition(db,  "/List0", `tb2)  
+assert 1,  !existsPartition(dbPath+ "/List0/"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+@testing:case="test_dropPartition_List_withoutTableName_filter_contain_null",exception=1
+dbPath = CreateListDB()
+db =database(dbPath)
+dropPartition(db,  [string(),"IBM"]) 
+
+@testing:case="test_dropPartition_forceDelete_List_withoutTableName"
+dbPath = CreateListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,  "/List0",`tb1,true)  
+assert 1,  !existsPartition(dbPath+ "/List0"+listTables(dbPath)[`physicalIndex][0])
+assert 2, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-1
+
+@testing:case="test_dropPartition_List"
+dbPath = CreateListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,  "/List0",`tb1)  
+Index1=exec physicalIndex from listTables(dbPath) where tableName = `tb1
+Index2=exec physicalIndex from listTables(dbPath) where tableName = `tb2
+assert 1,   !existsTable(dbPath+"/List0/"+Index1[0], `tb1)
+assert 2,   existsTable(dbPath+"/List0/"+Index2[0], `tb2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-1
+
+@testing:case="test_dropPartition_List_withTableName_filter_contain_null",exception=1
+dbPath = CreateListDB()
+db =database(dbPath)
+dropPartition(db,  [string(),"IBM"],`tb1) 
+
+@testing:case="test_dropPartition_forceDelete_List"
+dbPath = CreateListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,  "/List0",`tb1,true)  
+
+@testing:case="test_dropPartition_compo_first_level_filter_contain_null",exception=1
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+dropPartition(db,[int(),[0]])
+
+@testing:case="test_dropPartition_compo_second_level_filter_contain_null",exception=1
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+dropPartition(db,[[0],[int()]])
+
+@testing:case="test_dropPartition_compo_all_level_filter_contain_null",exception=1
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+dropPartition(db,[[int()],[int()]])
+
+//2-level compo partition,delete all 2-level partitions of a specified 1-level partition  
+@testing:case="test_dropPartition_Compo_DropLevel2-1_withoutTableName"  
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2,(exec count(*) from db.loadTable("tb2"))==(tablelines2- c2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where num in (5,10)
+c2=exec count(*) from db.loadTable("tb2") where num in (5,10)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+dropPartition(db,[0],`tb2) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01], `tb1) 
+dropPartition(db,[2007.08.01], `tb2) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01], `tb1) 
+dropPartition(db,[2007.08.01], `tb2) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02, `tb1)
+dropPartition(db, 2007.08.02, `tb2)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 31, cnt==0
+assert 32, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02,`tb1)
+dropPartition(db, 2007.08.02,`tb2)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 33, cnt==0
+assert 34, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A], `tb1) 
+dropPartition(db,[`A], `tb2) 
+assert 35, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 36, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 37, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A], `tb1) 
+dropPartition(db,[`A], `tb2) 
+assert 38, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 39, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 40, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A], `tb1) 
+dropPartition(db,[`A], `tb2) 
+cnt1 = exec count(*) from db.loadTable("tb1") where symbol=`A
+cnt2 = exec count(*) from db.loadTable("tb2") where symbol=`A
+cnt=cnt1+cnt2
+assert 41, cnt==0
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT)
+c2=exec count(*) from db.loadTable("tb2") where ticker in (`ORCL`MSFT)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`ORCL,`MSFT], `tb1) 
+dropPartition(db,[`ORCL,`MSFT], `tb2) 
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+@testing:case="test_dropPartition_forceDelete_Compo_DropLevel2-1_withoutTableName" 
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2,(exec count(*) from db.loadTable("tb2"))==(tablelines2- c2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where num in (5,10)
+c2=exec count(*) from db.loadTable("tb2") where num in (5,10)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],"tb1",true) 
+dropPartition(db,[0],"tb2",true) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01],"tb1",true) 
+dropPartition(db,[2007.08.01],"tb2",true) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01],"tb1",true) 
+dropPartition(db,[2007.08.01],"tb2",true) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02,"tb1",true)
+dropPartition(db, 2007.08.02,"tb2",true)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 31, cnt==0
+assert 32, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02,"tb1",true)
+dropPartition(db, 2007.08.02,"tb2",true)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 33, cnt==0
+assert 34, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A],"tb1",true) 
+dropPartition(db,[`A],"tb2",true) 
+assert 35, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 36, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 37, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-10
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A],"tb1",true) 
+dropPartition(db,[`A],"tb2",true) 
+assert 38, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 39, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 40, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A],"tb1",true) 
+dropPartition(db,[`A],"tb2",true) 
+cnt1 = exec count(*) from db.loadTable("tb1") where symbol=`A
+cnt2 = exec count(*) from db.loadTable("tb2") where symbol=`A
+cnt=cnt1+cnt2
+assert 41, cnt==0
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT)
+c2=exec count(*) from db.loadTable("tb2") where ticker in (`ORCL`MSFT)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`ORCL,`MSFT],"tb1",true) 
+dropPartition(db,[`ORCL,`MSFT],"tb2",true) 
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+@testing:case="test_dropPartition_Compo_DropLevel2-1"  
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2,(exec count(*) from db.loadTable("tb2"))==tablelines2
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-3
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where num in (5,10)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==100
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==100
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[0],`tb1) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==100
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01],`tb1) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[2007.08.01],`tb1) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==100
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02,`tb1)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 31, cnt==cnt-cnt1
+assert 32, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, 2007.08.02,`tb1)
+cnt1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.02
+cnt2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.02
+cnt=cnt1+cnt2
+assert 33, cnt==cnt-cnt1
+assert 34, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A],`tb1) 
+assert 35, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 36, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 37, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-5
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`A],`tb1) 
+assert 38, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 39, (exec count(*) from db.loadTable("tb2")) ==100 
+assert 40, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-3
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [`A],`tb1)
+cnt1 = exec count(*) from db.loadTable("tb1") where symbol=`A
+cnt2 = exec count(*) from db.loadTable("tb2") where symbol=`A
+cnt=cnt1+cnt2
+assert 41, cnt==cnt-cnt1
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-3
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT)
+c2=exec count(*) from db.loadTable("tb2") where ticker in (`ORCL`MSFT)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[`ORCL,`MSFT],`tb1) 
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==100 
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-3
+
+//2-level compo partition,delete specified 2-level partitions of a specified 1-level partition  
+@testing:case="test_dropPartition_Compo_DropLevel2-2_withoutTableName"
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),num in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,5]], `tb1)   
+dropPartition(db,[[0],[0,5]], `tb2)   
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in(0,5,10,1,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),num in(0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]], `tb1)   
+dropPartition(db,[[0],[0,1]], `tb2)   
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (0..9),date in(2007.08.01,2007.08.02)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0..9),date in(2007.08.01,2007.08.02)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.01,2007.08.02]],`tb1) 
+dropPartition(db,[[0],[2007.08.01,2007.08.02]],`tb2) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]], `tb1) 
+dropPartition(db,[[0],[`A,`B]], `tb2) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where num in(5,10),ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where num in(5,10),ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,10]], `tb1) 
+dropPartition(db,[[0],[0,10]], `tb2) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),num in (0,5,10,1,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),num in (0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]],`tb1) 
+dropPartition(db,[[0],[0,1]],`tb2) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.03,2007.08.06]], `tb1) 
+dropPartition(db,[[0],[2007.08.03,2007.08.06]], `tb2) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]], `tb1) 
+dropPartition(db,[[0],[`A,`B]], `tb2) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,10]], `tb1) 
+dropPartition(db,[[2007.08.01],[0,10]], `tb2) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1,4)
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01,ID in (1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,1]], `tb1) 
+dropPartition(db,[[2007.08.01],[0,1]], `tb2) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+c1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.03, symbol in (`A`B`C)
+c2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.03, symbol in (`A`B`C)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.03], [`A,`B, `C]], `tb1)
+dropPartition(db,[[2007.08.03], [`A,`B, `C]], `tb2)
+assert 31, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 32, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 33, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date= 2007.08.02,symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where date= 2007.08.02,symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[2007.08.02],[`A,`B]], `tb1)
+dropPartition(db, [[2007.08.02],[`A,`B]], `tb2)
+assert 34, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 35, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 36, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,10]], `tb1)
+dropPartition(db,[[`A],[0,10]], `tb2)
+assert 37, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 38, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 39, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (0,3,6,1,4)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,ID in (0,3,6,1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,1]], `tb1) 
+dropPartition(db,[[`A],[0,1]], `tb2) 
+assert 40, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 41, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,date in(2007.08.02,2007.08.03)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,date in(2007.08.02,2007.08.03)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[`A],[2007.08.02,2007.08.03]], `tb1)
+dropPartition(db, [[`A],[2007.08.02,2007.08.03]], `tb2)
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ticker in (`ORCL`MSFT),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`ORCL,`MSFT],[`A,`B]], `tb1) 
+dropPartition(db,[[`ORCL,`MSFT],[`A,`B]], `tb2) 
+assert 46, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 47, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 48, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+@testing:case="test_dropPartition_forceDelete_Compo_DropLevel2-2_withoutTableName"
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in (1..9)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),num in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,5]],"tb1",true)   
+dropPartition(db,[[0],[0,5]],"tb2",true)   
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in(0,5,10,1,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),num in(0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]],"tb1",true) 
+dropPartition(db,[[0],[0,1]],"tb2",true) 
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (0..9),date in(2007.08.01,2007.08.02)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0..9),date in(2007.08.01,2007.08.02)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.01,2007.08.02]],"tb1",true) 
+dropPartition(db,[[0],[2007.08.01,2007.08.02]],"tb2",true) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ID in (1..9),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]],"tb1",true) 
+dropPartition(db,[[0],[`A,`B]],"tb2",true) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where num in(5,10),ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where num in(5,10),ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,10]],"tb1",true) 
+dropPartition(db,[[0],[0,10]],"tb2",true) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),num in (0,5,10,1,6)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),num in (0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]],"tb1",true) 
+dropPartition(db,[[0],[0,1]],"tb2",true) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.03,2007.08.06]],"tb1",true) 
+dropPartition(db,[[0],[2007.08.03,2007.08.06]],"tb2",true) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]],"tb1",true) 
+dropPartition(db,[[0],[`A,`B]],"tb2",true) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,10]],"tb1",true) 
+dropPartition(db,[[2007.08.01],[0,10]],"tb2",true) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1,4)
+c2=exec count(*) from db.loadTable("tb2") where date=2007.08.01,ID in (1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,1]],"tb1",true) 
+dropPartition(db,[[2007.08.01],[0,1]],"tb2",true) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+c1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.03, symbol in (`A`B`C)
+c2 = exec count(*) from db.loadTable("tb2") where date = 2007.08.03, symbol in (`A`B`C)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.03], [`A,`B, `C]],"tb1",true)
+dropPartition(db,[[2007.08.03], [`A,`B, `C]],"tb2",true)
+assert 31, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 32, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 33, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-6
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date= 2007.08.02,symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where date= 2007.08.02,symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[2007.08.02],[`A,`B]],"tb1",true)
+dropPartition(db, [[2007.08.02],[`A,`B]],"tb2",true)
+assert 34, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 35, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 36, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (1..19)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,10]],"tb1",true) 
+dropPartition(db,[[`A],[0,10]],"tb2",true) 
+assert 37, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 38, (exec count(*) from db.loadTable("tb2")) ==(tablelines2 - c2)
+assert 39, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (0,3,6,1,4)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,ID in (0,3,6,1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,1]],"tb1",true) 
+dropPartition(db,[[`A],[0,1]],"tb2",true) 
+assert 40, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 41, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,date in(2007.08.02,2007.08.03)
+c2=exec count(*) from db.loadTable("tb2") where symbol=`A,date in(2007.08.02,2007.08.03)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[`A],[2007.08.02,2007.08.03]],"tb1",true)
+dropPartition(db, [[`A],[2007.08.02,2007.08.03]],"tb2",true)
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT),symbol in(`A`B)
+c2=exec count(*) from db.loadTable("tb2") where ticker in (`ORCL`MSFT),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`ORCL,`MSFT],[`A,`B]],"tb1",true) 
+dropPartition(db,[[`ORCL,`MSFT],[`A,`B]],"tb2",true) 
+assert 46, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 47, (exec count(*) from db.loadTable("tb2")) ==(100 - c2)
+assert 48, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-4
+
+@testing:case="test_dropPartition_Compo_DropLevel2-2"
+dbPath=CreateCompo2RangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in (1..9)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,5]],`tb1)   
+assert 1, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 2, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 3, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2RangeHashDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),num in(0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]],`tb1) 
+assert 4, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 5, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 6, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2RangeValueDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (0..9),date in(2007.08.01,2007.08.02)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.01,2007.08.02]],`tb1) 
+assert 7, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 8, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 9, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2RangeListDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where ID in (1..9),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]],`tb1) 
+assert 10, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 11, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 12, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+
+dbPath=CreateCompo2HashRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where num in(5,10),ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,10]],`tb1) 
+assert 13, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 14, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 15, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2HashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),num in (0,5,10,1,6)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[0,1]],`tb1) 
+assert 16, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 17, (exec count(*) from db.loadTable("tb2")) ==100
+assert 18, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2HashValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+c2=exec count(*) from db.loadTable("tb2") where ID in (0,3,6),date in (2007.08.03,2007.08.06)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[2007.08.03,2007.08.06]],`tb1) 
+assert 19, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 20, (exec count(*) from db.loadTable("tb2")) ==100
+assert 21, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2HashListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ID in (0,3,6),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[0],[`A,`B]],`tb1) 
+assert 22, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 23, (exec count(*) from db.loadTable("tb2")) ==100
+assert 24, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+
+dbPath=CreateCompo2ValueRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1") 
+tablelines2=exec count(*) from db.loadTable("tb2") 
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,10]],`tb1) 
+assert 25, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 26, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 27, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2ValueHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date=2007.08.01,ID in (1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.01],[0,1]],`tb1) 
+assert 28, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 29, (exec count(*) from db.loadTable("tb2")) ==100
+assert 30, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath = CreateCompo2ValueDB()
+db =database(dbPath)
+c1 = exec count(*) from db.loadTable("tb1") where date = 2007.08.03, symbol in (`A`B`C)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[2007.08.03], [`A,`B, `C]],`tb1)
+assert 31, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 32, (exec count(*) from db.loadTable("tb2")) ==100
+assert 33, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-3
+
+dbPath = CreateCompo2ValueListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where date= 2007.08.02,symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[2007.08.02],[`A,`B]],`tb1)
+assert 34, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 35, (exec count(*) from db.loadTable("tb2")) ==100
+assert 36, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+
+dbPath=CreateCompo2ListRangeDB()
+db =database(dbPath)
+tablelines1=exec count(*) from db.loadTable("tb1")
+tablelines2=exec count(*) from db.loadTable("tb2")
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (1..19)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,10]],`tb1) 
+assert 37, (exec count(*) from db.loadTable("tb1")) ==(tablelines1 - c1)
+assert 38, (exec count(*) from db.loadTable("tb2")) ==tablelines2
+assert 39, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2ListHashDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,ID in (0,3,6,1,4)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`A],[0,1]],`tb1) 
+assert 40, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 41, (exec count(*) from db.loadTable("tb2")) ==100
+assert 42, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath = CreateCompo2ListValueDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where symbol=`A,date in(2007.08.02,2007.08.03)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db, [[`A],[2007.08.02,2007.08.03]],`tb1)
+assert 43, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 44, (exec count(*) from db.loadTable("tb2")) ==100
+assert 45, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2
+
+dbPath=CreateCompo2ListDB()
+db =database(dbPath)
+c1=exec count(*) from db.loadTable("tb1") where ticker in (`ORCL`MSFT),symbol in(`A`B)
+countLines=exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) 
+dropPartition(db,[[`ORCL,`MSFT],[`A,`B]],`tb1) 
+assert 46, (exec count(*) from db.loadTable("tb1")) ==(100 - c1)
+assert 47, (exec count(*) from db.loadTable("tb2")) ==100
+assert 48, (exec count(*) from  rpc(getControllerAlias(), getClusterChunksStatus) )==countLines-2

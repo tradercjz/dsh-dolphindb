@@ -1,0 +1,1050 @@
+
+#include "setup/settings.txt"
+#include "clearAll.txt"
+
+try{
+	rmdir(WORK_DIR+"/snapshotDir", true)
+}catch(ex){print ex}
+
+@testing:case="test_streaming_clear_first"
+clearSub()
+clearAgg()
+clearShare()
+
+@testing:case="test_streaming_aggregator_snapshot_reactiveStateEngine_snapshotDir_no_exist",exception=1
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym",snapshotDir=WORK_DIR+"a")
+
+@testing:case="test_streaming_aggregator_snapshot_reactiveStateEngine_snapshotDir_not_string",exception=1
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym",snapshotDir=1..2)
+
+@testing:case="test_streaming_aggregator_snapshot_reactiveStateEngine_snapshotIntervalInMsgCount_string",exception=1
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym", snapshotIntervalInMsgCount="a")
+
+@testing:case="test_streaming_aggregator_snapshot_reactiveStateEngine_snapshotIntervalInMsgCount_not_positive",exception=1
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym", snapshotIntervalInMsgCount=-1)
+
+@testing:case="test_streaming_aggregator_snapshot_handlerNeedMsgId_default_appendMsg",exception=1
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym")
+subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true)
+
+@testing:case="test_streaming_aggregator_snapshot_handlerNeedMsgId_false_appendMsg",exception=1
+subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=false)
+
+@testing:case="test_streaming_aggregator_snapshot_handlerNeedMsgId_true_append",exception=1
+subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=append!{rengine}, msgAsTable=true,handlerNeedMsgId=true)
+
+@testing:case="test_streaming_aggregator_snapshot_handlerNeedMsgId_not_bool",exception=1
+subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=append!{rengine}, msgAsTable=true,handlerNeedMsgId=1..2)
+
+@testing:case="test_streaming_aggregator_snapshot_handlerNeedMsgId_clear"
+dropAggregator("test")
+rengine =NULL
+undef(`trades, SHARED)
+
+@testing:case="test_streaming_aggregator_snapshotIntervalInMsgCount_ReactiveStateEngine_ema"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <ema(price, 40)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, trades.size())
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+go;
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <ema(price, 40)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+go;
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+go;
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_msum"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <msum(price, 10, 3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <msum(price, 10, 3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = rand(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = rand(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <msum(price, 10, 3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mavg"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <mavg(price, 10, 5)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <mavg(price, 10, 5)>, trades, outputTable1, "sym")
+
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mavg(price, 10, 5)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_ffill"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <ffill(price, 10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <ffill(price, 10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <ffill(price, 10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_cumavg"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <cumavg(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <cumavg(price)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <cumavg(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_deltas"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <deltas(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <deltas(price)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <deltas(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_ratios"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <ratios(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <ratios(price)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <ratios(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_move"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <move(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <move(price,10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <move(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_prev"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <prev(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <prev(price)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <prev(price)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n)
+sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mcount"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <mcount(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <mcount(price,10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev =0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mcount(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mprod"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <mprod(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <mprod(price,30,3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mprod(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mvar"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <mvar(price,10,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <mvar(price,10,3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mvar(price,10,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mvarp"
+mkdir(WORK_DIR+"/snapshotDir")
+DIR = WORK_DIR+"/snapshotDir"
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <mvarp(price,10,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <mvarp(price,10,3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mvarp(price,10,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mstd"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <mstd(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <mstd(price,10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mstd(price,10,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mstdp"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine = createReactiveStateEngine("test", <mstdp(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+rengine1 = createReactiveStateEngine("test1", <mstdp(price,30,3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mstdp(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_mmin"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <mmin(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <mmin(price,30,3)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <mmin(price,30,3)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_for_statement"
+@state
+def func1(vector,T,N,X){
+	V1 = N/X
+	ret = move(vector,T)
+	ret_dc = ret
+	for(i in 1:N){
+		det_dc = ret_dc
+		ret_dc =  det_dc+move(ret, i*T) * pow(2,-i\V1)
+	}
+	return ret_dc
+}
+factor1 = <[func1(price,10,5,4), cumavg(price)]>
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(1:0, `sym1`sym2`time`price, [STRING,STRING,DATETIME,DOUBLE]) as trades
+outputTable =table(1000:0, `sym1`sym2`time`factor1`factor2, [STRING,STRING,DATETIME,DOUBLE,DOUBLE])
+rengine = createReactiveStateEngine(name="test", metrics =[<time>, factor1], dummyTable=trades, outputTable=outputTable, keyColumn=`sym1`sym2,snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym1`sym2`time`factor1`factor2, [STRING,STRING,DATETIME,DOUBLE,DOUBLE])
+rengine1 = createReactiveStateEngine(name="test1", metrics =[<time>, factor1], dummyTable=trades, outputTable=outputTable1, keyColumn=`sym1`sym2)
+
+table1 = table(take(lpad(string(001..100), 6,"0"), 3000)+take(".SH", 3000) as sym1,take(lpad(string(001..15), 6,"ASVD"), 3000)+take(".SH", 3000) as sym2, datetime(2021.01.01T09:10:11)+rand(10000, 3000).sort() as time, rand(100.0, 3000) as price)
+insert into trades values(table1)
+insert into rengine1 values(table1)
+
+waitStreamingEngine(`test, 3000);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),2999)
+res = select * from outputTable order by sym1,sym2,time,factor1
+ext = select * from outputTable1 order by sym1,sym2,time,factor1
+assert 2,each(eqObj,res.values(),ext.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+table1 = table(take(lpad(string(001..100), 6,"0"), 3000)+take(".SH", 3000) as sym1,take(lpad(string(001..15), 6,"ASVD"), 3000)+take(".SH", 3000) as sym2, datetime(2021.01.01T09:10:11)+rand(10000, 3000).sort() as time, rand(100.0, 3000) as price)
+insert into trades values(table1)
+insert into rengine1 values(table1)
+
+rengine = createReactiveStateEngine(name="test", metrics =[<time>, factor1], dummyTable=trades, outputTable=outputTable, keyColumn=`sym1`sym2,snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],2999)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, 3000);sleep(100)
+res = select * from outputTable order by sym1,sym2,time,factor1
+ext = select * from outputTable1 order by sym1,sym2,time,factor1
+assert 6,each(eqObj,res.values(),ext.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_percentChange"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <percentChange(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <percentChange(price,10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <percentChange(price, 10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+
+@testing:case="test_streaming_aggregator_snapshot_ReactiveStateEngine_deltas"
+DIR = WORK_DIR+"/snapshotDir"
+mkdir(DIR)
+share streamTable(10000:0,`time`sym`price`id, [TIMESTAMP,SYMBOL,INT,INT]) as trades
+outputTable = table(1000:0, `sym`factor1, [STRING,INT])
+rengine = createReactiveStateEngine("test", <deltas(price,10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+topicName1=subscribeTable(server="", tableName="trades", actionName="rengine",offset= 0, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+
+outputTable1 = table(1000:0, `sym`factor1, [STRING,INT])
+rengine1 = createReactiveStateEngine("test1", <deltas(price,10)>, trades, outputTable1, "sym")
+n=500
+timev=timestamp(1..n)
+symv = take(`AA`BB`CC, n)
+pricev = 0..(n-1)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+waitStreamingEngine(`test, n);sleep(100)
+assert 1,eqObj(getSnapshotMsgId(rengine),499)
+assert 2,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+rengine =NULL
+
+n=500
+timev=timestamp(501..1000)
+symv = take(`AA`BB`CC, n)
+pricev = rand(100,n)
+id = take(-1, n)
+insert into trades values(timev, symv, pricev, id)
+insert into rengine1 values(timev, symv, pricev, id)
+
+rengine = createReactiveStateEngine("test", <deltas(price, 10)>, trades, outputTable, "sym",snapshotDir=DIR, snapshotIntervalInMsgCount=100)
+ofst = getSnapshotMsgId(rengine)
+v = getAggregatorStat().ReactiveStreamEngine
+assert 3,eqObj(v[`snapshotDir][0],DIR)
+assert 4,eqObj(v[`snapshotInterval][0],100)
+assert 5,eqObj(v[`snapshotMsgId][0],499)
+
+topicName2=subscribeTable(server="", tableName="trades", actionName="rengine",offset=ofst+1, handler=appendMsg{rengine}, msgAsTable=true, handlerNeedMsgId=true)
+waitStreamingEngine(`test, n);sleep(100)
+assert 6,eqObj(outputTable.values(),outputTable1.values())
+
+unsubscribeTable(, "trades", "rengine")
+dropAggregator("test")
+dropAggregator("test1")
+rengine =NULL
+rengine1 =NULL
+rmdir(DIR,true)
+
+
+
+
+@testing:case="test_streaming_clear_again"
+clearSub()
+clearAgg()
+clearShare()

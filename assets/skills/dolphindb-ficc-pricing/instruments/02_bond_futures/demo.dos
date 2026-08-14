@@ -1,0 +1,36 @@
+// ============================================================
+// BondFutures — parseInstrument 构建示例
+// 构建一只国债期货合约（含 underlying 债券）
+// ============================================================
+// 金融含义：
+//   国债期货是利率衍生品，标的物为一篮子可交割国债。
+//   交易所通过 nominalCouponRate(虚拟券票面利率) 计算转换因子(CF)，
+//   将不同票面、不同剩余期限的实物券换算为标准化的合约单位。
+//   underlying 是一个完整的 Bond dict，代表最便宜可交割券(CTD)。
+// ============================================================
+
+// --- Step 1: 构造 underlying 债券（不需要单独 parseInstrument）---
+bondDict = dict(STRING, ANY)
+bondDict["productType"]        = "Cash"
+bondDict["assetType"]          = "Bond"
+bondDict["bondType"]           = "FixedRateBond"
+bondDict["instrumentId"]       = "240025.IB"       // CTD 债券代码
+bondDict["start"]              = 2024.10.24
+bondDict["maturity"]           = 2031.10.24
+bondDict["coupon"]             = 0.0200             // CTD 债券票面利率
+bondDict["frequency"]          = "Semiannual"
+bondDict["dayCountConvention"] = "ActualActualISDA"
+
+// --- Step 2: 构造 BondFutures ---
+instDict = dict(STRING, ANY)
+instDict["productType"]        = "Futures"          // 期货类产品
+instDict["futuresType"]        = "BondFutures"      // 国债期货
+instDict["instrumentId"]       = "T2509"            // 合约代码：10年期国债期货2025年9月
+instDict["nominal"]            = 1000000.0          // 合约面值 100万
+instDict["maturity"]           = 2025.09.15         // 合约到期日
+instDict["settlement"]         = 2025.09.17         // 交割日（T+2）
+instDict["underlying"]         = bondDict           // 嵌套 underlying 债券 dict
+instDict["nominalCouponRate"]  = 0.03               // 虚拟券票面利率 3%（中金所标准）
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

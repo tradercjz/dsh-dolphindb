@@ -1,0 +1,31 @@
+use catalog demo
+
+// ====== 彻底清理 ======
+try { dropStreamGraph("price_deviation_alert", true) } catch(ex) { }
+try { dropOrcaStreamTable("price_alert") }          catch(ex) { }
+try { dropOrcaStreamTable("trades") }                catch(ex) { }
+sleep(3000)
+
+// ====== 重建流图 ======
+g = createStreamGraph("price_deviation_alert")
+g.source("trades", `timestamp`symbol`price, [TIMESTAMP, SYMBOL, DOUBLE])
+ .reactiveStateEngine(
+     metrics = <[price, mavg(price,5) as ma5, (price-mavg(price,5))/mavg(price,5) as deviation]>,
+     keyColumn = "symbol"
+ )
+ .map(msg -> select *, abs(deviation)>0.01 as isAlert, "Price deviation over 1%!" as alertMsg
+          from msg where abs(deviation)>0.01)
+ .sink("price_alert")
+g.submit()
+sleep(3000)
+
+// ====== 插入全新数据 ======
+n = 120
+symbols = symbol(["000001","000002","000003"])
+t = table(take(now()+1..n, n) as timestamp, take(symbols, n) as symbol, 100.0 + cumsum(rand(0.02,n)-0.01) as price)
+update t set price = 110.0 where symbol=="000001" and rowNo(price) in 10 20 30
+appendOrcaStreamTable("trades", t)
+sleep(3000)
+
+// ====== 查看结果 ======
+select * from demo.orca_table.price_alert

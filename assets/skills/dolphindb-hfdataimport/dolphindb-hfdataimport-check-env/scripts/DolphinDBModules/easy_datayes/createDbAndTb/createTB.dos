@@ -1,0 +1,57 @@
+module easy_datayes::createDbAndTb::createTB
+
+use easy_datayes::utils
+use easy_datayes::setconfig
+use easy_datayes::createDbAndTb::createDB
+
+/*
+ * @FunctionName: createTB
+ * @Brief: Main function to create a table, also handles database creation.
+ * @Param: dbName: The name of the database where the table will be created.
+ * @Param: tbName: The name of the table to be created.
+ * @Param: dataSource: The type of data for the table (e.g., TLSnapshot, TLEntrust, TLTrade).
+ */
+def createTB(dbName, tbName, dataSource){
+    // create the database
+	createDB(dbName, dataSource)
+	// Create the table
+    partition_schema = set_partition_schema()
+    data_type_map = set_data_type()
+    for(partition_type in partition_schema.keys()){ // partition_type = partition_schema.keys()[0]
+        dtypes = flatten(data_type_map[partition_schema[partition_type].dtype])
+        if(dataSource in dtypes){break}
+    }
+    i = find(dtypes, dataSource)
+    schema_table = partition_schema[partition_type]["schema_table"][i]
+    schema_module_name = concat(schema_table.split("::").removeTail!(1), "::")
+    dynamic_import_module(schema_module_name)
+    sort_columns = partition_schema[partition_type]["sort_columns"][i]
+    partition_columns = partition_schema[partition_type]["partition_columns"][i]
+    column_comments = partition_schema[partition_type]["column_comments"][i]
+    t = funcByName(schema_table)()
+    if(existsTable(dbName, tbName)){
+        // 检查表结构
+        msg = check_dfs_table(dbName, tbName, t, engine="TSDB", sort_columns=sort_columns)
+        if(msg == "same"){
+            write_log(stringFormat("[%W, %W] 已经存在", dbName, tbName))
+            return true, partition_columns[0]
+        }else{
+            write_log(stringFormat("[%W, %W] 已经存在, 但与模块设置的 dfsSchema 不符合。可以执行 dropTable(database('%W'), '%W') 删除已有数据库表。请谨慎操作 dropTable", dbName, tbName, dbName, tbName))
+            return false, ""
+        }
+    }else{
+        db = database(dbName)
+        if(typestr(sort_columns)!="VOID"){
+            db.createPartitionedTable(table=t, tableName=tbName, partitionColumns=partition_columns, sortColumns=sort_columns, keepDuplicates=ALL)
+        }else{
+            db.createPartitionedTable(table=t, tableName=tbName, partitionColumns=partition_columns, keepDuplicates=ALL)
+        }
+        if(typestr(column_comments)!="VOID"){       
+            comments_module_name = concat(column_comments.split("::").removeTail!(1), "::")
+            dynamic_import_module(comments_module_name)
+            columnComments = funcByName(column_comments)()
+            setColumnComment(loadTable(dbName, tbName), columnComments)
+        }
+        return true, partition_columns[0]
+    }
+}

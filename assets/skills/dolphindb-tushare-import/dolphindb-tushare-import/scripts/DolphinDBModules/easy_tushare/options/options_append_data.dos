@@ -1,0 +1,513 @@
+module easy_tushare::options_load_data
+
+/* 
+*  @Brief: 期权数据单个表导入函数模块
+*  @Author: DolphinDB
+*  @Last modification time: 2026.03.31
+*  @DolphinDB server version: 3.00.5 2026.02.06 LINUX x86_64
+*/
+
+use easy_tushare::ts_init
+/*
+*  @FunctionName: module_info
+*  @Brief: 模块信息,一个相同模块dir下的每个dos都需要有module_info函数,且是相同的
+*  @Param: None
+*  @Return: dict
+*  @SampleUsage: module_info()
+*/
+def module_info(){
+    res = dict(STRING,ANY)
+    res["moduleName"] = "easy_tushare"
+    res["moduleVersion"] = "1.0.0"
+    res["isFree"] = true
+    return res
+}
+
+def append_opt_basic(token, start_date, end_date){
+    dbPath = "dfs://tushare_basic_db"
+    tableName = "opt_basic"
+    api = "opt_basic"
+    cols = [
+        "ts_code",
+        "exchange",
+        "name",
+        "per_unit",
+        "opt_code",
+        "opt_type",
+        "call_put",
+        "exercise_type",
+        "exercise_price",
+        "s_month",
+        "maturity_date",
+        "list_price",
+        "list_date",
+        "delist_date",
+        "last_edate",
+        "last_ddate",
+        "quote_unit",
+        "min_price_chg"
+    ]
+    delete from loadTable(dbPath, tableName) where list_date >= start_date and list_date <= end_date
+    // exchange_list = ["CZCE", "SHFE", "DCE", "SSE", "SZSE", "CFFEX"]
+    for (oneDate in start_date..end_date){ // onMarket = "DCE"
+        dayStr = temporalFormat(oneDate, "yyyyMMdd")
+        p = {list_date: dayStr}
+        res = NULL
+        try{
+            res = get_api_data(token, api, p, cols)
+        }catch(ex){
+            print(ex)
+        }
+
+        if (!res.isVoid() and res.count() > 0) {
+            update res set update_time = now()
+            replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+            replaceColumn!(res, "exchange", symbol(string(res.exchange)))
+            replaceColumn!(res, "name", string(res.name))
+            replaceColumn!(res, "per_unit", string(res.per_unit))
+            replaceColumn!(res, "opt_code", symbol(string(res.opt_code)))
+            replaceColumn!(res, "opt_type", symbol(string(res.opt_type)))
+            replaceColumn!(res, "call_put", symbol(string(res.call_put)))
+            replaceColumn!(res, "exercise_type", symbol(string(res.exercise_type)))
+            replaceColumn!(res, "exercise_price", double(res.exercise_price))
+            replaceColumn!(res, "s_month", month(temporalParse(string(res.s_month), "yyyyMM")))
+            replaceColumn!(res, "maturity_date", temporalParse(string(res.maturity_date), "yyyyMMdd"))
+            replaceColumn!(res, "list_price", double(res.list_price))
+            replaceColumn!(res, "list_date", temporalParse(string(res.list_date), "yyyyMMdd"))
+            replaceColumn!(res, "delist_date", temporalParse(string(res.delist_date), "yyyyMMdd"))
+            replaceColumn!(res, "last_edate", temporalParse(string(res.last_edate), "yyyyMMdd"))
+            replaceColumn!(res, "last_ddate", temporalParse(string(res.last_ddate), "yyyyMMdd"))
+            replaceColumn!(res, "quote_unit", symbol(string(res.quote_unit)))
+            replaceColumn!(res, "min_price_chg", string(res.min_price_chg))
+            replaceColumn!(res, "update_time", timestamp(res.update_time))
+            loadTable(dbPath, tableName).append!(res)
+            print("Append to " + tableName + " successfully on date :" + dayStr+ "for count:" + res.count())
+        } else {
+            print("No data for date :" + dayStr)
+        } 
+    }
+    print("table " + tableName + " successfully appended!")
+}
+
+//
+def append_opt_daily(token, start_date, end_date){
+    dbPath = "dfs://tushare_daily_db"
+    tableName = "opt_daily"
+    api = "opt_daily"
+    cols = [
+        "ts_code",
+        "trade_date",
+        "exchange",
+        "pre_settle",
+        "pre_close",
+        "open",
+        "high",
+        "low",
+        "close",
+        "settle",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    exchange_list = ["CZCE", "SHFE", "DCE", "SSE", "SZSE", "CFFEX"]
+    delete from loadTable(dbPath, tableName) where trade_date >= start_date and trade_date <= end_date
+    for (oneDate in start_date..end_date){ // oneDate = 2024.09.06
+        dayStr = temporalFormat(oneDate, "yyyyMMdd")
+        for (oneMarket in exchange_list){ // oneMarket = "SSE"
+            p = {exchange:oneMarket, trade_date:dayStr}
+            res = get_api_data(token, api, p, cols)
+            if (!res.isVoid() and res.count() > 0) {
+                update res set update_time = now()
+                replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                replaceColumn!(res, "trade_date", temporalParse(string(res.trade_date), "yyyyMMdd"))
+                replaceColumn!(res, "exchange", symbol(string(res.exchange)))
+                replaceColumn!(res, "pre_settle", double(res.pre_settle))
+                replaceColumn!(res, "pre_close", double(res.pre_close))
+                replaceColumn!(res, "open", double(res.open))
+                replaceColumn!(res, "high", double(res.high))
+                replaceColumn!(res, "low", double(res.low))
+                replaceColumn!(res, "close", double(res.close))
+                replaceColumn!(res, "settle", double(res.settle))
+                replaceColumn!(res, "vol", double(res.vol))
+                replaceColumn!(res, "amount", double(res.amount))
+                replaceColumn!(res, "oi", double(res.oi))
+                replaceColumn!(res, "update_time", timestamp(res.update_time))
+                loadTable(dbPath, tableName).append!(res)
+                print("Append to " + tableName + " successfully on date :" + dayStr+"for "+ oneMarket+ "for count:" + res.count())
+            } else {
+                print("No data for "+ oneMarket+" for date :" + dayStr)
+            }
+        }
+    }
+    print("table " + tableName + " successfully appended!")
+}
+
+def append_opt_1min_k(token, start_date, end_date){
+    dbPath = "dfs://tushare_minute_db"
+    tableName = "opt_1min_k"
+    api = "opt_mins"
+    cols = [
+        "ts_code",
+        "trade_time",
+        "open",
+        "close",
+        "high",
+        "low",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    // start_date = 2020.01.01
+    // end_date = 2026.04.03
+    days = start_date..end_date
+    // 十天一个batch
+    len_days = size(days)
+    batchDays = days.sort!().cut(min(len_days, 20))
+    len = size(batchDays)
+    delete from loadTable(dbPath, tableName) where date(trade_time) >= start_date and date(trade_time) <= end_date
+    for (i in 0..(len-1)) { // i=0
+        // 月区间
+        len_oneBatch = size(batchDays[i])
+        startDate = max(batchDays[i][0], start_date)
+        endDate = min(batchDays[i][len_oneBatch-1], end_date)
+        // 时间区间
+        start_day = temporalFormat(startDate, "yyyy-MM-dd")
+        end_day = temporalFormat(endDate, "yyyy-MM-dd")
+
+        start_time = start_day + " 09:00:00"
+        end_time = end_day + " 19:00:00"
+
+        // codes_info = get_api_data(token, "opt_basic", {list_date:tdate_str},["ts_code","list_date","maturity_date"])
+        // codes_info = get_api_data(token, "opt_basic", {exchange:"CZCE",list_date:"20000101"},["ts_code","list_date","maturity_date"])
+        // 单独一个交易所 数据超出接口限制； 加上list_date日期逻辑不正确
+        // 只能从分布式表中查询 
+        // startDate = 2022.08.08
+        // endDate = 2022.08.17
+        code_list = exec distinct code from loadTable("dfs://tushare_basic_db","opt_basic") where maturity_date >= endDate and list_date <= startDate
+        if (!code_list.isVoid() and code_list.count() > 0){
+            // replaceColumn!(codes_info, "maturity_date", temporalParse(string(codes_info.maturity_date), "yyyyMMdd"))
+            // replaceColumn!(codes_info, "list_date", temporalParse(string(codes_info.list_date), "yyyyMMdd"))
+            // code_list = exec distinct ts_code from codes_info where maturity_date >= tdate and list_date <= tdate  
+            len_codes = size(code_list)
+            for (j in 0..(len_codes-1)) { // code = "HO2509-C-2800.CFX"
+                code = code_list[j]
+                res = get_api_data(token, api, {"ts_code":code, "freq":"1min",start_date:start_time, end_date:end_time}, cols)   
+                if (!res.isVoid() and res.count() > 0) {
+                    if (res.count() == 8000) {throw "Data count is 8000, execeded interface limit,please check!"}
+                    update res set update_time = now()
+                    replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                    replaceColumn!(res, "trade_time", timestamp(temporalParse(string(res.trade_time), "yyyy-MM-dd HH:mm:ss")))
+                    replaceColumn!(res, "open", double(res.open))
+                    replaceColumn!(res, "close", double(res.close))
+                    replaceColumn!(res, "high", double(res.high))
+                    replaceColumn!(res, "low", double(res.low))
+                    replaceColumn!(res, "vol", int(res.vol))
+                    replaceColumn!(res, "amount", double(res.amount))
+                    replaceColumn!(res, "oi", double(res.oi))
+                    replaceColumn!(res, "update_time", timestamp(res.update_time))
+                    loadTable(dbPath, tableName).append!(res)
+                    sleep(200)
+                    print("Append to " + tableName + " successfully for :" + start_day +"to "+ end_day +"for "+ code+ "("+j+"/"+ len_codes+")"+"for count:" + res.count())
+                } else {
+                    print("No data for "+ code+ "("+j+"/"+ len_codes+")"+"for :" + start_day +"to "+ end_day)
+                }
+            }
+        }  
+    }
+}
+
+def append_opt_5min_k(token, start_date, end_date){
+    dbPath = "dfs://tushare_minute_db"
+    tableName = "opt_5min_k"
+    api = "opt_mins"
+    cols = [
+        "ts_code",
+        "trade_time",
+        "open",
+        "close",
+        "high",
+        "low",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    // start_date = 2020.01.01
+    // end_date = 2026.04.03
+    days = start_date..end_date
+    // 十天一个batch
+    len_days = size(days)
+    batchDays = days.sort!().cut(min(len_days, 20))
+    len = size(batchDays)
+    delete from loadTable(dbPath, tableName) where date(trade_time) >= start_date and date(trade_time) <= end_date
+    for (i in 0..(len-1)) { // i=0
+        // 月区间
+        len_oneBatch = size(batchDays[i])
+        startDate = max(batchDays[i][0], start_date)
+        endDate = min(batchDays[i][len_oneBatch-1], end_date)
+        // 时间区间
+        start_day = temporalFormat(startDate, "yyyy-MM-dd")
+        end_day = temporalFormat(endDate, "yyyy-MM-dd")
+
+        start_time = start_day + " 09:00:00"
+        end_time = end_day + " 19:00:00"
+
+        // codes_info = get_api_data(token, "opt_basic", {list_date:tdate_str},["ts_code","list_date","maturity_date"])
+        // codes_info = get_api_data(token, "opt_basic", {exchange:"CZCE",list_date:"20000101"},["ts_code","list_date","maturity_date"])
+        // 单独一个交易所 数据超出接口限制； 加上list_date日期逻辑不正确
+        // 只能从分布式表中查询 
+        // startDate = 2022.08.08
+        // endDate = 2022.08.17
+        code_list = exec distinct code from loadTable("dfs://tushare_basic_db","opt_basic") where maturity_date >= endDate and list_date <= startDate
+        if (!code_list.isVoid() and code_list.count() > 0){
+            // replaceColumn!(codes_info, "maturity_date", temporalParse(string(codes_info.maturity_date), "yyyyMMdd"))
+            // replaceColumn!(codes_info, "list_date", temporalParse(string(codes_info.list_date), "yyyyMMdd"))
+            // code_list = exec distinct ts_code from codes_info where maturity_date >= tdate and list_date <= tdate  
+            len_codes = size(code_list)
+            for (j in 0..(len_codes-1)) { // code = "HO2509-C-2800.CFX"
+                code = code_list[j]
+                res = get_api_data(token, api, {"ts_code":code, "freq":"5min",start_date:start_time, end_date:end_time}, cols)   
+                if (!res.isVoid() and res.count() > 0) {
+                    if (res.count() == 8000) {throw "Data count is 8000, execeded interface limit,please check!"}
+                    update res set update_time = now()
+                    replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                    replaceColumn!(res, "trade_time", timestamp(temporalParse(string(res.trade_time), "yyyy-MM-dd HH:mm:ss")))
+                    replaceColumn!(res, "open", double(res.open))
+                    replaceColumn!(res, "close", double(res.close))
+                    replaceColumn!(res, "high", double(res.high))
+                    replaceColumn!(res, "low", double(res.low))
+                    replaceColumn!(res, "vol", int(res.vol))
+                    replaceColumn!(res, "amount", double(res.amount))
+                    replaceColumn!(res, "oi", double(res.oi))
+                    replaceColumn!(res, "update_time", timestamp(res.update_time))
+                    loadTable(dbPath, tableName).append!(res)
+                    sleep(200)
+                    print("Append to " + tableName + " successfully for :" + start_day +"to "+ end_day +"for "+ code+ "("+j+"/"+ len_codes+")"+"for count:" + res.count())
+                } else {
+                    print("No data for "+ code+ "("+j+"/"+ len_codes+")"+"for :" + start_day +"to "+ end_day)
+                }
+            }
+        }  
+    }
+}
+
+def append_opt_15min_k(token, start_date, end_date){
+    dbPath = "dfs://tushare_minute_db"
+    tableName = "opt_15min_k"
+    api = "opt_mins"
+    cols = [
+        "ts_code",
+        "trade_time",
+        "open",
+        "close",
+        "high",
+        "low",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    // start_date = 2020.01.01
+    // end_date = 2026.04.03
+    days = start_date..end_date
+    // 十天一个batch
+    len_days = size(days)
+    batchDays = days.sort!().cut(min(len_days, 20))
+    len = size(batchDays)
+    delete from loadTable(dbPath, tableName) where date(trade_time) >= start_date and date(trade_time) <= end_date
+    for (i in 0..(len-1)) { // i=0
+        // 月区间
+        len_oneBatch = size(batchDays[i])
+        startDate = max(batchDays[i][0], start_date)
+        endDate = min(batchDays[i][len_oneBatch-1], end_date)
+        // 时间区间
+        start_day = temporalFormat(startDate, "yyyy-MM-dd")
+        end_day = temporalFormat(endDate, "yyyy-MM-dd")
+
+        start_time = start_day + " 09:00:00"
+        end_time = end_day + " 19:00:00"
+
+        // codes_info = get_api_data(token, "opt_basic", {list_date:tdate_str},["ts_code","list_date","maturity_date"])
+        // codes_info = get_api_data(token, "opt_basic", {exchange:"CZCE",list_date:"20000101"},["ts_code","list_date","maturity_date"])
+        // 单独一个交易所 数据超出接口限制； 加上list_date日期逻辑不正确
+        // 只能从分布式表中查询 
+        // startDate = 2022.08.08
+        // endDate = 2022.08.17
+        code_list = exec distinct code from loadTable("dfs://tushare_basic_db","opt_basic") where maturity_date >= endDate and list_date <= startDate
+        if (!code_list.isVoid() and code_list.count() > 0){
+            // replaceColumn!(codes_info, "maturity_date", temporalParse(string(codes_info.maturity_date), "yyyyMMdd"))
+            // replaceColumn!(codes_info, "list_date", temporalParse(string(codes_info.list_date), "yyyyMMdd"))
+            // code_list = exec distinct ts_code from codes_info where maturity_date >= tdate and list_date <= tdate  
+            len_codes = size(code_list)
+            for (j in 0..(len_codes-1)) { // code = "HO2509-C-2800.CFX"
+                code = code_list[j]
+                res = get_api_data(token, api, {"ts_code":code, "freq":"15min",start_date:start_time, end_date:end_time}, cols)   
+                if (!res.isVoid() and res.count() > 0) {
+                    if (res.count() == 8000) {throw "Data count is 8000, execeded interface limit,please check!"}
+                    update res set update_time = now()
+                    replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                    replaceColumn!(res, "trade_time", timestamp(temporalParse(string(res.trade_time), "yyyy-MM-dd HH:mm:ss")))
+                    replaceColumn!(res, "open", double(res.open))
+                    replaceColumn!(res, "close", double(res.close))
+                    replaceColumn!(res, "high", double(res.high))
+                    replaceColumn!(res, "low", double(res.low))
+                    replaceColumn!(res, "vol", int(res.vol))
+                    replaceColumn!(res, "amount", double(res.amount))
+                    replaceColumn!(res, "oi", double(res.oi))
+                    replaceColumn!(res, "update_time", timestamp(res.update_time))
+                    loadTable(dbPath, tableName).append!(res)
+                    sleep(200)
+                    print("Append to " + tableName + " successfully for :" + start_day +"to "+ end_day +"for "+ code+ "("+j+"/"+ len_codes+")"+"for count:" + res.count())
+                } else {
+                    print("No data for "+ code+ "("+j+"/"+ len_codes+")"+"for :" + start_day +"to "+ end_day)
+                }
+            }
+        }  
+    }
+}
+
+def append_opt_30min_k(token, start_date, end_date){
+    dbPath = "dfs://tushare_minute_db"
+    tableName = "opt_30min_k"
+    api = "opt_mins"
+    cols = [
+        "ts_code",
+        "trade_time",
+        "open",
+        "close",
+        "high",
+        "low",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    // start_date = 2020.01.01
+    // end_date = 2026.04.03
+    days = start_date..end_date
+    // 十天一个batch
+    len_days = size(days)
+    batchDays = days.sort!().cut(min(len_days, 20))
+    len = size(batchDays)
+    delete from loadTable(dbPath, tableName) where date(trade_time) >= start_date and date(trade_time) <= end_date
+    for (i in 0..(len-1)) { // i=0
+        // 月区间
+        len_oneBatch = size(batchDays[i])
+        startDate = max(batchDays[i][0], start_date)
+        endDate = min(batchDays[i][len_oneBatch-1], end_date)
+        // 时间区间
+        start_day = temporalFormat(startDate, "yyyy-MM-dd")
+        end_day = temporalFormat(endDate, "yyyy-MM-dd")
+
+        start_time = start_day + " 09:00:00"
+        end_time = end_day + " 19:00:00"
+
+        // codes_info = get_api_data(token, "opt_basic", {list_date:tdate_str},["ts_code","list_date","maturity_date"])
+        // codes_info = get_api_data(token, "opt_basic", {exchange:"CZCE",list_date:"20000101"},["ts_code","list_date","maturity_date"])
+        // 单独一个交易所 数据超出接口限制； 加上list_date日期逻辑不正确
+        // 只能从分布式表中查询 
+        // startDate = 2022.08.08
+        // endDate = 2022.08.17
+        code_list = exec distinct code from loadTable("dfs://tushare_basic_db","opt_basic") where maturity_date >= endDate and list_date <= startDate
+        if (!code_list.isVoid() and code_list.count() > 0){
+            // replaceColumn!(codes_info, "maturity_date", temporalParse(string(codes_info.maturity_date), "yyyyMMdd"))
+            // replaceColumn!(codes_info, "list_date", temporalParse(string(codes_info.list_date), "yyyyMMdd"))
+            // code_list = exec distinct ts_code from codes_info where maturity_date >= tdate and list_date <= tdate  
+            len_codes = size(code_list)
+            for (j in 0..(len_codes-1)) { // code = "HO2509-C-2800.CFX"
+                code = code_list[j]
+                res = get_api_data(token, api, {"ts_code":code, "freq":"30min",start_date:start_time, end_date:end_time}, cols)   
+                if (!res.isVoid() and res.count() > 0) {
+                    if (res.count() == 8000) {throw "Data count is 8000, execeded interface limit,please check!"}
+                    update res set update_time = now()
+                    replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                    replaceColumn!(res, "trade_time", timestamp(temporalParse(string(res.trade_time), "yyyy-MM-dd HH:mm:ss")))
+                    replaceColumn!(res, "open", double(res.open))
+                    replaceColumn!(res, "close", double(res.close))
+                    replaceColumn!(res, "high", double(res.high))
+                    replaceColumn!(res, "low", double(res.low))
+                    replaceColumn!(res, "vol", int(res.vol))
+                    replaceColumn!(res, "amount", double(res.amount))
+                    replaceColumn!(res, "oi", double(res.oi))
+                    replaceColumn!(res, "update_time", timestamp(res.update_time))
+                    loadTable(dbPath, tableName).append!(res)
+                    sleep(200)
+                    print("Append to " + tableName + " successfully for :" + start_day +"to "+ end_day +"for "+ code+ "("+j+"/"+ len_codes+")"+"for count:" + res.count())
+                } else {
+                    print("No data for "+ code+ "("+j+"/"+ len_codes+")"+"for :" + start_day +"to "+ end_day)
+                }
+            }
+        }  
+    }
+}
+
+def append_opt_60min_k(token, start_date, end_date){
+    dbPath = "dfs://tushare_minute_db"
+    tableName = "opt_60min_k"
+    api = "opt_mins"
+    cols = [
+        "ts_code",
+        "trade_time",
+        "open",
+        "close",
+        "high",
+        "low",
+        "vol",
+        "amount",
+        "oi"
+    ]
+    // start_date = 2020.01.01
+    // end_date = 2026.04.03
+    days = start_date..end_date
+    // 十天一个batch
+    len_days = size(days)
+    batchDays = days.sort!().cut(min(len_days, 20))
+    len = size(batchDays)
+    delete from loadTable(dbPath, tableName) where date(trade_time) >= start_date and date(trade_time) <= end_date
+    for (i in 0..(len-1)) { // i=0
+        // 月区间
+        len_oneBatch = size(batchDays[i])
+        startDate = max(batchDays[i][0], start_date)
+        endDate = min(batchDays[i][len_oneBatch-1], end_date)
+        // 时间区间
+        start_day = temporalFormat(startDate, "yyyy-MM-dd")
+        end_day = temporalFormat(endDate, "yyyy-MM-dd")
+
+        start_time = start_day + " 09:00:00"
+        end_time = end_day + " 19:00:00"
+
+        // codes_info = get_api_data(token, "opt_basic", {list_date:tdate_str},["ts_code","list_date","maturity_date"])
+        // codes_info = get_api_data(token, "opt_basic", {exchange:"CZCE",list_date:"20000101"},["ts_code","list_date","maturity_date"])
+        // 单独一个交易所 数据超出接口限制； 加上list_date日期逻辑不正确
+        // 只能从分布式表中查询 
+        // startDate = 2022.08.08
+        // endDate = 2022.08.17
+        code_list = exec distinct code from loadTable("dfs://tushare_basic_db","opt_basic") where maturity_date >= endDate and list_date <= startDate
+        if (!code_list.isVoid() and code_list.count() > 0){
+            // replaceColumn!(codes_info, "maturity_date", temporalParse(string(codes_info.maturity_date), "yyyyMMdd"))
+            // replaceColumn!(codes_info, "list_date", temporalParse(string(codes_info.list_date), "yyyyMMdd"))
+            // code_list = exec distinct ts_code from codes_info where maturity_date >= tdate and list_date <= tdate  
+            len_codes = size(code_list)
+            for (j in 0..(len_codes-1)) { // code = "HO2509-C-2800.CFX"
+                code = code_list[j]
+                res = get_api_data(token, api, {"ts_code":code, "freq":"60min",start_date:start_time, end_date:end_time}, cols)   
+                if (!res.isVoid() and res.count() > 0) {
+                    if (res.count() == 8000) {throw "Data count is 8000, execeded interface limit,please check!"}
+                    update res set update_time = now()
+                    replaceColumn!(res, "ts_code", symbol(string(res.ts_code)))
+                    replaceColumn!(res, "trade_time", timestamp(temporalParse(string(res.trade_time), "yyyy-MM-dd HH:mm:ss")))
+                    replaceColumn!(res, "open", double(res.open))
+                    replaceColumn!(res, "close", double(res.close))
+                    replaceColumn!(res, "high", double(res.high))
+                    replaceColumn!(res, "low", double(res.low))
+                    replaceColumn!(res, "vol", int(res.vol))
+                    replaceColumn!(res, "amount", double(res.amount))
+                    replaceColumn!(res, "oi", double(res.oi))
+                    replaceColumn!(res, "update_time", timestamp(res.update_time))
+                    loadTable(dbPath, tableName).append!(res)
+                    sleep(200)
+                    print("Append to " + tableName + " successfully for :" + start_day +"to "+ end_day +"for "+ code+ "("+j+"/"+ len_codes+")"+"for count:" + res.count())
+                } else {
+                    print("No data for "+ code+ "("+j+"/"+ len_codes+")"+"for :" + start_day +"to "+ end_day)
+                }
+            }
+        }  
+    }
+}

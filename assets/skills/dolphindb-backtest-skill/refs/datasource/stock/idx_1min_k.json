@@ -1,0 +1,43 @@
+{
+    "db_name": "dfs://tushare_minute_db",
+    "tb_name": "idx_1min_k",
+    "desc": "存放A股市场指数的1分钟行情数据，字段覆盖交易时间、开盘价、收盘价、最高价、最低价、成交量、成交金额和更新时间。",
+    "columns": {
+        "code": {
+            "type": "SYMBOL",
+            "desc": "指数代码"
+        },
+        "trade_time": {
+            "type": "TIMESTAMP",
+            "desc": "交易时间"
+        },
+        "open": {
+            "type": "DOUBLE",
+            "desc": "开盘价"
+        },
+        "close": {
+            "type": "DOUBLE",
+            "desc": "收盘价"
+        },
+        "high": {
+            "type": "DOUBLE",
+            "desc": "最高价"
+        },
+        "low": {
+            "type": "DOUBLE",
+            "desc": "最低价"
+        },
+        "vol": {
+            "type": "INT",
+            "desc": "成交量（股）"
+        },
+        "amount": {
+            "type": "DOUBLE",
+            "desc": "成交金额（元）"
+        },
+        "update_time": {
+            "type": "TIMESTAMP",
+            "desc": "更新时间"
+        }
+    }
+}

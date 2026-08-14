@@ -1,0 +1,98 @@
+// ============================================================
+// irFixedFloatingSwapPricer — 完整定价示例
+// 5Y FR007 利率互换 NPV 计算
+// ============================================================
+// 定价方法：
+//   IRS NPV = 浮动端 PV − 固定端 PV（对 Pay fixed 方）。
+//   固定端：每期固定利率票息按贴现曲线折现求和。
+//   浮动端：从远期曲线推算每期远期利率，再折现求和。
+//   三条曲线分工：discountCurve 折现、forwardCurve 推远期、
+//   assetPriceCurve 提供已定盘的 FR007 利率（影响当期票息）。
+//   当 fixedRate = par rate 时 NPV ≈ 0。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/04_irs/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]                = "Swap"
+instDict["swapType"]                   = "IrSwap"
+instDict["irSwapType"]                 = "IrFixedFloatingSwap"
+instDict["start"]                      = 2026.01.06
+instDict["maturity"]                   = 2031.01.06
+instDict["frequency"]                  = "Quarterly"
+instDict["fixedRate"]                  = 0.018
+instDict["calendar"]                   = "CFET"
+instDict["fixedDayCountConvention"]    = "Actual365"
+instDict["floatingDayCountConvention"] = "Actual365"
+instDict["payReceive"]                 = "Pay"
+instDict["iborIndex"]                  = "FR_007"
+instDict["spread"]                     = 0.0
+instDict["notionalCurrency"]           = "CNY"
+instDict["notionalAmount"]             = 10000000.0
+inst = parseInstrument(instDict)
+
+// --- Step 2: 贴现曲线（见 market_data/ir_yield_curve/demo.dos）---
+pricingDate = 2026.03.20
+discDict = dict(STRING, ANY)
+discDict["mktDataType"]         = "Curve"
+discDict["curveType"]           = "IrYieldCurve"
+discDict["referenceDate"]       = pricingDate
+discDict["currency"]            = "CNY"
+discDict["curveName"]           = "CNY_FR_007"
+discDict["dayCountConvention"]  = "Actual365"
+discDict["compounding"]         = "Continuous"
+discDict["interpMethod"]        = "CubicSpline"
+discDict["extrapMethod"]        = "Flat"
+discDict["dates"]   = [2026.06.20, 2027.03.20, 2028.03.20, 2029.03.20, 2030.03.20, 2031.03.20]
+discDict["values"]  = [0.0165, 0.0172, 0.0178, 0.0183, 0.0188, 0.0192]
+discountCurve = parseMktData(discDict)
+
+// --- Step 3: 远期曲线（单曲线法：与贴现曲线相同）---
+fwdDict = dict(STRING, ANY)
+fwdDict["mktDataType"]         = "Curve"
+fwdDict["curveType"]           = "IrYieldCurve"
+fwdDict["referenceDate"]       = pricingDate
+fwdDict["currency"]            = "CNY"
+fwdDict["curveName"]           = "CNY_FR_007_FWD"
+fwdDict["dayCountConvention"]  = "Actual365"
+fwdDict["compounding"]         = "Continuous"
+fwdDict["interpMethod"]        = "CubicSpline"
+fwdDict["extrapMethod"]        = "Flat"
+fwdDict["dates"]   = [2026.06.20, 2027.03.20, 2028.03.20, 2029.03.20, 2030.03.20, 2031.03.20]
+fwdDict["values"]  = [0.0165, 0.0172, 0.0178, 0.0183, 0.0188, 0.0192]
+forwardCurve = parseMktData(fwdDict)
+
+// --- Step 4: 资产价格曲线 — FR007 定盘利率（见 market_data/asset_price_curve/demo.dos）---
+apDict = dict(STRING, ANY)
+apDict["mktDataType"]         = "Curve"
+apDict["curveType"]           = "AssetPriceCurve"
+apDict["referenceDate"]       = pricingDate
+apDict["currency"]            = "CNY"
+apDict["asset"]               = "FR_007"
+apDict["interpMethod"]        = "CubicSpline"
+apDict["extrapMethod"]        = "Flat"
+apDict["dates"]   = [2026.03.13, 2026.03.20]
+apDict["values"]  = [0.0180, 0.0175]            // 最近两个定盘日的 FR007 利率
+assetPriceCurve = parseMktData(apDict)
+
+// --- Step 5: 定价 ---
+npv = irFixedFloatingSwapPricer(inst, pricingDate, discountCurve, forwardCurve, assetPriceCurve)
+// npv > 0 → 浮动端价值 > 固定端 → Pay fixed 方有利
+// npv < 0 → 固定端价值 > 浮动端 → Pay fixed 方亏损
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [结果]
+//   Pay fixed NPV   = +14,330.80   — Pay fixed 方（付固定收浮动）
+//   Receive NPV     = -14,330.80   — 相反方向
+//   合计 = 0
+//
+// [金融解释]
+//   5Y IRS，固定利率 1.80%，名义本金 10,000,000。
+//   曲线利率区间 1.65-1.92%，平均约 1.80% ≈ fixedRate → 接近 par swap。
+//   NPV/notional = 14,330/10,000,000 = 0.14%，极小 → 与 near-par 一致。
+//   Pay + Receive = 0，体现方向对称性。
+//   NPV > 0 表示浮动端未来付息 > 固定端 → Pay fixed 方略有利。
+//
+// [合理性] ✓ near-par swap, NPV 接近零。方向对称。
+// ============================================================

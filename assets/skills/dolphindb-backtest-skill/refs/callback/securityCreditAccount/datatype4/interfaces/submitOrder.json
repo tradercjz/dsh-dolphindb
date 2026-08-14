@@ -1,0 +1,56 @@
+{
+  "id": "submitOrder",
+  "name": "提交融资融券订单",
+  "signature": "Backtest::submitOrder(engine, msg, [label=\"\"], [orderType=0])",
+  "description": "在 securityCreditAccount 回测中提交订单。根据 DolphinDB 融资融券接口说明，orderMsg 的基础格式为 (股票代码, 下单时间, 订单类型, 订单价格或还款金额, 订单数量, 买卖方向)。融资融券支持 8 种买卖方向：1 担保品买入，2 担保品卖出，3 融资买入，4 融券卖出，5 直接还款，6 卖券还款，7 直接还券，8 买券还券。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常通过 context[\"engine\"] 获取。"
+    },
+    {
+      "name": "msg",
+      "type": "TUPLE",
+      "description": "融资融券订单元组。基础格式为 (symbol, tradeTime, orderStyle, orderPriceOrRepayAmount, qty, direction)。其中 direction=5（直接还款）时，第 4 个参数表示还款金额而不是委托价格；其余方向下第 4 个参数表示委托价格。orderStyle 通常使用 0（市价）或 5（限价）。"
+    },
+    {
+      "name": "label",
+      "type": "STRING",
+      "description": "可选标签，用于标识订单来源或业务意图，例如“融资买入”“买券还券”。"
+    },
+    {
+      "name": "orderType",
+      "type": "INT",
+      "description": "可选的接口级订单类型参数，默认 0。通常保持默认值即可，实际交易风格主要由 msg 中第三个字段控制。"
+    }
+  ],
+  "constraints": [
+    "仅在 securityCreditAccount 策略的回调函数中使用该接口，不要沿用普通股票的买卖方向语义。",
+    "msg 必须是 6 元组，字段顺序固定为 (股票代码, 下单时间, 订单类型, 订单价格或还款金额, 订单数量, 买卖方向)。",
+    "融资融券买卖方向只能使用 1 到 8：1 担保品买入，2 担保品卖出，3 融资买入，4 融券卖出，5 直接还款，6 卖券还款，7 直接还券，8 买券还券。",
+    "当买卖方向为 5（直接还款）时，第 4 个参数表示还款金额，不表示价格；不要把 close 或限价误填到该位置。",
+    "当买卖方向为 6（卖券还款）或 8（买券还券）时，第 4 个参数仍表示订单价格，第 5 个参数表示数量。",
+    "不要把普通股票中的“1=买入、2=卖出”语义直接套用到融资融券订单上。",
+    "订单数量必须与实际业务动作匹配；A 股数量通常仍应满足整手约束，除非该业务动作在引擎中允许按规则例外处理。",
+    "是否允许担保品买入、融资买入、融券卖出、直接还款或还券，由引擎结合 securityReference 和账户配置统一校验；不要在 refs 中虚构额外字段或自定义下单格式。"
+  ],
+  "returns": {
+    "type": "LONG",
+    "description": "返回订单 id。"
+  },
+  "examples": [
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], 100, 1)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"担保品买入\")",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], 100, 3)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"融资买入\")",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], 100, 4)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"融券卖出\")",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, 50000.0, 0, 5)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"直接还款\")",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], longPosition, 6)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"卖券还款\")",
+    "orderMsg = (msg[symbol][\"symbol\"], msg[symbol][\"tradeTime\"], 5, msg[symbol][\"close\"], shortPosition, 8)",
+    "orderId = Backtest::submitOrder(context[\"engine\"], orderMsg, \"买券还券\")"
+  ]
+}

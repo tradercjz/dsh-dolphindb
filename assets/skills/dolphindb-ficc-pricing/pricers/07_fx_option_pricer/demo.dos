@@ -1,0 +1,124 @@
+// ============================================================
+// fxEuropeanOptionPricer — 完整定价示例
+// USDCNY 欧式外汇期权 NPV 计算 + Greeks
+// ============================================================
+// 定价方法：
+//   基于 Garman-Kohlhagen 模型（BSM 的外汇版本）:
+//   Call = S·e^(-r_f·T)·N(d1) − K·e^(-r_d·T)·N(d2)
+//   需要 4 类市场数据：本币曲线 + 外币曲线 + 即期汇率 + 波动率曲面。
+//   波动率从 FxVolatilitySurface 按 (strike, maturity) 插值获取。
+//   setting 可选 Greeks: calcDelta / calcGamma / calcVega。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/07_fx_option/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]        = "Option"
+instDict["optionType"]         = "EuropeanOption"
+instDict["assetType"]          = "FxEuropeanOption"
+instDict["notionalCurrency"]   = "USD"
+instDict["notionalAmount"]     = 1000000.0
+instDict["strike"]             = 7.30
+instDict["maturity"]           = 2026.09.20
+instDict["payoffType"]         = "Call"
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "USDCNY"
+instDict["domesticCurve"]      = "CNY"
+instDict["foreignCurve"]       = "USD"
+inst = parseInstrument(instDict)
+
+// --- Step 2: CNY 贴现曲线 ---
+pricingDate = 2026.03.20
+domDict = dict(STRING, ANY)
+domDict["mktDataType"]         = "Curve"
+domDict["curveType"]           = "IrYieldCurve"
+domDict["referenceDate"]       = pricingDate
+domDict["currency"]            = "CNY"
+domDict["curveName"]           = "CNY"
+domDict["dayCountConvention"]  = "Actual365"
+domDict["compounding"]         = "Continuous"
+domDict["interpMethod"]        = "CubicSpline"
+domDict["extrapMethod"]        = "Flat"
+domDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+domDict["values"]  = [0.0170, 0.0178, 0.0188]
+domCurve = parseMktData(domDict)
+
+// --- Step 3: USD 贴现曲线 ---
+forDict = dict(STRING, ANY)
+forDict["mktDataType"]         = "Curve"
+forDict["curveType"]           = "IrYieldCurve"
+forDict["referenceDate"]       = pricingDate
+forDict["currency"]            = "USD"
+forDict["curveName"]           = "USD"
+forDict["dayCountConvention"]  = "Actual365"
+forDict["compounding"]         = "Continuous"
+forDict["interpMethod"]        = "CubicSpline"
+forDict["extrapMethod"]        = "Flat"
+forDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+forDict["values"]  = [0.0420, 0.0430, 0.0440]
+forCurve = parseMktData(forDict)
+
+// --- Step 4: 即期汇率（标量）---
+spot = 7.25
+
+// --- Step 5: 波动率曲面（见 market_data/fx_vol_surface/demo.dos）---
+volDict = dict(STRING, ANY)
+volDict["mktDataType"]    = "Surface"
+volDict["surfaceType"]    = "FxVolatilitySurface"
+volDict["referenceDate"]  = pricingDate
+volDict["currencyPair"]   = "USDCNY"
+volDict["surfaceName"]    = "USDCNY"
+volDict["smileMethod"]    = "Linear"
+volDict["termDates"]      = [2026.06.20, 2026.09.20, 2027.03.20]
+smile1 = dict(STRING, ANY)
+smile1["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]
+smile1["vols"]     = [0.065, 0.060, 0.058, 0.060, 0.065]
+smile2 = dict(STRING, ANY)
+smile2["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]
+smile2["vols"]     = [0.070, 0.065, 0.062, 0.065, 0.070]
+smile3 = dict(STRING, ANY)
+smile3["strikes"]  = [7.00, 7.15, 7.25, 7.35, 7.50]
+smile3["vols"]     = [0.075, 0.070, 0.067, 0.070, 0.075]
+volDict["volSmiles"] = [smile1, smile2, smile3]
+volSurf = parseMktData(volDict)
+
+// --- Step 6: 定价 ---
+npv = fxEuropeanOptionPricer(inst, pricingDate, spot, domCurve, forCurve, volSurf)
+// npv > 0 → 期权权利金价值（持有人有权利无义务）
+
+// --- Step 7: 带 Greeks 定价 ---
+setting = dict(STRING, ANY)
+setting["calcDelta"] = true                     // Delta: 即期汇率变动 1 单位的 NPV 变化
+setting["calcGamma"] = true                     // Gamma: Delta 的变化率
+setting["calcVega"]  = true                     // Vega: 波动率变动 1% 的 NPV 变化
+result = fxEuropeanOptionPricer(inst, pricingDate, spot, domCurve, forCurve, volSurf, setting)
+// result["npv"]   — 期权价值
+// result["delta"] — Call delta ∈ (0, 1)
+// result["gamma"] — 总为正值
+// result["vega"]  — 总为正值（波动率↑ → 期权价值↑）
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [无 setting 结果]
+//   npv = 9,749.84                 — 期权权利金（CNY 计价）
+//
+// [带 setting 结果]
+//   npv   = 9,749.84
+//   delta = 45,930.41              — ∂NPV/∂S
+//   gamma = 151,350.64             — ∂²NPV/∂S²
+//   vega  = 254,658.95             — ∂NPV/∂σ
+//
+// [金融解释]
+//   USDCNY Call, K=7.30, spot=7.25, T≈6M, vol≈6.5%。
+//   IRP 远期 ≈ 7.16 < K = 7.30 → OTM Call。
+//   即使虚值，期权仍有时间价值 → npv = 9,750 CNY > 0。
+//   对 1M USD 名义，npv/notional ≈ 0.0097 CNY/USD → 合理的低波动率虚值期权。
+//   单位 delta = 45,930/1,000,000 ≈ 0.046，表示汇率上升 1 → NPV 增加 ~45,930。
+//
+// [修正说明]
+//   原 demo 使用 instrumentPricer 定价（instrumentPricer 仅接受 3 个参数，
+//   不支持 setting），已修正为 fxEuropeanOptionPricer（支持 7 个参数含 setting）。
+//   spot 参数为 DOUBLE 标量（非 FxSpotRate MKTDATA）。
+//
+// [合理性] ✓ OTM Call 有正的时间价值，Greeks 方向正确。
+// ============================================================

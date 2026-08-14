@@ -1,0 +1,47 @@
+// Example: Create IOTDB point-management table and import data
+
+// Step 1: Create IOTDB database (COMPO partition: HASH + VALUE with time last)
+hashPart = database("", HASH, [INT, 10])
+timePart = database("", VALUE, 2024.01.01..2024.12.31)
+db = database("dfs://iot_demo", COMPO, [hashPart, timePart], engine="IOTDB")
+
+// Step 2: Create point-management table with IOTANY and latestKeyCache
+// NOTE: IOTANY type can ONLY be created via SQL create table statement (NOT table() or createPartitionedTable)
+// NOTE: SQL create table statement is executed directly in DolphinDB script (NOT via db.run())
+// NOTE: Identifiers MUST use backticks (`), NOT double quotes (")
+// NOTE: `partitioned by` is followed by comma-separated column names (NOT backtick vector)
+// NOTE: `sortColumns` uses backtick vector
+create table `dfs://iot_demo`.`sensors` (
+    deviceId INT,
+    location SYMBOL,
+    timestamp TIMESTAMP,
+    value IOTANY
+)
+partitioned by deviceId, timestamp
+sortColumns=`deviceId`location`timestamp
+latestKeyCache=true
+
+// Step 3: Insert data (IOTANY column accepts different types per point)
+pt = loadTable("dfs://iot_demo", "sensors")
+pt.append!(table(
+    1 as deviceId, `floor1 as location, 2024.01.01T10:00:00.000 as timestamp, 36.5 as value
+))
+pt.append!(table(
+    2 as deviceId, `floor2 as location, 2024.01.01T10:00:00.000 as timestamp, true as value
+))
+pt.append!(table(
+    3 as deviceId, `floor1 as location, 2024.01.01T10:00:00.000 as timestamp, 100 as value
+))
+
+// Step 4: Query latest values (uses latestKeyCache for ms-level speed)
+select * from pt
+where deviceId in [1, 2, 3]
+context by deviceId, location csort timestamp limit -1
+
+// Step 5: Check optimization method
+select [HINT_EXPLAIN] * from pt
+where deviceId in [1, 2, 3]
+context by deviceId, location csort timestamp limit -1
+
+// Step 6: View static table
+getLocalIOTDBStaticTable("dfs://iot_demo", "sensors")

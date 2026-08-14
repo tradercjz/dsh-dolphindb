@@ -1,0 +1,68 @@
+// ============================================================
+// cmFutVolatilitySurfaceBuilder — 构建示例
+// 从期权市场价格反推商品期货隐含波动率曲面
+// ============================================================
+// 金融含义：
+//   隐含波动率不是直接可观测的——它需要从期权市场价格通过定价模型
+//   反推（implied volatility）。本 builder 的构建流程：
+//   1. 对每个 (strike, maturity) 点，从 optionPrice 反推隐含波动率
+//      - 欧式用 Black-76 模型（默认）
+//      - 美式用 BAW 模型（需指定 method="BAW"）
+//   2. 用 SVI/SABR 对各期限的 smile 进行参数化插值
+//   3. 输出平滑的 VolatilitySurface，可传入 cmFutEuropeanOptionPricer
+//      或 cmFutAmericanOptionPricer
+//   注意：反推需要贴现曲线和期货价格曲线作为输入。
+// ============================================================
+
+// --- Step 1: 准备输入的贴现曲线和期货价格曲线 ---
+discDict = dict(STRING, ANY)
+discDict["mktDataType"]         = "Curve"
+discDict["curveType"]           = "IrYieldCurve"
+discDict["referenceDate"]       = 2025.03.20
+discDict["currency"]            = "CNY"
+discDict["curveName"]           = "CNY"
+discDict["dayCountConvention"]  = "Actual365"
+discDict["compounding"]         = "Continuous"
+discDict["interpMethod"]        = "Linear"
+discDict["extrapMethod"]        = "Flat"
+discDict["dates"]   = [2025.06.20, 2025.09.20, 2025.12.20, 2026.03.20]
+discDict["values"]  = [0.0170, 0.0175, 0.0180, 0.0185]
+discountCurve = parseMktData(discDict)
+
+futPriceDict = dict(STRING, ANY)
+futPriceDict["mktDataType"]   = "Curve"
+futPriceDict["curveType"]     = "AssetPriceCurve"
+futPriceDict["referenceDate"] = 2025.03.20
+futPriceDict["currency"]      = "CNY"
+futPriceDict["asset"]         = "M"                    // 豆粕
+futPriceDict["interpMethod"]  = "Linear"
+futPriceDict["extrapMethod"]  = "Flat"
+futPriceDict["dates"]  = [2025.08.06]                  // 期货到期日
+futPriceDict["values"] = [3150.0]                      // 期货结算价
+futPriceCurve = parseMktData(futPriceDict)
+
+// --- Step 2: 准备期权价格矩阵 ---
+futMaturities  = [2025.08.06]                          // 标的期货到期日
+optionExpiries = [2025.08.06]                          // 期权到期日
+strikes      = matrix([3000.0, 3100.0, 3200.0, 3300.0, 3400.0])  // 各执行价
+optionPrices = matrix([220.0, 145.0, 85.0, 45.0, 20.0])          // 市场期权价格
+payoffTypes  = matrix(["Call", "Call", "Call", "Call", "Call"])    // Call/Put
+
+// --- Step 3: 构建波动率曲面（欧式，默认 Black-76）---
+volSurf = cmFutVolatilitySurfaceBuilder(
+    2025.03.20,           // referenceDate
+    futMaturities,
+    optionExpiries,
+    strikes,
+    optionPrices,         // 从这些价格反推隐含波动率
+    payoffTypes,
+    discountCurve,        // 贴现曲线（反推时需要折现）
+    futPriceCurve         // 期货价格曲线（反推时需要标的价格）
+)
+// 输出：VolatilitySurface 对象，可直接传入 cmFutEuropeanOptionPricer
+
+// --- 美式期权的变体：指定 method = "BAW" ---
+// volSurfAm = cmFutVolatilitySurfaceBuilder(
+//     2025.03.20, futMaturities, optionExpiries, strikes,
+//     optionPrices, payoffTypes, discountCurve, futPriceCurve, "BAW"
+// )

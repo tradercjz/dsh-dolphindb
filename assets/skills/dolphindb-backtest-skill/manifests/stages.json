@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "purpose": "Standalone stage order and resource map for DolphinDB backtest script generation.",
+  "runtime": {
+    "python_allowed": false,
+    "project_imports_allowed": false,
+    "resource_root": "${CLAUDE_SKILL_DIR}"
+  },
+  "stages": [
+    {
+      "id": "requirements_normalization",
+      "description": "Extract strategy requirements and produce a normalized config summary.",
+      "resources": [
+        "templates/strategy_requirements.md",
+        "manifests/assets.json",
+        "manifests/datatypes.json",
+        "refs/config_complete/<assetCategory>.jsonl",
+        "contracts/pipeline_contracts.md#config-complete"
+      ],
+      "outputs": ["strategy_understanding", "assumptions", "config_summary"]
+    },
+    {
+      "id": "datasource_selection",
+      "description": "Select the smallest datasource refs that satisfy required fields and explicit signals.",
+      "resources": [
+        "contracts/pipeline_contracts.md#datasource-table-selection",
+        "rules/datasource_selection.md",
+        "refs/datasource/<strategyGroup>"
+      ],
+      "outputs": ["status", "required_fields", "signal_fields", "selected_tables", "reason"]
+    },
+    {
+      "id": "datasource_generation",
+      "description": "Generate datasource DolphinDB code and handoff schema.",
+      "resources": [
+        "contracts/pipeline_contracts.md#datasource-generation",
+        "rules/datasource_selection.md",
+        "refs/datasource/<strategyGroup>/func"
+      ],
+      "outputs": ["status", "signal_schema", "used_functions", "datasource_constraints", "script", "reason", "question"]
+    },
+    {
+      "id": "initialize_planning",
+      "description": "Plan indicators from fields, datasource signals, and downstream requirements.",
+      "resources": [
+        "contracts/pipeline_contracts.md#initialize-planning",
+        "contracts/dependency_protocol.md",
+        "refs/initialize/initialize.json",
+        "refs/initialize/indicators",
+        "refs/initialize/interfaces/<strategyGroup>/datatype<dataType>"
+      ],
+      "outputs": ["status", "reason", "functions", "signals", "indicator_graph", "output_indicators", "question"]
+    },
+    {
+      "id": "initialize_generation",
+      "description": "Generate initialize code and explicit callback handoff lists.",
+      "resources": [
+        "contracts/pipeline_contracts.md#initialize-generation",
+        "contracts/dependency_protocol.md",
+        "refs/initialize/interfaces/<strategyGroup>/datatype<dataType>"
+      ],
+      "outputs": ["status", "reason", "context", "datasource_signals", "initialize_indicators", "initialize_code", "question"]
+    },
+    {
+      "id": "callback_planning",
+      "description": "Choose callbacks from the registry and strategy needs.",
+      "resources": [
+        "contracts/pipeline_contracts.md#callback-planning",
+        "manifests/callback_registry.json",
+        "refs/callback/<strategyGroup>/datatype<dataType>"
+      ],
+      "outputs": ["status", "reason", "callbacks", "question"]
+    },
+    {
+      "id": "callback_generation",
+      "description": "Generate callback code or structured upstream dependency gaps.",
+      "resources": [
+        "contracts/pipeline_contracts.md#callback-generation",
+        "contracts/dependency_protocol.md",
+        "refs/callback/<strategyGroup>/datatype<dataType>",
+        "refs/callback/func"
+      ],
+      "outputs": ["status", "reason", "callbacks", "question", "dependency_gap"]
+    },
+    {
+      "id": "final_assembly",
+      "description": "Assemble the final standalone DolphinDB script only after all upstream stages are completed.",
+      "resources": [
+        "contracts/assembly_order.md",
+        "templates/final_script_skeleton.dos",
+        "templates/review_checklist.md"
+      ],
+      "outputs": ["final_dos_script", "self_check", "usage_notes"]
+    }
+  ]
+}

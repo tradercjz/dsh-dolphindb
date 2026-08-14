@@ -1,0 +1,26 @@
+# @tradercjz/dsh-dolphindb bundle patch: the DolphinDB integration over dsh-base.
+# All three rows are NEW (insert); no base row is overridden.
+#
+# Connection credentials stay out of the bundle: `passwordRef` names the
+# environment variable the run-time credential provider resolves, and
+# host/port/username fall back to the executor's localhost defaults. A remote
+# server overrides them in the profile's own cordis.patch.yml (see README).
+
+- insert:
+    # The local WebSocket executor (defaults 127.0.0.1:8848 / admin). Override
+    # host/port in a later patch layer and set DOLPHINDB_PASSWORD (or the ref
+    # you override to) in the environment or the repo `.env`.
+    - id: dolphindb
+      name: '@tradercjz/dsh-dolphindb/executor'
+      config:
+        passwordRef: DOLPHINDB_PASSWORD
+
+    # The model-facing query (read-only) and execute (write, approval-gated)
+    # tools, registering `dolphindb_query` / `dolphindb_execute`.
+    - id: tool-dolphindb
+      name: '@tradercjz/dsh-dolphindb/tool'
+
+    # This bundle's runtime glue: registers the bundled DolphinDB skill
+    # provider (the shipped SKILL.md tree) on the host `skills` registry.
+    - id: dolphin-skills
+      name: '@tradercjz/dsh-dolphindb'

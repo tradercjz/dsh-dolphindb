@@ -1,0 +1,2725 @@
+#include "setup/settings.txt"
+login("admin","123456")
+try{loadPlugin("plugins/mysql/PluginMySQL.txt")}catch(ex){}
+
+@testing:case="load_plugin"
+use mysql
+
+@testing:case="connect_mysql_host_empty", exception=1
+conn = connect(, port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_NULL", exception=1
+conn = connect(NULL, port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_NULL_string", exception=1
+conn = connect("", port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_error", exception=1
+conn = connect("192.168.1.100", port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_double", exception=1
+conn = connect(192.168, port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_date", exception=1
+conn = connect(2020.01.06, port, user,pwd, dbname)
+
+@testing:case="connect_mysql_host_int128", exception=1
+conn = connect(int128(), port, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_empty", exception=1
+conn = connect(host, , user,pwd, dbname)
+
+@testing:case="connect_mysql_port_NULL", exception=1
+conn = connect(host,NULL , user,pwd, dbname)
+
+@testing:case="connect_mysql_port_int_NULL", exception=1
+conn = connect(host, int(), user,pwd, dbname)
+
+@testing:case="connect_mysql_port_error", exception=1
+conn = connect(host,1234, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_float", exception=1
+conn = connect(host,123.4, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_long", exception=1
+conn = connect(host,123l, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_short", exception=1
+conn = connect(host,123h, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_string", exception=1
+conn = connect(host,`123, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_date", exception=1
+conn = connect(host,2020.01.06, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_0"//, exception=1
+conn = connect(host,0, user,pwd, dbname)
+
+@testing:case="connect_mysql_port_<0", exception=1
+conn = connect(host,-120, user,pwd, dbname)
+
+@testing:case="connect_mysql_user_empty", exception=1
+conn = connect(host,port, ,pwd, dbname)
+
+@testing:case="connect_mysql_user_NULL", exception=1
+conn = connect(host,port, NULL,pwd, dbname)
+
+@testing:case="connect_mysql_user_string_NULL", exception=1
+conn = connect(host,port, string(NULL),pwd, dbname)
+
+@testing:case="connect_mysql_user_error", exception=1
+conn = connect(host,port, "#@$%&%#&^",pwd, dbname)
+
+@testing:case="connect_mysql_user_int", exception=1
+conn = connect(host,port, 123456,pwd, dbname)
+
+@testing:case="connect_mysql_user_pwd", exception=1
+conn = connect(host,port, pwd,pwd, dbname)
+
+@testing:case="connect_mysql_user_host", exception=1
+conn = connect(host,port, host,pwd, dbname)
+
+@testing:case="connect_mysql_pwd_empty", exception=1
+conn = connect(host,port, user,, dbname)
+
+@testing:case="connect_mysql_pwd_NULL", exception=1
+conn = connect(host,port, user,NULL, dbname)
+
+@testing:case="connect_mysql_pwd_string_NULL", exception=1
+conn = connect(host,port, user,string(NULL), dbname)
+
+@testing:case="connect_mysql_pwd_error", exception=1
+conn = connect(host,port, user,"#@$%&%#&^", dbname)
+
+@testing:case="connect_mysql_pwd_int", exception=1
+conn = connect(host,port, user,123456, dbname)
+
+@testing:case="connect_mysql_pwd_user", exception=1
+conn = connect(host,port, user,user, dbname)
+
+@testing:case="connect_mysql_pwd_host", exception=1
+conn = connect(host,port, user,host, dbname)
+
+@testing:case="connect_mysql_pwd_empty", exception=1
+conn = connect(host,port, user,, dbname)
+
+@testing:case="connect_mysql_dbname_empty", exception=1
+conn = connect(host,port, user,pwd,)
+
+@testing:case="connect_mysql_dbname_NULL", exception=1
+conn = connect(host,port, user,pwd,NULL)
+
+@testing:case="connect_mysql_dbname_string_NULL", exception=1
+conn = connect(host,port, user,pwd,string(NULL))
+showTables(conn)
+
+@testing:case="connect_mysql_dbname_error", exception=1
+conn = connect(host,port, user,pwd,"#@$%&%#&^")
+
+@testing:case="connect_mysql_dbname_int", exception=1
+conn = connect(host,port, user,pwd,123456)
+
+@testing:case="connect_mysql_dbname_user", exception=1
+conn = connect(host,port, user,pwd,user)
+
+@testing:case="connect_mysql_dbname_host", exception=1
+conn = connect(host,port, user,pwd,host)
+
+@testing:case="connect_mysql_4args", syntaxError=1
+conn = connect(host,port, user,pwd)
+
+@testing:case="connect_mysql_6args", syntaxError=1
+conn = connect(host,port, user,pwd,dbname,NULL, 1)
+
+@testing:case="connect_mysql_fail_1", exception=1
+conn = connect(host, port, user, "DolphinDB1234", dbname)
+
+@testing:case="connect_mysql_fail_2", exception=1
+conn = connect("invalid_host", port, user, pwd, dbname)
+
+@testing:case="connect_mysql_fail_3", exception=1
+conn = connect(host, port, user, pwd, `invalidTable)
+
+@testing:case="connect_mysql_fail_4", exception=1
+conn = connect(host, port, "dolphindb1", pwd, dbname)
+
+@testing:case="connect_mysql_fail_5", exception=1
+conn = connect(host, 8700, user, pwd, dbname)
+
+@testing:case="connect_mysql_fail_6", exception=1
+conn = connect(host, port, "nopassword", "", `noPriv)
+
+@testing:case="connect_mysql_args_ex_1", exception=1
+conn = connect(115, user, port, pwd, dbname)
+
+@testing:case="connect_mysql_args_ex_2", exception=1
+conn = connect(host, port, 123, pwd, dbname)
+
+@testing:case="connect_mysql_args_ex_3", exception=1
+conn = connect(host, port, user, 123, dbname)
+
+@testing:case="connect_mysql_args_ex_4", exception=1
+conn = connect(host, 8709.9, user, pwd, dbname)
+
+@testing:case="connect_mysql_args_ex_5", exception=1
+conn = connect(host, port, user, pwd, 123)
+
+@testing:case="showTables_empty", exception=1
+mysql::showTables()
+
+@testing:case="showTables_ex1", exception=1
+showTables(1)
+
+@testing:case="showTables_ex2", exception=1
+showTables("2")
+
+@testing:case="extractSchema_ex1",exception=1
+extractSchema(1, `allType)
+
+@testing:case="extractSchema_ex2",exception=1
+extractSchema("1", `allType)
+
+@testing:case="extractSchema_ex3",exception=1
+extractSchema(conn, 3)
+
+@testing:case="connect"
+conn = connect(host, port, user, pwd, dbname)
+undef(`conn)
+
+@testing:case="showTables"
+conn = connect(host, port, user, pwd, dbname)
+tables = showTables(conn)
+assert 1, tables.Tables_in_DolphinDB.size()>0
+assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+@testing:case="extractSchema"
+scm = extractSchema(conn, `allType)
+assert 1, scm.name == `dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum
+assert 2, scm.type == `INT`CHAR`SHORT`INT`LONG`FLOAT`DOUBLE "DECIMAL64(3)" `DATE`DATETIME`TIMESTAMP`TIME`INT`SYMBOL`SYMBOL`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING`SYMBOL
+
+@testing:case="extractSchema_2"
+scm=extractSchema(conn,`testNew)
+assert 1,scm.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 2,scm.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+/*
+ * add more cases
+ */
+
+
+@testing:case="load_error_sql", exception=1
+t=load(conn, "select * from noBlobNoNull where noBlobNoNull=1")
+
+@testing:case="load_error_sql_table_not_exist", exception=1
+t=load(conn, "select * from no")
+
+@testing:case="load_without_schema"
+t = load(conn, `noBlobNoNull)
+assert 1, size(t)==2
+assert 2, t.dint == -2147483647 0
+assert 3, t.dtint == 0 -127
+assert 4, t.dsint == 0 -32767
+assert 5, t.dmint == -8388608 0
+assert 6, t.dbint ==0 0
+//assert 7, eqObj(t.dfloat, [-1e30, 3.14159])
+//assert 8, eqObj(t.ddouble, [-1e30, 3.141593])
+assert 9, eqObj(t.ddecimal, decimal64([10000, -54321.123],10))
+assert 10, t.ddate == 2019.01.15 2019.01.17
+assert 11, t.ddatetime == 2019.01.15T00:00:00 2019.01.15T00:00:12
+assert 12, t.dtimestamp == 2019.01.15T00:00:00.000 2019.01.15T00:00:12.000
+assert 13, t.dtime == 00:00:05 00:01:26
+assert 14, t.dyear == 2018 2020
+assert 15, t.dchar == ["abcd", NULL]
+assert 16, t.dvarchar == ["abcd", "0123456789"]
+assert 17, t.dtext == ["Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Mauris in aliquam sem fringilla. Eu turpis egestas pretium aenean. Euismod lacinia at quis risus. Egestas integer eget aliquet nibh praesent tristique. Consectetur lorem donec massa sapien faucibus. Ultrices sagittis orci a scelerisque purus. Vitae proin sagittis nisl rhoncus mattis rhoncus urna. Scelerisque in dictum non consectetur a erat. Sapien eget mi proin sed libero enim sed faucibus turpis. Nec nam aliquam sem et tortor. Congue quisque egestas diam in. Scelerisque varius morbi enim nunc faucibus a.", NULL]
+assert 18, t.dttext == ["A test string.", NULL]
+assert 19, t.denum == ["e1", "e3"]
+
+/*
+ * add more cases
+ */
+@testing:case="load_without_schema_large"
+t=load(conn,`int_year_large)
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==1500000.5
+assert 2, result.avg_tinyint==49.5
+assert 3, result.avg_smallint==500
+assert 4, result.avg_mediumint==1500000.5
+assert 5, result.avg_bigint==3000001
+assert 6, abs(result.max_float-1.23)<0.000001   
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,3000000)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,3000000)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,3000000)
+assert 12, result.dtime==take(10:46:57,3000000)
+assert 13, tt.cnt==3000000
+assert 14, tt.dsint_cnt == 2970000
+assert 15, tt.decimal_cnt==2970000
+assert 16, tt.year_cnt== 2970000
+schema(t)
+assert 17, t.dint == 1..3000000
+assert 18, t.dtint == take(char(1..99 join 0), 3000000)
+assert 19, t.dsint == take(iif(1..1000 % 100 ==0, NULL, 1..1000), 3000000)
+assert 20, t.dmint == 1..3000000
+assert 21, t.ddate == take(2019.01.18, 3000000)
+assert 22, t.ddatetime == take(2019.01.18T10:45:23, 3000000)
+assert 23, t.dtimestamp == take(2018.01.18T10:46:37.000, 3000000)
+assert 24, t.dtime == take(10:46:57.000, 3000000)
+
+@testing:case="load_without_schema_large2"
+t=load(conn,`char_enum_large)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 2900000:2900002 dchar from t
+result2=select top 2900000:2900002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==1500000.5
+assert 2, result.dvarchar==take(`varchar_10,3000000)
+assert 3, result.dblob==take(`blob_test,3000000)
+assert 4, result.dtblob==take(`tinyblob_test,3000000)
+assert 5, result.dttext==take(`tinytext_test,3000000)
+assert 6, result.dmblob==take(`mediumblob_test,3000000)
+assert 7, result.dmtext==take(`mediumtext_test,3000000)
+assert 8, result.denum==take(`e1,3000000)
+assert 9, result1.dchar==`ch4
+assert 10, result2.dblob==`blob_test
+assert 11, tt.cnt==3000000
+assert 12, tt.char_cnt==2970000
+assert 13, tt.text_cnt==2970000
+
+@testing:case="load_without_schema_largenonull"
+t=load(conn,`int_year_largeNoNull)
+select count(*) from t
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==1500000.5
+assert 2, result.avg_tinyint==49.5
+assert 3, result.avg_smallint==499.5
+assert 4, result.avg_mediumint==1500000.5
+assert 5, result.avg_bigint==3000001
+assert 6, abs(result.max_float-1.23)<0.000001 
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,3000000)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,3000000)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,3000000)
+assert 12, result.dtime==take(10:46:57,3000000)
+assert 13, tt.cnt==3000000
+assert 14, tt.dsint_cnt == 3000000
+assert 15, tt.decimal_cnt==3000000
+assert 16, tt.year_cnt== 3000000
+
+@testing:case="load_without_schema_largenonull_dfs_inmem_ex1", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,-1)
+
+@testing:case="loadEx_without_schema_largenonull_dfs_inmem_ex2", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,0,-1)
+
+//the following cases should throw exceptions startRow, rowNum use empty string
+@testing:case="loadEx_without_schema_largenonull_dfs_inmem_ex3", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,"",10)
+
+@testing:case="loadEx_without_schema_largenonull_dfs_inmem_ex4", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,,,-3)
+
+@testing:case="loadEx_without_schema_largenonull_dfs_inmem_ex5", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,,,"adx")
+
+@testing:case="loadEx_without_schema_largenonull_dfs_inmem_ex6", exception=1
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,,,"")
+
+@testing:case="loadEx_query_error_where_not_exist", exception=1
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+loadEx(conn, db, `pt, `dint, "select * from int_year_large where a=1")
+
+@testing:case="loadEx_query_error_table_not_exist", exception=1
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+loadEx(conn, db, `pt, `dint, "select * from int_year_large1")
+
+@testing:case="load_without_schema_largenonull_dfs_inmem_ex1", exception=1
+t=load(conn, `int_year_largeNoNull,,"",1)
+
+@testing:case="load_without_schema_largenonull_dfs_inmem_ex2", exception=1
+t=load(conn, `int_year_largeNoNull,,"","")
+
+@testing:case="loadEx_without_schema_largenonull_in_mem_partitioned_import_just_table_frame" 
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,0,0)
+assert 1, size(t)==0
+
+@testing:case="loadEx_without_schema_largenonull_in_mem_partitioned_import"
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull)
+assert 1, size(t)==3000000
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull')
+assert 2, size(t)==3000000
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull limit 100000')
+assert 3, size(t)==100000
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull where dint<=1000000')
+assert 4, size(t)==1000000
+
+@testing:case="loadEx_without_schema_largenonull_in_mem_partitioned_import_transform"
+def replaceTable(mutable t){
+	return t.replaceColumn!(`dint,t[`dint]-1)
+}
+type = extractSchema(conn,`int_year_largeNoNull)[`type][5]
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull)
+oldDint = exec dint from t
+t=loadEx(conn, db, "",`dint,`int_year_largeNoNull,,,,replaceTable)
+newDint = exec dint from t
+assert 1, eqObj(oldDint - newDint,take(1,3000000))
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull',,,,replaceTable)
+newDint = exec dint from t
+assert 2, eqObj(oldDint - newDint,take(1,3000000))
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull limit 100000')
+oldDint = exec dint from t
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull limit 100000',,,,replaceTable)
+newDint = exec dint from t
+assert 3, eqObj(oldDint - newDint,take(1,100000))
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull where dint<=1000000')
+oldDint = exec dint from t
+t=loadEx(conn, db, "",`dint, 'select  * from int_year_largeNoNull where dint<=1000000',,,,replaceTable)
+newDint = exec dint from t
+assert 4, eqObj(oldDint - newDint,take(1,1000000))
+
+@testing:case="loadEx_with_schema_largenonull_in_mem_partitioned_import"
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+t = loadEx(conn, db, "", `dint, `int_year_large, scm)
+assert 1, size(t)==3000000
+t = loadEx(conn, db, "", `dint, 'select * from int_year_large limit 100000', scm,0,100000)
+assert 2, size(t)==100000
+//when both query and startRow, rowNum used together, startRow, rowNum will not take effect
+t = loadEx(conn, db, "", `dint, 'select * from int_year_large limit 100000', scm,10000,10)
+assert 3,size(t)==100000
+t = loadEx(conn, db, "", `dint,`int_year_large, scm,10000,100000)
+assert 4, (exec min(dint) from t)==10001
+
+@testing:case="loadEx_with_schema_largenonull_dfs"
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+loadEx(conn, db, `pt, `dint, `int_year_large, scm)
+pt=db.loadTable(`pt)
+assert 1, (exec count(*) from pt)==3000000
+loadEx(conn, db, `pt, `dint, `int_year_large, scm,10000,100000)
+pt=db.loadTable(`pt)
+assert 2, (exec count(*) from pt)==3100000
+loadEx(conn, db, `pt2, `dint, `int_year_large, scm,10000,100000)
+t2 = select top 10 * from db.loadTable(`pt2)
+assert 3, (exec min(dint) from t2)==10001
+
+@testing:case="loadEx_with_schema_largenonull_dfs_transfrom"
+def replaceTable(mutable t){
+	return t.replaceColumn!(`dint,t[`dint]-1)
+}
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+loadEx(conn, db, `pt, `dint, `int_year_large,scm)
+pt=db.loadTable(`pt)
+oldDint = exec dint from pt
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+loadEx(conn, db, `pt, `dint, `int_year_large, scm,,,replaceTable)
+pt=db.loadTable(`pt)
+select * from pt
+newDint = exec dint from pt
+assert 1, eqObj(oldDint - newDint,take(1,3000000))
+
+@testing:case="load_without_schema_largenonull2"
+t=load(conn,`char_enum_largeNoNull)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 2900000:2900002 dchar from t
+result2=select top 2900000:2900002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==1500000.5
+assert 2, result.dvarchar==take(`varchar_10,3000000)
+assert 3, result.dblob==take(`blob_test,3000000)
+assert 4, result.dtblob==take(`tinyblob_test,3000000)
+assert 5, result.dttext==take(`tinytext_test,3000000)
+assert 6, result.dmblob==take(`mediumblob_test,3000000)
+assert 7, result.dmtext==take(`mediumtext_test,3000000)
+assert 8, result.denum==take(`e1,3000000)
+assert 9, result1.dchar==`ch4`ch4
+assert 10, result2.dblob==`blob_test`blob_test
+assert 11, tt.cnt==3000000
+assert 12, tt.char_cnt==3000000
+assert 13, tt.text_cnt==3000000
+
+
+@testing:case="load_without_schema_small"
+t=load(conn,`int_year_small)
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==50000.5
+assert 2, result.avg_tinyint==49.5
+assert 3, result.avg_smallint==500
+assert 4, result.avg_mediumint==50000.5
+assert 5, result.avg_bigint==100001
+assert 6, abs(result.max_float-1.23)<0.000001    
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,100000)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,100000)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,100000)
+assert 12, result.dtime==take(10:46:57,100000)
+assert 13, tt.cnt==100000
+assert 14, tt.dsint_cnt == 99000
+assert 15, tt.decimal_cnt==99000
+assert 16, tt.year_cnt== 99000
+
+@testing:case="load_without_schema_small2"
+t=load(conn,`char_enum_small)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 9000:9002 dchar from t
+result2=select top 9000:9002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==50000.5
+assert 2, result.dvarchar==take(`varchar_10,100000)
+assert 3, result.dblob==take(`blob_test,100000)
+assert 4, result.dtblob==take(`tinyblob_test,100000)
+assert 5, result.dttext==take(`tinytext_test,100000)
+assert 6, result.dmblob==take(`mediumblob_test,100000)
+assert 7, result.dmtext==take(`mediumtext_test,100000)
+assert 8, result.denum==take(`e1,100000)
+assert 9, result1.dchar==`ch4
+assert 10, result2.dblob==`blob_test
+assert 11, tt.cnt==100000
+assert 12, tt.char_cnt==99000
+assert 13, tt.text_cnt==99000
+
+
+@testing:case="load_without_schema_smallnonull"
+t=load(conn,`int_year_smallNoNull)
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==50000.5
+assert 2, result.avg_tinyint==49.5
+assert 3, result.avg_smallint==499.5
+assert 4, result.avg_mediumint==50000.5
+assert 5, result.avg_bigint==100001
+assert 6, abs(result.max_float-1.23)<0.000001   
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,100000)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,100000)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,100000)
+assert 12, result.dtime==take(10:46:57,100000)
+assert 13, tt.cnt==100000
+assert 14, tt.dsint_cnt == 100000
+assert 15, tt.decimal_cnt==100000
+assert 16, tt.year_cnt== 100000
+
+
+
+@testing:case="load_without_schema_smallnonull2"
+t=load(conn,`char_enum_smallNoNull)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 90000:90002 dchar from t
+result2=select top 90000:90002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==50000.5
+assert 2, result.dvarchar==take(`varchar_10,100000)
+assert 3, result.dblob==take(`blob_test,100000)
+assert 4, result.dtblob==take(`tinyblob_test,100000)
+assert 5, result.dttext==take(`tinytext_test,100000)
+assert 6, result.dmblob==take(`mediumblob_test,100000)
+assert 7, result.dmtext==take(`mediumtext_test,100000)
+assert 8, result.denum==take(`e1,100000)
+assert 9, result1.dchar==`ch4`ch4
+assert 10, result2.dblob==`blob_test`blob_test
+assert 11, tt.cnt==100000
+assert 12, tt.char_cnt==100000
+assert 13, tt.text_cnt==100000
+
+@testing:case="load_with_schema"
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dtext`dttext`denum as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING`STRING`STRING`STRING`STRING`STRING as type)
+t = load(conn, `noBlobNoNull, scm)
+assert 1, t.dint == -2147483647 0
+
+@testing:case="load_with_schema_large"
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+t = load(conn, `int_year_large, scm)
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==1500000.5
+assert 2, result.avg_tinyint==49.5
+assert 3, result.avg_smallint==500
+assert 4, result.avg_mediumint==1500000.5
+assert 5, result.avg_bigint==3000001
+assert 6, abs(result.max_float-1.23)<0.000001 
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,3000000)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,3000000)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,3000000)
+assert 12, result.dtime==take(10:46:57,3000000)
+assert 13, tt.cnt==3000000
+assert 14, tt.dsint_cnt == 2970000
+assert 15, tt.decimal_cnt==2970000
+assert 16, tt.year_cnt== 2970000
+
+
+
+@testing:case="load_with_schema_large2"
+scm = table(`dint`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`denum as name, `INT`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING as type)
+t = load(conn, `char_enum_large, scm)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 2900000:2900002 dchar from t
+result2=select top 2900000:2900002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==1500000.5
+assert 2, result.dvarchar==take(`varchar_10,3000000)
+assert 3, result.dblob==take(`blob_test,3000000)
+assert 4, result.dtblob==take(`tinyblob_test,3000000)
+assert 5, result.dttext==take(`tinytext_test,3000000)
+assert 6, result.dmblob==take(`mediumblob_test,3000000)
+assert 7, result.dmtext==take(`mediumtext_test,3000000)
+assert 8, result.denum==take(`e1,3000000)
+assert 9, result1.dchar==`ch4
+assert 10, result2.dblob==`blob_test
+assert 11, tt.cnt==3000000
+assert 12, tt.char_cnt==2970000
+assert 13, tt.text_cnt==2970000
+
+/*
+ * add more cases
+ */
+
+@testing:case="load_with_startRow"
+t = load(conn, `noBlobNoNull, , 1)
+assert 1, size(t)==1
+assert 2, t.dint == 0
+
+@testing:case="load_with_startRow_large"
+t = load(conn, `int_year_large, , 100)
+result=select avg(dint) as avg_int,avg(dtint) as avg_tinyint,avg(dsint) as avg_smallint,avg(dmint) as avg_mediumint,avg(dbint) as avg_bigint,max(dfloat) as max_float,max(ddouble) as max_double,min(ddecimal) as min_ddecimal,ddate,ddatetime,dtimestamp,dtime from t
+tt=select count(*)  as cnt,count(dsint) as dsint_cnt,count(ddecimal) as decimal_cnt,count(dyear) as year_cnt from t
+assert 1, result.avg_int==1500050.5
+assert 2, result.avg_tinyint==49.5
+assert 3, (result.avg_smallint-500.015)<0.000001
+assert 4, result.avg_mediumint==1500050.5
+assert 5, result.avg_bigint==3000101
+assert 6, abs(result.max_float-1.23)<0.000001   
+assert 7, result.max_double==4.56
+assert 8, result.min_ddecimal==7.890
+assert 9, result.ddate==take(2019.01.18,2999900)
+assert 10, result.ddatetime==take(2019.01.18T10:45:23,2999900)  
+assert 11, result.dtimestamp==take(2018.01.18T10:46:37,2999900)
+assert 12, result.dtime==take(10:46:57,2999900)
+assert 13, tt.cnt==2999900
+assert 14, tt.dsint_cnt == 2969901
+assert 15, tt.decimal_cnt==2969901
+assert 16, tt.year_cnt== 2969901
+
+@testing:case="load_with_startRow_large2"
+t = load(conn, `char_enum_large, , 1000)
+result=select avg(dint) as avg_dint,dvarchar,dblob,dtblob,dttext,dmblob,dmtext,denum from t
+result1=select top 2900000:2900002 dchar from t
+result2=select top 2900000:2900002 dblob from t
+tt=select count(*) as cnt,count(dchar) as char_cnt,count(dtext) as text_cnt from t
+assert 1, result.avg_dint==1500500.5
+assert 2, result.dvarchar==take(`varchar_10,2999000)
+assert 3, result.dblob==take(`blob_test,2999000)
+assert 4, result.dtblob==take(`tinyblob_test,2999000)
+assert 5, result.dttext==take(`tinytext_test,2999000)
+assert 6, result.dmblob==take(`mediumblob_test,2999000)
+assert 7, result.dmtext==take(`mediumtext_test,2999000)
+assert 8, result.denum==take(`e1,2999000)
+assert 9, result1.dchar==`ch4`ch4
+assert 10, result2.dblob==`blob_test`blob_test
+assert 11, tt.cnt==2999000
+assert 12, tt.char_cnt==2969010
+assert 13, tt.text_cnt==2969010
+
+@testing:case="load_with_Insufficient_memory_to_load_even_one_row"
+t=load(conn,"select * from medicine_invite_tender limit 100")//should import data to mysql firstly,csv can be found at https://basecamp.com/3616762/projects/14256594/todos/418088834#comment_763837515*/
+assert 1,t.size()==10
+
+@testing:case="load_null_values"
+t = load(conn, `nullvalues)
+expected=table(10:0,`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum`int
+,[INT,CHAR,SHORT,INT,LONG,FLOAT,DOUBLE,DECIMAL64(10),DATE,DATETIME,TIMESTAMP,TIME,INT,SYMBOL,SYMBOL,STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING,SYMBOL,INT])
+insert into expected(dint) values(1..10)
+assert 1,each(eqObj,t.values(),expected.values())
+expected=table(10:0,`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum`int
+,[INT,CHAR,SHORT,INT,LONG,FLOAT,DOUBLE,DOUBLE,DATE,DATETIME,DATETIME,TIME,BOOL,SYMBOL,SYMBOL,STRING,STRING,STRING,STRING,STRING,STRING,STRING,SYMBOL,SYMBOL,INT])
+schema=schema(expected).colDefs
+t = load(conn, `nullvalues,schema)
+insert into expected(dint) values(1..10)
+assert 2,each(eqObj,t.values(),expected.values())
+
+@testing:case="prepare_conn_for_allowEmptyTable"
+conn = connect(host, port, user, pwd, dbname)
+
+@testing:case="load_allowEmptyTable_string",exception=1
+load(conn, `nullvalues, , , , "true")
+
+@testing:case="load_allowEnptyTable_bool_vector",exception=1
+load(conn, `nullvalues, , , , [true, false])
+
+@testing:case="load_allowEmptyTable_int",exception=1
+load(conn, `nullvalues, , , , 0)
+
+@testing:case="load_return_empty_table_allowEmptyTable_false",exception=1
+load(conn, "select * from nullvalues where dint>10", , , , false)
+
+@testing:case="load_return_empty_table_allowEmptyTable_true"
+re = load(conn, "select * from nullvalues where dint>10", , , , true)
+assert 1, re.size()==0
+expected=table(10:0,`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum`int
+,[INT,CHAR,SHORT,INT,LONG,FLOAT,DOUBLE,DECIMAL64(10),DATE,DATETIME,TIMESTAMP,TIME,INT,SYMBOL,SYMBOL,STRING,STRING,STRING,STRING,STRING,STRING,STRING,SYMBOL,SYMBOL,INT])
+assert 2, each(eqObj, re.values(), expected.values())
+
+@testing:case="load_return_not_empty_table_allowEmptyTable_true"
+re = load(conn, "select * from table_bit ", , , , true)
+ex = load(conn, "select * from table_bit ")
+assert 1, each(eqObj, re.values(), ex.values())
+
+@testing:case="load_type_bit_schema"
+re = load(conn, "select * from table_bit ", , , , true)
+schema=schema(re).colDefs
+assert 1,schema.typeString==`INT`CHAR`CHAR`SHORT`SHORT`INT`INT`LONG`LONG
+
+@testing:case="load_type_bit"
+expected1=char([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=char([0,1,,255,64])
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=short([0,1,,511,256])
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=short([0,1,,65535,512])
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=int([0,1,,131071,65536])
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=int([0,1,,4294967295,131072])
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=long([0,1,,8589934591,4294967296])
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=long([0,1,,-1,8589934592])
+assert 8,eqObj(re.bitcol64,expected64)
+
+
+@testing:case="load_type_bit_where"
+re = load(conn, "select * from table_bit where bitcol1=0", , , , true)
+assert 1,eqObj(re.bitcol1,[0])
+
+@testing:case="load_type_bit_toLong"
+schema=mysql::extractSchema(conn,`table_bit)
+update schema set type='LONG' where name like "bitcol%"
+re = load(conn, "select * from table_bit ", schema, , , true)
+expected1=long([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=long([0,1,,255,64])
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=long([0,1,,511,256])
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=long([0,1,,65535,512])
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=long([0,1,,131071,65536])
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=long([0,1,,4294967295,131072])
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=long([0,1,,8589934591,4294967296])
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=long([0,1,,-1,8589934592])
+assert 8,eqObj(re.bitcol64,expected64)
+
+@testing:case="load_type_bit_toshort"
+schema=mysql::extractSchema(conn,`table_bit)
+update schema set type='SHORT' where name like "bitcol%"
+re = load(conn, "select * from table_bit ", schema, , , true)
+expected1=short([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=short([0,1,,255,64])
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=short([0,1,,511,256])
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=short([0,1,,65535,512])
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=short([0,1,,131071,65536])
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=short([0,1,,4294967295,131072])
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=short([0,1,,8589934591,4294967296])
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=short([0,1,,-1,8589934592])
+assert 8,eqObj(re.bitcol64,expected64)
+
+@testing:case="load_type_bit_toint"
+schema=mysql::extractSchema(conn,`table_bit)
+update schema set type='INT' where name like "bitcol%"
+re = load(conn, "select * from table_bit ", schema, , , true)
+expected1=int([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=int([0,1,,255,64])
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=int([0,1,,511,256])
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=int([0,1,,65535,512])
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=int([0,1,,131071,65536])
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=int([0,1,,4294967295,131072])
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=int([0,1,,8589934591,4294967296])
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=int([0,1,,-1,8589934592])
+assert 8,eqObj(re.bitcol64,expected64)
+
+@testing:case="load_type_bit_schema_toString"
+schema=mysql::extractSchema(conn,`table_bit)
+update schema set type='STRING' where name like "bitcol%"
+re = load(conn, "select * from table_bit ", schema, , , true)
+expected1=string([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=`00000000`00000001``11111111`01000000
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=`000000000`000000001``111111111`100000000
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=`0000000000000000`0000000000000001``1111111111111111`0000001000000000
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=`00000000000000000`00000000000000001``11111111111111111`10000000000000000
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=`00000000000000000000000000000000`00000000000000000000000000000001``11111111111111111111111111111111`00000000000000100000000000000000
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=`000000000000000000000000000000000`000000000000000000000000000000001``111111111111111111111111111111111`100000000000000000000000000000000
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=`0000000000000000000000000000000000000000000000000000000000000000`0000000000000000000000000000000000000000000000000000000000000001``1111111111111111111111111111111111111111111111111111111111111111`0000000000000000000000000000001000000000000000000000000000000000
+assert 8,eqObj(re.bitcol64,expected64)
+
+@testing:case="load_type_bit_schema_toBool"
+schema=mysql::extractSchema(conn,`table_bit)
+update schema set type='BOOL' where name like "bitcol%"
+re = load(conn, "select * from table_bit ", schema, , , true)
+expected1=bool([0,1,,,1])
+assert 1,eqObj(re.bitcol1,expected1)
+expected8=bool(char([0,1,,255,64]))
+assert 2,eqObj(re.bitcol8,expected8)
+expected9=bool(short([0,1,,511,256]))
+assert 3,eqObj(re.bitcol9,expected9)
+expected16=bool(short([0,1,,65535,512]))
+assert 4,eqObj(re.bitcol16,expected16)
+expected17=bool(int([0,1,,131071,65536]))
+assert 5,eqObj(re.bitcol17,expected17)
+expected32=bool(int([0,1,,4294967295,131072]))
+assert 6,eqObj(re.bitcol32,expected32)
+expected33=bool(long([0,1,,8589934591,4294967296]))
+assert 7,eqObj(re.bitcol33,expected33)
+expected64=bool(long([0,1,,18446744073709551615,8589934592]))
+assert 8,eqObj(re.bitcol64,expected64)
+
+@testing:case="load_type_bit_loadEX"
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+ex= load(conn, "select * from table_bit ", scm, , , true)
+re=select *  from loadTable(dbPath,`pt)
+assert 1,each(eqObj,ex.values(),re.values())
+
+@testing:case="load_type_bit_bigdata"
+re= load(conn, "select * from table_bit_big ", , , , true)
+ex=take(0 1 4 8 16 128 256,5000000)
+assert 1,eq(re.bigcol,ex)
+
+@testing:case="extractSchema_null_table"
+schema = mysql::extractSchema(conn, "allType");
+re = select count(*) from schema
+assert 1, re["count"] == 24
+
+//improve coverage
+@testing:case="prepare_zmq"
+if(getOS() == "linux"){
+try{loadPlugin(getHomeDir()+"/plugins/zmq/PluginZmq.txt")}catch(ex){print(ex)}
+}else{
+	socket = NULL
+}
+mysqlSchema = mysql::extractSchema(conn, "int_year_large")
+data = mysql::load(conn, "int_year_large")
+go
+
+
+@testing:case="load_when_long_to_bool"
+newSchema = mysqlSchema
+update newSchema set type = "BOOL" where type == "LOOG"
+data1 = data
+data1.replaceColumn!(`dbint, exec dbint.bool() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+data2.replaceColumn!(`dbint, exec dbint.bool() from data2)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_timestamp_to_minute"
+newSchema = mysqlSchema
+update newSchema set type = "MINUTE" where type == "TIMESTAMP"
+data1 = data
+data1.replaceColumn!(`dtimestamp, exec dtimestamp.minute() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_timestamp_to_month"
+newSchema = mysqlSchema
+update newSchema set type = "MONTH" where type == "TIMESTAMP"
+data1 = data
+data1.replaceColumn!(`dtimestamp, exec dtimestamp.month() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_timestamp_to_nanotime"
+newSchema = mysqlSchema
+update newSchema set type = "NANOTIME" where type == "TIMESTAMP"
+data1 = data
+data1.replaceColumn!(`dtimestamp, exec dtimestamp.nanotime() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_timestamp_to_nanotimestamp"
+newSchema = mysqlSchema
+update newSchema set type = "NANOTIMESTAMP" where type == "TIMESTAMP"
+data1 = data
+data1.replaceColumn!(`dtimestamp, exec dtimestamp.nanotimestamp() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1,  each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_timestamp_to_second"
+newSchema = mysqlSchema
+update newSchema set type = "SECOND" where type == "TIMESTAMP"
+data1 = data
+data1.replaceColumn!(`dtimestamp, exec dtimestamp.second() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_datetime_to_second"
+newSchema = mysqlSchema
+update newSchema set type = "SECOND" where type == "DATETIME"
+data1 = data
+data1.replaceColumn!(`ddatetime, exec ddatetime.second() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_time_to_timestamp", exception=1
+newSchema = mysqlSchema
+update newSchema set type = "TIMESTAMP" where type == "TIME"
+data1 = mysql::load(conn, "int_year_large", newSchema)
+
+@testing:case="load_when_time_to_nanotime"
+newSchema = mysqlSchema
+update newSchema set type = "NANOTIME" where type == "TIME"
+data1 = data
+data1.replaceColumn!(`dtime, exec dtime.nanotime() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_time_to_minute"
+newSchema = mysqlSchema
+update newSchema set type = "MINUTE" where type == "TIME"
+data1 = data
+data1.replaceColumn!(`dtime, exec dtime.minute() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_time_to_second"
+newSchema = mysqlSchema
+update newSchema set type = "SECOND" where type == "TIME"
+data1 = data
+data1.replaceColumn!(`dtime, exec dtime.second() from data1)
+data2 = mysql::load(conn, "int_year_large", newSchema)
+assert 1, each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_schema_size!=mysql_cols", exception=1
+newSchema = mysqlSchema
+insert into newSchema values(`test, "INT", "int(11)") 
+data1 = mysql::load(conn, "int_year_large", newSchema)
+
+@testing:case="load_when_connection_not_a_resourse", exception=1
+f = file("/", "r")
+mysql::load(f, "1")
+
+@testing:case="load_when_connection_not_a_mysql_connection", exception=1
+if(getOS() == "linux"){
+	script1 = 'formatter = zmq::createJSONFormatter()'
+	script2 = 'socket = zmq::socket("ZMQ_PUB", formatter)'
+	script3 = 'mysql::load(socket, "1")'
+	runScript(script1)
+	runScript(script2)
+	runScript(script3)
+}else{
+	throw "no zmq plugin"
+}
+
+@testing:case="connect_when_host_not_a_scalar", exception=1
+conn = mysql::connect([host], port, user, pwd, dbname)
+
+@testing:case="connect_when_port_not_a_scalar", exception=1
+conn = mysql::connect(host, [port], user, pwd, dbname)
+
+@testing:case="connect_when_user_not_a_scalar", exception=1
+conn = mysql::connect(host, port, [user], pwd, dbname)
+
+@testing:case="connect_when_pwd_not_a_scalar", exception=1
+conn = mysql::connect(host, port, user, [pwd], dbname)
+
+@testing:case="connect_when_db_not_a_scalar", exception=1
+conn = mysql::connect(host, port, user, pwd, [dbname])
+
+@testing:case="extractSchema_when_table_not_string", exception=1
+conn = mysql::extractSchema(conn, 11)
+
+@testing:case="load_when_query_not_string", exception=1
+data = mysql::load(conn, 11)
+
+@testing:case="load_when_query_not_a_string_scalar", exception=1
+data = mysql::load(conn, ["int_year_large"])
+
+@testing:case="load_when_schema_not_table", exception=1
+data = mysql::load(conn, "int_year_large", 11)
+
+@testing:case="load_when_startRow_is_long"
+data1 = mysql::load(conn, "int_year_large", mysqlSchema)
+data2 = mysql::load(conn, "int_year_large", mysqlSchema, long(0))
+each(eqObj, data1.values(), data2.values());
+
+@testing:case="load_when_startRow_not_a_integer", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, 1.0)
+
+@testing:case="load_when_startRow_not_a_scalar", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, [1])
+
+@testing:case="load_when_startRow<0", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, -1)
+
+@testing:case="load_when_rowNum__long", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, 0, long(0))
+
+@testing:case="load_when_rowNum_not_a_integer", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, 0, 1.9)
+
+@testing:case="load_when_rowNum_not_a_scalar", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, 0, [1])
+
+@testing:case="load_when_rowNum_not<0", exception=1
+data = mysql::load(conn, "int_year_large", mysqlSchema, 0, -1)
+
+@testing:case="loadEx_when_database_not_database", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, 11, "int_year_large", "int_year_large", "dint")
+
+@testing:case="loadEx_when_tableName _not_string", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, 11, "dint", "int_year_large")
+
+@testing:case="loadEx_when_tableName _not_scalar", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, ["int_year_large"], "dint", "int_year_large")
+
+@testing:case="loadEx_when_partitionColumns_not_set", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", , "int_year_large")
+
+@testing:case="loadEx_when_partitionColumns_not_string", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", 11, "int_year_large")
+
+@testing:case="loadEx_when_query_not_scalar", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", ["int_year_large"])
+
+@testing:case="loadEx_when_query_not_string", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", 11)
+
+@testing:case="loadEx_when_schema_not_table", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", "error_schema")
+
+@testing:case="loadEx_when_startRow _is_long", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, long(0))
+
+@testing:case="loadEx_when_startRow _not_scalar", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, [1])
+
+@testing:case="loadEx_when_startRow <0", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, -1)
+
+@testing:case="loadEx_when_rowNum_is_long", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, 0, long(1))
+
+@testing:case="loadEx_when_rowNum_not_integer", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, 0, 1.0)
+
+@testing:case="loadEx_when_rowNum<0", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, 0, -1)
+
+@testing:case="loadEx_when_rowNum_not_scalar", exception=1
+db = database("", SEQ, 4)
+data = mysql::loadEx(conn, db, "int_year_large", "dint", "int_year_large", mysqlSchema, 0, [1])
+
+@testing:case="load_when_query_not_querystr", exception=1
+data = mysql::load(conn, "table1")
+
+@testing:case="connect_multiple_thread"
+def conn(host, port, user, pwd, dbname){
+	for(i in 0:10){
+		conn = connect(host, port, user, pwd, dbname)
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("conn","",conn{host, port, user, pwd, dbname}))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="showTables_multiple_thread"
+conn = connect(host, port, user, pwd, dbname)
+def showTables1(conn){
+	for(i in 0:10){		
+		tables = showTables(conn)
+		assert 1, tables.Tables_in_DolphinDB.size()>0
+		assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("showTables","",showTables1{conn}))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="extractSchema_multiple_thread"
+def extractSchema1(conn){
+	for(i in 0:10){		
+		schema = mysql::extractSchema(conn, "allType");
+		re = select count(*) from schema
+		assert 1, re["count"] == 24
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("extractSchema","",extractSchema1,conn))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="load_multiple_thread"
+def loadtb(conn,query,expected){
+	for(i in 0:10){				
+		re = load(conn,query, , , , true)
+		assert 1,each(eqObj,re.values(),expected.values())
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("loadtb","",loadtb,conn,"select * from allType",load(conn,"select * from allType", , , , true)))
+	jobs.append!(submitJob("loadtb","",loadtb,conn,"select * from employees limit 10",load(conn,"select * from employees limit 10", , , , true)))
+	jobs.append!(submitJob("loadtb","",loadtb,conn,"symbolString",load(conn,"symbolString", , , , true)))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="loadEx_memory_multiple_thread"
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+def loadExtb(conn,db,col,table,exnum){
+	for(i in 0:2){				
+		t=loadEx(conn, db, "",col,table)
+		assert 1,t.size()==exnum
+	}
+}
+jobs=array(STRING)
+for(i in 0:2){
+	jobs.append!(submitJob("loadExtb","",loadExtb,conn,db,`dint,`int_year_largeNoNull,3000000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,conn,db,`dint,'select  * from int_year_largeNoNull',3000000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,conn,db,`dint,'select  * from int_year_largeNoNull limit 100000',100000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,conn,db,`dint,'select  * from int_year_largeNoNull where dint<=1000000',1000000))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="loadEx_dfs_multiple_thread"
+dbPath = "dfs://test_mysql_range"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+def loadExtb(conn,db,scm){
+	for(i in 0:2){					
+		loadEx(conn, db, `pt, `dint, `int_year_large, scm)
+	}
+}
+jobs=array(STRING)
+for(i in 0:2){
+	jobs.append!(submitJob("loadExtb","",loadExtb,conn,db,scm))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+pt=db.loadTable(`pt)
+assert 1, (exec count(*) from pt)==3000000*4
+
+@testing:case="showTables_multiple_thread_different_conn"
+def showTables1(host, port, user, pwd, dbname){
+	conn = connect(host, port, user, pwd, dbname)
+	for(i in 0:100){		
+		tables = showTables(conn)
+		assert 1, tables.Tables_in_DolphinDB.size()>0
+		assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("showTables","",showTables1,host, port, user, pwd, dbname))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+getRecentJobs()
+
+@testing:case="extractSchema_multiple_thread_different_conn"
+def extractSchema1(host, port, user, pwd, dbname){
+	conn = connect(host, port, user, pwd, dbname)
+	for(i in 0:10){		
+		schema = mysql::extractSchema(conn, "allType");
+		re = select count(*) from schema
+		assert 1, re["count"] == 24
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("extractSchema","",extractSchema1{host, port, user, pwd, dbname}))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="load_multiple_thread_different_conn"
+def loadtb(host, port, user, pwd, dbname,query,expected){
+	conn = connect(host, port, user, pwd, dbname)
+	for(i in 0:10){				
+		re = load(conn,query, , , , true)
+		assert 1,each(eqObj,re.values(),expected.values())
+	}
+}
+jobs=array(STRING)
+for(i in 0:5){
+	jobs.append!(submitJob("loadtb","",loadtb,host, port, user, pwd, dbname,"select * from allType",load(conn,"select * from allType", , , , true)))
+	jobs.append!(submitJob("loadtb","",loadtb,host, port, user, pwd, dbname,"select * from employees limit 10",load(conn,"select * from employees limit 10", , , , true)))
+	jobs.append!(submitJob("loadtb","",loadtb,host, port, user, pwd, dbname,"symbolString",load(conn,"symbolString", , , , true)))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="loadEx_memory_multiple_thread_different_conn"
+db = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+def loadExtb(host, port, user, pwd, dbname,db,col,table,exnum){
+	conn = connect(host, port, user, pwd, dbname)
+	for(i in 0:2){				
+		t=loadEx(conn, db, "",col,table)
+		assert 1,t.size()==exnum
+	}
+}
+jobs=array(STRING)
+for(i in 0:2){
+	jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname,db,`dint,`int_year_largeNoNull,3000000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname,db,`dint,'select  * from int_year_largeNoNull',3000000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname,db,`dint,'select  * from int_year_largeNoNull limit 100000',100000))
+	jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname,db,`dint,'select  * from int_year_largeNoNull where dint<=1000000',1000000))
+}
+for(job in jobs){
+	getJobReturn(job,1)
+}
+getRecentJobs()
+
+@testing:case="loadEx_dfs_multiple_thread_different_conn"
+dbPath = "dfs://test_mysql_range1"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+dbPath = "dfs://test_mysql_range2"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+def loadExtb(host, port, user, pwd, dbname,dbPath,scm){
+	conn = connect(host, port, user, pwd, dbname)
+	db=database(dbPath)
+	loadEx(conn, db, `pt, `dint, `int_year_large, scm)
+}
+jobs=array(STRING)
+jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname, "dfs://test_mysql_range1",scm))
+jobs.append!(submitJob("loadExtb","",loadExtb,host, port, user, pwd, dbname, "dfs://test_mysql_range2",scm))
+
+for(job in jobs){
+	getJobReturn(job,1)
+}
+pt=loadTable("dfs://test_mysql_range1",`pt)
+assert 1, (exec count(*) from pt)==3000000
+pt=loadTable("dfs://test_mysql_range2",`pt)
+assert 2, (exec count(*) from pt)==3000000
+
+@testing:case="load_longString"
+res=mysql::load(conn,"select * from longString")
+ex=loadText(DATA_DIR+"/longString.csv",'|')
+assert 1,each(eqObj,res.values(),ex.values())
+
+@testing:case="loadEx_longString"
+dbPath = "dfs://loadEx_longString"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH,[SYMBOL,4])
+scm = table(`text`blob`longtext as name, `STRING`SYMBOL`SYMBOL as type)
+loadEx(conn, db, `pt, `blob,`longString , scm)
+
+res=select * from loadTable(dbPath,`pt)
+ex=loadText(DATA_DIR+"/longString.csv",'|')
+assert 1,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_mysql_after_close_prepare"
+conn = connect(host, port, user, pwd, dbname)
+for(i in 0:10){
+	close(conn)
+}
+
+@testing:case="test_mysql_showTables_after_close",exception=1
+mysql::showTables(conn)
+
+@testing:case="test_mysql_extractSchema_after_close",exception=1
+mysql::extractSchema(conn,`int_year_large)
+
+@testing:case="test_mysql_load_after_close",exception=1
+data = mysql::load(conn, "int_year_large")
+
+@testing:case="test_mysql_loadEx_after_close",exception=1
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+
+@testing:case="test_mysql_conn_after_close"
+conn = connect(host, port, user, pwd, dbname)
+
+@testing:case="test_mysql_showTables_without_conn",exception=1
+undef(`conn)
+go
+mysql::showTables(conn)
+
+@testing:case="test_mysql_extractSchema_without_conn",exception=1
+mysql::extractSchema(conn,`int_year_large)
+
+@testing:case="test_mysql_load_without_conn",exception=1
+data = mysql::load(conn, "int_year_large")
+
+@testing:case="test_mysql_loadEx_without_conn",exception=1
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+
+/**********************loadEx   tsdb***************************/
+@testing:case="loadEx_tsdb_without_sortColumns", exception=1
+conn = connect(host, port, user, pwd, dbname)
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 500 1001,,'TSDB')
+loadEx(conn, db, `pt, `dint, "select * from int_year_small")
+
+@testing:case="loadEx_olap_with_sortColumns", exception=1
+dbPath = "dfs://test_mysql_olap"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE, 0 500 1001)
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,`dint)
+
+@testing:case="loadEx_olap_with_keepDuplicates", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,LAST)
+
+@testing:case="loadEx_olap_with_sortKeyMappingFunction", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,,[hashBucket{,5}])
+
+@testing:case="loadEx_tsdb_sortColumns_not_exist", exception=1
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE,  0 50000 100001,,'TSDB')
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dint1)
+
+@testing:case="loadEx_tsdb_sortColumns_empty", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,[])
+
+@testing:case="loadEx_tsdb_sortColumns_error_type", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`ddouble)
+
+@testing:case="loadEx_tsdb_keepDuplicates_error", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dint,symbol)
+
+@testing:case="loadEx_tsdb_keepDuplicates_string", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dint,`ALL)
+
+@testing:case="loadEx_tsdb_sortKeyMappingFunction_length_shorter_than_ex", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dtime`dint`ddate,,[hashBucket{,5}])
+
+@testing:case="loadEx_tsdb_sortKeyMappingFunction_length_longer_than_ex", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dint`ddate,,[hashBucket{,5},hashBucket{,5},hashBucket{,5}])
+
+@testing:case="loadEx_tsdb_sortColumns"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, RANGE,  0 50000 100001,,'TSDB')
+//one sortcolumns
+loadEx(conn, db, `pt, `dint, "select * from int_year_small  ",,,,,`dint)
+pt=db.loadTable(`pt)
+ex=load(conn,  "select * from int_year_small")
+res=select * from pt
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj ,res.values(),ex.values())
+//two sortcolumns
+loadEx(conn, db, `pt1, `dint, "int_year_small",,,,,`ddate`dint)
+pt1=db.loadTable(`pt1)
+ex=load(conn,  "select * from int_year_small")
+res=select * from pt1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 2, each(eqObj ,res.values(),ex.values())
+//three sortcolumns
+loadEx(conn, db, `pt2, `dint, "int_year_small",,,,,`ddate`dint`dtime)
+pt1=db.loadTable(`pt2)
+ex=load(conn,  "select * from int_year_small")
+res=select * from pt1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 3, each(eqObj ,res.values(),ex.values())
+
+@testing:case="loadEx_tsdb_keepDuplicates"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+loadEx(conn, db, `pt2, `emp_no, "employees",,,,,`emp_no`gender`hire_date,ALL)
+loadEx(conn, db, `pt3, `emp_no, "employees",,,,,`emp_no`gender`hire_date,FIRST)
+loadEx(conn, db, `pt4, `emp_no, "employees",,,,,`emp_no`gender`hire_date,LAST)
+
+ex1=load(conn,  "select * from employees")
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt3)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 2, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt4)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],LAST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 3, each(eqObj ,res.values(),ex.values())
+
+@testing:case="loadEx_tsdb_sortKeyMappingFunction"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+mysql::loadEx(conn, db, `pt1, `emp_no, "employees",,,,,`emp_no`hire_date,,[hashBucket{,3}])
+mysql::loadEx(conn, db, `pt2, `emp_no, "employees",,,,,`emp_no`gender`hire_date,ALL,[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn, db, `pt3, `emp_no, "employees",,,,,`emp_no`gender`hire_date,FIRST,[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn, db, `pt4, `emp_no, "employees",,,,,`emp_no`gender`hire_date,LAST,[hashBucket{,3},hashBucket{,6}])
+
+ex1=load(conn,  "select * from employees")
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 2, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt3)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 3, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt4)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],LAST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 4, each(eqObj ,res.values(),ex.values())
+
+@testing:case="loadEx_tsdb_bigdata"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db1 = database("", VALUE,2019.01.18..2019.01.19 )
+db2 = database("", RANGE, 0 50000 1000000 1500000 2000000 2500000 3000001)
+db = database(dbPath, COMPO, [db1,db2],,'TSDB')
+scm = table(`dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear as name, `INT`SHORT`SHORT`INT`LONG`FLOAT`DOUBLE`DOUBLE`DATE`DATETIME`TIMESTAMP`TIME`STRING as type)
+t = loadEx(conn, db, "pt", `ddate`dint, `int_year_large, scm,0,3000000,,`dint`ddate,,[hashBucket{,5}])
+assert 1, (exec count(*) from loadTable(dbPath,`pt))==3000000
+
+@testing:case="loadEx_tsdb_multiple_thread"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,21],,'TSDB')
+def loadTsdb(conn, db, tbName, partitionColumns, table_or_query,sortColumns,keepDuplicates,sortKeyMappingFunction){
+	mysql::loadEx(conn, db, tbName, partitionColumns, table_or_query,,,,,sortColumns,keepDuplicates,sortKeyMappingFunction)
+}
+jobs=array(STRING)
+jobs.append!(submitJob("job1","",loadTsdb,conn, db, `pt1, `emp_no, "employees",`emp_no`hire_date,,[hashBucket{,5}]))
+jobs.append!(submitJob("job1","",loadTsdb,conn, db, `pt2, `emp_no, "employees",`emp_no`gender`hire_date,ALL,))
+jobs.append!(submitJob("job1","",loadTsdb,conn, db, `pt3, `emp_no, "employees",`emp_no`gender`hire_date,FIRST,[hashBucket{,5},hashBucket{,10}]))
+jobs.append!(submitJob("job1","",loadTsdb,conn, db, `pt4, `emp_no, "employees",`emp_no`gender`hire_date,LAST,[hashBucket{,5},hashBucket{,10}]))
+for(job in jobs){
+	getJobReturn(job,1)
+}
+ex1=load(conn,  "select * from employees")
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 2, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt3)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 3, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt4)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],LAST)==false
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 4, each(eqObj ,res.values(),ex.values())
+
+
+/***************decimal test****************/
+@testing:case="test_mysql_load_decimal_schema_decimal_to_int",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`INT
+res = mysql::load(conn, "test_decimal",schema)
+
+@testing:case="test_mysql_load_decimal_schema_decimal_to_string",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`STRING where type like "DECIMAL%"
+res = mysql::load(conn, "test_decimal",schema)
+
+@testing:case="test_mysql_load_decimal_schema_decimal_to_float",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`FLOAT where type like "DECIMAL%"
+res = mysql::load(conn, "test_decimal",schema)
+
+@testing:case="test_mysql_load_decimal_schema_DECIMAL32_to_DECIMAL64"//,exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+update schema set type=["INT","DECIMAL64","DECIMAL64","DECIMAL64","DECIMAL64","DECIMAL128","DECIMAL128"]
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL64(0),DECIMAL64(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38)
+
+@testing:case="test_mysql_load_decimal_schema_DECIMAL64_to_DECIMAL32",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+update schema set type=["INT","DECIMAL32","DECIMAL32","DECIMAL32","DECIMAL64","DECIMAL128","DECIMAL128"]
+res = mysql::load(conn, "test_decimal",schema)
+
+@testing:case="test_mysql_load_decimal_schema_DECIMAL64_to_DECIMAL128"//,exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+update schema set type=["INT","DECIMAL32","DECIMAL32","DECIMAL128","DECIMAL64","DECIMAL128","DECIMAL128"]
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL128(5),DECIMAL128(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38)
+
+@testing:case="test_mysql_load_decimal_schema_DECIMAL128_to_DECIMAL64",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+update schema set type=["INT","DECIMAL32","DECIMAL32","DECIMAL64","DECIMAL64","DECIMAL64","DECIMAL32"]
+res = mysql::load(conn, "test_decimal",schema)
+
+@testing:case="test_mysql_load_decimal"
+//include null
+res = mysql::load(conn, "test_decimal")
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38)
+
+// null
+res = mysql::load(conn, "select * from test_decimal limit 1")
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+assert 7,each(eqObj,res.values(),ex.values())
+
+//without null
+res = mysql::load(conn, "select * from test_decimal where id !=1")
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 8,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_mysql_load_decimal_schema_extractSchema"
+//DECIMAL TO DECIMAL
+schema=mysql::extractSchema(conn, `test_decimal)
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 0,schema.type==`INT "DECIMAL32(0)" "DECIMAL32(4)" "DECIMAL64(5)" "DECIMAL64(10)" "DECIMAL128(10)" "DECIMAL128(30)"
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38) 
+//DECIMAL TO DOUBLE
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 7,each(eqObj,res.values(),ex.values(),6)
+
+@testing:case="test_mysql_load_decimal_schema_extractSchema2"
+//DECIMAL TO DECIMAL
+schema=mysql::extractSchema(conn, `test_decimal)
+update schema set type = ["INT", "DECIMAL32", "DECIMAL32", "DECIMAL64", "DECIMAL64", "DECIMAL128", "DECIMAL128"]
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38) 
+//DECIMAL TO DOUBLE
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+res = mysql::load(conn, "test_decimal",schema)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 7,each(eqObj,res.values(),ex.values(),6)
+
+@testing:case="loadEx_tsdb_deicmal"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt", `id, `test_decimal, ,0,,,`id)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL32(0),DECIMAL32(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+//decimal to double 
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id)
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 2,each(eqObj,(select * from loadTable(dbPath,`pt2)).values(),ex.values(),6)
+
+/*******************************mysql::close(conn)**************************/
+@testing:case="test_mysql_close_args_more_than_2",syntaxError=1
+mysql::close(conn,)
+
+@testing:case="test_mysql_close_empty",exception=1
+mysql::close()
+
+@testing:case="test_mysql_mysql::close_socket",exception=1
+mysql::close(socket)
+
+@testing:case="test_mysql_close_NULL",exception=1
+mysql::close(NULL)
+
+@testing:case="test_mysql_close_string",exception=1
+mysql::close(`conn)
+
+@testing:case="test_mysql_close_int",exception=1
+mysql::close(1)
+
+@testing:case="test_mysql_close_vector",exception=1
+mysql::close([conn])
+
+@testing:case="test_mysql_close_after_close()",exception=1
+conn = connect(host, port, user, pwd, dbname)
+close(conn)
+mysql::close(conn)
+
+@testing:case="test_mysql_conn_close_multiple_times"
+for(i in 0:100){
+	conn = connect(host, port, user, pwd, dbname)
+	mysql::close(conn)
+}
+
+@testing:case="test_mysql_close_multiple_times",exception=1
+conn = connect(host, port, user, pwd, dbname)
+mysql::close(conn)
+mysql::close(conn)
+
+@testing:case="test_mysql_close_multiple_thread"
+def multiple_thread_close(host, port, user, pwd, dbname){
+	for(i in 0:100){
+		conn =mysql::connect(host, port, user, pwd, dbname)
+		mysql::close(conn)
+	}
+}
+
+jobs=array(STRING)
+jobs.append!(submitJob("job1","",multiple_thread_close{host, port, user, pwd, dbname}))
+jobs.append!(submitJob("job1","",multiple_thread_close{host, port, user, pwd, dbname}))
+jobs.append!(submitJob("job1","",multiple_thread_close{host, port, user, pwd, dbname}))
+
+for(job in jobs){
+	getJobReturn(job,1)
+}
+
+@testing:case="test_mysql_showTables_after_mysql::close",exception=1
+conn = connect(host, port, user, pwd, dbname)
+mysql::close(conn)
+mysql::showTables(conn)
+
+@testing:case="test_mysql_extractSchema_after_mysql::close",exception=1
+mysql::extractSchema(conn,`int_year_large)
+
+@testing:case="test_mysql_load_after_mysql::close",exception=1
+data = mysql::load(conn, "int_year_large")
+
+@testing:case="test_mysql_loadEx_after_mysql::close",exception=1
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+
+// add case
+@testing:case = "test_mysql_add_case_connect"
+conn = connect(host, port, user, pwd, dbname)
+
+@testing:case = "test_mysql_load_schema_one_col", exception = 1
+schema = table(`name as name, `STRING as type)
+t = load(conn, `allType, schema)
+
+@testing:case = "test_mysql_load_schema_type_any", exception = 1
+schema = table(`name as name, `ANY as type)
+t = load(conn, `allType, schema)
+
+@testing:case = "test_mysql_loadEx_sortKeyMappingFunction_type_any", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,,(1,"a",2,3,4,5))
+
+@testing:case = "test_mysql_loadEx_sortKeyMappingFunction_scalar", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,,1)
+
+@testing:case = "test_mysql_loadEx_sortKeyMappingFunction_matrix", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,,1..6$2:3)
+
+@testing:case = "test_mysql_loadEx_sortKeyMappingFunction_int_vector", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,,1..6)
+
+@testing:case = "test_mysql_loadEx_keepDuplicates_int_vector", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,1..6)
+
+@testing:case = "test_mysql_loadEx_keepDuplicates_int_matrix", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,`id,1..6$2:3)
+
+@testing:case = "test_mysql_loadEx_sortColumns_string_matrix", exception = 1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`DOUBLE where type like "DECIMAL%"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,'TSDB')
+t = loadEx(conn, db, "pt2", `id, `test_decimal,table(schema.name,schema.type) ,0,,,[`id]$1:1)
+
+@testing:case="loadEx_olap_with_sortColumns2", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,dict([1],[`2]))
+
+@testing:case="loadEx_olap_with_keepDuplicates2", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,[1])
+
+@testing:case="loadEx_olap_with_sortKeyMappingFunction2", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,,[1,`a])
+
+@testing:case="loadEx_olap_with_sortKeyMappingFunction3", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,,1)
+
+@testing:case="loadEx_olap_with_sortKeyMappingFunction4", exception=1
+loadEx(conn, db, `pt, `dint, "select * from int_year_small",,,,,,,dict([1,2,3],[4,5,`6]))
+
+@testing:case="test_mysql_load_decimal_schema2",exception=1
+schema=mysql::extractSchema(conn, `test_decimal)
+UPDATE schema set type=`INT
+res = mysql::load(conn, "test_decimal",select name from schema)
+
+@testing:case = "more_test"
+re = mysql::extractSchema(conn,"datetime_examples")
+assert 1, re.name == `id`date_column`time_column`datetime_column`timestamp_column`year_column
+assert 2, re.type == `INT`DATE`TIME`DATETIME`TIMESTAMP`INT
+res = mysql::load(conn, "datetime_examples")
+ex = table(10:0, `id`date_column`time_column`datetime_column`timestamp_column`year_column, [INT, DATE, TIME, DATETIME, TIMESTAMP, INT])
+insert into ex values(1, NULL, NULL, NULL, NULL,NULL)
+assert 3, each(eqObj, res.values(), ex.values())
+
+re = mysql::extractSchema(conn,"blob_examples")
+assert 4, re.name == `id`tinyblob_column`mediumblob_column`longblob_column
+assert 5, re.type == `INT`STRING`STRING`STRING
+res = mysql::load(conn, "blob_examples")
+ex = table(10:0, `id`tinyblob_column`mediumblob_column`longblob_column, [INT, BLOB, BLOB, BLOB])
+insert into ex values(1, NULL, NULL, NULL)
+assert 6, each(eqObj, res.values(), ex.values())
+
+re = mysql::extractSchema(conn,"boolean_examples")
+assert 7, re.name == `id`bool_column
+assert 8, re.type == `INT`CHAR
+res = mysql::load(conn, "boolean_examples")
+ex = table(10:0, `id`bool_column, [INT, CHAR])
+insert into ex values(1, NULL)
+insert into ex values(2, 1)
+insert into ex values(3, 0)
+assert 9, each(eqObj, res.values(), ex.values())
+
+re = mysql::extractSchema(conn,"time_milliseconds")
+assert 10, re.name == `id`datetime_millisec`timestamp_millisec
+assert 11, re.type == `INT`DATETIME`TIMESTAMP
+res = mysql::load(conn, "time_milliseconds")
+ex = table(10:0, `id`datetime_millisec`timestamp_millisec, [INT, DATETIME, TIMESTAMP])
+insert into ex values (1, 2024.03.26 12:34:56, 2024.03.26 12:34:56.789);
+//assert 12, each(eqObj, res.values(), ex.values())
+
+re = mysql::extractSchema(conn,"time_microseconds")
+assert 13, re.name == `id`datetime_microsec`timestamp_microsec
+assert 14, re.type == `INT`DATETIME`TIMESTAMP
+res = mysql::load(conn, "time_microseconds")
+ex = table(10:0, `id`datetime_microsec`timestamp_microsec, [INT, DATETIME, TIMESTAMP])
+insert into ex values (1, 2024.03.26 12:34:56.789, 2024.03.26 12:34:56.789);
+assert 15, each(eqObj, res.values(), ex.values())
+
+re = mysql::extractSchema(conn,"time_example")
+assert 16, re.name == `id`time_micro
+assert 17, re.type == `INT`TIME
+res = mysql::load(conn, "time_example")
+ex = table(10:0, `id`time_micro, [INT, TIME])
+insert into ex values (1, 18:05:24.123456);
+assert 18, each(eqObj, res.values(), ex.values())
+
+// https://dolphindb1.atlassian.net/browse/DPLG-2188
+@testing:case = "test_mysql_decimal_extraSchema"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+assert 1, schema.name == `id`decimal32`decimal64`decimal128
+assert 2, schema.type == [`INT, "DECIMAL64(8)", "DECIMAL128(10)", "DECIMAL128(20)"]
+
+@testing:case = "test_mysql_decimal_load_without_schema_1"
+res = mysql::load(conn, "test_decimal")
+ex=table(10:0,`id`decimal1`decimal9`decimal10`decimal18`decimal19`decimal38,[INT,DECIMAL64(0),DECIMAL64(4),DECIMAL64(5),DECIMAL64(10),DECIMAL128(10),DECIMAL128(30)])
+insert into ex values(1,,,,,,)
+insert into ex values(2,0,0,0,0,0,0)
+insert into ex values(3,1,decimal32("1.111",4),decimal64("1.111",5),decimal64("1.111",10),decimal128("1.111",10),decimal128("1.111",30))
+insert into ex values(4,-3,decimal32("-9.99",4),decimal64("-9.99",5),decimal64("-9.99",10),decimal128("-9.99",10),decimal128("-9.99",30))
+insert into ex values(5,9,decimal32("55555.5555",4),decimal64("55555.55555",5),decimal64("55555555.5555555555",10),decimal128("555555555.5555555555",10),decimal128("55555555.550000000000000000000000000000",30))
+assert 1,eqObj(res.decimal1,ex.decimal1)
+assert 2,eqObj(res.decimal9,ex.decimal9)
+assert 3,eqObj(res.decimal10,ex.decimal10)
+assert 4,eqObj(res.decimal18,ex.decimal18)
+assert 5,eqObj(res.decimal19,ex.decimal19)
+assert 6,eqObj(res.decimal38,ex.decimal38)
+
+@testing:case = "test_mysql_decimal_load_without_schema_2"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+res = mysql::load(conn, "select * from test_decimal_overflow limit 2")
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_load_without_schema_3"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+insert into ex values(3, NULL, NULL, NULL);
+res = mysql::load(conn, "test_decimal_overflow", , 0, 3, true)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_load_without_schema_overflow", exception = 1
+res = mysql::load(conn, "test_decimal_overflow")
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_without_schema_1"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "select * from test_decimal_overflow limit 2")
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_without_schema_2"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow",,0,3)
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+insert into ex values(3, NULL, NULL, NULL);
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_without_schema_overflow", exception = 1
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow")
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_without_schema_1"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+t = loadEx(conn, db, "pt", `id, "select * from test_decimal_overflow limit 2",,,,,`id)
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_without_schema_2"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow",,0,3,,`id)
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal64("-0.99999999", 8), decimal128("-0.9999999999", 10), decimal128("-0.99999999999999999999", 20));
+insert into ex values(2, decimal64("123.1234567", 8), decimal128("123456789.123456789", 10), decimal128("123456789012345678.123456789012345678", 20));
+insert into ex values(3, NULL, NULL, NULL);
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_without_schema_overflow", exception = 1
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow",,,,,`id)
+
+@testing:case = "test_mysql_decimal_load_with_schema_1"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+res = mysql::load(conn, "select * from test_decimal_overflow limit 2",schema)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_load_with_schema_2"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+res = mysql::load(conn, "test_decimal_overflow",schema, 0, 3, true)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_load_with_schema_overflow"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+insert into ex values(4, decimal32("1234.12345678", 5), decimal64("1234567890.1234567891", 8), decimal128("12345678901234567890.12345678901234567891", 16));
+res = mysql::load(conn, "test_decimal_overflow", schema)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_with_schema_1"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "select * from test_decimal_overflow limit 2", schema)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_with_schema_2"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow",schema,0,3)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_OLAP_with_schema_overflow"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow", schema)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-0.99999999", 5), decimal64("-0.9999999999", 8), decimal128("-0.99999999999999999999", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+insert into ex values(4, decimal32("1234.12345678", 5), decimal64("1234567890.1234567891", 8), decimal128("12345678901234567890.12345678901234567891", 16));
+res = mysql::load(conn, "test_decimal_overflow", schema)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_with_schema_1"
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+t = loadEx(conn, db, "pt", `id, "select * from test_decimal_overflow limit 2",schema,,,,`id)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-1.00000", 5), decimal64("-1.00000000", 8), decimal128("-1.0000000000000000", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_without_schema_2"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow",schema,0,3,,`id)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-1.00000", 5), decimal64("-1.00000000", 8), decimal128("-1.0000000000000000", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+assert 1,each(eqObj,(select * from loadTable(dbPath,`pt)).values(),ex.values())
+
+@testing:case = "test_mysql_decimal_loadEx_TSDB_without_schema_overflow"
+schema=mysql::extractSchema(conn, `test_decimal_overflow)
+update schema set type=["INT","DECIMAL32(5)","DECIMAL64(8)","DECIMAL128(16)"]
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath,  VALUE, 1..5,,`TSDB)
+t = loadEx(conn, db, "pt", `id, "test_decimal_overflow", schema,,,,`id)
+ex = table(1:0, schema.name, schema.type)
+insert into ex values(1, decimal32("-1.00000", 5), decimal64("-1.00000000", 8), decimal128("-1.0000000000000000", 16));
+insert into ex values(2, decimal32("123.1234567", 5), decimal64("123456789.123456789", 8), decimal128("123456789012345678.123456789012345678", 16));
+insert into ex values(3, NULL, NULL, NULL);
+insert into ex values(4, decimal32("1234.12345678", 5), decimal64("1234567890.1234567891", 8), decimal128("12345678901234567890.12345678901234567891", 16));
+res = mysql::load(conn, "test_decimal_overflow", schema)
+assert 1, eqObj(res.decimal32,ex.decimal32)
+assert 2, eqObj(res.decimal64,ex.decimal64)
+assert 3, eqObj(res.decimal128,ex.decimal128)
+
+// https://dolphindb1.atlassian.net/browse/DPLG-4419
+@testing:case="test_mysql_getLogLevel_default"
+assert 1, eqObj(mysql::getLogLevel(), getConfig("logLevel"))
+
+@testing:case="test_function_mysql_setLogLevel_empty",exception=1
+mysql::setLogLevel()
+
+@testing:case="test_function_mysql_setLogLevel_arg_over",syntaxError=1
+mysql::setLogLevel(INFO, 2)
+
+@testing:case="test_function_mysql_setLogLevel_other_saclar_1",exception=1
+mysql::setLogLevel(true)
+
+@testing:case="test_function_mysql_setLogLevel_other_saclar_2",exception=1
+mysql::setLogLevel(DOUBLE)
+
+@testing:case="test_function_mysql_setLogLevel_vector",exception=1
+mysql::setLogLevel([INFO, INFO])
+
+@testing:case="test_function_mysql_setLogLevel_pair",exception=1
+mysql::setLogLevel(INFO:INFO)
+
+@testing:case="test_function_mysql_setLogLevel_matrix",exception=1
+mysql::setLogLevel(1..6$2:3)
+
+@testing:case="test_function_mysql_setLogLevel_set",exception=1
+mysql::setLogLevel(set(1 2 3))
+
+@testing:case="test_function_mysql_setLogLevel_dict",exception=1
+mysql::setLogLevel(dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_mysql_setLogLevel_table",exception=1
+mysql::setLogLevel(table(1 2 3 as x))
+
+@testing:case="test_function_mysql_getLogLevel_arg_over",syntaxError=1
+mysql::getLogLevel(1)
+
+@testing:case="test_function_mysql_getLogLevel_setLogLevel_multi_times"
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	mysql::setLogLevel(logLevel)
+	ans = mysql::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_function_mysql_getLogLevel_setLogLevel_multi_jobs"
+def submitJob_set(){
+	for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+		mysql::setLogLevel(logLevel)
+	}
+}
+
+def submitJob_get(){
+	for(i in 1..1000){
+		ans = mysql::getLogLevel()
+		assert 1, ans in ["DEBUG", "INFO", "WARNING", "ERROR"]
+	}
+}
+
+job1 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job2 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job3 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+job4 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+getJobReturn(job4, true)
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	mysql::setLogLevel(logLevel)
+	ans = mysql::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_mysql_setLogLevel_default"
+if(getConfig("logLevel")=="DEBUG"){set = DEBUG}
+if(getConfig("logLevel")=="INFO"){set = INFO}
+if(getConfig("logLevel")=="WARNING"){set = WARNING}
+if(getConfig("logLevel")=="ERROR"){set = ERROR}
+mysql::setLogLevel(set)
+assert 1, eqObj(mysql::getLogLevel(), getConfig("logLevel"))
+
+// https://dolphindb1.atlassian.net/browse/DPLG-4480
+@testing:case="test_mysql_syntax"
+assert 1, syntax(mysql::connect) == "connect(host, port, user, password, db, [config])"
+assert 2, syntax(mysql::close) == "close(conn)"
+assert 3, syntax(mysql::load) == "load(conn, table|query, [schema], [startRow], [rowNum], [allowEmptyTable])"
+assert 4, syntax(mysql::loadEx) == "loadEx(conn, dbHandle, tableName, partitionColumns, table|query, [schema], [startRow], [rowNum], [transform], [sortColumns], [keepDuplicates], [sortKeyMappingFunction])"
+assert 5, syntax(mysql::extractSchema) == "extractSchema(conn, tableName)"
+assert 6, syntax(mysql::showTables) == "showTables(conn)"
+
+@testing:case="test_mysql_keyword_connect"
+conn = mysql::connect(host=host, port=port, user=user, password=pwd, db=dbname)
+conn = mysql::connect(host, port, user, password=pwd, db=dbname)
+
+@testing:case="test_mysql_keyword_showTables"
+tables = mysql::showTables(conn=conn)
+assert 1, tables.Tables_in_DolphinDB.size()>0
+assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+@testing:case="test_mysql_keyword_extractSchema"
+scm=mysql::extractSchema(conn=conn,tableName=`testNew)
+assert 1,scm.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 2,scm.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+scm2=extractSchema(conn,tableName=`testNew)
+assert 3,scm2.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 4,scm2.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+
+@testing:case="test_mysql_keyword_load"
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+re= load(conn = conn, query="select * from table_bit ", schema=scm, startRow=0, rowNum=100, allowEmptyTable=true)
+ex=select *  from loadTable(dbPath,`pt)
+assert 1,each(eqObj,ex.values(),re.values())
+re= load(conn, "select * from table_bit ", scm, startRow=0, rowNum=100, allowEmptyTable=true)
+assert 2,each(eqObj,ex.values(),re.values())
+re= load(conn = conn, table="select * from table_bit ", schema=scm, startRow=0, rowNum=100, allowEmptyTable=true)
+assert 3,each(eqObj,ex.values(),re.values())
+re= load(conn = conn, table="table_bit ", schema=scm, startRow=0, rowNum=100, allowEmptyTable=true)
+assert 4,each(eqObj,ex.values(),re.values())
+dropDB(dbPath)
+
+@testing:case="test_mysql_keyword_loadEx"
+def replaceTable(mutable t){
+	return t.replaceColumn!(`emp_no,t[`emp_no]+1)
+}
+ex1=mysql::load(conn,  "select * from employees")
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+mysql::loadEx(conn=conn, dbHandle=db, tableName=`pt1, partitionColumns=`emp_no, table="employees",sortColumns=`emp_no`hire_date,sortKeyMappingFunction=[hashBucket{,3}])
+mysql::loadEx(conn, db, `pt2, `emp_no, "employees",sortColumns=`emp_no`gender`hire_date,keepDuplicates=ALL,sortKeyMappingFunction=[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn=conn, dbHandle=db, tableName=`pt3, partitionColumns=`emp_no, query="select * from employees",schema=ex1.schema().colDefs,startRow=0,rowNum=10000,transform=replaceTable,sortColumns=`emp_no`gender`hire_date,keepDuplicates=FIRST,sortKeyMappingFunction=[hashBucket{,3},hashBucket{,6}])
+
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 1, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 2, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt3)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+ex[`emp_no] = ex[`emp_no]+1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 3, each(eqObj ,res.values(),ex.values())
+dropDB(dbPath)
+
+@testing:case="test_mysql_keyword_connect_spell_error", syntaxError =1
+conn = mysql::connect(host=host, port=port, user=user, passwor1d=pwd, db=dbname)
+
+@testing:case="test_mysql_keyword_close", syntaxError =1
+mysql::close(connect=conn)
+
+@testing:case="test_mysql_keyword_showTables", syntaxError =1
+tables = mysql::showTables(connect=conn)
+
+@testing:case="test_mysql_keyword_extractSchema", syntaxError =1
+scm=mysql::extractSchema(conn=conn,tbName=`testNew)
+
+@testing:case="test_mysql_keyword_load", syntaxError =1
+re= load(conn = conn, querys="select * from table_bit ", schema=scm, startRow=0, rowNum=100, allowEmptyTable=true)
+
+@testing:case="test_mysql_keyword_close"
+mysql::close(conn=conn)
+
+
+// https://dolphindb1.atlassian.net/browse/DPLG-5159
+@testing:case = "test_mysql_connect_config_int", exception = 1
+conn = mysql::connect(host, port, user, pwd, dbname, 1)
+
+@testing:case = "test_mysql_connect_config_double", exception = 1
+conn = mysql::connect(host, port, user, pwd, dbname, 1.1)
+
+@testing:case = "test_mysql_connect_config_string", exception = 1
+conn = mysql::connect(host, port, user, pwd, dbname, `aaa)
+
+@testing:case = "test_mysql_connect_config_vector", exception = 1
+conn = mysql::connect(host, port, user, pwd, dbname, [true, true])
+
+@testing:case = "test_mysql_connect_config_table", exception = 1
+conn = mysql::connect(host, port, user, pwd, dbname, table(true as SSL_ENFORCE, true as SSL_VERIFY_SERVER_CERT))
+
+@testing:case = "test_mysql_connect_config_error_key"
+config = dict(STRING, ANY)
+config["ssl"] = false
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+mysql::close(conn)
+
+
+@testing:case = "test_mysql_connect_config_empty"
+conn = mysql::connect(host, port, user, pwd, dbname, dict(STRING, ANY))
+mysql::close(conn)
+
+conn = mysql::connect(host, port, user, pwd, dbname, NULL)
+mysql::close(conn)
+
+
+@testing:case = "test_mysql_connect_config_SSL_ENFORCE_value_not_support", exception = 1
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = 111
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+@testing:case = "test_mysql_connect_config_SSL_VERIFY_SERVER_CERT_value_not_support", exception = 1
+config = dict(STRING, ANY)
+config["SSL_VERIFY_SERVER_CERT"] = `111
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+@testing:case = "test_mysql_connect_config_SSL_false_VERIFY_true", exception = 1
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = false
+config["SSL_VERIFY_SERVER_CERT"] = true
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+@testing:case = "test_mysql_connect_config_SSL_true_VERIFY_true_no_certifi", exception = 1
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = true
+config["SSL_VERIFY_SERVER_CERT"] = true
+conn = mysql::connect("192.168.1.37", 3306, "root", "DolphinDB123", `DolphinDB, config)
+
+
+@testing:case = "test_mysql_connect_config_SSL_true_VERIFY_false"
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = true
+config["SSL_VERIFY_SERVER_CERT"] = false
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+// showTables
+tables = mysql::showTables(conn)
+assert 1, tables.Tables_in_DolphinDB.size()>0
+assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+// extractSchema
+scm = extractSchema(conn, `allType)
+assert 3, scm.name == `dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum
+assert 4, scm.type == `INT`CHAR`SHORT`INT`LONG`FLOAT`DOUBLE "DECIMAL64(3)" `DATE`DATETIME`TIMESTAMP`TIME`INT`SYMBOL`SYMBOL`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING`SYMBOL
+scm=extractSchema(conn,`testNew)
+assert 5,scm.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 6,scm.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+
+// load
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+re= load(conn, "select * from table_bit ", scm, 0, 100, true)
+ex=select * from loadTable(dbPath,`pt)
+assert 7,each(eqObj,ex.values(),re.values())
+re= load(conn, "table_bit ", scm, 0, 100, true)
+assert 8,each(eqObj,ex.values(),re.values())
+dropDB(dbPath)
+
+// loadEx
+def replaceTable(mutable t){
+	return t.replaceColumn!(`emp_no,t[`emp_no]+1)
+}
+ex1=mysql::load(conn,  "select * from employees")
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+mysql::loadEx(conn, db, `pt1, `emp_no, "employees",,,,,`emp_no`gender`hire_date,ALL,[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn, db, `pt2, `emp_no, "select * from employees",ex1.schema().colDefs,0,10000,replaceTable,`emp_no`gender`hire_date,FIRST,[hashBucket{,3},hashBucket{,6}])
+
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 9, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+ex[`emp_no] = ex[`emp_no]+1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 10, each(eqObj ,res.values(),ex.values())
+dropDB(dbPath)
+
+// close
+mysql::close(conn)
+
+
+@testing:case = "test_mysql_connect_config_SSL_false_VERIFY_false"
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = false
+config["SSL_VERIFY_SERVER_CERT"] = false
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+// showTables
+tables = mysql::showTables(conn)
+assert 1, tables.Tables_in_DolphinDB.size()>0
+assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+// extractSchema
+scm = extractSchema(conn, `allType)
+assert 3, scm.name == `dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum
+assert 4, scm.type == `INT`CHAR`SHORT`INT`LONG`FLOAT`DOUBLE "DECIMAL64(3)" `DATE`DATETIME`TIMESTAMP`TIME`INT`SYMBOL`SYMBOL`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING`SYMBOL
+scm=extractSchema(conn,`testNew)
+assert 5,scm.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 6,scm.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+
+// load
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+re= load(conn, "select * from table_bit ", scm, 0, 100, true)
+ex=select * from loadTable(dbPath,`pt)
+assert 7,each(eqObj,ex.values(),re.values())
+re= load(conn, "table_bit ", scm, 0, 100, true)
+assert 8,each(eqObj,ex.values(),re.values())
+dropDB(dbPath)
+
+// loadEx
+def replaceTable(mutable t){
+	return t.replaceColumn!(`emp_no,t[`emp_no]+1)
+}
+ex1=mysql::load(conn,  "select * from employees")
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+mysql::loadEx(conn, db, `pt1, `emp_no, "employees",,,,,`emp_no`gender`hire_date,ALL,[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn, db, `pt2, `emp_no, "select * from employees",ex1.schema().colDefs,0,10000,replaceTable,`emp_no`gender`hire_date,FIRST,[hashBucket{,3},hashBucket{,6}])
+
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 9, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+ex[`emp_no] = ex[`emp_no]+1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 10, each(eqObj ,res.values(),ex.values())
+dropDB(dbPath)
+
+// close
+mysql::close(conn)
+
+
+@testing:case = "test_mysql_connect_config_SSL_true_VERIFY_true"
+config = dict(STRING, ANY)
+config["SSL_ENFORCE"] = true
+config["SSL_VERIFY_SERVER_CERT"] = true
+conn = mysql::connect(host, port, user, pwd, dbname, config)
+
+// showTables
+tables = mysql::showTables(conn)
+assert 1, tables.Tables_in_DolphinDB.size()>0
+assert 2, 'employees' in  tables.Tables_in_DolphinDB 
+
+// extractSchema
+scm = extractSchema(conn, `allType)
+assert 3, scm.name == `dint`dtint`dsint`dmint`dbint`dfloat`ddouble`ddecimal`ddate`ddatetime`dtimestamp`dtime`dyear`dchar`dvarchar`dblob`dtext`dtblob`dttext`dmblob`dmtext`dlblob`dltext`denum
+assert 4, scm.type == `INT`CHAR`SHORT`INT`LONG`FLOAT`DOUBLE "DECIMAL64(3)" `DATE`DATETIME`TIMESTAMP`TIME`INT`SYMBOL`SYMBOL`STRING`STRING`STRING`STRING`STRING`STRING`STRING`STRING`SYMBOL
+scm=extractSchema(conn,`testNew)
+assert 5,scm.name==`dint`duint`dtint`dutint`dsint`dusint`dmint`dumint`dbint`dubint`dchar9`dchar10`dchar11`dvarchar10`dvarchar11`denum
+assert 6,scm.type==`INT`LONG`CHAR`SHORT`SHORT`INT`INT`INT`LONG`LONG`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL`SYMBOL
+
+// load
+dbPath = "dfs://test_mysql"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, VALUE, 0 1 2)
+scm = table([`id].append!("dbit"+string(1..8)) as name, `INT`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG as type)
+loadEx(conn, db, `pt, `id, `table_bit , scm)
+re= load(conn, "select * from table_bit ", scm, 0, 100, true)
+ex=select * from loadTable(dbPath,`pt)
+assert 7,each(eqObj,ex.values(),re.values())
+re= load(conn, "table_bit ", scm, 0, 100, true)
+assert 8,each(eqObj,ex.values(),re.values())
+dropDB(dbPath)
+
+// loadEx
+def replaceTable(mutable t){
+	return t.replaceColumn!(`emp_no,t[`emp_no]+1)
+}
+ex1=mysql::load(conn,  "select * from employees")
+dbPath = "dfs://test_mysql_tsdb"
+if(existsDatabase(dbPath))
+{
+	dropDB(dbPath)
+}
+db = database(dbPath, HASH, [INT,20],,'TSDB')
+mysql::loadEx(conn, db, `pt1, `emp_no, "employees",,,,,`emp_no`gender`hire_date,ALL,[hashBucket{,3},hashBucket{,6}])
+mysql::loadEx(conn, db, `pt2, `emp_no, "select * from employees",ex1.schema().colDefs,0,10000,replaceTable,`emp_no`gender`hire_date,FIRST,[hashBucket{,3},hashBucket{,6}])
+
+pt=db.loadTable(`pt1)
+res=select * from pt
+ex=select * from ex1 
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 9, each(eqObj ,res.values(),ex.values())
+
+pt=db.loadTable(`pt2)
+res=select * from pt
+ex=select * from ex1 where isDuplicated([emp_no,gender,hire_date],FIRST)==false
+ex[`emp_no] = ex[`emp_no]+1
+res.sortBy!(res.colNames())
+ex.sortBy!(ex.colNames())
+assert 10, each(eqObj ,res.values(),ex.values())
+dropDB(dbPath)
+
+// close
+mysql::close(conn)

@@ -1,0 +1,255 @@
+@testing:case="test_topic_calss_with_module_prepare"
+login("admin","123456")
+clearCachedModules()
+use testClass
+
+@testing:case="test_topic_class_inherit_module_with_function"
+class C : P2 {
+	def C(a) {
+		rand(1,1)
+		P2(a)
+	}
+}
+
+c = C("hello")
+assert 1, c.a_ == "hello"
+
+@testing:case="test_topic_class_inherit_module_with_udf_function"
+def frand(){
+	return rand(10,1)	
+}
+class C : P2 {
+	def C(a) {
+		frand()
+		P2(a)
+	}
+}
+
+c = C("hello")
+assert 1, c.a_ == "hello"
+
+@testing:case="test_topic_class_inherit_with_class_function"
+class C : P2 {
+	def fd(){
+		return rand(10,1)	
+	}
+	def C(a) {
+		fd()
+		P2(a)
+	}
+}
+c = C("hello")
+assert 1, c.a_ == "hello"
+
+@testing:case="test_topic_class_inherit_with_class_function_modify_attribute"
+class C : P2 {
+	b_ :: INT
+	def fd(){
+		return rand(10,1)[0]	
+	}
+	def C(a) {
+		b_ = fd()
+		P2(a)
+	}
+}
+c = C("hello")
+assert 1, c.a_ == "hello"
+
+class C2 : P2 {
+	def fd(a){
+		return a.split(" ")[1]	
+	}
+	def C2(a) {
+		b_ = fd(a)
+		P2(b_)
+	}
+}
+c = C2("hello dolphindb")
+assert 2, c.a_ == "dolphindb"
+
+@testing:case="test_topic_class_inherit_with_function_modify_attribute"
+class C : P2 {
+	b_ :: INT
+	def C(a,b) {
+		b_ = add(b, 3)
+		P2(a)
+	}
+}
+c = C("hello", 4)
+assert 1, c.a_ == "hello"
+assert 2, c.b_ == 7
+
+class C2 : P2 {
+	def C2(a) {
+		b_ = add(a, " dolphindb")
+		P2(b_)
+	}
+}
+c = C2("hello")
+assert 3, c.a_ == "hello dolphindb"
+
+@testing:case="test_topic_class_inherit_with_def_function_modify_attribute"
+def newAdd(a){
+	return [a+3]	
+}
+class C : P2 {
+	b_ :: INT VECTOR
+	def C(a,b) {
+		b_ = newAdd(b)
+		P2(a)
+	}
+}
+c = C("hello", 4)
+assert 1, c.a_ == "hello"
+assert 2, c.b_ == [7]
+
+def fd(a){
+	return a.split(" ")[1]	
+}
+class C2 : P2 {
+	def C2(a) {
+		b_ = fd(a)
+		P2(b_)
+	}
+}
+c = C2("hello dolphindb")
+assert 3, c.a_ == "dolphindb"
+
+@testing:case="test_topic_class_inherit_with_function_dict"
+class ScriptGenerator: MyDict2 {
+     map_ :: ANY
+     length_ :: INT
+    def ScriptGenerator() {
+    	length_ =  rand(1,1)[0]
+    	map_ = dict(STRING,ANY)
+    }
+
+    def append(key, value){
+    	map_[key] = value
+    	length_ += 1
+    }
+}
+vari1 = ScriptGenerator()
+vari1.append("v1",  vari1.f1)
+vari1.append("v2", 123)
+assert 1, vari1.map_["v1"](32) == 43
+assert 2, vari1.map_["v2"] == 123
+assert 3, vari1.length_ == 2
+
+@testing:case="test_topic_class_inhert_dict_son_class_without_paraments"
+class MyDict: ScriptGenerator2 {
+	def MyDict(){
+		a_ = rand(1,1)
+		ScriptGenerator2()
+	}
+	def f1(a){
+		return a+11	
+	}
+}
+vari1 = MyDict()
+vari1.append("v1",  vari1.f1)
+vari1.append("4233", 331)
+assert 1, vari1.map_["v1"](32) == 43
+assert 2, vari1.map_["4233"]  == 331
+
+@testing:case="test_topic_class_inherit_with_customize_class_run_function_before_constructor"
+class F2{
+	key :: F1
+	value :: ANY VECTOR
+	id :: INT
+	def F2(name_){
+		id = rand(1,1)[0]
+		key = F1(name_)
+	}	
+	def setVal(value_){
+		value = value_	
+	}
+}
+
+def newAdd(a){
+	return a   + "_old"
+}
+class F3:F2{
+	f3name :: STRING
+	def F3(name_){
+		rand(1,1)
+		f3name = newAdd(name_)
+		F2(name_)
+	}	
+	def getPosition(pos){
+		return point(pos, pos)
+	}
+}
+
+f1 = F3("tt1")
+f2 = F2("gg1")
+assert 1, f1.key.id == 1
+assert 2, f2.key.id == 1
+assert 3, f1.key.name == "tt1"
+assert 4, f2.key.name == "gg1"
+f1.key.setId(12)
+f1.setVal(1..10)
+assert 5, f1.key.id == 12
+assert 6, f1.value == 1..10
+f2.key.setId(331)
+assert 7, f2.key.id == 331
+assert 8, f1.getPosition(11) == point(11.0, 11.0)
+assert 10, f1.id == 0
+assert 11,f1.f3name == "tt1_old" 
+
+@testing:case="test_topic_class_inherit_with_aggregate_function_run_function_before_constructor"
+def getData(id, name){
+	return id+1, name+"_old"	
+}
+
+class F2:F1new{
+	value :: ANY VECTOR
+	defg F2(id, name){
+		id_,name_ = getData(id, name)
+		F1new(id_, name_)
+	}	
+	defg f1(mutable t1){
+		t1.append!(msum(id))	
+	}
+}
+f = F2(1, "tt1")
+d1 = []
+assert 1, f.id == 2
+assert 2, f.name == "tt1_old"
+f.f1(d1)
+assert 3, d1.size() == 1
+assert 4, d1[0] == 14
+
+@testing:case="test_topic_class_inherit_with_module"
+class F2:F1new{
+	value :: ANY VECTOR
+	defg F2(id, name){
+		F1new(id, name)
+	}	
+	defg f1(mutable t1){
+		t1.append!(msum(id))	
+	}
+}
+f = F2(1, "tt1")
+d1 = []
+assert 1, f.id == 1
+assert 2, f.name == "tt1"
+f.f1(d1)
+assert 3, d1.size() == 1
+assert 4, d1[0] == 13
+
+@testing:case="test_topic_class_polymorphism_override_run_function_before_constructor"
+def fd(name){
+	return name+"_old"	
+}
+class Derived : Base {
+	def Derived(name) {
+		name_ = fd(name)
+		Base(name_)	
+	}
+	def str() { return "Derived" }
+}
+
+d = Derived("base")
+assert 1, d.str() == "Derived"
+assert 2, d.name_ == "base_old"

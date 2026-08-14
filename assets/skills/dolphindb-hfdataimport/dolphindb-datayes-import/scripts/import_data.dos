@@ -1,0 +1,38 @@
+clearCachedModules()
+use easy_datayes::loadTLData
+fileDir = "/hdd/hdd3/data/"         //"/hdd/hdd1/feb2023_csv/"       // "/hdd/hdd5/tonglian/L2_data/MDL/"
+dataSource = ["tl_trade"]  // tl_snapshot\tl_entrust\tl_trade\tl_tick\tl_order_queue 选择一个或多个
+dbName="dfs://TL_Level20625"   //这里可以修改数据库名称
+tableName=NULL
+startDate= 2015.01.01
+endDate= 2023.11.27
+parallel=4
+jobid = autoLoadTongLianData(fileDir, dataSource, dbName, tableName, startDate, endDate, parallel)
+print("JOBID=" + string(jobid))
+
+tb2 = loadTable("dfs://TL_Level20625","order_queue")
+select count(*) from tb2
+
+tb3 = loadTable("dfs://TL_Level20625","tick")
+select count(*) from tb3
+
+tb4 = loadTable("dfs://TL_Level20625","snapshot")
+select count(*) from tb4
+
+tb5 = loadTable("dfs://TL_Level20625","entrust")
+select count(*) from tb5
+
+tb6 = loadTable("dfs://TL_Level20625","trade")
+select count(*) from tb6
+
+//任务进度查询
+tb = loadTable("dfs://job_info", "job_info")
+select 
+    count(*) as total_tasks,
+    sum(iif(job_status=="completed", 1, 0)) as completed_tasks,
+    sum(iif(job_status=="failed", 1, 0)) as failed_tasks,
+    sum(iif(job_status=="progress", 1, 0)) as running_tasks,
+    sum(iif(job_status=="waiting", 1, 0)) as waiting_tasks,
+    string(sum(iif(job_status=="completed", 1, 0)) \ count(*) * 100) + "%" as progress_pct
+from tb
+

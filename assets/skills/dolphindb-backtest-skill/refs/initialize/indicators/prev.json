@@ -1,0 +1,20 @@
+{
+    "name": "prev",
+    "desc": "将 X 向右移动一个位置，返回和 X 同类型、同长度的向量。",
+    "syntax": "prev(X)",
+    "parameters": {
+        "X": {
+            "type": "VECTOR",
+            "desc": "向量"
+        }
+    },
+    "results": {
+        "result": {
+            "type": "VECTOR",
+            "desc": "向右移动一个位置后的向量"
+        }
+    },
+    "example": [
+        "prev(close)"
+    ]
+}

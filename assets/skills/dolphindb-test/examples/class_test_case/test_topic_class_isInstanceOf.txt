@@ -1,0 +1,485 @@
+
+class Data {
+    id :: INT
+    val :: STRING
+
+    def Data(id_, val_) {
+        id = id_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+}
+
+// https://dolphindb1.atlassian.net/browse/D20-3480
+@testing:case="test_topic_class_isInstanceOf_args_less", syntaxError = 1
+d = Data(1, "A")
+isInstanceOf(d)
+
+@testing:case="test_topic_class_isInstanceOf_args_more", syntaxError = 1
+d = Data(1, "A")
+isInstanceOf(d, Data, 1)
+
+@testing:case="test_topic_class_isInstanceOf_obj_int", exception = 1
+isInstanceOf(1, Data)
+
+@testing:case="test_topic_class_isInstanceOf_obj_vector", exception = 1
+d = Data(1, "A")
+isInstanceOf([d], Data)
+
+@testing:case="test_topic_class_isInstanceOf_obj_class", exception = 1
+isInstanceOf(Data, Data)
+
+@testing:case="test_topic_class_isInstanceOf_cls_int", exception = 1
+d = Data(1, "A")
+isInstanceOf(d, 1)
+
+@testing:case="test_topic_class_isInstanceOf_cls_vector", exception = 1
+d = Data(1, "A")
+isInstanceOf(d, [Data])
+
+@testing:case="test_topic_class_isInstanceOf_cls_obj", exception = 1
+d = Data(1, "A")
+isInstanceOf(d, d)
+
+@testing:case="test_topic_class_isInstanceOf_inherit"
+class Data1: Data {
+    val1 :: DOUBLE
+
+    def Data1(id_, val_, val1_) {
+        id = id_
+        val = val_
+        val1 = val1_
+    }
+
+    def getVal1() {
+        return val1
+    }
+}
+
+d = Data(1, "A")
+d1 = Data1(1, "A", 8.9)
+
+assert 1, isInstanceOf(d1, Data)
+assert 2, isInstanceOf(d1, Data1)
+assert 3, !isInstanceOf(d, Data1)
+
+class Data2: Data1 {
+    val2 :: CHAR
+
+    def Data2(id_, val_, val1_, val2_) {
+        id = id_
+        val = val_
+        val1 = val1_
+        val2 = val2_
+    }
+
+    def getVal2() {
+        return val2
+    }
+}
+
+d2 = Data2(1, "A", 8.9, 'a')
+
+class Data3: Data1 {
+    val3 :: STRING
+
+    def Data3(id_, val_, val1_, val3_) {
+        id = id_
+        val = val_
+        val1 = val1_
+        val3 = val3_
+    }
+
+    def getVal3() {
+        return val3
+    }
+}
+
+d3 = Data3(1, "A", 8.9, "STRING")
+
+assert 4, isInstanceOf(d2, Data2)
+assert 5, isInstanceOf(d2, Data1)testing
+assert 6, isInstanceOf(d2, Data)
+assert 7, !isInstanceOf(d1, Data2)
+assert 8, isInstanceOf(d3, Data3)
+assert 9, isInstanceOf(d3, Data1)
+assert 10, !isInstanceOf(d3, Data2)
+
+@testing:case="test_topic_class_variable_order"
+try {undef(`sharedT, SHARED)} catch(ex) {}
+share table(1:0, `sym`val, [STRING, INT]) as sharedT
+go
+
+a = 7
+b = 8
+
+class Data {
+    a :: INT
+    b :: DOUBLE
+    sharedTInData :: ANY
+
+    def Data() {
+        a = 1
+        b = 2.0
+        sharedTInData  = sharedT
+    }
+
+    def getA(a) {
+        return a
+    }
+
+    def getB() {
+        return b
+    }
+
+    def insertT(sym, val) {    // attribute take precedence of shared variable
+        insert into sharedTInData values(sym, val)
+    }
+
+    def getSharedT(sharedT) {    // function para take precedence of attribute and shared variable
+        return sharedT
+    }
+}
+
+d = Data()
+
+d.insertT("1", 1)
+d.insertT("2", 2)
+d.insertT("3", 3)
+
+assert 1, d.getA(4) == 4
+assert 2, eqObj(d.getB(), 2.0)
+assert 3, each(eqObj, table(symbol(["1", "2", "3"]) as symcol, [1, 2, 3] as valcol).values(), d.sharedTInData.values())
+assert 4, d.getSharedT(10) == 10
+
+@testing:case="test_topic_class_get_attribute"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+
+    def getValSelf() {
+        return self.val
+    }
+}
+
+d = Data("A", 1)
+
+assert 1, d.val == 1
+assert 2, d.getVal() == 1
+assert 3, d.getValSelf() == 1
+
+@testing:case="test_topic_class_function_inherite"
+class Data {
+    val :: INT
+    def Data(val_) {
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+
+    def getValSelf() {
+        return self.val
+    }
+}
+
+class Data1: Data {
+    def Data1(val_) {
+        val = val_
+    }
+}
+
+d1 = Data1(4)
+
+assert 1, d1.val == 4
+assert 2, d1.getVal() == 4
+assert 3, d1.getValSelf() == 4
+
+@testing:case="test_topic_class_set_attribute_=" //, syntaxError = 1
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+
+    def setVal(val_) {
+        val = val_
+    }
+}
+
+d = Data("A", 1)
+d.val = 4
+assert 1, d.val == 4
+
+@testing:case="test_topic_class_set_attribute_set_func"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+
+    def setVal(val_) {
+        val = val_
+    }
+}
+
+d = Data("A", 1)
+
+assert 1, d.val == 1
+assert 2, d.getVal() == 1
+
+d.setVal(4)
+
+assert 1, d.val == 4
+assert 2, d.getVal() == 4
+
+@testing:case="test_topic_class_set_attribute_set_func_inherit"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+
+    def setVal(val_) {
+        val = val_
+    }
+}
+
+class Data1: Data {
+    def Data1(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+}
+
+d = Data1("A", 1)
+
+assert 1, d.val == 1
+assert 2, d.getVal() == 1
+
+d.setVal(4)
+
+assert 1, d.val == 4
+assert 2, d.getVal() == 4
+
+@testing:case="test_topic_class_function_override_signatures_inconsistent", syntaxError = 1
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return 1
+    }
+}
+
+class Data1: Data {
+    def Data1(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1(a) {
+        return a + 2
+    }
+}
+
+@testing:case="test_topic_class_function_override_signatures_consistent_return_diff"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return 1
+    }
+
+    def getVal2(a, b) {
+        return a - b
+    }
+}
+
+class Data1: Data {
+    def Data1(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return [1]
+    }
+
+    def getVal2(b, a) {
+        return a -b
+    }
+}
+
+d = Data("A", 1)
+assert 1, d.getVal1() == 1
+assert 2, d.getVal2(1, 2) == -1
+
+d1 = Data1("B", 2)
+assert 3, eqObj(d1.getVal1(), [1])
+assert 4, d1.getVal2(1, 2) == 1
+
+@testing:case="test_topic_class_function_override_multi_inherit"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return 1
+    }
+}
+
+class Data1: Data {
+    def Data1(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return [1]
+    }
+}
+
+class Data2: Data1 {
+    def Data2(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal1() {
+        return set([1])
+    }
+}
+
+d = Data("A", 1)
+assert 1, d.getVal1() == 1
+
+d1 = Data1("B", 2)
+assert 2, eqObj(d1.getVal1(), [1])
+
+d2 = Data2("C", 3)
+assert 3, eqObj(d2.getVal1().keys(), set([1]).keys())
+
+@testing:case="test_topic_class_eval_define", syntaxError = 1
+eval(<class Data100 { def Data100() {}}>)
+
+@testing:case="test_topic_class_eval_construct"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return val
+    }
+}
+
+d = eval(<Data("A", 1)>)
+assert 1, d.sym == "A"
+assert 2, d.val == 1
+assert 3, eval(<d.val>) == 1
+assert 4, eval(<d.getVal()>) == 1
+
+@testing:case="test_topic_class_eval_in_function"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return eval(<val + 1>)
+    }
+
+    def getValParams(a) {
+        return 1 + eval(<val + a>)
+    }
+}
+
+d = eval(<Data("A", 1)>)
+assert 1, d.getVal() == 2
+assert 2, eval(<d.getVal()>) == 2
+assert 3, eval(<d.getValParams(3)>) == 5
+
+@testing:case="test_topic_class_eval_in_function_in_build_func"
+class Data {
+    sym :: STRING
+    val :: INT
+
+    def Data(sym_, val_) {
+        sym = sym_
+        val = val_
+    }
+
+    def getVal() {
+        return eval(<val + 1>)
+    }
+
+    def getValParams(a) {
+        return 1 + eval(<add(val, a)>)
+    }
+}
+
+d = eval(<Data("A", 1)>)
+assert 1, d.getVal() == 2
+assert 2, eval(<d.getVal()>) == 2
+assert 3, eval(<d.getValParams(3)>) == 5
+assert 4, eval(expr(d.getValParams, 3)) == 5
+

@@ -1,0 +1,50 @@
+{
+  "id": "setPosition",
+  "name": "设置初始持仓",
+  "signature": "Backtest::setPosition(engine, symbol, qty, orderPrice, [lastPrice], [assetType])",
+  "description": "在回调函数中调用该接口为回测引擎设置初始持仓，适用于用户需求或配置中明确要求先写入起始仓位的场景。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常从 context[\"engine\"] 读取"
+    },
+    {
+      "name": "symbol",
+      "type": "STRING",
+      "description": "标的代码"
+    },
+    {
+      "name": "qty",
+      "type": "LONG",
+      "description": "持仓量"
+    },
+    {
+      "name": "orderPrice",
+      "type": "DOUBLE",
+      "description": "持仓成本价"
+    },
+    {
+      "name": "lastPrice",
+      "type": "DOUBLE",
+      "description": "可选，最新价；省略或为 0 时默认等于 orderPrice"
+    },
+    {
+      "name": "assetType",
+      "type": "STRING",
+      "description": "可选，多资产回测时指定"
+    }
+  ],
+  "constraints": [
+    "当前阶段仅在该接口被启用时允许使用。",
+    "只有当用户需求或配置中明确要求初始化持仓时，才允许生成该接口调用。",
+    "如果用户没有明确要求初始化持仓，不要主动调用该接口。",
+    "股票、债券策略不允许生成卖开持仓。",
+    "symbol、qty、orderPrice 必须来自用户需求、配置或上下文中可确定的信息，不要臆造。"
+  ],
+  "returns": {
+    "type": "VOID",
+    "description": "该接口不返回值，调用后会直接修改回测引擎中的初始持仓状态。"
+  },
+  "examples": []
+}

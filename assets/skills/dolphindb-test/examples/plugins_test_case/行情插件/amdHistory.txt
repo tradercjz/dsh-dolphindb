@@ -1,0 +1,2037 @@
+
+login("admin", "123456")
+try{loadPlugin(getHomeDir()+"/plugins/AMDHistory/PluginAMDHistory.txt")}catch(ex){print(ex)}
+try{loadPlugin(getHomeDir() + "/plugins/amdQuote430/PluginAmdQuote.txt")}catch(ex){print ex};
+go
+
+AMDQUOTE_USERNAME=`username
+AMDQUOTE_PASSWORD=`password
+AMDQUOTE_IP=[`255.255.255.255]
+AMDQUOTE_PORT=[18070]
+user = "user"
+password = "password"
+host = "255.255.255.255"
+port = 9200
+
+@testing:case="test_function_amdHistory_prepare"
+def clear_all_share_table(){
+    share_table = exec name from objs(true) where shared=1
+    for(t in share_table){
+        try{
+            clearTablePersistence(objByName(t))
+        }catch(ex){print(ex)}
+        undef(t, SHARED)
+    }
+}
+
+def create_all_share_table(){
+    tableShcema = amdHistory::getSchema("order")
+    order = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(order, `order1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("execution")
+    execution = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(execution, `execution1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("snapshot")
+    snapshot = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(snapshot, `snapshot1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("indexSnapshot")
+    indexSnapshot = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(indexSnapshot, `indexSnapshot1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("optionSnapshot")
+    optionSnapshot = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(optionSnapshot, `optionSnapshot1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("futureSnapshot")
+    futureSnapshot = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(futureSnapshot, `futureSnapshot1, cacheSize=10000)
+
+    tableShcema = amdHistory::getSchema("HKTSnapshot")
+    HKTSnapshot = streamTable(1000:0, tableShcema.name, tableShcema.typeInt)
+    enableTableShareAndPersistence(HKTSnapshot, `HKTSnapshot1, cacheSize=10000)
+}
+
+def query_month_data_dfs(handle, marketType, dataType, security, days, beginTime, endTime, mutable table, ignoredColumnNum=0){
+    num = 0
+    for(day in days){
+        res = amdHistory::query(handle, marketType, dataType, security, day, beginTime, endTime, table, ignoredColumnNum)
+        num = num+res
+    }
+    return num
+}
+def query_month_data(handle, marketType, dataType, security, days, beginTime, endTime, mutable table, ignoredColumnNum=0){
+    num = 0
+    for(day in days){
+        res = amdHistory::query(handle, marketType, dataType, security, day, beginTime, endTime, table, ignoredColumnNum)
+        num = num+res
+    }
+    return num
+}
+
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+// queryCodeTable = loadText(getHomeDir()+"/queryCodeTable.csv")
+queryCodeTable = amdHistory::queryCodeTable(handle)
+days = temporalAdd(date(now())-31, 1..31, "d").sort()
+clear_all_share_table()
+create_all_share_table()
+amdHistory::close(amdHistory::getHandle()) 
+
+@testing:case="test_function_amdHistory_connect_args_over",syntaxError=1
+handle = amdHistory::connect(user, password,host,port,,1)
+
+@testing:case="test_function_amdHistory_connect_username_empty",exception=1
+handle = amdHistory::connect(, password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_NULL",exception=1
+handle = amdHistory::connect(NULL, password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_string_NULL",exception=1
+handle = amdHistory::connect(string(), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_bool",exception=1
+handle = amdHistory::connect(true, password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_char",exception=1
+handle = amdHistory::connect(char(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_short",exception=1
+handle = amdHistory::connect(short(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_int",exception=1
+handle = amdHistory::connect(int(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_long",exception=1
+handle = amdHistory::connect(long(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_temporal",exception=1
+handle = amdHistory::connect(date(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_floating",exception=1
+handle = amdHistory::connect(float(1), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_blob",exception=1
+handle = amdHistory::connect(blob(user), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_int128",exception=1
+handle = amdHistory::connect(int128("e1671797c52e15f763380b45e841ec32"), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_uuid",exception=1
+handle = amdHistory::connect(int128("5d212a78-cc48-e3b1-4235-b4d91473ee87"), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_ipaddr",exception=1
+handle = amdHistory::connect(ipaddr("192.168.1.13"), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_point",exception=1
+handle = amdHistory::connect(point(2,3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_complex",exception=1
+handle = amdHistory::connect(complex(2,3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_decimal32",exception=1
+handle = amdHistory::connect(decimal32(2,3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_decimal64",exception=1
+handle = amdHistory::connect(decimal64(2,3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_decimal128",exception=1
+handle = amdHistory::connect(decimal128(2,3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_pair",exception=1
+handle = amdHistory::connect("a":"b", password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_vector",exception=1
+handle = amdHistory::connect(`a`b, password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_matrix",exception=1
+handle = amdHistory::connect(string(1..6)$2:3, password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_set",exception=1
+handle = amdHistory::connect(set(1 2 3), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_dict",exception=1
+handle = amdHistory::connect(dict(1 2 3, `a`b`c), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_table",exception=1
+handle = amdHistory::connect(table(`a`b`c as x), password,host,port)
+
+@testing:case="test_function_amdHistory_connect_username_error",exception=1
+handle = amdHistory::connect("error", password,host,port)
+
+@testing:case="test_function_amdHistory_connect_password_empty",exception=1
+handle = amdHistory::connect(user,, host, port)
+
+@testing:case="test_function_amdHistory_connect_password_NULL",exception=1
+handle = amdHistory::connect(user,NULL, host, port)
+
+@testing:case="test_function_amdHistory_connect_password_string_NULL",exception=1
+handle = amdHistory::connect(user,string(), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_bool",exception=1
+handle = amdHistory::connect(user,true, host, port)
+
+@testing:case="test_function_amdHistory_connect_password_char",exception=1
+handle = amdHistory::connect(user,char(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_short",exception=1
+handle = amdHistory::connect(user,short(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_int",exception=1
+handle = amdHistory::connect(user,int(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_long",exception=1
+handle = amdHistory::connect(user,long(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_temporal",exception=1
+handle = amdHistory::connect(user,date(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_floating",exception=1
+handle = amdHistory::connect(user,float(1), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_blob",exception=1
+handle = amdHistory::connect(user,blob(password), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_int128",exception=1
+handle = amdHistory::connect(user,int128("e1671797c52e15f763380b45e841ec32"), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_uuid",exception=1
+handle = amdHistory::connect(user,int128("5d212a78-cc48-e3b1-4235-b4d91473ee87"), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_ipaddr",exception=1
+handle = amdHistory::connect(user,ipaddr("192.168.1.13"), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_point",exception=1
+handle = amdHistory::connect(user,point(2,3), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_complex",exception=1
+handle = amdHistory::connect(user,complex(2,3), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_decimal32",exception=1
+handle = amdHistory::connect(user,decimal32(2,3), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_decimal64",exception=1
+handle = amdHistory::connect(user,decimal64(2,3), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_decimal128",exception=1
+handle = amdHistory::connect(user,decimal128(2,3), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_pair",exception=1
+handle = amdHistory::connect(user,"a":"b", host, port)
+
+@testing:case="test_function_amdHistory_connect_password_vector",exception=1
+handle = amdHistory::connect(user,`a`b, host, port)
+
+@testing:case="test_function_amdHistory_connect_password_matrix",exception=1
+handle = amdHistory::connect(user,string(1..6)$2:3, host, port)
+
+@testing:case="test_function_amdHistory_connect_password_set",exception=1
+handle = amdHistory::connect(user,set(1 2 3), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_dict",exception=1
+handle = amdHistory::connect(user,dict(1 2 3, `a`b`c), host,port)
+
+@testing:case="test_function_amdHistory_connect_password_table",exception=1
+handle = amdHistory::connect(user,table(`a`b`c as x), host, port)
+
+@testing:case="test_function_amdHistory_connect_password_error",exception=1
+handle = amdHistory::connect(user,"error", host, port)
+
+@testing:case="test_function_amdHistory_connect_host_empty",exception=1
+handle = amdHistory::connect(user, password, ,  port )
+
+@testing:case="test_function_amdHistory_connect_host_NULL",exception=1
+handle = amdHistory::connect(user, password, NULL,  port )
+
+@testing:case="test_function_amdHistory_connect_host_string_NULL",exception=1
+handle = amdHistory::connect(user, password, string(),  port )
+
+@testing:case="test_function_amdHistory_connect_host_bool",exception=1
+handle = amdHistory::connect(user, password, true,  port )
+
+@testing:case="test_function_amdHistory_connect_host_char",exception=1
+handle = amdHistory::connect(user, password, char(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_short",exception=1
+handle = amdHistory::connect(user, password, short(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_int",exception=1
+handle = amdHistory::connect(user, password, int(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_long",exception=1
+handle = amdHistory::connect(user, password, long(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_temporal",exception=1
+handle = amdHistory::connect(user, password, date(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_floating",exception=1
+handle = amdHistory::connect(user, password, float(1),  port )
+
+@testing:case="test_function_amdHistory_connect_host_blob",exception=1
+handle = amdHistory::connect(user, password, blob(host),  port )
+
+@testing:case="test_function_amdHistory_connect_host_int128",exception=1
+handle = amdHistory::connect(user, password, int128("e1671797c52e15f763380b45e841ec32"),  port )
+
+@testing:case="test_function_amdHistory_connect_host_uuid",exception=1
+handle = amdHistory::connect(user, password, int128("5d212a78-cc48-e3b1-4235-b4d91473ee87"),  port )
+
+@testing:case="test_function_amdHistory_connect_host_ipaddr",exception=1
+handle = amdHistory::connect(user, password, ipaddr("192.168.1.13"),  port )
+
+@testing:case="test_function_amdHistory_connect_host_point",exception=1
+handle = amdHistory::connect(user, password, point(2,3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_complex",exception=1
+handle = amdHistory::connect(user, password, complex(2,3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_decimal32",exception=1
+handle = amdHistory::connect(user, password, decimal32(2,3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_decimal64",exception=1
+handle = amdHistory::connect(user, password, decimal64(2,3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_decimal128",exception=1
+handle = amdHistory::connect(user, password, decimal128(2,3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_pair",exception=1
+handle = amdHistory::connect(user, password, "a":"b",  port )
+
+@testing:case="test_function_amdHistory_connect_host_vector",exception=1
+handle = amdHistory::connect(user, password, `a`b,  port )
+
+@testing:case="test_function_amdHistory_connect_host_matrix",exception=1
+handle = amdHistory::connect(user, password, string(1..6)$2:3,  port )
+
+@testing:case="test_function_amdHistory_connect_host_set",exception=1
+handle = amdHistory::connect(user, password, set(1 2 3),  port )
+
+@testing:case="test_function_amdHistory_connect_host_dict",exception=1
+handle = amdHistory::connect(user, password, dict(1 2 3,`a`b`c),  port )
+
+@testing:case="test_function_amdHistory_connect_host_table",exception=1
+handle = amdHistory::connect(user, password, table(`a`b`c as x),  port )
+
+@testing:case="test_function_amdHistory_connect_host_error",exception=1
+handle = amdHistory::connect(user, password, "ERROR", port )
+
+@testing:case="test_function_amdHistory_connect_port_empty",exception=1
+handle = amdHistory::connect(user, password, host,  )
+
+@testing:case="test_function_amdHistory_connect_port_NULL",exception=1
+handle = amdHistory::connect(user, password, host,  NULL)
+
+@testing:case="test_function_amdHistory_connect_port_int_NULL",exception=1
+handle = amdHistory::connect(user, password, host,  int())
+
+@testing:case="test_function_amdHistory_connect_port_bool",exception=1
+handle = amdHistory::connect(user, password, host,  true)
+
+@testing:case="test_function_amdHistory_connect_port_temporal",exception=1
+handle = amdHistory::connect(user, password, host,  date(1))
+
+@testing:case="test_function_amdHistory_connect_port_floating",exception=1
+handle = amdHistory::connect(user, password, host,  float(1))
+
+@testing:case="test_function_amdHistory_connect_port_string",exception=1
+handle = amdHistory::connect(user, password, host,  string(port))
+
+@testing:case="test_function_amdHistory_connect_port_blob",exception=1
+handle = amdHistory::connect(user, password, host,  blob(string(port)))
+
+@testing:case="test_function_amdHistory_connect_port_int128",exception=1
+handle = amdHistory::connect(user, password, host,  int128("e1671797c52e15f763380b45e841ec32"))
+
+@testing:case="test_function_amdHistory_connect_port_uuid",exception=1
+handle = amdHistory::connect(user, password, host,  int128("5d212a78-cc48-e3b1-4235-b4d91473ee87"))
+
+@testing:case="test_function_amdHistory_connect_port_ipaddr",exception=1
+handle = amdHistory::connect(user, password, host,  ipaddr("192.168.1.13"))
+
+@testing:case="test_function_amdHistory_connect_port_point",exception=1
+handle = amdHistory::connect(user, password, host,  point(2,3) )
+
+@testing:case="test_function_amdHistory_connect_port_complex",exception=1
+handle = amdHistory::connect(user, password, host,  complex(2,3) )
+
+@testing:case="test_function_amdHistory_connect_port_decimal32",exception=1
+handle = amdHistory::connect(user, password, host,  decimal32(2,3) )
+
+@testing:case="test_function_amdHistory_connect_port_decimal64",exception=1
+handle = amdHistory::connect(user, password, host,  decimal64(2,3) )
+
+@testing:case="test_function_amdHistory_connect_port_decimal128",exception=1
+handle = amdHistory::connect(user, password, host,  decimal128(2,3) )
+
+@testing:case="test_function_amdHistory_connect_port_pair",exception=1
+handle = amdHistory::connect(user, password, host,  "a":"b")
+
+@testing:case="test_function_amdHistory_connect_port_vector",exception=1
+handle = amdHistory::connect(user, password, host,  `a`b)
+
+@testing:case="test_function_amdHistory_connect_port_matrix",exception=1
+handle = amdHistory::connect(user, password, host,  string(1..6)$2:3)
+
+@testing:case="test_function_amdHistory_connect_port_set",exception=1
+handle = amdHistory::connect(user, password, host,  set(1 2 3))
+
+@testing:case="test_function_amdHistory_connect_port_dict",exception=1
+handle = amdHistory::connect(user, password, host,  dict(1 2 3,`a`b`c) )
+
+@testing:case="test_function_amdHistory_connect_port_table",exception=1
+handle = amdHistory::connect(user, password, host,  table(`a`b`c as x))
+
+@testing:case="test_function_amdHistory_connect_port_error_1",exception=1
+handle = amdHistory::connect(user, password, host, 0)
+
+@testing:case="test_function_amdHistory_connect_port_error_2",exception=1
+handle = amdHistory::connect(user, password, host, -2)
+
+@testing:case="test_function_amdHistory_connect_options_scalar",exception=1
+handle = amdHistory::connect(user, password, host, port, "MinLogLevel")
+
+@testing:case="test_function_amdHistory_connect_options_vector",exception=1
+handle = amdHistory::connect(user, password, host, port, `a`b)
+
+@testing:case="test_function_amdHistory_connect_options_matrix",exception=1
+handle = amdHistory::connect(user, password, host, port, 1..6$2:3)
+
+@testing:case="test_function_amdHistory_connect_options_set",exception=1
+handle = amdHistory::connect(user, password, host, port, set(1 2 3))
+
+@testing:case="test_function_amdHistory_connect_options_table",exception=1
+handle = amdHistory::connect(user, password, host, port, table(1 2 3 as x))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_not_STRING",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(BLOB, ANY))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_not_MinLogLevel_Timeout",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`a`b`c, 1 2 3))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_NULL",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (NULL, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_bool",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (true, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_temporal",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (time(1), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_floating",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (float(1), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_literal",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (string(1), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_int128",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (int128("e1671797c52e15f763380b45e841ec32"), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_uuid",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_ipaddr",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (ipaddr("192.168.1.13"), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_point",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (point(2,3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_complex",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (complex(2,3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_decimal32",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (decimal32(2,3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_decimal64",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (decimal64(2,3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_decimal128",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (decimal128(2,3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_vector",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, ([1,2], 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_pair",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (1:1, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_matrix",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (1..4$2:2, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_set",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (set(1 2 3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_dict",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (dict(1 2 3, 1 2 3), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_matrix",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (table(1 2 3 as x), 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_error_1",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (-2, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_MinLogLevel_error_2",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (100, 1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_NULL",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, NULL)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_bool",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, true)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_temporal",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, date(1))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_flaoting",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, float(1))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_int128",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, int128("e1671797c52e15f763380b45e841ec32"))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_uuid",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_ipaddr",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, ipaddr("192.168.1.13"))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_point",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, point(3,2))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_complex",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, complex(3,2))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_vector",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, [1,1])))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_pair",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, 1:1)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_matrix",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, 1..6$2:3)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_set",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, set(1 2 3))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_dict",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, dict(1 2 3, 1 2 3))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_table",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, table(1 2 3 as x))))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_ex_1",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, 0)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_key_Timeout_ex_2",exception=1
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (2, 100)))
+
+@testing:case="test_function_amdHistory_connect_options_dict_out_range_after_connect_failed",exception=1
+try{
+    handle = amdHistory::connect(user, password, "1", port)
+}catch(ex){}
+handle = amdHistory::connect(user, password, host, port, dict(`MinLogLevel`Timeout, (100, 1)))
+
+@testing:case="test_function_amdHistory_connect_second_times",exception=1
+handle = amdHistory::connect(user, password, host, port)
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_connect_syntax"
+assert 1, eqObj(syntax(amdHistory::connect), 'connect(...) minParams = 4, maxParams = 5')
+
+@testing:case="test_function_amdHistory_connect_success"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+assert 1, eqObj(string(handle), 'AMDHistory')
+assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+
+@testing:case="test_function_amdHistory_connect_success_empty_dict"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port, {})
+assert 1, eqObj(string(handle), 'AMDHistory')
+assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+
+@testing:case="test_function_amdHistory_connect_success_diff_MinLogLevel"
+for(i in 0 1 2 3 4 5){
+    try{
+        amdHistory::close(amdHistory::getHandle()) 
+    }catch(ex){print(ex)}
+    handle = amdHistory::connect(user, password, host, port, dict(["MinLogLevel"], [i]))
+    assert 1, eqObj(string(handle), 'AMDHistory')
+    assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+}
+
+@testing:case="test_function_amdHistory_connect_success_only_TimeOUt"
+for(i in 1 2 3 4 5){
+    try{
+        amdHistory::close(amdHistory::getHandle()) 
+    }catch(ex){print(ex)}
+    handle = amdHistory::connect(user, password, host, port, dict(["Timeout"], [i]))
+    assert 1, eqObj(string(handle), 'AMDHistory')
+    assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+}
+
+@testing:case="test_function_amdHistory_connect_MinLogLevel_Timeout"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port, dict(["Timeout", "MinLogLevel"], [1,2]))
+assert 1, eqObj(string(handle), 'AMDHistory')
+assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+
+@testing:case="test_function_amdHistory_connect_multi_times"
+for(i in 1..20){
+    try{
+        amdHistory::close(amdHistory::getHandle()) 
+    }catch(ex){print(ex)}
+    handle = amdHistory::connect(user, password, host, port)
+    assert 1, eqObj(string(handle), 'AMDHistory')
+    assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+}
+
+
+@testing:case="test_function_amdHistory_connect_multi_jobs", exception=1
+def submitJob_connect(user, password, host, port){
+    for(i in 1..20){
+        try{
+            amdHistory::close(amdHistory::getHandle()) 
+        }catch(ex){print(ex)}
+        handle = amdHistory::connect(user, password, host, port)
+        assert 1, eqObj(string(handle), 'AMDHistory')
+        assert 2, eqObj(string(amdHistory::getHandle()), 'AMDHistory')
+    }   
+}
+
+job1 = submitJob("job", "job", submitJob_connect, user, password, host, port)
+job2 = submitJob("job", "job", submitJob_connect, user, password, host, port)
+job3 = submitJob("job", "job", submitJob_connect, user, password, host, port)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+
+@testing:case="test_function_amdHistory_query_use_close_handle",exception=1
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+clear_all_share_table()
+create_all_share_table()
+amdHistory::close(handle) 
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistroy_query_prepare"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+clear_all_share_table()
+create_all_share_table()
+
+@testing:case="test_function_amdHistory_query_args_over",syntaxError=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, 1, 1)
+
+@testing:case="test_function_amdHistory_query_handle_empty",exception=1
+amdHistory::query(, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_NULL",exception=1
+amdHistory::query(NULL, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_bool",exception=1
+amdHistory::query(true, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_integral",exception=1
+amdHistory::query(int(1), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_temporal",exception=1
+amdHistory::query(date(1), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_floating",exception=1
+amdHistory::query(float(1), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_string",exception=1
+amdHistory::query(string(1), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_int128",exception=1
+amdHistory::query(int128("e1671797c52e15f763380b45e841ec32"), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_uuid",exception=1
+amdHistory::query(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_ipaddr",exception=1
+amdHistory::query(ipaddr("192.168.1.13"), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_point",exception=1
+amdHistory::query(point(3,2), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_complex",exception=1
+amdHistory::query(complex(3,2), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_decimal32",exception=1
+amdHistory::query(decimal32(3,2), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_decimal64",exception=1
+amdHistory::query(decimal64(3,2), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_decimal128",exception=1
+amdHistory::query(decimal128(3,2), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_vector",exception=1
+amdHistory::query([1,1], 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_pair",exception=1
+amdHistory::query(1:1, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_matrix",exception=1
+amdHistory::query(1..6$2:3, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_set",exception=1
+amdHistory::query(set(1 2 3), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_dict",exception=1
+amdHistory::query(dict(1 2 3, 1 2 3), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_handle_table",exception=1
+amdHistory::query(table(1 2 3 as x), 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_empty",exception=1
+amdHistory::query(handle, , "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_NULL",exception=1
+amdHistory::query(handle, NULL, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_int_NULL",exception=1
+amdHistory::query(handle, int(), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_bool",exception=1
+amdHistory::query(handle, true, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_temporal",exception=1
+amdHistory::query(handle, time(1), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_float",exception=1
+amdHistory::query(handle, float(1), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_double",exception=1
+amdHistory::query(handle, double(1), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_string",exception=1
+amdHistory::query(handle, string(1), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_int128",exception=1
+amdHistory::query(handle, int128("e1671797c52e15f763380b45e841ec32"), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_uuid",exception=1
+amdHistory::query(handle, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_ipaddr",exception=1
+amdHistory::query(handle, ipaddr("192.168.1.13"), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_point",exception=1
+amdHistory::query(handle, point(2,3), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_complex",exception=1
+amdHistory::query(handle, complex(2,3), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_decimal32",exception=1
+amdHistory::query(handle, decimal32(2,3), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_decimal64",exception=1
+amdHistory::query(handle, decimal64(2,3), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_decimal128",exception=1
+amdHistory::query(handle, decimal128(2,3), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_vector",exception=1
+amdHistory::query(handle, take(101,2), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_pair",exception=1
+amdHistory::query(handle, 101:101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_matrix",exception=1
+amdHistory::query(handle, take(101, 6)$2:3, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_set",exception=1
+amdHistory::query(handle, set([101]), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_dict",exception=1
+amdHistory::query(handle, dict([101], [101]), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+
+@testing:case="test_function_amdHistory_query_marketType_table",exception=1
+amdHistory::query(handle, table(101 101 101 as x), "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_ex1",exception=1
+amdHistory::query(handle, -20, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_marketType_ex2",exception=1
+amdHistory::query(handle, 1000, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_empty",exception=1
+amdHistory::query(handle, 101, , "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_NULL",exception=1
+amdHistory::query(handle, 101, NULL, "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_string_NULL",exception=1
+amdHistory::query(handle, 101, string(), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_bool",exception=1
+amdHistory::query(handle, 101, true, "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_integral",exception=1
+amdHistory::query(handle, 101, int(1), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_temporal",exception=1
+amdHistory::query(handle, 101, date(1), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_float",exception=1
+amdHistory::query(handle, 101, float(1), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_double",exception=1
+amdHistory::query(handle, 101, double(1), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_blob",exception=1
+amdHistory::query(handle, 101, blob("execution"), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_int128",exception=1
+amdHistory::query(handle, 101, int128("e1671797c52e15f763380b45e841ec32"), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_uuid",exception=1
+amdHistory::query(handle, 101, int128("5d212a78-cc48-e3b1-4235-b4d91473ee87"), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_ipaddr",exception=1
+amdHistory::query(handle, 101, ipaddr("192.168.1.13"), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_point",exception=1
+amdHistory::query(handle, 101, point(3,2), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_complex",exception=1
+amdHistory::query(handle, 101, complex(3,2), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_decimal32",exception=1
+amdHistory::query(handle, 101, decimal32(3,2), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_decimal64",exception=1
+amdHistory::query(handle, 101, decimal64(3,2), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_decimal128",exception=1
+amdHistory::query(handle, 101, decimal128(3,2), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_vector",exception=1
+amdHistory::query(handle, 101, ["execution", "execution"], "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_pair",exception=1
+amdHistory::query(handle, 101, "execution":"execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_matrix",exception=1
+amdHistory::query(handle, 101, take("execution", 6)$2:3, "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_set",exception=1
+amdHistory::query(handle, 101, set(1 2 3), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_dict",exception=1
+amdHistory::query(handle, 101, dict(1 2 3, `execution`execution`execution), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_table",exception=1
+amdHistory::query(handle, 101, table(`execution`execution`execution as x), "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_dataType_ex",exception=1
+amdHistory::query(handle, 101, "aaa", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_empty",exception=1
+amdHistory::query(handle, 101, "execution", , 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_NULL",exception=1
+amdHistory::query(handle, 101, "execution", NULL, 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_string_NULL",exception=1
+amdHistory::query(handle, 101, "execution", string(), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_bool",exception=1
+amdHistory::query(handle, 101, "execution", true, 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_integral",exception=1
+amdHistory::query(handle, 101, "execution", 232931, 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_temporal",exception=1
+amdHistory::query(handle, 101, "execution", date(232931), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_float",exception=1
+amdHistory::query(handle, 101, "execution", float(232931), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_double",exception=1
+amdHistory::query(handle, 101, "execution", double(232931), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_blob",exception=1
+amdHistory::query(handle, 101, "execution", blob("232931"), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_int128",exception=1
+amdHistory::query(handle, 101, "execution", int128("e1671797c52e15f763380b45e841ec32"), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_uuid",exception=1
+amdHistory::query(handle, 101, "execution", uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_ipaddr",exception=1
+amdHistory::query(handle, 101, "execution", ipaddr("192.168.1.13"), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_point",exception=1
+amdHistory::query(handle, 101, "execution", point(3,2), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_complex",exception=1
+amdHistory::query(handle, 101, "execution", complex(3,2), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_decimal32",exception=1
+amdHistory::query(handle, 101, "execution", decimal32(3,2), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_decimal64",exception=1
+amdHistory::query(handle, 101, "execution", decimal64(3,2), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_decimal128",exception=1
+amdHistory::query(handle, 101, "execution", decimal128(3,2), 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_security_ex1"
+ans = amdHistory::query(handle, 101, "execution", "1111111111111", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+assert 1, eqObj(ans, 0)
+
+@testing:case="test_function_amdHistory_query_security_ex2"
+ans = amdHistory::query(handle, 101, "execution", "xdfes", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+assert 1, eqObj(ans, 0)
+
+@testing:case="test_function_amdHistory_query_date_empty",exception=1
+amdHistory::query(handle, 101, "execution", "232931", , 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", NULL, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_date_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", date(), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_bool",exception=1
+amdHistory::query(handle, 101, "execution", "232931", true, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_char",exception=1
+amdHistory::query(handle, 101, "execution", "232931", char(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_short",exception=1
+amdHistory::query(handle, 101, "execution", "232931", short(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_int",exception=1
+amdHistory::query(handle, 101, "execution", "232931", int(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_long",exception=1
+amdHistory::query(handle, 101, "execution", "232931", long(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_month",exception=1
+amdHistory::query(handle, 101, "execution", "232931", month(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_time",exception=1
+amdHistory::query(handle, 101, "execution", "232931", time(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_minute",exception=1
+amdHistory::query(handle, 101, "execution", "232931", minute(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_second",exception=1
+amdHistory::query(handle, 101, "execution", "232931", second(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_datetime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", datetime(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_timestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", timestamp(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_nanotime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", nanotime(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_nanotimestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", nanotimestamp(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_datehour",exception=1
+amdHistory::query(handle, 101, "execution", "232931", datehour(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_float",exception=1
+amdHistory::query(handle, 101, "execution", "232931", float(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_double",exception=1
+amdHistory::query(handle, 101, "execution", "232931", double(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_string",exception=1
+amdHistory::query(handle, 101, "execution", "232931", string(1), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_int128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", int128("e1671797c52e15f763380b45e841ec32"), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_uuid",exception=1
+amdHistory::query(handle, 101, "execution", "232931", uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_ipaddr",exception=1
+amdHistory::query(handle, 101, "execution", "232931", ipaddr("192.168.1.13"), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_point",exception=1
+amdHistory::query(handle, 101, "execution", "232931", point(3,2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_complex",exception=1
+amdHistory::query(handle, 101, "execution", "232931", complex(3,2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_decimal32",exception=1
+amdHistory::query(handle, 101, "execution", "232931", decimal32(3,2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_decimal64",exception=1
+amdHistory::query(handle, 101, "execution", "232931", decimal64(3,2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_decimal128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", decimal128(3,2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_vector",exception=1
+amdHistory::query(handle, 101, "execution", "232931", date(1 2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_matrix",exception=1
+amdHistory::query(handle, 101, "execution", "232931", date(1..6)$2:3, 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_pair",exception=1
+amdHistory::query(handle, 101, "execution", "232931", date(1:2), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_set",exception=1
+amdHistory::query(handle, 101, "execution", "232931", set(1 2 3), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_dict",exception=1
+amdHistory::query(handle, 101, "execution", "232931", dict(1 2 3, date(1 2 3)), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_date_table",exception=1
+amdHistory::query(handle, 101, "execution", "232931", table(date(1 2 3) as x), 09:00:00.000, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_empty",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, , 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, NULL, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_time_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, time(), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_bool",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, true, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_char",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, char(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_short",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, short(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_int",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, int(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_long",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, long(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_date",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, date(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_month",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, month(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_minute",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, minute(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_second",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, minute(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_datetime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, datetime(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_timestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, timestamp(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_nanotime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, nanotime(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_nanotimestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, nanotimestamp(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_datehour",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, datehour(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_float",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, float(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_double",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, double(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_string",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, string(1), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_int128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, int128("e1671797c52e15f763380b45e841ec32"), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_uuid",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_ipaddr",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, ipaddr("192.168.1.13"), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_point",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, point(2,3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_complex",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, complex(2,3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_decimal32",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, decimal32(2,3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_decimal64",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, decimal64(2,3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_decimal128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, decimal128(2,3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_vector",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, time(1 2), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_pair",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, time(1:2), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_matrix",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, time(1..6)$2:3, 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_set",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, set(1 2 3), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_dict",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, dict(1 2 3, time(1 2 3)), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_beginTime_table",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, table(time(1 2 3) as x), 16:00:00.000, execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_empty",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, , execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, NULL, execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_time_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, time(), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_bool",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, true, execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_char",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, char(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_short",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, short(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_int",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, int(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_long",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, long(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_date",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, date(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_month",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, month(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_minute",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, minute(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_second",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, minute(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_datetime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, datetime(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_timestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, timestamp(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_nanotime",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, nanotime(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_nanotimestamp",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, nanotimestamp(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_datehour",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, datehour(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_float",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, float(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_double",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, double(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_string",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, string(1), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_int128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, int128("e1671797c52e15f763380b45e841ec32"), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_uuid",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_ipaddr",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, ipaddr("192.168.1.13"), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_point",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, point(2,3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_complex",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, complex(2,3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_decimal32",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, decimal32(2,3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_decimal64",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, decimal64(2,3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_decimal128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, decimal128(2,3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_vector",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, time(1 2), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_pair",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, time(1:2), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_matrix",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, time(1..6)$2:3, execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_set",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, set(1 2 3), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_dict",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, dict(1 2 3, time(1 2 3)), execution1)
+
+@testing:case="test_function_amdHistory_query_endTime_table",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, table(time(1 2 3) as x), execution1)
+
+@testing:case="test_function_amdHistory_query_table_empty",syntaxError=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000)
+
+@testing:case="test_function_amdHistory_query_table_NULL", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, NULL)
+
+@testing:case="test_function_amdHistory_query_table_scalar", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, 1)
+
+@testing:case="test_function_amdHistory_query_table_vector", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, 1 2 3)
+
+@testing:case="test_function_amdHistory_query_table_pair", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, 1:2)
+
+@testing:case="test_function_amdHistory_query_table_matrix", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, 1..6$2:3)
+
+@testing:case="test_function_amdHistory_query_table_set", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, set(1 2 3))
+
+@testing:case="test_function_amdHistory_query_table_dict", exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_amdHistory_query_table_schema_ex", exception=1
+t = table(1 2 3 as x, 1 2 3 as y)
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, t)
+
+@testing:case="test_function_amdHistory_query_table_col_len_ex", exception=1
+tableShcema = amdHistory::getSchema("execution")
+t = streamTable(1000:0, tableShcema.name[:10], tableShcema.typeInt[:10])
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, t)
+ 
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, NULL)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_integral_NULL",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, int())
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_bool",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, true)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_temporal",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, date(1))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_float",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, float(1))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_double",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, double(1))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_string",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, string(1))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_int128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, int128("e1671797c52e15f763380b45e841ec32"))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_uuid",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_ipaddr",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, ipaddr("192.168.1.13"))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_point",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, point(3,2))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_complex",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, complex(3,2))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_decimal32",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, decimal32(3,2))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_decimal64",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, decimal64(3,2))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_decimal128",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, decimal128(3,2))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_vector",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, 1 2 3)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_pair",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, 1:2)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_matrix",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, 1..6$2:3)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_set",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, set(1 2 3))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_dict",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_table",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, table(1 2 3 as x))
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_lt_0",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, -3)
+
+@testing:case="test_function_amdHistory_query_ignoreColumnNum_gt_col_len",exception=1
+amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1, 1000)
+
+@testing:case="test_function_amdHistory_query_security_not_exists"
+res = amdHistory::query(handle, 101, "execution", "sss", 2025.03.12, 09:00:00.000, 16:00:00.000, execution1)
+assert 1, eqObj(res, 0)
+
+@testing:case="test_function_amdHistory_query_date_not_exists"
+res = amdHistory::query(handle, 101, "execution", "232931", date(1), 09:00:00.000, 16:00:00.000, execution1)
+assert 1, eqObj(res, 0)
+
+@testing:case="test_function_amdHistory_query_beginTime_not_exists"
+res = amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, time(1), 16:00:00.000, execution1)
+assert 1, eqObj(res, 0)
+
+@testing:case="test_function_amdHistory_query_date_not_exists"
+res = amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 09:00:00.000, 23:00:00.000, execution1)
+assert 1, eqObj(res, 0)
+
+@testing:case="test_function_amdHistory_query_syntax"
+assert 1, eqObj(syntax(amdHistory::query), 'query(...) minParams = 8, maxParams = 9')
+
+
+@testing:case="test_function_amdHistory_query_begineTime_eq_endTime"
+clear_all_share_table()
+create_all_share_table()
+go
+res1 = query_month_data(handle, 101, "snapshot", "501001",days, 09:00:00.000, 18:00:00.000, snapshot1)
+res2 = query_month_data(handle, 101, "snapshot", "501001",days, (exec distinct(time(origTime)) from snapshot1)[0], (exec distinct(time(origTime)) from snapshot1)[0], snapshot1)
+assert 1, res2>0
+
+@testing:case="test_function_amdHistory_query_begineTime_gt_endTime",exception=1
+res = amdHistory::query(handle, 101, "execution", "232931", 2025.03.12, 18:00:00.000, 09:00:00.000, execution1)
+
+
+@testing:case="test_function_amdHistory_query_marketType_only_101_102"
+ans = exec distinct(marketType) from queryCodeTable
+assert 1, eqObj(ans.sort(), 101 102)
+
+@testing:case="test_function_amdHistory_query_marketType_101"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "snapshot", "501001",days, 09:00:00.000, 18:00:00.000, snapshot1)
+assert 1, res>0
+assert 2, snapshot1.rows()>0
+assert 3, getPersistenceMeta(snapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_marketType_102"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "indexSnapshot", "399983",days, 09:00:00.000, 18:00:00.000, indexSnapshot1)
+assert 1, res>0
+assert 2, indexSnapshot1.rows()>0
+assert 3, getPersistenceMeta(indexSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_dataType_order"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "order", "110096",days, 09:00:00.000, 18:00:00.000, order1)
+assert 1, res>0
+assert 2, order1.rows()>0
+assert 3, getPersistenceMeta(order1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_dataType_execution"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "execution", "110096",days, 09:00:00.000, 18:00:00.000, execution1)
+assert 1, res>0
+assert 2, execution1.rows()>0
+assert 3, getPersistenceMeta(execution1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_dataType_snapshot"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, snapshot1)
+assert 1, res>0
+assert 2, snapshot1.rows()>0
+assert 3, getPersistenceMeta(snapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_dataType_indexSnapshot"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "indexSnapshot", "399983",days, 09:00:00.000, 18:00:00.000, indexSnapshot1)
+assert 1, res>0
+assert 2, indexSnapshot1.rows()>0
+assert 3, getPersistenceMeta(indexSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_dataType_optionSnapshot"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "optionSnapshot", "11054529",days, 09:00:00.000, 18:00:00.000, optionSnapshot1)
+assert 1, res>0
+assert 2, optionSnapshot1.rows()>0
+assert 3, getPersistenceMeta(optionSnapshot1).totalSize==res
+
+//without futureSnapshot in test env 
+@testing:case="test_function_amdHistory_query_dataType_futureSnapshot"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "futureSnapshot", "159980",days, 09:00:00.000, 18:00:00.000, futureSnapshot1)
+assert 1, res==0
+assert 2, futureSnapshot1.rows()==0
+assert 3, getPersistenceMeta(futureSnapshot1).totalSize==res
+
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_1"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "HKTSnapshot", "00001", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>0
+assert 2, HKTSnapshot1.rows()>0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_2"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "01012", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_3"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "02527", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_4"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "04522", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_5"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "05440", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_6"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "04604", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_7"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "05033", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_8"
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 102, "HKTSnapshot", "04553", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+assert 1, res>=0
+assert 2, HKTSnapshot1.rows()>=0
+assert 3, getPersistenceMeta(HKTSnapshot1).totalSize==res
+
+@testing:case="test_function_amdHistory_query_not_support_snapshot_HKT_9",exception=1
+clear_all_share_table()
+create_all_share_table()
+go
+res = query_month_data(handle, 101, "HKTSnapshot", "11054532", days, 09:00:00.000, 23:00:00.000, HKTSnapshot1)
+
+
+exec distinct(currency) from queryCodeTable
+@testing:case="test_function_amdHistory_query_table_memTable"
+tableShcema = amdHistory::getSchema("execution")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, t)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_table_indexedTable"
+tableShcema = amdHistory::getSchema("execution")
+it = indexedTable(`execTime, 1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, it)
+assert 1, res>0
+assert 2, it.rows()>0
+//execTime duplicate
+assert 3, it.rows()<res
+
+@testing:case="test_function_amdHistory_query_table_keyedTable"
+tableShcema = amdHistory::getSchema("execution")
+kt = indexedTable(`execTime, 1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, kt)
+assert 1, res>0
+assert 2, kt.rows()>0
+//execTime duplicate
+assert 3, kt.rows()<res
+
+@testing:case="test_function_amdHistory_query_table_mvcctable"
+tableShcema = amdHistory::getSchema("execution")
+mt = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, mt)
+assert 1, res>0
+assert 2, mt.rows()>0
+assert 3, mt.rows()==res
+
+@testing:case="test_function_amdHistory_query_table_dfsTable_pt"
+dbName = "dfs://test_amdHistory"
+if(existsDatabase(dbName)){
+    dropDatabase(dbName)
+}
+tableShcema = amdHistory::getSchema("execution")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+db = database(dbName, VALUE, [101])
+pt = createPartitionedTable(db, t, `pt, `marketType)
+res = query_month_data_dfs(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, pt)
+ans = select * from pt
+assert 1, res>0
+assert 2, ans.rows()>0
+assert 3, ans.rows()==res
+
+@testing:case="test_function_amdHistory_query_table_dfsTable_dt"
+dbName = "dfs://test_amdHistory"
+if(existsDatabase(dbName)){
+    dropDatabase(dbName)
+}
+tableShcema = amdHistory::getSchema("execution")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+db = database(dbName, VALUE, [101])
+dt = createTable(db, t, `dt)
+res = query_month_data_dfs(handle,101, "execution", "110096", days, 09:00:00.000, 16:00:00.000, dt)
+ans = select * from dt
+assert 1, res>0
+assert 2, ans.rows()>0
+assert 3, ans.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_structure_len_not_suit", exception=1
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t,1)
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_structure_name_type_not_suit"
+tableShcema = amdHistory::getSchema("snapshot")
+update tableShcema set name="aaa" where name="marketType" 
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_structure_typeInt_type_not_suit",exception=1
+tableShcema = amdHistory::getSchema("snapshot")
+update tableShcema set typeInt=12  where name="marketType" 
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t)
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_0"
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t, 0)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_1"
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name join `a, tableShcema.typeInt join 4)
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t, 1)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_10"
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name join (`a+string(1..10)), tableShcema.typeInt join take(4, 10))
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t, 10)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_1025"
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name join (`a+string(1..1025)), tableShcema.typeInt join take(4, 1025))
+res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t, 1025)
+assert 1, res>0
+assert 2, t.rows()>0
+assert 3, t.rows()==res
+
+@testing:case="test_function_amdHistory_query_ignoredColumnNum_1"
+types = `char`short`int`long
+for(type in types){
+    tableShcema = amdHistory::getSchema("snapshot")
+    t = table(1000:0, tableShcema.name join `a, tableShcema.typeInt join 4)
+    res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t, funcByName(type)(1))
+    assert 1, res>0
+    assert 2, t.rows()>0
+    assert 3, t.rows()==res
+}
+
+@testing:case="test_function_amdHistory_query_multi_times"
+def submitJob_query(handle, days, mutable t){
+    res = query_month_data(handle, 101, "snapshot", "110096",days, 09:00:00.000, 18:00:00.000, t)
+    return res
+}
+tableShcema = amdHistory::getSchema("snapshot")
+t = table(1000:0, tableShcema.name, tableShcema.typeInt)
+job1 = submitJob("job", "job", submitJob_query, handle, days, t)
+job2 = submitJob("job", "job", submitJob_query, handle, days, t)
+job3 = submitJob("job", "job", submitJob_query, handle, days, t)
+res1 = getJobReturn(job1, true)
+res2 = getJobReturn(job2, true)
+res3 = getJobReturn(job3, true)
+assert 1, t.rows()>0
+assert 2, res1==res2==res3
+assert 3, eqObj(t.rows(), int(res1+res1+res3))
+
+@testing:case="test_function_amdHistory_getSchema_args_len_ex", syntaxError=1
+amdHistory::getSchema(`order, 1)
+
+@testing:case="test_function_amdHistory_getSchema_dataType_empty", exception=1
+amdHistory::getSchema()
+
+@testing:case="test_function_amdHistory_getSchema_dataType_NULL", exception=1
+amdHistory::getSchema(NULL)
+
+@testing:case="test_function_amdHistory_getSchema_dataType_string_NULL", exception=1
+amdHistory::getSchema(string())
+
+@testing:case="test_function_amdHistory_getSchema_dataType_bool", exception=1
+amdHistory::getSchema(true)
+
+@testing:case="test_function_amdHistory_getSchema_dataType_char", exception=1
+amdHistory::getSchema(char(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_short", exception=1
+amdHistory::getSchema(short(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_int", exception=1
+amdHistory::getSchema(int(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_long", exception=1
+amdHistory::getSchema(long(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_temporal", exception=1
+amdHistory::getSchema(minute(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_floating", exception=1
+amdHistory::getSchema(float(1))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_int128", exception=1
+amdHistory::getSchema(int128("e1671797c52e15f763380b45e841ec32"))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_uuid", exception=1
+amdHistory::getSchema(uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_ipaddr", exception=1
+amdHistory::getSchema(ipaddr("192.168.1.13"))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_point", exception=1
+amdHistory::getSchema(point(3,2))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_complex", exception=1
+amdHistory::getSchema(complex(3,2))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_decimal32", exception=1
+amdHistory::getSchema(decimal32(3,2))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_decimal64", exception=1
+amdHistory::getSchema(decimal64(3,2))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_decimal128", exception=1
+amdHistory::getSchema(decimal128(3,2))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_vector", exception=1
+amdHistory::getSchema(`order`order)
+
+@testing:case="test_function_amdHistory_getSchema_dataType_pair", exception=1
+amdHistory::getSchema(["order", "order"])
+
+@testing:case="test_function_amdHistory_getSchema_dataType_matrix", exception=1
+amdHistory::getSchema(take("order", 6 )$2:3)
+
+@testing:case="test_function_amdHistory_getSchema_dataType_set", exception=1
+amdHistory::getSchema(set(1 2 3))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_dict", exception=1
+amdHistory::getSchema(dict(["order"], ["order"]))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_table", exception=1
+amdHistory::getSchema(table(`order`order as x))
+
+@testing:case="test_function_amdHistory_getSchema_dataType_errorName", exception=1
+amdHistory::getSchema("bondExecution")
+
+@testing:case="test_function_amdHistory_getSchema_syntax"
+assert 1, eqObj(syntax(amdHistory::getSchema), 'getSchema(a)')
+
+@testing:case="test_function_amdHistory_getSchema_prepare"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+amdhandle = amdQuote::connect(AMDQUOTE_USERNAME, AMDQUOTE_PASSWORD, AMDQUOTE_IP, AMDQUOTE_PORT)
+ex_order = amdQuote::getSchema(`order)
+ex_execution = amdQuote::getSchema(`execution)
+ex_snapshot = amdQuote::getSchema(`snapshot)
+ex_index = amdQuote::getSchema(`index)
+ex_option = amdQuote::getSchema(`option)
+ex_future = amdQuote::getSchema(`future)
+amdQuote::close(amdhandle)
+
+@testing:case="test_function_amdHistory_getSchema_order"
+ans = amdHistory::getSchema(`order)
+assert 1,eqObj(ans.values(), ex_order.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_execution"
+ans = amdHistory::getSchema(`execution)
+assert 1,eqObj(ans.values(), ex_execution.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_snapshot"
+ans = amdHistory::getSchema(`snapshot)
+assert 1,eqObj(ans.values(), ex_snapshot.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_indexSnapshot"
+ans = amdHistory::getSchema(`indexSnapshot)
+assert 1,eqObj(ans.values(), ex_index.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_optionSnapshot"
+ans = amdHistory::getSchema(`optionSnapshot)
+assert 1,eqObj(ans.values(), ex_option.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_futureSnapshot"
+ans = amdHistory::getSchema(`futureSnapshot)
+assert 1,eqObj(ans.values(), ex_future.values())
+assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+
+@testing:case="test_function_amdHistory_getSchema_HKTSnapshot"
+ans = amdHistory::getSchema(`HKTSnapshot)
+assert 1, eqObj(ans.columnNames(), `name`typeString`typeInt)
+assert 2, eqObj(ans[`name], `marketType`securityCode`origTime`tradingPhaseCode`preClosePrice`highPrice`lowPrice`lastPrice`nominalPrice`bidPrice1`bidPrice2`bidPrice3`bidPrice4`bidPrice5`bidVolume1`bidVolume2`bidVolume3`bidVolume4`bidVolume5`offeRPrice1`offerPrice2`offerPrice3`offerPrice4`offerPrice5`offerVolume1`offerVolume2`offerVolume3`offerVolume4`offerVolume5`totalVolumeTrade`totalValueTrade)
+assert 3, eqObj(ans[`typeString],`INT`SYMBOL`TIMESTAMP`STRING`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG`LONG)
+
+@testing:case="test_function_amdHistory_getSchema_multi_times"
+for(i in 1..1000){
+    ans = amdHistory::getSchema(`futureSnapshot)
+    assert 1,eqObj(ans.values(), ex_future.values())
+    assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+}
+
+@testing:case="test_function_amdHistory_getSchema_multi_jobs"
+def submitJob_getSchema(ex_snapshot){
+    for(i in 1..1000){
+        ans = amdHistory::getSchema(`snapshot)
+        assert 1,eqObj(ans.values(), ex_snapshot.values())
+        assert 2, eqObj(ans.columnNames(), `name`typeString`typeInt)
+    }
+}
+job1 = submitJob("job", "job", submitJob_getSchema,ex_snapshot)
+job2 = submitJob("job", "job", submitJob_getSchema,ex_snapshot)
+job3 = submitJob("job", "job", submitJob_getSchema,ex_snapshot)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+
+@testing:case="test_function_amdHistory_getHandle_prepare_1"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_getHandle_args_over",syntaxError=1
+amdHistory::getHandle(1)
+
+@testing:case="test_function_amdHistory_getHandle_after_close",exception=1
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+amdHistory::getHandle()
+
+@testing:case="test_function_amdHistory_getHandle_prepare_2"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_getHandle_syntax"
+assert 1, eqObj(syntax(amdHistory::getHandle), 'getHandle()')
+
+
+@testing:case="test_function_amdHistory_getHandle"
+res = amdHistory::getHandle()
+assert 1, eqObj(string(res), 'AMDHistory')
+assert 2, eqObj(typestr(res), 'RESOURCE')
+
+@testing:case="test_function_amdHistory_multi_times"
+for(i in 1..1000){
+    res = amdHistory::getHandle()
+    assert 1, eqObj(string(res), 'AMDHistory')
+    assert 2, eqObj(typestr(res), 'RESOURCE')
+}
+
+@testing:case="test_function_amdHistory_multi_jobs"
+def submitJob_getHandle(){
+    for(i in 1..1000){
+        res = amdHistory::getHandle()
+        assert 1, eqObj(string(res), 'AMDHistory')
+        assert 2, eqObj(typestr(res), 'RESOURCE')
+    }
+}
+
+job1 = submitJob("job", "job", submitJob_getHandle)
+job2 = submitJob("job", "job", submitJob_getHandle)
+job3 = submitJob("job", "job", submitJob_getHandle)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+
+@testing:case="test_function_amdHistory_close_prepare"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_close_args_over", syntaxError=1
+amdHistory::close(handle, 1)
+
+@testing:case="test_function_amdHistory_close_empty",exception=1
+amdHistory::close()
+
+@testing:case="test_function_amdHistory_close_NULL",exception=1
+amdHistory::close(NULL)
+
+@testing:case="test_function_amdHistory_close_bool",exception=1
+amdHistory::close(true)
+
+@testing:case="test_function_amdHistory_close_integral",exception=1
+amdHistory::close(1)
+
+@testing:case="test_function_amdHistory_close_temporal",exception=1
+amdHistory::close(date(1))
+
+@testing:case="test_function_amdHistory_close_float",exception=1
+amdHistory::close(float(1))
+
+@testing:case="test_function_amdHistory_close_double",exception=1
+amdHistory::close(double(1))
+
+@testing:case="test_function_amdHistory_close_string",exception=1
+amdHistory::close(string(1))
+
+@testing:case="test_function_amdHistory_close_binary",exception=1
+amdHistory::close(int128("e1671797c52e15f763380b45e841ec32"))
+
+@testing:case="test_function_amdHistory_close_vector",exception=1
+amdHistory::close([handle, handle])
+
+@testing:case="test_function_amdHistory_close_pair",exception=1
+amdHistory::close(handle:handle)
+
+@testing:case="test_function_amdHistory_close_syntax"
+assert 1, eqObj(syntax(amdHistory::close), 'close(a)')
+
+@testing:case="test_function_amdHistory_close_prepare",exception=1
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+amdHistory::close(handle)
+amdHistory::close(handle)
+
+@testing:case="test_function_amdHistory_close"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+amdHistory::close(handle)
+
+@testing:case="test_function_amdHistory_close_after_close",exception=1
+//after @testing:case="test_function_amdHistory_close"
+amdHistory::getHandle()
+
+@testing:case="test_function_amdHistory_close_muliti_times"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+for(i in 1..20){
+    print(i)
+    handle = amdHistory::connect(user, password, host, port)
+    amdHistory::close(handle)
+}
+
+@testing:case="test_function_amdHistory_close_after_muliti_times",exception=1
+//after @testing:case="test_function_amdHistory_close"
+amdHistory::getHandle()
+
+@testing:case="test_function_amdHistory_close_muliti_jobs",exception=1
+def submitJob_close(user, password, host, port, handle){
+    for(i in 1..20){
+        amdHistory::close(handle)
+    }
+}
+handle = amdHistory::connect(user, password, host, port)
+job1 = submitJob("job", "job", submitJob_close,user, password, host, port, handle)
+job2 = submitJob("job", "job", submitJob_close,user, password, host, port, handle)
+job3 = submitJob("job", "job", submitJob_close,user, password, host, port, handle)
+getJobReturn(job1,true)
+getJobReturn(job2,true)
+getJobReturn(job3,true)
+
+@testing:case="test_function_amdHistory_queryCodeTable_prepare_1"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_queryCodeTable_empty",exception=1
+amdHistory::queryCodeTable()
+
+@testing:case="test_function_amdHistory_queryCodeTable_args_over",syntaxError=1
+amdHistory::queryCodeTable(handle, 1)
+
+@testing:case="test_function_amdHistory_queryCodeTable_NULL",exception=1
+amdHistory::queryCodeTable(NULL)
+
+@testing:case="test_function_amdHistory_queryCodeTable_bool",exception=1
+amdHistory::queryCodeTable(true)
+
+@testing:case="test_function_amdHistory_queryCodeTable_integral",exception=1
+amdHistory::queryCodeTable(int(1))
+
+@testing:case="test_function_amdHistory_queryCodeTable_temporal",exception=1
+amdHistory::queryCodeTable(date(1))
+
+@testing:case="test_function_amdHistory_queryCodeTable_flaot",exception=1
+amdHistory::queryCodeTable(float(1))
+
+@testing:case="test_function_amdHistory_queryCodeTable_string",exception=1
+amdHistory::queryCodeTable(string(1))
+
+@testing:case="test_function_amdHistory_queryCodeTable_binary",exception=1
+amdHistory::queryCodeTable(int128("e1671797c52e15f763380b45e841ec32"))
+
+@testing:case="test_function_amdHistory_queryCodeTable_decimal",exception=1
+amdHistory::queryCodeTable(decimal32(3,2))
+
+@testing:case="test_function_amdHistory_queryCodeTable_vector",exception=1
+amdHistory::queryCodeTable([handle, handle])
+
+@testing:case="test_function_amdHistory_queryCodeTable_pair",exception=1
+amdHistory::queryCodeTable(handle:handle)
+
+@testing:case="test_function_amdHistory_queryCodeTable_handle_clse",exception=1
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+amdHistory::queryCodeTable(handle)
+
+@testing:case="test_function_amdHistory_queryCodeTable_prepare_2"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+}catch(ex){print(ex)}
+handle = amdHistory::connect(user, password, host, port)
+
+@testing:case="test_function_amdHistory_queryCodeTable_syntax"
+assert 1, eqObj(syntax(amdHistory::queryCodeTable), 'queryCodeTable(a)')
+
+@testing:case="test_function_amdHistory_queryCodeTable"
+res = amdHistory::queryCodeTable(handle)
+assert 1, eqObj(schema(res).colDefs.name, `securityCode`symbol`englishName`marketType`securityType`currency)
+assert 2, eqObj(schema(res).colDefs.typeString, ["STRING", "STRING", "STRING", "INT", "STRING", "STRING"])
+assert 3, res.rows()>0
+
+@testing:case="test_function_amdHistory_queryCodeTable_multi_times"
+for(i in 1..20){
+    res = amdHistory::queryCodeTable(handle)
+    assert 1, eqObj(schema(res).colDefs.name, `securityCode`symbol`englishName`marketType`securityType`currency)
+    assert 2, eqObj(schema(res).colDefs.typeString, ["STRING", "STRING", "STRING", "INT", "STRING", "STRING"])
+    assert 3, res.rows()>0
+}
+
+@testing:case="test_function_amdHistory_queryCodeTable_multi_jobs"
+def submitJob_queryCodeTable(handle){
+    for(i in 1..20){
+        res = amdHistory::queryCodeTable(handle)
+        assert 1, eqObj(schema(res).colDefs.name, `securityCode`symbol`englishName`marketType`securityType`currency)
+        assert 2, eqObj(schema(res).colDefs.typeString, ["STRING", "STRING", "STRING", "INT", "STRING", "STRING"])
+        assert 3, res.rows()>0
+    }
+}
+
+job1 = submitJob("job", "job", submitJob_queryCodeTable, handle)
+job2 = submitJob("job", "job", submitJob_queryCodeTable, handle)
+job3 = submitJob("job", "job", submitJob_queryCodeTable, handle)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+
+
+@testing:case="test_finish_test"
+try{
+    amdHistory::close(amdHistory::getHandle()) 
+    print("after close")
+}catch(ex){print(ex)}

@@ -1,0 +1,59 @@
+// ============================================================
+// DolphinDB Daily-Frequency Factor — 4-section template
+// Fill in: <FactorName>, <fields>, <factor body>
+// Remember: division is `\`, not `/`
+// ============================================================
+
+// ====== 1. 样本数据加载 ======
+startDate = 2024.01.01
+endDate   = 2025.12.31
+
+daily_table = loadTable("dfs://tushare_daily_db", "stock_bak_daily")
+index_table = loadTable("dfs://tushare_daily_db", "index_daily")
+
+daily_stock = select
+    d.code         as securityid,
+    d.trade_date   as tradetime,
+    d.open,
+    d.close,
+    d.high,
+    d.low,
+    d.pre_close    as last,
+    d.vol,
+    d.avg_price    as vwap,
+    d.industry     as sector,
+    d.total_mv     as cap,
+    idx.open       as index_open,
+    idx.close      as index_close
+from daily_table as d
+left join index_table as idx
+on d.trade_date = idx.trade_date
+where d.trade_date between startDate : endDate
+    and idx.code = "000001.SH"
+
+// ====== 2. 面板数据 prepare 函数 ======
+// 只 pivot 因子真正用到的字段；多字段时返回 dict 或多个 pivot 结果
+def prepare_<FactorName>(data, startTime, endTime){
+    p = exec <field> from data
+        where tradetime between startTime : endTime
+        pivot by tradetime, securityid
+    return p
+}
+
+// ====== 3. 因子计算函数 ======
+// 输入：面板矩阵（行=日期, 列=股票）
+// 输出：同形状的面板矩阵
+def <FactorName>(<panel_args>) {
+    // <factor body — vectorized panel math only>
+    return <result_panel>
+}
+
+// ====== 4. 执行 + 预览 ======
+prepared_data = prepare_<FactorName>(daily_stock, startDate, endDate)
+factor_result = <FactorName>(prepared_data)
+
+labels_src = prepared_data        // 用于取 dates / stocks 标签
+dates  = rowNames(labels_src)
+stocks = colNames(labels_src)
+n = min(100, size(dates))
+(dates[0:n], stocks, factor_result[0:n,])

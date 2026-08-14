@@ -1,0 +1,127 @@
+// ============================================================
+// Orca DStream API Demo: 移动平均买卖压力（5档盘口）
+// 功能：
+// 1. 根据5档盘口计算当前快照的买卖压力 press
+// 2. 对每只股票最近 lag 条 press 做移动平均，得到 avgPress
+// ============================================================
+
+// -------------------------
+// 1. Catalog
+// -------------------------
+if (!existsCatalog("orcaDemo")) {
+    createCatalog("orcaDemo")
+}
+go
+use catalog orcaDemo
+
+// -------------------------
+// 2. 清理旧流图/流表（调试/测试专用）
+// -------------------------
+try { dropStreamGraph("pressAvgGraph", true) } catch(ex) {}
+try { dropOrcaStreamTable("snapshotStream") } catch(ex) {}
+try { dropOrcaStreamTable("avgPressResult") } catch(ex) {}
+
+// -------------------------
+// 3. 定义函数（关键：用 @state 声明，内部用标量计算）
+// -------------------------
+
+// 无状态标量函数：计算单条快照的买卖压力（5档）
+def calPressScalar(bp0, bp1, bp2, bp3, bp4,
+                   bq0, bq1, bq2, bq3, bq4,
+                   op0, op1, op2, op3, op4,
+                   oq0, oq1, oq2, oq3, oq4) {
+    wap = (bp0 * oq0 + op0 * bq0) / (oq0 + bq0)
+    bidPress = (bq0*(wap/(bp0-wap)) + bq1*(wap/(bp1-wap)) + bq2*(wap/(bp2-wap)) +
+                bq3*(wap/(bp3-wap)) + bq4*(wap/(bp4-wap))) /
+               (bq0 + bq1 + bq2 + bq3 + bq4)
+    askPress = (oq0*(wap/(op0-wap)) + oq1*(wap/(op1-wap)) + oq2*(wap/(op2-wap)) +
+                oq3*(wap/(op3-wap)) + oq4*(wap/(op4-wap))) /
+               (oq0 + oq1 + oq2 + oq3 + oq4)
+    return log(bidPress / askPress)
+}
+
+// 状态函数：先调用标量无状态函数计算 press，再求移动平均
+@state
+def avgPressState(bp0, bp1, bp2, bp3, bp4,
+                  bq0, bq1, bq2, bq3, bq4,
+                  op0, op1, op2, op3, op4,
+                  oq0, oq1, oq2, oq3, oq4, lag) {
+    press = calPressScalar(bp0, bp1, bp2, bp3, bp4,
+                           bq0, bq1, bq2, bq3, bq4,
+                           op0, op1, op2, op3, op4,
+                           oq0, oq1, oq2, oq3, oq4)
+    return mavg(press, lag, 1)
+}
+
+// -------------------------
+// 4. 创建流图
+// -------------------------
+colNames = `securityID`dateTime`bidPrice0`bidPrice1`bidPrice2`bidPrice3`bidPrice4`bidOrderQty0`bidOrderQty1`bidOrderQty2`bidOrderQty3`bidOrderQty4`offerPrice0`offerPrice1`offerPrice2`offerPrice3`offerPrice4`offerOrderQty0`offerOrderQty1`offerOrderQty2`offerOrderQty3`offerOrderQty4
+colTypes = [SYMBOL, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, INT, INT, INT, INT, INT, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, INT, INT, INT, INT, INT]
+
+g = createStreamGraph("pressAvgGraph")
+g.source("snapshotStream", colNames, colTypes)
+ .reactiveStateEngine(
+     metrics = <[avgPressState(bidPrice0, bidPrice1, bidPrice2, bidPrice3, bidPrice4,
+                               bidOrderQty0, bidOrderQty1, bidOrderQty2, bidOrderQty3, bidOrderQty4,
+                               offerPrice0, offerPrice1, offerPrice2, offerPrice3, offerPrice4,
+                               offerOrderQty0, offerOrderQty1, offerOrderQty2, offerOrderQty3, offerOrderQty4,
+                               3) as avgPress]>,
+     keyColumn = `securityID
+ )
+ .sink("avgPressResult")
+
+g.submit()
+sleep(3000)
+getStreamGraphMeta("pressAvgGraph")
+
+// -------------------------
+// 5. Mock 数据（3 只股票，各 5 笔 5 档快照）
+// -------------------------
+securityID = symbol(["000001","000002","000003","000001","000002","000003","000001","000002","000003","000001","000002","000003","000001","000002","000003"])
+dateTime = timestamp([2023.01.01T09:30:00.000, 2023.01.01T09:30:03.000, 2023.01.01T09:30:06.000,
+                      2023.01.01T09:30:09.000, 2023.01.01T09:30:12.000,
+                      2023.01.01T09:30:00.000, 2023.01.01T09:30:03.000, 2023.01.01T09:30:06.000,
+                      2023.01.01T09:30:09.000, 2023.01.01T09:30:12.000,
+                      2023.01.01T09:30:00.000, 2023.01.01T09:30:03.000, 2023.01.01T09:30:06.000,
+                      2023.01.01T09:30:09.000, 2023.01.01T09:30:12.000])
+
+bidPrice0 = double([19.98, 19.95, 19.97, 20.00, 20.02, 19.99, 19.96, 19.98, 20.01, 20.03, 19.98, 19.95, 19.97, 20.00, 20.02])
+bidPrice1 = bidPrice0 + 0.01
+bidPrice2 = bidPrice0 + 0.02
+bidPrice3 = bidPrice0 + 0.03
+bidPrice4 = bidPrice0 + 0.04
+
+bidOrderQty0 = int([100,110,120,130,140, 105,115,125,135,145, 100,110,120,130,140])
+bidOrderQty1 = int([200,210,220,230,240, 205,215,225,235,245, 200,210,220,230,240])
+bidOrderQty2 = int([300,310,320,330,340, 305,315,325,335,345, 300,310,320,330,340])
+bidOrderQty3 = int([400,410,420,430,440, 405,415,425,435,445, 400,410,420,430,440])
+bidOrderQty4 = int([500,510,520,530,540, 505,515,525,535,545, 500,510,520,530,540])
+
+offerPrice0 = bidPrice0 + 0.005
+offerPrice1 = offerPrice0 + 0.01
+offerPrice2 = offerPrice0 + 0.02
+offerPrice3 = offerPrice0 + 0.03
+offerPrice4 = offerPrice0 + 0.04
+
+offerOrderQty0 = int([150,160,170,180,190, 155,165,175,185,195, 150,160,170,180,190])
+offerOrderQty1 = int([250,260,270,280,290, 255,265,275,285,295, 250,260,270,280,290])
+offerOrderQty2 = int([350,360,370,380,390, 355,365,375,385,395, 350,360,370,380,390])
+offerOrderQty3 = int([450,460,470,480,490, 455,465,475,485,495, 450,460,470,480,490])
+offerOrderQty4 = int([550,560,570,580,590, 555,565,575,585,595, 550,560,570,580,590])
+
+t = table(securityID, dateTime,
+          bidPrice0, bidPrice1, bidPrice2, bidPrice3, bidPrice4,
+          bidOrderQty0, bidOrderQty1, bidOrderQty2, bidOrderQty3, bidOrderQty4,
+          offerPrice0, offerPrice1, offerPrice2, offerPrice3, offerPrice4,
+          offerOrderQty0, offerOrderQty1, offerOrderQty2, offerOrderQty3, offerOrderQty4)
+
+appendOrcaStreamTable("snapshotStream", t)
+
+// -------------------------
+// 6. 等待引擎计算并查询结果
+// -------------------------
+sleep(3000)
+
+select * from orcaDemo.orca_table.snapshotStream
+select * from orcaDemo.orca_table.avgPressResult

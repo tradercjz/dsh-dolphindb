@@ -1,0 +1,418 @@
+@testing:case="function_abs_ex", exception=1
+isNull(abs(NULL))==1
+
+@testing:case="function_abs"
+//Usage:abs X or abs(X) or (X).abs()
+assert 1, (abs -2.0)==2.00000
+assert 2, eqObj(abs -2 -3 4, [2, 3, 4])
+assert 3, abs(00f)==00f
+assert 4, abs(-122h)==122h
+assert 5, abs(-5000000000l)==5000000000l
+assert 6, abs(0)==0
+assert 7, abs(100l)==100l
+assert 8, abs(10c) == 10c
+assert 9,abs(-1:-3)==1:3
+assert 10,abs(-1..-10$5:2)==1..10$5:2
+
+
+@testing:case="function_abs_array"
+ty = [char,short,int,float,double,long]
+def fun1(t){
+	x = take(1 0 -1,5000)
+	return eqObj(abs((t)(x)),(t)(take(1 0 1,5000)))
+}
+assert 1,eqObj(each(fun1,ty),take(true,6))
+def f2(t){
+	x = take(1 0 -1,5000)
+	x[1022 1023 1024] = NULL -1 0
+	y = take(1 0 1,5000)
+	y[1022 1023 1024] =  NULL 1 0
+	return eqObj(abs((t)(x)),(t)(y))
+}
+assert 2,eqObj(each(f2,ty),take(true,6))
+def f3(t){
+	x = take(-1 NULL -2,5000)
+	y = take(1 NULL 2 ,5000)
+	return eqObj(abs((t)(x)),(t)(y))
+}
+assert 3,eqObj(each(f3,ty),take(true,6))
+def f4(t){
+	x = take(-1 NULL 1,3000000)
+	y = take(1 NULL 1,3000000)
+	return eqObj(abs((t)(x)),(t)(y))
+}
+assert 4,eqObj(each(f4,ty),take(true,6))
+def f5(t){
+	x = take(1 0 -1,3000000)
+	x[1048574 1048575 1048576] = NULL NULL -1
+	y = take(1 0 1,3000000)
+	y[1048574 1048575 1048576] = NULL NULL 1
+	 return eqObj(abs((t)(x)),(t)(y))
+}
+assert 5,eqObj(each(f5,ty),take(true,6))
+def f6(t){
+	x = take(1 0 -1,3000000)
+	x[1048574 1048575 1048576] = -1 NULL NULL
+	y = take(1 0 1,3000000)
+	y[1048574 1048575 1048576] = 1 NULL NULL
+	return eqObj(abs((t)(x)),(t)(y))	
+}
+assert 6,eqObj(each(f6,ty),take(true,6))
+
+@testing:case="function_abs_subarray"
+ty = [char,short,int,long,float,double]
+def f1(t){
+	x = take(-1 NULL 1,5000)
+	x[1022 1023 1024] = NULL -1 NULL
+	y = take(1 NULL 1,2000)
+	y[1022 1023 1024] = NULL 1 NULL
+	y2 = take(NULL 1 1,2000)
+	y2[22 23 24] = NULL 1 NULL
+	y3 = take(NULL 1 1,1024)
+	return eqObj(abs((t)(x.subarray(0:2000))),(t)(y))&&	eqObj(abs((t)(x.subarray(1000:2000))),(t)(y2))&&eqObj(abs((t)(x.subarray(1024:2048))),(t)(y3))
+}
+assert 1,eqObj(each(f6,ty),take(true,6))
+def ff2(t){
+	x = take(-1 NULL 1,3000000)
+	x[1048574 1048575 1048576] = NULL NULL -1
+	y1 = take(NULL 1 1,1000000)
+	y1[48574 48575 48576] = NULL NULL 1
+	y2 = take(1 NULL 1,1500000)
+	y2[1048574 1048575 1048576] =  NULL NULL 1
+	y3 = take(NULL 1 1,1048576)
+	y3[0] = 1
+	return eqObj(abs((t)(x.subarray(1000000:2000000))),(t)(y1))&&eqObj(abs((t)(x.subarray(0:1500000))),(t)(y2))&&eqObj(abs((t)(x.subarray(1048576:2097152))),(t)(y3))
+}
+assert 2,eqObj(each(ff2,ty),take(true,6))
+
+@testing:case="function_abs_X_void_null", exception=1
+abs(NULL)
+
+@testing:case="function_abs_X_string_scalar", exception=1
+abs("aaa")
+
+@testing:case="function_abs_X_temporal_scalar", exception=1
+abs(2012.01.01)
+
+@testing:case="function_abs_X_bool_scalar", exception=1
+abs(true)
+
+@testing:case="function_abs_X_set", exception=1
+abs(set(1..10))
+
+@testing:case="function_abs_X_dict_value_not_numeric", exception=1
+abs(dict(1..10, "A"+string(1..10)))
+
+@testing:case="function_abs_X_tuple", exception=1
+abs(["A", 1, 3])
+
+@testing:case="function_abs_X_null"
+re = abs(char(NULL))
+assert 1, re.isNull()==true and eqObj(re, char(NULL))
+re = abs(short(NULL))
+assert 2, re.isNull()==true and eqObj(re, short(NULL))
+re = abs(int(NULL))
+assert 3, re.isNull()==true and eqObj(re, int(NULL))
+re = abs(long(NULL))
+assert 4, re.isNull()==true and eqObj(re, long(NULL))
+re = abs(double(NULL))
+assert 5, re.isNull()==true and eqObj(re, double(NULL))
+re = abs(float(NULL))
+assert 6, re.isNull()==true and eqObj(re, float(NULL))
+
+@testing:case="function_abs_X_datatype_double_float"
+re = abs(-2.5896)
+assert 1, eqObj(re, 2.5896)
+
+re = abs(-2.5896f)
+assert 2, eqObj(re, 2.5896f)
+
+//fast array
+x = rand(100.0, 1000)-50
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 3, eqObj(re, ex)
+
+x = float(rand(100.0, 1000))-50
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 4, eqObj(re, ex)
+
+//bigarray
+x = bigarray(DOUBLE, 0, 2000000).append!(rand(100.0, 2000000)-50)
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 5, eqObj(re, ex)
+
+x = bigarray(FLOAT, 0, 3000000).append!(rand(100.0, 3000000)-50)
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 6, eqObj(re, ex)
+
+//matrix
+x = (rand(100.0, 1000000)-50) $1000:1000
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 7, eqObj(re, ex)
+
+//table
+x = table("A"+string(1..10) as sym, -5..4 as val)
+re = abs(x)
+ex = table("A"+string(1..10) as sym, [5,4,3,2,1,0,1,2,3,4] as val)
+assert 8, each(eqObj, re.values(), ex.values())
+
+//dict
+x = dict(-10..-1, -10..-1)
+re = abs(x)
+assert 9, re.keys().sort()==-10..-1
+assert 10, re.values().sort()==1..10
+
+//subarray
+y = rand(100.0, 3000)-50
+x = subarray(y, 1000:2000)
+re = abs(x)
+ex = iif(x<0, -x, x)
+assert 11, eqObj(re, ex)
+
+x = array(INT, 0, 10)
+re = abs(x)
+ex = array(INT, 0, 10)
+assert 12, eqObj(re, ex)
+
+x = matrix(DOUBLE, 0, 10)
+re = abs(x)
+ex = matrix(DOUBLE, 0, 10)
+assert 13, eqObj(re, ex)
+
+x = table(1:0, `id`val, [SYMBOL, INT])
+re = abs(x)
+ex = table(1:0, `id`val, [SYMBOL, INT])
+assert 14, each(eqObj, re.values(), ex.values())
+
+@testing:case="function_abs_decimal_prepare"
+types = [decimal32, decimal64]
+def checkDecimalArray(dtype, n){
+	data = rand(rand(-100..100, 10) join take(00i, 3), n)
+	re = abs(dtype(data, 3))
+	ex = dtype(abs(data), 3)
+	return eqObj(ex, re)
+}
+
+def checkDecimalSubarray(dtype, n){
+	data = rand(rand(-100..100, 10) join take(00i, 3), n)
+	decimal_data = dtype(data, 3)
+	range1 = rand(1..size(data), 1)[0]
+	range2 = rand(range1..size(data), 1)[0]
+	re = abs(subarray(decimal_data, range1:range2))
+	ex = dtype(abs(subarray(data, range1:range2)), 3)
+	return eqObj(ex, re)
+}
+
+def checkDecimalBigarray(dtype, n){
+	data = rand(rand(-100..100, 10) join take(00i, 3) join take([0.123, 0.456, -0.2154], 3) , n)
+	decimal_data = dtype(data, 3)
+	re_data = bigarray(DECIMAL32(3), 0, n).append!(data)
+	ex_data = bigarray(DOUBLE, 0, n).append!(data)
+	re = abs(re_data)
+	ex = dtype(abs(ex_data), 3)
+	return eqObj(ex, re)
+}
+
+@testing:case="function_abs_array_decimal"
+assert 1, ploop(checkDecimalArray{, 10}, types)
+assert 2, ploop(checkDecimalArray{, 1023}, types)
+assert 3, ploop(checkDecimalArray{, 1025}, types)
+assert 4, ploop(checkDecimalArray{, 1048570}, types)
+assert 5, ploop(checkDecimalArray{, 1048580}, types)
+assert 6, ploop(checkDecimalArray{, 3000000}, types)
+
+@testing:case="function_abs_subarray_decimal"
+assert 1, ploop(checkDecimalSubarray{, 10}, types)
+assert 2, ploop(checkDecimalSubarray{, 1023}, types)
+assert 3, ploop(checkDecimalSubarray{, 1025}, types)
+assert 4, ploop(checkDecimalSubarray{, 1048570}, types)
+assert 5, ploop(checkDecimalSubarray{, 1048580}, types)
+assert 6, ploop(checkDecimalSubarray{, 3000000}, types)
+
+@testing:case="function_abs_bigarray_decimal"
+assert 1, ploop(checkDecimalBigarray{, 3000000}, types)
+assert 2, ploop(checkDecimalBigarray{, 6000000}, types)
+
+@testing:case="function_abs_dict_dataType"
+d = {-1:-1,0:0,"c":1,"short":5h,"int":3,"long":5l,"double":1.32,"float":2.2f}
+d = dict(d.keys(), d.values(), false)
+assert 0, isOrderedDict(d)==false
+re = abs(d)
+assert 1, isOrderedDict(re)==false
+ex_value = (abs(2.2f),abs(1.32),abs(5l),abs(3),abs(5h),abs(0),abs(1),abs(-1))
+ex_key =["float","double","long","int","short","0","c","-1"]
+ex = dict(ex_key, ex_value)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, eqObj(re[k], ex[k])
+}
+
+@testing:case="function_abs_dict_dataType_dataStructure"
+d = {"vector":[-1,2,4,-5],"tunlp":(-1,3,-1.23)}
+d = dict(d.keys(), d.values(), false)
+assert 0, isOrderedDict(d)==false
+re = abs(d)
+assert 1, isOrderedDict(re)==false
+ex_value = (abs((-1,3,-1.23)),abs([-1,2,4,-5]))
+ex_key =["tunlp","vector"]
+ex = dict(ex_key, ex_value)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, eqObj(re[k], ex[k])
+}
+
+@testing:case="function_abs_dict_dataStructure"
+d = {"dict1":{"a":-1,"b":1},"dict2":{"a":-1.32,"b":-4.1}}
+d = dict(d.keys(), d.values(), false)
+assert 0, isOrderedDict(d)==false
+re = abs(d)
+assert 1, isOrderedDict(re)==false
+ex_key = ["dict1","dict2"]
+ex_value = [dict(["a", "b"], (abs(-1), abs(1)), true), dict(["a", "b"], (abs(-1.32), abs(-4.1)), true)]
+ex = dict(ex_key, ex_value)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, isOrderedDict(re[k])==true
+	assert 4, eqObj(re[k].keys(), ex[k].keys())
+	assert 5, eqObj(re[k].values(), ex[k].values())
+}
+
+@testing:case="function_abs_empty_dict"
+z=dict(INT,DOUBLE);
+re = abs(z)
+assert 1,re.size() == 0
+
+@testing:case="function_abs_order_dict_dataType"
+d = {-1:-1,0:0,"c":1,"short":5h,"int":3,"long":5l,"double":1.32,"float":2.2f}
+d = dict(d.keys(),d.values(),true)
+assert 0, isOrderedDict(d)==true
+re = abs(d)
+assert 1, isOrderedDict(re)==true
+ex_value = (abs(2.2f),abs(1.32),abs(5l),abs(3),abs(5h),abs(0),abs(1),abs(-1))
+ex_key =["float","double","long","int","short","0","c","-1"]
+ex = dict(ex_key, ex_value, true)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, eqObj(re[k], ex[k])
+}
+
+@testing:case="function_abs_order_dict_dataStructure"
+d = {"vector":[-1,2,4,-5],"tunlp":(-1,3,-1.23)}
+d = dict(d.keys(),d.values(),true)
+assert 0, isOrderedDict(d)==true
+re = abs(d)
+assert 1, isOrderedDict(re)==true
+ex_value = (abs((-1,3,-1.23)),abs([-1,2,4,-5]))
+ex_key =["tunlp","vector"]
+ex = dict(ex_key, ex_value)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, eqObj(re[k], ex[k])
+}
+
+@testing:case="function_abs_order_dict_dataStructure"
+d = {"dict1":{"a":-1,"b":1},"dict2":{"a":-1.32,"b":-4.1}}
+d = dict(d.keys(),d.values(),true)
+assert 0, isOrderedDict(d)==true
+re = abs(d)
+assert 1, isOrderedDict(re)==true
+ex_key = ["dict1","dict2"]
+ex_value = [dict(["a", "b"], (abs(-1), abs(1)), true), dict(["a", "b"], (abs(-1.32), abs(-4.1)), true)]
+ex = dict(ex_key, ex_value)
+assert 2, eqObj(re.keys().sort(), ex.keys().sort())
+for(k in re.keys()){
+	assert 3, isOrderedDict(re[k])==true
+	assert 4, eqObj(re[k].keys(), ex[k].keys())
+	assert 5, eqObj(re[k].values(), ex[k].values())
+}
+
+@testing:case="function_abs_empty_order_dict"
+z=dict(INT,DOUBLE,true);
+re = abs(z)
+assert 1,re.size() == 0
+
+@testing:case="function_abs_tunlp_dataType"
+n = (-1,0,1,4h,-3,5l,-1.32,2.2f)
+re = abs(n)
+ex = (1,0,1,4h,3,5l,1.32,2.2f)
+assert 1,each(eqObj,re,ex)
+
+@testing:case="function_abs_tunlp_dataStructure"
+n = ([-1,0,1],(4h,-3,5l,-1.32,2.2f),-5..4$2:5)
+re = abs(n)
+ex = ([1,0,1],(4h,3,5l,1.32,2.2f),(5..0 join 1..4)$2:5)
+assert 1,each(eqObj,re,ex)
+
+@testing:case="function_abs_empty_tunlp"
+n = ()
+re = abs(n)
+assert 1,re.size() == 0
+
+
+@testing:case="test_function_abs_decimal128_scalar"
+assert 1, eqObj(abs(decimal128(0, 30)), decimal128(0, 30))
+assert 2, eqObj(abs(decimal128("1.1111", 28)), decimal128("1.1111", 28))
+assert 3, eqObj(abs(decimal128("-1.1111", 16)), decimal128("1.1111", 16))
+assert 4, eqObj(abs(decimal128(NULL, 38)), decimal128(NULL, 38))
+
+@testing:case="test_function_abs_decimal128_pair"
+assert 1, eqObj(abs(decimal128("1.11111":"-1.11111", 30)), decimal128("1.11111":"1.11111", 30))
+assert 2, eqObj(abs(decimal128("1.23":"2.12", 28)), decimal128("1.23":"2.12", 28))
+assert 3, eqObj(abs(decimal128("-1.1":"-2.2", 28)), decimal128("1.1":"2.2", 28))
+assert 4, eqObj(abs(decimal128("-1.1":NULL, 28)), decimal128("1.1":NULL, 28))
+assert 5, eqObj(abs(decimal128(NULL:NULL, 28)), decimal128(NULL:NULL,28))
+
+@testing:case="test_function_abs_decimal128_array"
+def checkDecimal128Array(scalar, data){
+	decimal128Data = decimal128(data, scalar)
+	ans = abs(decimal128Data)
+	return ans
+}
+
+assert 1, eqObj(checkDecimal128Array(3, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 10)), decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 10), 3))
+assert 2, eqObj(checkDecimal128Array(10, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 1025)), decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 1025), 10))
+assert 3, eqObj(checkDecimal128Array(20, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 70000)), decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 70000), 20))
+assert 4, eqObj(checkDecimal128Array(30, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 100253)), decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 100253), 30))
+
+@testing:case="test_function_abs_decimal128_subarray"
+def checkDecimal128SubArray(scalar, data){
+	decimal128Data = decimal128(data, scalar)
+	range = [2, 8]
+	ans = abs(subarray(decimal128Data, min(range):max(range)))
+	return ans
+}
+
+assert 1, eqObj(checkDecimal128SubArray(3, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 10)), subarray(decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 10), 3),2:8))
+assert 2, eqObj(checkDecimal128SubArray(10, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 1025)), subarray(decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 1025), 10),2:8))
+assert 3, eqObj(checkDecimal128SubArray(20, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 70000)), subarray(decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 70000), 20),2:8))
+assert 4, eqObj(checkDecimal128SubArray(30, take(["1.121", "-2.265", "0.000", NULL, "8.523"], 100253)), subarray(decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 100253), 30),2:8))
+
+@testing:case="test_function_abs_decimal128_bigarray"
+def checkDecimal128BigArray(dtype, data){
+	res = bigarray(dtype, 0, 9388608).append!(decimal128(data, 6))
+	ans = abs(res)
+	return ans
+}
+
+assert 1, eqObj(checkDecimal128BigArray(DECIMAL128(6), take(["1.121", "2.265", "0.000", NULL, "8.523"], 9388608)), decimal128(take(["1.121", "2.265", "0.000", NULL, "8.523"], 9388608), 6))
+
+
+@testing:case="test_function_abs_decimal128_table"
+def createT(n){
+	id = 1..n
+	x = take(decimal128([1.121, -2.265, 0.000, NULL, 8.528],20), n)
+	t = table(id as id, x as x)
+	return t
+}
+
+t = createT(70000)
+ans1 = abs(t)
+ans2 = select abs(id), abs(x) from t
+ex =  table(abs(1..70000) as id, decimal128(abs(take([1.121, -2.265, 0.000, NULL, 8.528], 70000)), 20) as x)
+assert 1, each(eqObj, ans1.values(), ex.values())
+assert 2, each(eqObj, ans2.values(), ex.values())

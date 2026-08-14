@@ -1,0 +1,21 @@
+@testing:case="JIT_class_continue"
+@jit
+class testClass {
+  def testClass() {}
+  def onBar(){
+  	for(i in 0:10){
+  		if(1){
+			continue
+  		}
+  	}
+  }
+}
+
+
+@testing:case="JIT_class_continue_crash_bug"
+@compile__
+def onBar(){
+	continue
+}
+
+onBar()

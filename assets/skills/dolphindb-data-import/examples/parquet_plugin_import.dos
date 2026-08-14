@@ -1,0 +1,40 @@
+// Example: Import Parquet file using plugin
+
+// Step 1: Safe load plugin
+try { loadPlugin("parquet") } catch(ex) {
+    if (strpos(string(ex[1]), "already in use") == -1) {
+        installPlugin("parquet"); loadPlugin("parquet")
+    }
+}
+
+// Step 2: Preview schema
+schema = parquet::extractParquetSchema("/data/trades.parquet")
+
+// Step 3: Override types if needed
+update schema set type = `LONG where name = "volume"
+
+// Step 4a: Import to memory table
+t = parquet::loadParquet("/data/trades.parquet", schema)
+
+// Step 4b: Import directly to distributed table
+db = database("dfs://parquet_db", VALUE, 2024.01.01..2024.12.31, engine="TSDB")
+parquet::loadParquetEx(db, "trades", `date, "/data/trades.parquet",
+                schema)
+
+// Step 4c: Import with data cleaning transform
+// ⚠️ When transform uses replaceColumn! or nullFill! (mutable functions),
+// the parameter MUST be declared as `mutable t`
+def cleanParquet(mutable t) {
+    replaceColumn!(t, `ts, timestamp(exec ts from t))
+    nullFill!(t, 0.0)
+    return t
+}
+// ⚠️ When using transform, the partitioned table MUST be pre-created via
+// createPartitionedTable BEFORE calling loadParquetEx
+parquet::loadParquetEx(db, "trades", `date, "/data/trades.parquet",
+                schema, , , , , cleanParquet)
+
+// Step 5: Verify
+pt = loadTable("dfs://parquet_db", "trades")
+select count(*) from pt
+select top 10 * from pt

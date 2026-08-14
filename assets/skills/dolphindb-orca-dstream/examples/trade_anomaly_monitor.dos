@@ -1,0 +1,90 @@
+// ============================================================
+// Orca 声明式 DStream API：逐笔成交异常监控
+// 功能：
+//   1. 每只股票每 30 秒聚合：成交额(amount)、成交笔数(tradeCount)、平均价格(avgPrice)
+//   2. 输出两张表：
+//      - allWindowStats：全量窗口统计
+//      - abnormalStats：成交额超过 500 万的异常窗口
+// ============================================================
+use catalog tutorial
+if (!existsCatalog("tutorial")) {
+    createCatalog("tutorial")
+}
+
+// 清理旧流图
+try {
+    stopStreamGraph("abnormalMonitor")
+} catch(ex) {}
+try {
+    dropStreamGraph("abnormalMonitor", true)
+} catch(ex) {}
+
+// 创建流图
+g = createStreamGraph("abnormalMonitor")
+
+// 数据源
+sourceStream = g.source(
+    "tradeTick",
+    `SecurityID`TradeTime`Price`Volume,
+    [SYMBOL, TIMESTAMP, DOUBLE, INT]
+)
+
+// 30秒窗口聚合
+aggregated = sourceStream.timeSeriesEngine(
+    windowSize = 30000,
+    step = 30000,
+    metrics = <[
+        sum(Price * Volume) as amount,
+        count(*) as tradeCount,
+        avg(Price) as avgPrice
+    ]>,
+    timeColumn = "TradeTime",
+    useSystemTime = false,
+    keyColumn = "SecurityID"
+)
+
+// 分两路输出
+branches = aggregated.fork(2)
+branches[0].sink("allWindowStats")
+branches[1].map(msg -> select * from msg where amount > 5000000).sink("abnormalStats")
+
+g.submit()
+
+// 模拟数据（27条 + 触发数据）
+n = 27
+securityID = take(`000001`000002`000003, n)
+tradeTime = [
+    2020.01.01T09:30:01.000, 2020.01.01T09:30:05.000, 2020.01.01T09:30:10.000,
+    2020.01.01T09:30:02.000, 2020.01.01T09:30:08.000, 2020.01.01T09:30:15.000,
+    2020.01.01T09:30:03.000, 2020.01.01T09:30:12.000, 2020.01.01T09:30:20.000,
+    2020.01.01T09:30:31.000, 2020.01.01T09:30:35.000, 2020.01.01T09:30:40.000,
+    2020.01.01T09:30:32.000, 2020.01.01T09:30:38.000, 2020.01.01T09:30:45.000,
+    2020.01.01T09:30:33.000, 2020.01.01T09:30:42.000, 2020.01.01T09:30:50.000,
+    2020.01.01T09:31:01.000, 2020.01.01T09:31:05.000, 2020.01.01T09:31:10.000,
+    2020.01.01T09:31:02.000, 2020.01.01T09:31:08.000, 2020.01.01T09:31:15.000,
+    2020.01.01T09:31:03.000, 2020.01.01T09:31:12.000, 2020.01.01T09:31:20.000
+]
+price = [
+    30.5, 30.6, 30.5,   100.0, 100.5, 100.2,   50.0, 50.2, 50.1,
+    30.7, 30.8, 30.9,   100.1, 100.3, 100.4,   50.5, 50.6, 50.4,
+    30.5, 30.4, 30.6,   100.6, 100.7, 100.5,   50.8, 50.9, 51.0
+]
+volume = [
+    200000, 150000, 100000,   8000, 10000, 12000,   5000, 8000, 6000,
+    5000, 6000, 4000,         180000, 120000, 100000,   3000, 5000, 4000,
+    10000, 8000, 6000,        5000, 8000, 10000,   4000, 6000, 5000
+]
+data = table(securityID, tradeTime, price, volume)
+appendOrcaStreamTable("tutorial.orca_table.tradeTick", data)
+
+// 触发窗口2和窗口3
+securityID = `000001`000002`000003`000001
+tradeTime = [2020.01.01T09:31:00.001, 2020.01.01T09:31:00.002, 2020.01.01T09:31:00.003, 2020.01.01T09:31:30.001]
+price = [30.0, 100.0, 50.0, 30.0]
+volume = [1, 1, 1, 1]
+data = table(securityID, tradeTime, price, volume)
+appendOrcaStreamTable("tutorial.orca_table.tradeTick", data)
+
+// 查看结果
+select * from tutorial.orca_table.allWindowStats order by TradeTime, SecurityID
+select * from tutorial.orca_table.abnormalStats order by TradeTime, SecurityID

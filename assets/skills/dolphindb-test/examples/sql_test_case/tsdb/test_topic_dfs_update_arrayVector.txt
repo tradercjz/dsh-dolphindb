@@ -1,0 +1,1182 @@
+#include "checkChunk.txt"
+
+#include "setup/settings.txt"
+login("admin", "123456")
+
+@testing:case="test_dfs_update_arrayVector_prepare"
+def create_t(n){
+    id = take(1 2 3, n)
+    av_boolv = take(arrayVector(2 4 6, true false NULL false NULL NULL), n)
+    av_charv = take(arrayVector(2 4 6, char(-1 1 NULL 0 NULL NULL)), n)
+    av_shortv = take(arrayVector(2 4 6, short(-1 1 NULL 0 NULL NULL)), n)
+    av_intv = take(arrayVector(2 4 6, int(-1 1 NULL 0 NULL NULL)), n)
+    av_longv = take(arrayVector(2 4 6, long(-1 1 NULL 0 NULL NULL)), n)
+    av_datev = take(arrayVector(2 4 6, date(1 2 NULL 3 NULL NULL)), n)
+    av_monthv = take(arrayVector(2 4 6, month(1 2 NULL 3 NULL NULL)), n)
+    av_timev = take(arrayVector(2 4 6, time(1 2 NULL 3 NULL NULL)), n)
+    av_minutev = take(arrayVector(2 4 6, minute(1 2 NULL 3 NULL NULL)), n)
+    av_secondv = take(arrayVector(2 4 6, second(1 2 NULL 3 NULL NULL)), n)
+    av_datetimev = take(arrayVector(2 4 6, datetime(1 2 NULL 3 NULL NULL)), n)
+    av_timestampv = take(arrayVector(2 4 6, timestamp(1 2 NULL 3 NULL NULL)), n)
+    av_nanotimev = take(arrayVector(2 4 6, nanotime(1 2 NULL 3 NULL NULL)), n)
+    av_nanotimestmapv = take(arrayVector(2 4 6, nanotimestamp(1 2 NULL 3 NULL NULL)), n)
+    av_datehourv = take(arrayVector(2 4 6, datehour(1 2 NULL 3 NULL NULL)), n)
+    av_floatv = take(arrayVector(2 4 6, float(1 2 NULL 3 NULL NULL)), n)
+    av_doublev = take(arrayVector(2 4 6, double(1 2 NULL 3 NULL NULL)), n)
+    av_int128v = take(arrayVector(2 4 6, int128("e1671797c52e15f763380b45e841ec32" "e1671797c52e15f763380b45e841ec32" NULL "e1671797c52e15f763380b45e841ec32" NULL NULL)), n)
+    av_uuidv = take(arrayVector(2 4 6, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87" "5d212a78-cc48-e3b1-4235-b4d91473ee87" NULL "5d212a78-cc48-e3b1-4235-b4d91473ee87" NULL NULL)), n)
+    av_ipaddrv = take(arrayVector(2 4 6, ipaddr("192.168.1.13" "192.168.1.13" NULL "192.168.1.13" NULL NULL)), n)
+    av_decimal32v =  take(arrayVector(2 4 6, decimal32(-1 1 NULL 0 NULL NULL, 2)), n)
+    av_decimal64v =  take(arrayVector(2 4 6, decimal64(-1 1 NULL 0 NULL NULL, 4)), n)
+    av_decimal128v =  take(arrayVector(2 4 6, decimal128(-1 1 NULL 0 NULL NULL, 8)), n)
+    t = table(
+            id,av_boolv,av_charv,av_shortv,av_intv,av_longv,av_datev,av_monthv,av_timev,av_minutev,av_secondv,av_datetimev,av_timestampv,av_nanotimev,av_nanotimestmapv,av_datehourv,av_floatv,
+            av_doublev,av_int128v,av_uuidv,av_ipaddrv,av_decimal32v,av_decimal64v,av_decimal128v
+        )
+
+    return t
+}
+
+
+def create_sort_t(n){
+    id = take(1 2 3, n)
+    stringv = take(string(`b`c), n)
+    av_boolv = take(arrayVector(2 4 6, true false NULL false NULL NULL), n)
+    av_charv = take(arrayVector(2 4 6, char(-1 1 NULL 0 NULL NULL)), n)
+    av_shortv = take(arrayVector(2 4 6, short(-1 1 NULL 0 NULL NULL)), n)
+    av_intv = take(arrayVector(2 4 6, int(-1 1 NULL 0 NULL NULL)), n)
+    av_longv = take(arrayVector(2 4 6, long(-1 1 NULL 0 NULL NULL)), n)
+    av_datev = take(arrayVector(2 4 6, date(1 2 NULL 3 NULL NULL)), n)
+    av_monthv = take(arrayVector(2 4 6, month(1 2 NULL 3 NULL NULL)), n)
+    av_timev = take(arrayVector(2 4 6, time(1 2 NULL 3 NULL NULL)), n)
+    av_minutev = take(arrayVector(2 4 6, minute(1 2 NULL 3 NULL NULL)), n)
+    av_secondv = take(arrayVector(2 4 6, second(1 2 NULL 3 NULL NULL)), n)
+    av_datetimev = take(arrayVector(2 4 6, datetime(1 2 NULL 3 NULL NULL)), n)
+    av_timestampv = take(arrayVector(2 4 6, timestamp(1 2 NULL 3 NULL NULL)), n)
+    av_nanotimev = take(arrayVector(2 4 6, nanotime(1 2 NULL 3 NULL NULL)), n)
+    av_nanotimestmapv = take(arrayVector(2 4 6, nanotimestamp(1 2 NULL 3 NULL NULL)), n)
+    av_datehourv = take(arrayVector(2 4 6, datehour(1 2 NULL 3 NULL NULL)), n)
+    av_floatv = take(arrayVector(2 4 6, float(1 2 NULL 3 NULL NULL)), n)
+    av_doublev = take(arrayVector(2 4 6, double(1 2 NULL 3 NULL NULL)), n)
+    av_int128v = take(arrayVector(2 4 6, int128("e1671797c52e15f763380b45e841ec32" "e1671797c52e15f763380b45e841ec32" NULL "e1671797c52e15f763380b45e841ec32" NULL NULL)), n)
+    av_uuidv = take(arrayVector(2 4 6, uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87" "5d212a78-cc48-e3b1-4235-b4d91473ee87" NULL "5d212a78-cc48-e3b1-4235-b4d91473ee87" NULL NULL)), n)
+    av_ipaddrv = take(arrayVector(2 4 6, ipaddr("192.168.1.13" "192.168.1.13" NULL "192.168.1.13" NULL NULL)), n)
+    av_decimal32v =  take(arrayVector(2 4 6, decimal32(-1 1 NULL 0 NULL NULL, 2)), n)
+    av_decimal64v =  take(arrayVector(2 4 6, decimal64(-1 1 NULL 0 NULL NULL, 4)), n)
+    av_decimal128v =  take(arrayVector(2 4 6, decimal128(-1 1 NULL 0 NULL NULL, 8)), n)
+    t = table(
+            id,stringv,av_boolv,av_charv,av_shortv,av_intv,av_longv,av_datev,av_monthv,av_timev,av_minutev,av_secondv,av_datetimev,av_timestampv,av_nanotimev,av_nanotimestmapv,av_datehourv,av_floatv,
+            av_doublev,av_int128v,av_uuidv,av_ipaddrv,av_decimal32v,av_decimal64v,av_decimal128v
+        )
+
+    return t
+}
+
+def clearAndCreateDb(dbName){
+    if(existsDatabase(dbName)){
+		dropDatabase(dbName)	
+	}
+	db = database(dbName, VALUE, 1 2 3,,"TSDB")
+    return db
+}
+
+def generatePartitionedTable(db, dbName, tableName, rows){
+	t = create_t(rows)
+	pt = createPartitionedTable(db, t, tableName,  `id, sortColumns=`id).append!(t)
+	return pt
+}
+
+def generateDimensionTable(db, dbName, tableName, rows){
+	t = create_t(rows)
+	dt = createTable(db, t, tableName, sortColumns=`id).append!(t)
+	return dt		
+}
+
+def generatePartitionedTable_sort(db, dbName, tableName, rows){
+	t = create_sort_t(rows)
+	pt = createPartitionedTable(db, t, tableName,  `id, sortColumns=`id).append!(t)
+	return pt
+}
+
+def generateDimensionTable_sort(db, dbName, tableName, rows){
+	t = create_sort_t(rows)
+	dt = createTable(db, t, tableName, sortColumns=`id).append!(t)
+	return dt		
+}
+
+
+def generatePartitionedTable_use_otherTable(db, dbName, tableName, t){
+	pt = createPartitionedTable(db, t, tableName,  `id, sortColumns=`id).append!(t)
+	return pt
+}
+
+def generateDimensionTable_use_otherTable(db, dbName, tableName, t){
+	dt = createTable(db, t, tableName, sortColumns=`id).append!(t)
+	return dt		
+}
+
+@testing:case="test_topic_update_arrayVector_diff_dataType_arrayVector_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_uuidv=  take(arrayVector(1 4 6, char(-1 1 NULL 0 NULL NULL)), 2)
+
+@testing:case="test_topic_update_arrayVector_diff_dataType_arrayVector_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_uuidv=  take(arrayVector(1 4 6, char(-1 1 NULL 0 NULL NULL)), 6)
+
+@testing:case="test_topic_update_arrayVector_diff_dataType_vector_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_uuidv = [10,20]
+
+@testing:case="test_topic_update_arrayVector_diff_dataType_vector_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_uuidv = [10,20]
+
+@testing:case="test_topic_update_arrayVector_diff_len_0_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 0)
+
+@testing:case="test_topic_update_arrayVector_vector_empty_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv = []
+
+@testing:case="test_topic_update_arrayVector_vector_of_tuple_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv =take([[1,2]], 6)
+
+@testing:case="test_topic_update_arrayVector_diff_len_gt_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 7)
+
+@testing:case="test_topic_update_arrayVector_diff_len_lt_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 3)
+
+@testing:case="test_topic_update_arrayVector_scalar_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= 1
+
+@testing:case="test_topic_update_arrayVector_pair_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= 1:3
+
+@testing:case="test_topic_update_arrayVector_matrix_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= matrix(1..6$2:3)
+
+@testing:case="test_topic_update_arrayVector_set_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= set(1..3)
+
+@testing:case="test_toopic_update_arrayVector_dict_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= dict(1..3, 1..3)
+
+@testing:case="test_topic_update_arrayVector_table_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= table(1..3 as x)
+
+@testing:case="test_topic_update_arrayVector_tuple_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= (1,2,3)
+
+@testing:case="test_topic_update_arrayVector_columnar_tuple_pt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=3
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+tp = [[1,2], [2,3],[4,5]]
+tp.setColumnarTuple!()
+update pt set av_intv= tp
+
+@testing:case="test_topic_update_arrayVector_diff_len_0_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 0)
+
+@testing:case="test_topic_update_arrayVector_vector_empty_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv = []
+
+@testing:case="test_topic_update_arrayVector_vector_of_tuple_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv =take([[1,2]], 6)
+
+@testing:case="test_topic_update_arrayVector_diff_len_gt_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 7)
+
+@testing:case="test_topic_update_arrayVector_diff_len_lt_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv = take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 3)
+
+@testing:case="test_topic_update_arrayVector_scalar_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= 1
+
+@testing:case="test_topic_update_arrayVector_pair_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=6
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= 1:3
+
+@testing:case="test_topic_update_arrayVector_matrix_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= matrix(1..6$2:3)
+
+@testing:case="test_topic_update_arrayVector_set_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= set(1..3)
+
+@testing:case="test_toopic_update_arrayVector_dict_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= dict(1..3, 1..3)
+
+@testing:case="test_topic_update_arrayVector_table_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= table(1..3 as x)
+
+@testing:case="test_topic_update_arrayVector_tuple_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+update dt set av_intv= (1,2,3)
+
+@testing:case="test_topic_update_arrayVector_columnar_tuple_dt", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `dt
+rows=3
+db = clearAndCreateDb(dbName)
+dt =  generateDimensionTable(db, dbName, tableName, rows)
+tp = [[1,2], [2,3],[4,5]]
+tp.setColumnarTuple!()
+update dt set av_intv= tp
+
+@testing:case="test_topic_update_arrayVector_tuple_dt_not_equal_partition_len", exception=1
+dbName = "dfs://test_topic_update_arrayVector"
+tableName = `pt
+rows=6
+db = clearAndCreateDb(dbName)
+pt =  generatePartitionedTable(db, dbName, tableName, rows)
+update pt set av_intv= arrayVector(2 4 6, 1..6)
+
+@tesitng:case="test_topic_update_arrayVector_empty_table"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 0)
+dt = generateDimensionTable(db, dbName, `dt, 0)
+ex = create_t(0)
+update pt set av_intv= take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 0)
+ans = select * from pt
+assert 1, each(eqObj, ans.values(), ex.values())
+update pt set av_intv= int([1, 2, 2])
+ans = select * from pt
+assert 2, each(eqObj, ans.values(), ex.values())
+update dt set av_intv= take(arrayVector(1 4 6, int(-1 1 NULL 0 NULL NULL)), 0)
+ans = select * from dt
+assert 3, each(eqObj, ans.values(), ex.values())
+update dt set av_intv= int([1, 2, 2])
+ans = select * from dt
+assert 4, each(eqObj, ans.values(), ex.values())
+
+
+@tesitng:case="test_topic_update_arrayVector_one_row_table"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 1)
+dt = generateDimensionTable(db, dbName, `dt, 1)
+ex = create_t(1)
+update pt set av_boolv = [true, false, NULL, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], [1])
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!([[true, false, NULL, true]]))
+assert 3, eqObj(ans, ex)
+ex = create_t(1)
+update dt set av_boolv = [true, false, NULL, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], [1])
+assert 5, eqObj((select * from dt).values()[1], array(BOOL[],0).append!([[true, false, NULL, true]]))
+assert 6, eqObj(ans, ex)
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 1)
+dt = generateDimensionTable(db, dbName, `dt, 1)
+ex = create_t(1)
+update pt set av_boolv = array(BOOL[],0).append!([[true, false, NULL, true]])
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 7, eqObj((select * from pt).values()[0], [1])
+assert 8, eqObj((select * from pt).values()[1], array(BOOL[],0).append!([[true, false, NULL, true]]))
+assert 9, eqObj(ans, ex)
+ex = create_t(1)
+update dt set av_boolv = array(BOOL[],0).append!([[true, false, NULL, true]])
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 10, eqObj((select * from dt).values()[0], [1])
+assert 11, eqObj((select * from dt).values()[1], array(BOOL[],0).append!([[true, false, NULL, true]]))
+assert 12, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_one_col_except_parCol_table"
+t = table(1 2 3 as id, arrayVector(2 4 6, 1..6) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(3 6 9, 1 2 3 1 2 3 1 2 3) as x)
+update pt set x = [1,2,3]
+assert 1, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x = [1,2,3]
+assert 2, each(eqObj, (select * from dt).values(), ex.values())
+
+t = table(1 2 3 as id, arrayVector(2 4 6, 1..6) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(3 6 9, 1 2 3 1 2 3 1 2 3) as x)
+update pt set x = take(arrayVector(3 9, 1 2 3 1 2 3 1 2 3), 1)
+assert 3, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x = arrayVector(3 6 9, 1 2 3 1 2 3 1 2 3)
+assert 4, each(eqObj, (select * from dt).values(), ex.values())
+
+
+@tesitng:case="test_topic_update_arrayVector_10_rows_table"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+ex = select * from create_t(10) order by id
+update pt set av_boolv = [true, false, NULL, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],10)))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(10) order by id
+update dt set av_boolv = [true, false, NULL, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 5, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],10)))
+assert 6, eqObj(ans, ex)
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+ex = select * from create_t(12) order by id
+update pt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],4))
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 7, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+assert 8, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 9, eqObj(ans, ex)
+ex = select * from create_t(12) order by id
+update dt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],12))
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 10, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+assert 11, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 12, eqObj(ans, ex)
+
+
+@tesitng:case="test_topic_update_arrayVector_1025_rows_table"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 1025)
+dt = generateDimensionTable(db, dbName, `dt, 1025)
+ex = select * from create_t(1025) order by id
+update pt set av_boolv = [true, false, NULL, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 1025)))
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],1025)))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(1025) order by id
+update dt set av_boolv = [true, false, NULL, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 1025)))
+assert 5, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],1025)))
+assert 6, eqObj(ans, ex)
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 1026)
+dt = generateDimensionTable(db, dbName, `dt, 1026)
+ex = select * from create_t(1026) order by id
+update pt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],342))
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 7, eqObj((select * from pt).values()[0], sort(take([1,2,3], 1026)))
+assert 8, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],1026)))
+assert 9, eqObj(ans, ex)
+ex = select * from create_t(1026) order by id
+update dt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],1026))
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 10, eqObj((select * from dt).values()[0], sort(take([1,2,3], 1026)))
+assert 11, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],1026)))
+assert 12, eqObj(ans, ex)
+
+
+@tesitng:case="test_topic_update_arrayVector_65537_rows_table"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 65537)
+dt = generateDimensionTable(db, dbName, `dt, 65537)
+ex = select * from create_t(65537) order by id
+update pt set av_boolv = [true, false, NULL, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 65537)))
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],65537)))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(65537) order by id
+update dt set av_boolv = [true, false, NULL, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 65537)))
+assert 5, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],65537)))
+assert 6, eqObj(ans, ex)
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 65538)
+dt = generateDimensionTable(db, dbName, `dt, 65538)
+ex = select * from create_t(65538) order by id
+update pt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],21846))
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 7, eqObj((select * from pt).values()[0], sort(take([1,2,3], 65538)))
+assert 8, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],65538)))
+assert 9, eqObj(ans, ex)
+ex = select * from create_t(65538) order by id
+update dt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],65538))
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 10, eqObj((select * from dt).values()[0], sort(take([1,2,3], 65538)))
+assert 11, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],65538)))
+assert 12, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_300_cols_table"
+t = table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+t.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex =  table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+ex.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+ans = (select * from pt).values().drop(1)
+ex = ex.values().drop(1)
+update pt set col1=[1,2]
+assert 1, eqObj((select * from pt)["col1"], arrayVector(2 4 6, 1 2 1 2 1 2))
+assert 2, eqObj(ans, ex)
+ex =  table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+ex.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+ans = (select * from dt).values().drop(1)
+ex = ex.values().drop(1)
+update dt set col1=[1,2]
+assert 3, eqObj((select * from dt)["col1"], arrayVector(2 4 6, 1 2 1 2 1 2))
+assert 4, eqObj(ans, ex)
+
+t = table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+t.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex =  table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+ex.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+ans = (select * from pt).values().drop(1)
+ex = ex.values().drop(1)
+update pt set col1=take(arrayVector(2 4 6, 1 2 1 2 1 2), 1)
+assert 5, eqObj((select * from pt)["col1"], arrayVector(2 4 6, 1 2 1 2 1 2))
+assert 6, eqObj(ans, ex)
+ex =  table(100:0, ("col"+string(1..300)) join "id",  take(INT[], 300) join INT)
+ex.tableInsert(take([take(arrayVector(2 4 6, 1 2 NULL NULL 4 NULL),3)], 300) join 1 2 3)
+ans = (select * from dt).values().drop(1)
+ex = ex.values().drop(1)
+update dt set col1=take(arrayVector(2 4 6, 1 2 1 2 1 2), 3)
+assert 7, eqObj((select * from dt)["col1"], arrayVector(2 4 6, 1 2 1 2 1 2))
+assert 8, eqObj(ans, ex)
+
+
+@tesitng:case="test_topic_update_arrayVector_diff_datatypes"
+dataTypes = [bool, char, short, int, long, date, month, time, minute, second, datetime, timestamp, nanotime, nanotimestamp, datehour, float, double]
+
+for(datatype in dataTypes){
+    t = table(1 2 3 as id, arrayVector(2 4 6, datatype(1..6)) as x)
+    dbName = "dfs://test_topic_update_arrayVector"
+    db = clearAndCreateDb(dbName)
+    pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+    dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+    ex = table(1 2 3 as id, arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2)) as x)
+    update pt set x=datatype(NULL 2)
+    assert 1, each(eqObj, (select * from pt).values(), ex.values())
+    update dt set x=datatype(NULL 2)
+    assert 2, each(eqObj, (select * from dt).values(), ex.values())
+
+    t = table(1 2 3 as id, arrayVector(2 4 6, datatype(1..6)) as x)
+    dbName = "dfs://test_topic_update_arrayVector"
+    db = clearAndCreateDb(dbName)
+    pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+    dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+    ex = table(1 2 3 as id, arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2)) as x)
+    update pt set x = take(arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2)), 1)
+    assert 3, each(eqObj, (select * from pt).values(), ex.values())
+    update dt set x = take(arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2)), 3)
+    assert 4, each(eqObj, (select * from dt).values(), ex.values())
+}
+
+//int128
+t = table(1 2 3 as id, arrayVector(2 4 6, int128(take("e1671797c52e15f763380b45e841ec32", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, int128(take("00000000000000000000000000000000" "e1671797c52e15f763380b45e841ec31", 6))) as x)
+update pt set x= int128(NULL "e1671797c52e15f763380b45e841ec31")
+assert 5, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= int128(NULL "e1671797c52e15f763380b45e841ec31")
+assert 6, each(eqObj, (select * from dt).values(), ex.values())
+t = table(1 2 3 as id, arrayVector(2 4 6, int128(take("e1671797c52e15f763380b45e841ec32", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, int128(take("00000000000000000000000000000000" "e1671797c52e15f763380b45e841ec31", 6))) as x)
+update pt set x= take(arrayVector(2 4 6, int128(take("00000000000000000000000000000000" "e1671797c52e15f763380b45e841ec31", 6))),1)
+assert 7, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= take(arrayVector(2 4 6, int128(take("00000000000000000000000000000000" "e1671797c52e15f763380b45e841ec31", 6))),3)
+assert 8, each(eqObj, (select * from dt).values(), ex.values())
+
+//uuid
+t = table(1 2 3 as id, arrayVector(2 4 6, uuid(take("5d212a78-cc48-e3b1-4235-b4d91473ee87", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, uuid(take("00000000-0000-0000-0000-000000000000" "803c5ee8-5358-2351-40cc-465cd0c41070", 6))) as x)
+update pt set x= uuid(NULL "803c5ee8-5358-2351-40cc-465cd0c41070")
+assert 9, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= uuid(NULL "803c5ee8-5358-2351-40cc-465cd0c41070")
+assert 10, each(eqObj, (select * from dt).values(), ex.values())
+t = table(1 2 3 as id, arrayVector(2 4 6, uuid(take("5d212a78-cc48-e3b1-4235-b4d91473ee87", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, uuid(take("00000000-0000-0000-0000-000000000000" "803c5ee8-5358-2351-40cc-465cd0c41070", 6))) as x)
+update pt set x= take(arrayVector(2 4 6, uuid(take("00000000-0000-0000-0000-000000000000" "803c5ee8-5358-2351-40cc-465cd0c41070", 6))),1)
+assert 11, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= take(arrayVector(2 4 6, uuid(take("00000000-0000-0000-0000-000000000000" "803c5ee8-5358-2351-40cc-465cd0c41070", 6))),3)
+assert 12, each(eqObj, (select * from dt).values(), ex.values())
+
+//ipaddr
+t = table(1 2 3 as id, arrayVector(2 4 6, ipaddr(take("192.168.1.13", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, ipaddr(take("0.0.0.0" "192.168.1.11", 6))) as x)
+update pt set x= ipaddr(NULL "192.168.1.11")
+assert 13, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= ipaddr(NULL "192.168.1.11")
+assert 14, each(eqObj, (select * from dt).values(), ex.values())
+t = table(1 2 3 as id, arrayVector(2 4 6, ipaddr(take("192.168.1.13", 6))) as x)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+ex = table(1 2 3 as id, arrayVector(2 4 6, ipaddr(take("0.0.0.0" "192.168.1.11", 6))) as x)
+update pt set x= take(arrayVector(2 4 6, ipaddr(take("0.0.0.0" "192.168.1.11", 6))),1)
+assert 15, each(eqObj, (select * from pt).values(), ex.values())
+update dt set x= take(arrayVector(2 4 6, ipaddr(take("0.0.0.0" "192.168.1.11", 6))),3)
+assert 16, each(eqObj, (select * from dt).values(), ex.values())
+
+//decimal32, decimal64, decimal128
+dataTypes = [decimal32, decimal64, decimal128]
+for(datatype in dataTypes){
+    t = table(1 2 3 as id, arrayVector(2 4 6, datatype(1..6, 2)) as x)
+    dbName = "dfs://test_topic_update_arrayVector"
+    db = clearAndCreateDb(dbName)
+    pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+    dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+    ex = table(1 2 3 as id, arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2, 2)) as x)
+    update pt set x=datatype(NULL 2, 2)
+    assert 17, each(eqObj, (select * from pt).values(), ex.values())
+    update dt set x=datatype(NULL 2, 2)
+    assert 18, each(eqObj, (select * from dt).values(), ex.values())
+
+    t = table(1 2 3 as id, arrayVector(2 4 6, datatype(1..6, 2)) as x)
+    dbName = "dfs://test_topic_update_arrayVector"
+    db = clearAndCreateDb(dbName)
+    pt = generatePartitionedTable_use_otherTable(db, dbName, `pt, t)
+    dt = generateDimensionTable_use_otherTable(db, dbName, `dt, t)
+    ex = table(1 2 3 as id, arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2, 2)) as x)
+    update pt set x = take(arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2, 2)),1)
+    assert 19, each(eqObj, (select * from pt).values(), ex.values())
+    update dt set x = take(arrayVector(2 4 6, datatype(NULL 2 NULL 2 NULL 2, 2)),3)
+    assert 20, each(eqObj, (select * from dt).values(), ex.values())
+}
+
+@tesitng:case="test_topic_update_arrayVector_contain_NULL_without_NULL"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+ex = select * from create_t(10) order by id
+update pt set av_boolv = [true, false, NULL, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],10)))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(10) order by id
+update dt set av_boolv = [true, false, NULL, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 5, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],10)))
+assert 6, eqObj(ans, ex)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+ex = select * from create_t(12) order by id
+update pt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],4))
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 7, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+assert 8, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 9, eqObj(ans, ex)
+ex = select * from create_t(12) order by id
+update dt set av_boolv = array(BOOL[],0).append!(take([[true, false, NULL, true]],12))
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 10, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+assert 11, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 12, eqObj(ans, ex)
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+ex = select * from create_t(10) order by id
+update pt set av_boolv = [true, true, false, true]
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 13, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 14, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, true, false, true]],10)))
+assert 15, eqObj(ans, ex)
+ex = select * from create_t(10) order by id
+update dt set av_boolv = [true, true, false, true]
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 16, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 17, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, true, false, true]],10)))
+assert 18, eqObj(ans, ex)
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+ex = select * from create_t(12) order by id
+update pt set av_boolv = array(BOOL[],0).append!(take([[true, true, false, true]],4))
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 19, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+assert 20, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, true, false, true]],12)))
+assert 21, eqObj(ans, ex)
+ex = select * from create_t(12) order by id
+update dt set av_boolv = array(BOOL[],0).append!(take([[true, true, false, true]],12))
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 22, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+assert 23, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, true, false, true]],12)))
+assert 24, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_multi_cols"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+
+ex = select * from create_t(12) order by id
+update pt set av_boolv = [true, false, NULL, true], av_charv = char([1, NULL]), av_shortv= take(arrayVector(2 4 6, short(1 2 1 2 1 2)), 4), av_intv=[0, NULL]
+ans = (select * from pt).values().drop(5)
+ex = ex.values().drop(5)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+assert 2, eqObj((select * from pt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 3, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, NULL]],12)))
+assert 4, eqObj((select * from pt).values()[3], take(arrayVector(2 4 6, short(1 2 1 2 1 2)), 12))
+assert 5, eqObj((select * from pt).values()[4], array(INT[],0).append!(take([[0, NULL]],12)))
+assert 6, eqObj(ans, ex)
+ex = select * from create_t(12) order by id
+update dt set av_boolv = [true, false, NULL, true], av_charv = char([1, NULL]), av_shortv= take(arrayVector(2 4 6, short(1..6)), 12), av_intv=[0, NULL]
+ans = (select * from dt).values().drop(5)
+ex = ex.values().drop(5)
+assert 7, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+assert 8, eqObj((select * from dt).values()[1], array(BOOL[],0).append!(take([[true, false, NULL, true]],12)))
+assert 9, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, NULL]],12)))
+assert 10, eqObj((select * from dt).values()[3], take(arrayVector(2 4 6, short(1..6)), 12))
+assert 11, eqObj((select * from dt).values()[4], array(INT[],0).append!(take([[0, NULL]],12)))
+assert 12, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_where"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+
+ex = select * from create_t(10) order by id
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) where id=1 
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) where id=2 
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) where id=3 
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 2, eqObj((select * from pt).values()[1], take(arrayVector(2 4 6, true false NULL true false NULL),4) join take(arrayVector(2 4 6, true false NULL true false NULL),6))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(10) order by id
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) where id=1 
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) where id=2 
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) where id=3 
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 5, eqObj((select * from dt).values()[1], take(arrayVector(2 4 6, true false NULL true false NULL),4) join take(arrayVector(2 4 6, true false NULL true false NULL),6))
+assert 6, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_context_by"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+
+ex = select * from create_t(10) order by id
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) context by id having id=1 
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id having id=2 
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id having id=3 
+ans = (select * from pt).values().drop(2)
+ex = ex.values().drop(2)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 2, eqObj((select * from pt).values()[1], take(arrayVector(2 4 6, true false NULL true false NULL),4) join take(arrayVector(2 4 6, true false NULL true false NULL),6))
+assert 3, eqObj(ans, ex)
+ex = select * from create_t(10) order by id
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) context by id having id=1 
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id having id=2 
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id having id=3 
+ans = (select * from dt).values().drop(2)
+ex = ex.values().drop(2)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 5, eqObj((select * from dt).values()[1], take(arrayVector(2 4 6, true false NULL true false NULL),4) join take(arrayVector(2 4 6, true false NULL true false NULL),6))
+assert 6, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_context_by_cosrt"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable_sort(db, dbName, `pt, 10)
+dt = generateDimensionTable_sort(db, dbName, `dt, 10)
+ex = select * from create_sort_t(10) order by id
+
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) context by id csort stringv having id=1
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id csort stringv having id=2 
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id csort stringv having id=3 
+ans = (select * from pt).values().drop(3)
+ex = ex.values().drop(3)
+assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+assert 111, eqObj((select * from pt).values()[1], `b`c`b`c`c`b`c`b`c`b)
+assert 2, eqObj((select * from pt).values()[2], take(arrayVector(2 4 6 8, true false false NULL NULL true true false),4) join take(arrayVector(2 4 6, NULL true true false false NULL),3) join take(arrayVector(2 4 6, true false false NULL NULL true),3))
+assert 3, eqObj(ans, ex)
+ex = select * from create_sort_t(10) order by id
+update pt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),4) context by id csort stringv having id=1
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id csort stringv having id=2 
+update dt set av_boolv = take(arrayVector(2 4 6, true false NULL true false NULL),3) context by id csort stringv having id=3 
+ans = (select * from dt).values().drop(3)
+ex = ex.values().drop(3)
+assert 4, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+assert 444, eqObj((select * from pt).values()[1], `b`c`b`c`c`b`c`b`c`b)
+assert 5, eqObj((select * from pt).values()[2], take(arrayVector(2 4 6 8, true false false NULL NULL true true false),4) join take(arrayVector(2 4 6, NULL true true false false NULL),3) join take(arrayVector(2 4 6, true false false NULL NULL true),3))
+assert 6, eqObj(ans, ex)
+
+@tesitng:case="test_topic_update_arrayVector_multi_times"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+for(i in 1..100){
+    ex = select * from create_t(10) order by id
+    update pt set av_charv = char([1, -1, 0, i])
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+    assert 2, eqObj((select * from pt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 3, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 4, eqObj(ans, ex)
+    ex = select * from create_t(10) order by id
+    update dt set av_charv = char([1, -1, 0, i])
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 5, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+    assert 6, eqObj((select * from dt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 7, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 8, eqObj(ans, ex)
+}
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+for(i in 1..100){
+    ex = select * from create_t(12) order by id
+    update pt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],4))
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 9, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+    assert 10, eqObj((select * from pt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 11, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 12, eqObj(ans, ex)
+    ex = select * from create_t(12) order by id
+    update dt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],12))
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 13, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+    assert 14, eqObj((select * from dt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 15, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 16, eqObj(ans, ex)
+}
+
+@tesitng:case="test_topic_update_arrayVector_multi_submitJob_same_partition_pt", exception=1
+def submitJob_vector1(tableName){
+    for(i in 1..3){
+        update tableName set av_intv = [1,2]
+    }
+}
+
+def submitJob_arrayVector1(tableName){
+    for(i in 1..1000){
+        update tableName set av_intv = take(arrayVector(2 4 6, 1..6), 4) where id=1
+    }
+}
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+job1 =  submitJob("jobVector", "job Vector", submitJob_vector1, pt)
+job2 =  submitJob("jobArrayVector", "job Array Vector", submitJob_arrayVector1, pt)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+
+@tesitng:case="test_topic_update_arrayVector_multi_submitJob_same_partition_dt", exception=1
+def submitJob_vector(tableName){
+    for(i in 1..3){
+        update tableName set av_intv = [1,2] where id=2
+        update tableName set av_intv = [10,30] where id=3
+    }
+}
+
+def submitJob_arrayVector(tableName){
+    for(i in 1..1000){
+        update tableName set av_intv = take(arrayVector(2 4 6, 1..6), 4) where id=1
+    }
+}
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+job1 =  submitJob("jobVector", "job Vector", submitJob_vector, dt)
+job2 =  submitJob("jobArrayVector", "job Array Vector", submitJob_arrayVector, dt)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+
+@tesitng:case="test_topic_update_arrayVector_multi_submitJob_not_same_partition"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+job1 =  submitJob("jobVector", "job Vector", submitJob_vector, pt)
+job2 =  submitJob("jobArrayVector", "job Array Vector", submitJob_arrayVector, pt)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+ex = select * from create_t(10) order by id
+ans = select * from pt
+assert 1, each(eqObj, (select av_intv from pt).values()[0], take(arrayVector(2 4 6, 1..6), 4) join take(arrayVector(2 4 6, 1 2 1 2 1 2), 3) join take(arrayVector(2 4 6, 10 30 10 30 10 30), 3))
+ex.dropColumns!(`av_intv)
+ans.dropColumns!(`av_intv)
+assert 2, each(eqObj, ex.values(), ans.values())
+
+
+@tesitng:case="test_topic_update_arrayVector_flush"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+pnodeRunAllNodes(flushTSDBCache)
+for(i in 1..100){
+    ex = select * from create_t(10) order by id
+    update pt set av_charv = char([1, -1, 0, i])
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+    assert 2, eqObj((select * from pt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 3, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 4, eqObj(ans, ex)
+    ex = select * from create_t(10) order by id
+    update dt set av_charv = char([1, -1, 0, i])
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 5, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+    assert 6, eqObj((select * from dt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 7, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 8, eqObj(ans, ex)
+    if(i%20==0){
+        pnodeRunAllNodes(flushTSDBCache)
+    }
+}
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+pnodeRunAllNodes(flushTSDBCache)
+for(i in 1..100){
+    ex = select * from create_t(12) order by id
+    update pt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],4))
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 9, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+    assert 10, eqObj((select * from pt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 11, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 12, eqObj(ans, ex)
+    ex = select * from create_t(12) order by id
+    update dt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],12))
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 13, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+    assert 14, eqObj((select * from dt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 15, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 16, eqObj(ans, ex)
+    if(i%20==0){
+        pnodeRunAllNodes(flushTSDBCache)
+    }
+}
+
+@tesitng:case="test_topic_update_arrayVector_compact"
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+for(i in 1..100){
+    ex = select * from create_t(10) order by id
+    update pt set av_charv = char([1, -1, 0, i])
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 1, eqObj((select * from pt).values()[0], sort(take([1,2,3], 10)))
+    assert 2, eqObj((select * from pt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 3, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 4, eqObj(ans, ex)
+    ex = select * from create_t(10) order by id
+    update dt set av_charv = char([1, -1, 0, i])
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 5, eqObj((select * from dt).values()[0], sort(take([1,2,3], 10)))
+    assert 6, eqObj((select * from dt).values()[1], (select * from create_t(10) order by id).values()[1])
+    assert 7, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],10)))
+    assert 8, eqObj(ans, ex)
+    if(i%20==0){
+        chunkIds = exec chunkId from getChunksMeta() where dfsPath like "%test_topic_update_arrayVector%" and type=1
+        for (x in chunkIds) {
+           pnodeRunAllNodes(triggerTSDBCompaction, x)
+        }
+    }
+}
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 12)
+dt = generateDimensionTable(db, dbName, `dt, 12)
+for(i in 1..100){
+    ex = select * from create_t(12) order by id
+    update pt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],4))
+    ans = (select * from pt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 9, eqObj((select * from pt).values()[0], sort(take([1,2,3], 12)))
+    assert 10, eqObj((select * from pt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 11, eqObj((select * from pt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 12, eqObj(ans, ex)
+    ex = select * from create_t(12) order by id
+    update dt set av_charv = array(CHAR[],0).append!(take([[1, -1, 0, i]],12))
+    ans = (select * from dt).values().drop(3)
+    ex = ex.values().drop(3)
+    assert 13, eqObj((select * from dt).values()[0], sort(take([1,2,3], 12)))
+    assert 14, eqObj((select * from dt).values()[1], (select * from create_t(12) order by id).values()[1])
+    assert 15, eqObj((select * from dt).values()[2], array(CHAR[],0).append!(take([[1, -1, 0, i]],12)))
+    assert 16, eqObj(ans, ex)
+    if(i%20==0){
+        chunkIds = exec chunkId from getChunksMeta() where dfsPath like "%test_topic_update_arrayVector%" and type=1
+        for (x in chunkIds) {
+           pnodeRunAllNodes(triggerTSDBCompaction, x)
+        }
+    }
+}
+
+@tesitng:case="test_topic_update_arrayVector_upsert"
+dbName="dfs://test_dfs_compress"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 2012.01.01..2012.01.10,engine="TSDB")
+n = 1026
+dates = 2012.01.01
+t = table(1000:n,([`date,`sym,`id]),[date,symbol,int])
+t[`date] = take(dates,n)
+t[`sym] = take("a"+string(1..1000),n)
+t[`id] = 1..n
+y = rand([rand(-100..100,1),rand(-100..100,10),rand(-100..100,2)],n)
+t[`intnnullavc] = array(INT[],0,10000).append!(y)
+pt = db.createPartitionedTable(t, `pt, `date, ,`sym).append!(t)
+pnodeRunAllNodes(flushIotCache)
+update t set id = n+1 where id=n
+upsert!(pt, t, keyColNames=`date`sym`id)
+t.append!(table(2012.01.01 as date, take("a"+string(1..1000),n)[1025] as symbol, 1026 as id, array(INT[],0,10000).append!([y[1025]]) as intnnullavc))
+ans = select * from pt order by date, sym, id
+ex = select * from t order by date, sym, id
+assert 1, each(eqObj, ans.values(), ex.values())
+
+@tesitng:case="test_topic_update_arrayVector_rpc"
+
+def update_arrayVector(tableName){
+	update tableName set av_intv = take(arrayVector(2 4 6, 1..6), 4) where id=1
+    update tableName set av_intv = [1,2] where id=2
+    update tableName set av_intv = [10,30] where id=3
+}
+
+dbName = "dfs://test_topic_update_arrayVector"
+db = clearAndCreateDb(dbName)
+pt = generatePartitionedTable(db, dbName, `pt, 10)
+dt = generateDimensionTable(db, dbName, `dt, 10)
+ans = rpc(NODE2, update_arrayVector, pt)
+ex = select * from create_t(10) order by id
+ans = select * from pt
+assert 1, each(eqObj, (select av_intv from pt).values()[0], take(arrayVector(2 4 6, 1..6), 4) join take(arrayVector(2 4 6, 1 2 1 2 1 2), 3) join take(arrayVector(2 4 6, 10 30 10 30 10 30), 3))
+ex.dropColumns!(`av_intv)
+ans.dropColumns!(`av_intv)
+assert 2, each(eqObj, ex.values(), ans.values())
+ans = rpc(NODE2, update_arrayVector, dt)
+ex = select * from create_t(10) order by id
+ans = select * from dt
+assert 3, each(eqObj, (select av_intv from dt).values()[0], take(arrayVector(2 4 6, 1..6), 4) join take(arrayVector(2 4 6, 1 2 1 2 1 2), 3) join take(arrayVector(2 4 6, 10 30 10 30 10 30), 3))
+ex.dropColumns!(`av_intv)
+ans.dropColumns!(`av_intv)
+assert 4, each(eqObj, ex.values(), ans.values())

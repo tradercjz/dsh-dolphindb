@@ -1,0 +1,151 @@
+module easy_datayes::loadData::loadOneDayData::loadOneDayTick
+
+use easy_datayes::tbSchema::csvSchema::tradeCsvSchema
+use easy_datayes::tbSchema::csvSchema::entrustCsvSchema
+use easy_datayes::tbSchema::csvSchema::tradeEntrustCsvSchema
+use easy_datayes::loadData::loadOneDayData::loadOneDayTrade
+use easy_datayes::loadData::loadOneDayData::loadOneDayEntrust
+
+/*
+ * @FunctionName: tradeToTick
+ * @Brief: Converts standardized trade format to tick format (msg_type=1).
+ *         Input columns: code, exchange, trade_date, trade_time, channel_no, appl_seq,
+ *         trade_price, trade_qty, trade_amt, buy_no, sell_no, side, trade_type, trade_no, update_time
+ * @Param: tradeTable: Standardized trade format data.
+ * @Return: Data in tick table format (14 columns).
+ */
+def tradeToTick(tradeTable){
+	return select
+		code, exchange, trade_date, trade_time,
+		1 as msg_type,
+		iif(trade_type=="F", 0, iif(trade_type=="4", 1, int(NULL))) as data_type,
+		channel_no,
+		iif(isNull(trade_no), appl_seq, trade_no) as appl_seq,
+		long(trade_price * 10000) as price,
+		trade_qty as qty,
+		buy_no as buy_order,
+		sell_no as sell_order,
+		iif(sell_no > buy_no, 2, 1) as side,
+		now() as update_time
+	from tradeTable
+}
+
+/*
+ * @FunctionName: entrustToTick
+ * @Brief: Converts standardized entrust format to tick format (msg_type=0/-1).
+ *         Input columns: code, exchange, trade_date, trade_time, channel_no, appl_seq,
+ *         order_price, order_qty, side, order_type, order_no, rec_id, trade_qty, update_time
+ * @Param: entrustTable: Standardized entrust format data.
+ * @Return: Data in tick table format (14 columns).
+ */
+def entrustToTick(entrustTable){
+	return select
+		code, exchange, trade_date, trade_time,
+		iif(order_type=="S", -1, 0) as msg_type,
+		iif(order_type=="S", -1, iif(order_type=="A", 2, iif(order_type=="D", 10,
+			iif(order_type=="1", 1, iif(order_type=="2", 2, iif(order_type=="U", 3, int(NULL))))))) as data_type,
+		channel_no, appl_seq,
+		long(order_price * 10000) as price,
+		order_qty as qty,
+		0 as buy_order,
+		0 as sell_order,
+		iif(side=="B", 1, iif(side=="S", 2,
+			iif(side=="1", 1, iif(side=="2", 2, int(NULL))))) as side,
+		now() as update_time
+	from entrustTable
+}
+
+/*
+ * @FunctionName: transformTradeCsvToTickSH
+ * @Brief: Converts SH trade CSV (Transaction.csv) rows to tick format (msg_type=1).
+ * @Param: t: Raw CSV chunk loaded via tradeCsvSchemaSH(day).
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformTradeCsvToTickSH(t, day){
+	return tradeToTick(transformTradeSH(t, day))
+}
+
+/*
+ * @FunctionName: transformEntrustCsvToTickSH
+ * @Brief: Converts SH entrust CSV (mdl_4_19_0.csv) rows to tick format (msg_type=0).
+ * @Param: t: Raw CSV chunk loaded via entrustCsvSchemaSH().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformEntrustCsvToTickSH(t, day){
+	return entrustToTick(transformEntrustSH(t, day))
+}
+
+/*
+ * @FunctionName: transformCombinedCsvToTick
+ * @Brief: Converts SH combined CSV (mdl_4_24_0.csv) rows to tick format.
+ *         Type="T" -> trade (msg_type=1), Type!="T" -> entrust (msg_type=0/-1).
+ * @Param: t: Raw CSV chunk loaded via tradeEntrustCsvSchemaSH().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformCombinedCsvToTick(t, day){
+	tmpData = select
+		SecurityID + ".SH" as code,
+		"SH" as exchange,
+		day as trade_date,
+		TickTime as trade_time,
+		iif(Type=="T", 1, iif(Type=="S", -1, 0)) as msg_type,
+		iif(Type=="T", 0, iif(Type=="S", -1, iif(Type=="A", 2, iif(Type=="D", 10, int(NULL))))) as data_type,
+		Channel as channel_no,
+		BizIndex as appl_seq,
+		long(Price * 10000) as price,
+		Qty as qty,
+		iif(Type=="T", BuyOrderNO, iif(BuyOrderNO>SellOrderNO, BuyOrderNO, SellOrderNO)) as buy_order,
+		iif(Type=="T", SellOrderNO, iif(BuyOrderNO>SellOrderNO, BuyOrderNO, SellOrderNO)) as sell_order,
+		iif(TickBSFlag=="B", 1, iif(TickBSFlag=="S", 2, int(NULL))) as side,
+		now() as update_time
+	from t
+	return tmpData
+}
+
+/*
+ * @FunctionName: transformTradeCsvToTickSZTrade
+ * @Brief: Converts SZ trade CSV old format (Trade.csv) rows to tick format (msg_type=1).
+ * @Param: t: Raw CSV chunk loaded via tradeCsvSchemaSZTrade().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformTradeCsvToTickSZTrade(t, day){
+	return tradeToTick(transformTradeSZTrade(t, day))
+}
+
+/*
+ * @FunctionName: transformTradeCsvToTickSZmdl6360
+ * @Brief: Converts SZ trade CSV new format (mdl_6_36_0.csv) rows to tick format (msg_type=1).
+ * @Param: t: Raw CSV chunk loaded via tradeCsvSchemaSZmdl6360().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformTradeCsvToTickSZmdl6360(t, day){
+	return tradeToTick(transformTradeSZmdl6360(t, day))
+}
+
+/*
+ * @FunctionName: transformEntrustCsvToTickSZOrder
+ * @Brief: Converts SZ entrust CSV old format (Order.csv) rows to tick format (msg_type=0).
+ * @Param: t: Raw CSV chunk loaded via entrustCsvSchemaSZOrder().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformEntrustCsvToTickSZOrder(t, day){
+	return entrustToTick(transformEntrustSZOrder(t, day))
+}
+
+/*
+ * @FunctionName: transformEntrustCsvToTickSZmdl6330
+ * @Brief: Converts SZ entrust CSV new format (mdl_6_33_0.csv) rows to tick format (msg_type=0).
+ * @Param: t: Raw CSV chunk loaded via entrustCsvSchemaSZmdl6330().
+ * @Param: day: Trading date.
+ * @Return: Data in tick table format (14 columns).
+ */
+def transformEntrustCsvToTickSZmdl6330(t, day){
+	return entrustToTick(transformEntrustSZmdl6330(t, day))
+}
+

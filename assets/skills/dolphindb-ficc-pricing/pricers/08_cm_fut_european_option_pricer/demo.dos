@@ -1,0 +1,110 @@
+// ============================================================
+// cmFutEuropeanOptionPricer — 完整定价示例
+// 豆粕期货欧式期权定价 + Greeks
+// ============================================================
+// 定价方法：
+//   基于 Black-76 模型（期货期权标准模型）:
+//   Call = DF × [F·N(d1) − K·N(d2)]
+//   其中 F 为期货价格标量，DF 为贴现因子，σ 从 VolatilitySurface 插值。
+//   波动率曲面由 cmFutVolatilitySurfaceBuilder 从期权市场报价反算构建。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/08_cm_fut_european_option/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]        = "Option"
+instDict["optionType"]         = "EuropeanOption"
+instDict["assetType"]          = "CmFutEuropeanOption"
+instDict["instrumentId"]       = "M2509C3200"
+instDict["notionalAmount"]     = 10.0               // 合约乘数
+instDict["notionalCurrency"]   = "CNY"
+instDict["strike"]             = 3200.0
+instDict["maturity"]           = 2025.08.06
+instDict["payoffType"]         = "Call"
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "M2509"
+inst = parseInstrument(instDict)
+
+// --- Step 2: 贴现曲线 ---
+pricingDate = 2025.03.20
+discDict = dict(STRING, ANY)
+discDict["mktDataType"]         = "Curve"
+discDict["curveType"]           = "IrYieldCurve"
+discDict["referenceDate"]       = pricingDate
+discDict["currency"]            = "CNY"
+discDict["curveName"]           = "CNY"
+discDict["dayCountConvention"]  = "Actual365"
+discDict["compounding"]         = "Continuous"
+discDict["interpMethod"]        = "Linear"
+discDict["extrapMethod"]        = "Flat"
+discDict["dates"]   = [2025.06.20, 2025.09.20, 2025.12.20, 2026.03.20]
+discDict["values"]  = [0.0170, 0.0175, 0.0180, 0.0185]
+discountCurve = parseMktData(discDict)
+
+// --- Step 3: 期货价格曲线（用于 volSurfaceBuilder 反算波动率）---
+futPriceDict = dict(STRING, ANY)
+futPriceDict["mktDataType"]   = "Curve"
+futPriceDict["curveType"]     = "AssetPriceCurve"
+futPriceDict["referenceDate"] = pricingDate
+futPriceDict["currency"]      = "CNY"
+futPriceDict["asset"]         = "M"
+futPriceDict["interpMethod"]  = "Linear"
+futPriceDict["extrapMethod"]  = "Flat"
+futPriceDict["dates"]  = [2025.08.06]
+futPriceDict["values"] = [3150.0]                   // M2509 期货价格
+futPriceCurve = parseMktData(futPriceDict)
+
+// --- Step 4: 从期权市场报价构建波动率曲面 ---
+// cmFutVolatilitySurfaceBuilder 用 Black-76 公式反推隐含波动率
+futMaturities  = [2025.08.06]                       // 期货到期日
+optionExpiries = [2025.08.06]                       // 期权到期日
+strikes      = matrix([3000.0, 3100.0, 3200.0, 3300.0, 3400.0])
+optionPrices = matrix([220.0, 145.0, 85.0, 45.0, 20.0])
+payoffTypes  = matrix(["Call", "Call", "Call", "Call", "Call"])
+
+volSurf = cmFutVolatilitySurfaceBuilder(
+    pricingDate,
+    futMaturities,
+    optionExpiries,
+    strikes,
+    optionPrices,
+    payoffTypes,
+    discountCurve,
+    futPriceCurve
+)
+
+// --- Step 5: 定价（无 setting → 返回 NPV 标量）---
+futPrice = 3150.0                                   // 标的期货当前价格
+npv = cmFutEuropeanOptionPricer(inst, pricingDate, futPrice, discountCurve, volSurf)
+// npv > 0 → 期权权利金（期权持有人的价值）
+
+// --- Step 6: 带 Greeks 定价 ---
+setting = dict(STRING, ANY)
+setting["calcDelta"] = true                         // Delta: 期货价格变动 1 单位的 NPV 变化
+setting["calcGamma"] = true                         // Gamma: Delta 的变化率
+setting["calcVega"]  = true                         // Vega: 波动率变动 1% 的 NPV 变化
+result = cmFutEuropeanOptionPricer(inst, pricingDate, futPrice, discountCurve, volSurf, setting)
+// result["npv"]   — 期权价值
+// result["delta"] — Call delta ∈ (0, 1)
+// result["gamma"] — 总为正值
+// result["vega"]  — 总为正值
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [无 setting 结果]
+//   npv = 85.51                    — Black-76 期权权利金
+//
+// [带 setting 结果]
+//   npv   = 85.51
+//   delta = 0.44                   — ∂NPV/∂F
+//   gamma = 0.0014                 — ∂²NPV/∂F²
+//   vega  = 762.97                 — ∂NPV/∂σ
+//
+// [金融解释]
+//   豆粕 M2509 Call, K=3200, F=3150, T≈4.5M。
+//   K > F → 略微虚值，delta=0.44 < 0.5 与之一致。
+//   输入市场期权价格 K=3200 为 85 → 模型输出 85.51 ≈ 85 → 波动率曲面自一致。
+//   gamma=0.0014 > 0，vega=762.97 > 0，方向均正确。
+//
+// [合理性] ✓ 模型价格与市场输入价格一致，Greeks 符合预期。
+// ============================================================

@@ -1,0 +1,20 @@
+{
+  "extends": "../deepseek-harness/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../deepseek-harness/vendor/cordis" },
+    { "path": "../deepseek-harness/vendor/schemastery" },
+    { "path": "../deepseek-harness/packages/core/tools" },
+    { "path": "../deepseek-harness/packages/fs/fs" },
+    { "path": "../deepseek-harness/packages/interaction/user-approval" },
+    { "path": "../deepseek-harness/packages/skill/skill" },
+    { "path": "../deepseek-harness/packages/credentials/credentials" },
+    { "path": "../deepseek-harness/packages/runtime-diagnostics/invariants" }
+  ]
+}

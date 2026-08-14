@@ -1,0 +1,77 @@
+// ============================================================
+// 通联数据导入 — 前置环境检查脚本
+//
+// 检查项：
+//   1. zip 插件是否已加载；未加载则尝试自动安装
+//   2. easy_datayes 模块是否已上传
+//   3. easy_csmar 模块是否已上传
+//
+// 输出格式：
+//   [CHECK-ENV] ZIP_STATUS: OK | FIXED | FAILED
+//   [CHECK-ENV] MODULE_STATUS: OK | MISSING
+//   [CHECK-ENV] CSMAR_STATUS: OK | MISSING
+//   [CHECK-ENV] ERROR: <详细错误信息>        （仅在 FAILED 时出现）
+//
+// 用法：在 DolphinDB Web 平台直接执行本脚本
+// ============================================================
+
+// ----------------------------------------
+// 检查 1：zip 插件
+// ----------------------------------------
+def checkPluginStatus(pluginName) {
+    checkInfo = stringFormat("[CHECK-ENV] %W_STATUS: ", upper(pluginName))
+    try {
+        loadPlugin(pluginName)
+        print(checkInfo +"OK")
+    } catch(ex1) {
+        errorMsg = lower(string(ex1[1]));
+        // 判断插件是否已经加载
+        if(errorMsg.regexFind("already in use")>-1){
+            print(checkInfo +"OK");
+        }else if (errorMsg.regexFind("cannot.*find|no such file|not found|does not exist|doesn't exist")!=-1) {
+            // 插件未加载，尝试自动安装
+            try {
+                installPlugin(pluginName)
+                loadPlugin(pluginName)
+                print(checkInfo + "FIXED")
+            } catch(ex2) {//ex2 = ex1
+                print(checkInfo + "FAILED")
+                print(stringFormat("[CHECK-ENV] ERROR: %W 插件自动安装失败，需要手动安装。错误信息: %W - %W", pluginName, string(ex2[0]), string(ex2[1])))
+                print(stringFormat("[CHECK-ENV] 插件 %W 自动安装失败。请通过以下方式手动上传插件：\n" +
+                                    "           访问 DolphinDB 插件市场, 下载对应版本的插件 https://marketplace.dolphindb.cn/ \n" + 
+                                    "           插件文件下载后，请将其放到服务器的插件目录下：%W\n", pluginName, getPluginDir()))
+            }
+        }
+    }
+}
+
+pluginName = "zip";
+checkPluginStatus(pluginName)
+
+
+// ----------------------------------------
+// 检查 2：easy_datayes 模块
+// ----------------------------------------
+def checkModuleStatus(moduleName, statusLabel="MODULE") {
+    print("[CHECK-ENV] "+ moduleName)
+    try {
+        runScript("use " + moduleName)
+        print("[CHECK-ENV] " + statusLabel + "_STATUS: OK")
+    } catch(ex) {
+        print("[CHECK-ENV] " + statusLabel + "_STATUS: MISSING")
+        print("[CHECK-ENV] ERROR: 错误信息: " + string(ex[0]) + " - " + string(ex[1]))
+    }
+}
+moduleName = "easy_datayes::loadTLData"
+checkModuleStatus(moduleName)
+
+
+// ----------------------------------------
+// 检查 3：easy_csmar 模块
+// ----------------------------------------
+moduleNameCsmar = "easy_csmar::stock::stock_load_data"
+checkModuleStatus(moduleNameCsmar, "CSMAR")
+// ----------------------------------------
+// 最终汇总
+// ----------------------------------------
+// 解析逻辑由 AI 助手根据上述标记完成，本脚本只输出状态

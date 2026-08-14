@@ -1,0 +1,88 @@
+// ============================================================
+// Worked example: WorldQuant Alpha #1
+// Formula: rank(Ts_ArgMax(SignedPower((returns<0 ? stddev(returns,20) : close), 2), 5)) - 0.5
+// Assumptions made for this example:
+//   rank(...)          -> cross-sectional rank per day (rowRank, percent=true)
+//   stddev(returns,20) -> time-series moving std on each stock (mstd)
+//   returns            -> close \ prev_close - 1, computed via ratios(close) - 1
+// ============================================================
+
+// ====== 1. Sample data load ======
+startDate = 2024.01.01
+endDate   = 2025.12.31
+
+daily_table = loadTable("dfs://tushare_daily_db", "stock_bak_daily")
+index_table = loadTable("dfs://tushare_daily_db", "index_daily")
+
+daily_stock = select
+    d.code         as securityid,
+    d.trade_date   as tradetime,
+    d.open,
+    d.close,
+    d.high,
+    d.low,
+    d.pre_close    as last,
+    d.vol,
+    d.avg_price    as vwap,
+    d.industry     as sector,
+    d.total_mv     as cap,
+    idx.open       as index_open,
+    idx.close      as index_close
+from daily_table as d
+left join index_table as idx
+on d.trade_date = idx.trade_date
+where d.trade_date between startDate : endDate
+    and idx.code = "000001.SH"
+
+// ====== 2. Panel prepare ======
+def prepare_WQAlpha1(data, startTime, endTime){
+    p = exec close from data
+        where tradetime between startTime : endTime
+        pivot by tradetime, securityid
+    return p
+}
+
+// ====== 3. Factor function ======
+def WQAlpha1(close) {
+    returns = ratios(close) - 1
+    tmp1 = iif(returns < 0, mstd(returns, 20), close)
+    tmp2 = sign(tmp1) * pow(abs(tmp1), 2)
+    tmp3 = mimax(tmp2, 5)
+    tmp4 = rowRank(tmp3, percent=true)
+    return tmp4 - 0.5
+}
+
+// ====== 4. Execute + preview ======
+prepared_data = prepare_WQAlpha1(daily_stock, startDate, endDate)
+factor_result = WQAlpha1(prepared_data)
+
+labels_src = prepared_data
+dates  = rowNames(labels_src)
+stocks = colNames(labels_src)
+n = min(100, size(dates))
+(dates[0:n], stocks, factor_result[0:n,])
+
+// ============================================================
+// Expected execution output (truncated, for shape only):
+//
+//   (
+//     [2024.01.02, 2024.01.03, ...],          // dates[0:n]
+//     ["000001.SZ", "000002.SZ", ...],         // stocks
+//     [[NaN, NaN, ...],                        // factor_result[0:n,]
+//      ...
+//      [0.382, 0.069, ...]]
+//   )
+//
+// The triple is (dates[0:n], stocks, factor_result[0:n,]).
+// Leading rows are NaN until the longest window (here mstd(returns,20)) fills up.
+//
+// === Output to the user ===
+// After the DolphinX platform returns a successful execution result, respond with three parts:
+//   1. 思路 — one or two sentences mapping the formula to DolphinDB. Call out
+//      non-obvious translations (especially `\` for division).
+//   2. 代码 — the full 4-section script in one ```dolphindb code block.
+//   3. 结果预览 — the dates / stocks / factor_result triple from the execution
+//      output (or the head of it if too large).
+// If you asked a disambiguation question in step 1, state the assumption at the
+// top of 思路.
+// ============================================================

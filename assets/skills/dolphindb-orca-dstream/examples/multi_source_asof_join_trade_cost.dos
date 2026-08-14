@@ -1,0 +1,98 @@
+// ============================================================
+// Orca DStream API Demo: Asof Join 计算个股交易成本
+// 功能：
+// 1. 实时逐笔成交数据流(left)与报价快照数据流(right)进行 asof join
+// 2. 计算个股交易成本：abs(TradePrice - (Bid1Price + Ask1Price) / 2)
+// 3. 输出结果包含成交时间、股票代码、成交价、交易成本、匹配的快照时间
+// 参考原始案例：
+//  - 《多数据源流式实时关联处理》3.1 节
+//  - DStream::asofJoinEngine 官方文档
+// ============================================================
+
+// -------------------------
+// 1. Catalog
+// -------------------------
+if (!existsCatalog("orcaAsofJoinDemo")) {
+    createCatalog("orcaAsofJoinDemo")
+}
+go
+use catalog orcaAsofJoinDemo
+
+// -------------------------
+// 2. Clean old graph for demo/test
+// -------------------------
+try {
+    dropStreamGraph("asofJoinTradeCostGraph", true)
+} catch(ex) {
+    print("清理旧流图: " + ex)
+}
+
+// -------------------------
+// 3. Build stream graph
+// -------------------------
+g = createStreamGraph("asofJoinTradeCostGraph")
+
+// 定义右流表：报价快照数据（先创建，以便左流关联时引用）
+right = g.source("snapshotStream", `Sym`Time`Bid1Price`Ask1Price, [SYMBOL, TIME, DOUBLE, DOUBLE])
+
+// 定义左流表：逐笔成交数据，并进行 asof join
+g.source("tradeStream", `Sym`TradeTime`TradePrice, [SYMBOL, TIME, DOUBLE])
+    .asofJoinEngine(
+        rightStream = right,
+        metrics = <[
+            TradePrice,
+            abs(TradePrice - (Bid1Price + Ask1Price) / 2) as TradeCost,
+            snapshotStream.Time as SnapshotTime
+        ]>,
+        matchingColumn = `Sym,
+        timeColumn = `TradeTime`Time,
+        useSystemTime = false,
+        delayedTime = 1000
+    )
+    .sink("tradeCostOutput")
+
+g.submit()
+
+// -------------------------
+// 4. Wait / check status
+// -------------------------
+sleep(5000)
+getStreamGraphMeta("asofJoinTradeCostGraph")
+
+// -------------------------
+// 5. Mock data
+// -------------------------
+
+// 构造报价快照数据 (右流) —— 先写入右流，再写入左流
+snapshotData = table(
+    `A`B`A`B as Sym,
+    10:00:00.000 + [3000, 3000, 6000, 6000] as Time,
+    [3.5, 7.6, 3.5, 7.6] as Bid1Price,
+    [3.5, 7.6, 3.6, 7.6] as Ask1Price
+)
+
+// 构造逐笔成交数据 (左流)
+tradeData = table(
+    `A`A`B`A`B`B as Sym,
+    10:00:02.000 + (1..6) * 700 as TradeTime,
+    [3.4, 3.5, 7.7, 3.5, 7.5, 7.6] as TradePrice
+)
+
+// 先写入右流数据
+appendOrcaStreamTable("snapshotStream", snapshotData)
+sleep(1000)
+
+// 再写入左流数据
+appendOrcaStreamTable("tradeStream", tradeData)
+
+// -------------------------
+// 6. Wait and query
+// -------------------------
+sleep(8000)
+
+// 查看输入流表（确认数据已写入）
+select * from orca_table.tradeStream
+select * from orca_table.snapshotStream
+
+// 查看结果：交易成本
+select * from orca_table.tradeCostOutput

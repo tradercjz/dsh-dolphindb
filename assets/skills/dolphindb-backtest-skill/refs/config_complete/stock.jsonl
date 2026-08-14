@@ -1,0 +1,5 @@
+{"name": "startDate", "type": "STRING", "desc": "输出格式固定为 `YYYY.MM.DD`", "is_required": true}
+{"name": "endDate", "type": "STRING", "desc": "输出格式固定为 `YYYY.MM.DD`", "is_required": true}
+{"name": "strategyGroup", "type": "STRING", "desc": "固定值取 stock", "is_required": true}
+{"name": "cash", "type": "DOUBLE", "desc": "初始资金，必须为正数", "is_required": true}
+{"name": "dataType", "type": "INT", "desc": "必须是 `1~7` 中之一，用于表示策略需要用到的数据类型。1表示只有快照；2表示快照+逐笔成交明细；3表示分钟行情；4表示日频；5表示股票逐笔（逐笔委托和逐笔成交明细合并为宽表）；6表示股票逐笔+快照（逐笔委托、逐笔成交明细和快照合并为宽表）；7表示快照+分钟频率； NOTE： 2和6表示相同的数据类型，通常使用6", "is_required": true}

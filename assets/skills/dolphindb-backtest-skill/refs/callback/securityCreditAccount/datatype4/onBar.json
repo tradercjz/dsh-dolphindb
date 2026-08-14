@@ -1,0 +1,95 @@
+{
+  "signature": "def onBar(mutable context, msg, indicator){}",
+  "purpose": "中低频行情回调函数。在 securityCreditAccount 策略中，用于在 onBar 触发时基于当前行情、initialize 阶段准备好的 context、datasource signal、技术指标以及信用账户交易逻辑执行策略决策。",
+  "allowed_actions": [
+    "读取当前 bar 的 msg 数据。",
+    "读取 initialize 阶段准备好的 context 全局状态。",
+    "读取基于 msg 或 signal 计算得到的 indicator。",
+    "基于策略规则判断是否执行担保品买入、担保品卖出、融资买入、融券卖出、直接还款、卖券还款、直接还券或买券还券。",
+    "结合 getMarginSecuPosition、getMarginTradingPosition、getSecuLendingPosition、getAvailableCash、getConfig 等接口读取账户状态后再决定是否提交订单。",
+    "通过 submitOrder 提交符合融资融券语义的订单。",
+    "在 context 中更新策略运行时状态、调仓标记、计数器或缓存信息。"
+  ],
+  "forbidden": [
+    "不要把 initialize 阶段的一次性准备逻辑重复写进 onBar。",
+    "不要在 onBar 中重新生成 securityReference。",
+    "不要在未明确接口语义时臆造融资融券资格判断字段、信用额度字段或订单格式。",
+    "不要把普通股票账户的买卖方向语义直接套用到融资融券 submitOrder 上。",
+    "不要跳过 submitOrder 直接用 setPosition 伪造常规融资融券交易流程，除非是明确的初始化或特殊控制场景。",
+    "不要忽略已有 context、datasource_signals 或 initialize_indicators 后重复计算同一类信息。"
+  ],
+  "parameters": {
+    "context": {
+      "type": "DICT",
+      "meaning": "initialize 阶段和策略运行过程中共享的上下文字典，用于保存引擎句柄、策略状态、调仓缓存、计数器和其他运行时信息。",
+      "usage": "可通过 context[\"xxxx\"] 读写共享状态；若 key 不存在，需要先判断或初始化。"
+    },
+    "msg": {
+      "type": "DICT(STRING,DICT)",
+      "meaning": "当前 bar 注入的行情数据字典。第一层 key 为 symbol，第二层为该证券在当前 bar 的字段值。",
+      "usage": "可通过 msg[symbol][\"close\"]、msg[symbol][\"tradeTime\"]、msg[symbol][\"signal\"][i] 等方式读取当前 bar 的输入。",
+      "fields": {
+        "symbol": {
+          "type": "STRING",
+          "desc": "证券代码。"
+        },
+        "tradeTime": {
+          "type": "TIMESTAMP",
+          "desc": "当前 bar 时间。"
+        },
+        "open": {
+          "type": "DOUBLE",
+          "desc": "开盘价。"
+        },
+        "low": {
+          "type": "DOUBLE",
+          "desc": "最低价。"
+        },
+        "high": {
+          "type": "DOUBLE",
+          "desc": "最高价。"
+        },
+        "close": {
+          "type": "DOUBLE",
+          "desc": "收盘价。"
+        },
+        "volume": {
+          "type": "LONG",
+          "desc": "成交量。"
+        },
+        "amount": {
+          "type": "DOUBLE",
+          "desc": "成交额。"
+        },
+        "upLimitPrice": {
+          "type": "DOUBLE",
+          "desc": "涨停价。"
+        },
+        "downLimitPrice": {
+          "type": "DOUBLE",
+          "desc": "跌停价。"
+        },
+        "prevClosePrice": {
+          "type": "DOUBLE",
+          "desc": "昨收价。"
+        },
+        "signal": {
+          "type": "DOUBLE[]",
+          "desc": "上游 datasource 提供的 signal 向量。"
+        }
+      }
+    },
+    "indicator": {
+      "type": "DICT(STRING,DICT)",
+      "meaning": "initialize 阶段准备好的指标字典。第一层 key 为 symbol，第二层 key 为指标名。",
+      "usage": "可通过 indicator[symbol][\"ma20\"]、indicator[symbol][\"rsi14\"] 等方式读取 initialize 阶段暴露出的指标结果。",
+      "fields": "字段集合由 initialize 阶段最终输出的 initialize_indicators 决定。"
+    }
+  },
+  "notes": [
+    "在 securityCreditAccount 策略中，onBar 是主要交易决策回调，但它应建立在 initialize 已经准备好的 context、datasource_signals 和 initialize_indicators 基础上。",
+    "若需要读取仓位，请按持仓类型分别结合 getMarginSecuPosition、getMarginTradingPosition、getSecuLendingPosition；若需要读取可用资金，请结合 getAvailableCash；若需要读取配置参数，请结合 getConfig。",
+    "若需要下单，请优先使用 submitOrder，并严格遵守融资融券的 8 种买卖方向语义。",
+    "datasource_signals 中列出的值只能通过 msg[symbol][\"signal\"][i] 读取；initialize_indicators 中列出的值只能通过 indicator[symbol][name] 读取。"
+  ]
+}

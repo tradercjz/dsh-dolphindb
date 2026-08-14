@@ -1,0 +1,92 @@
+// ============================================================
+// fxSwapPricer — 完整定价示例
+// USDCNY 外汇掉期 NPV 计算
+// ============================================================
+// 定价方法：
+//   FxSwap = 近端 FxForward + 远端 FxForward（方向相反）。
+//   近端 Buy + 远端 Sell：即期买入 USD，远期卖回 USD。
+//   NPV = 近端 NPV + 远端 NPV。
+//   掉期点 = farStrike − nearStrike，反映两币利差。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/06_fx_swap/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]      = "Swap"
+instDict["swapType"]         = "FxSwap"
+instDict["currencyPair"]     = "USDCNY"
+instDict["direction"]        = "Buy"                // 近端买入 USD
+instDict["notionalCurrency"] = "USD"
+instDict["notionalAmount"]   = 1000000.0
+instDict["nearStrike"]       = 7.25                 // 近端汇率 ≈ 即期
+instDict["nearExpiry"]       = 2026.04.20
+instDict["nearDelivery"]     = 2026.04.22
+instDict["farStrike"]        = 7.30                 // 远端汇率（含掉期点）
+instDict["farExpiry"]        = 2026.09.20
+instDict["farDelivery"]      = 2026.09.22
+instDict["domesticCurve"]    = "CNY"
+instDict["foreignCurve"]     = "USD"
+inst = parseInstrument(instDict)
+
+// --- Step 2: CNY 贴现曲线 ---
+pricingDate = 2026.03.20
+domDict = dict(STRING, ANY)
+domDict["mktDataType"]         = "Curve"
+domDict["curveType"]           = "IrYieldCurve"
+domDict["referenceDate"]       = pricingDate
+domDict["currency"]            = "CNY"
+domDict["curveName"]           = "CNY"
+domDict["dayCountConvention"]  = "Actual365"
+domDict["compounding"]         = "Continuous"
+domDict["interpMethod"]        = "CubicSpline"
+domDict["extrapMethod"]        = "Flat"
+domDict["dates"]   = [2026.04.20, 2026.06.20, 2026.09.20, 2027.03.20]
+domDict["values"]  = [0.0168, 0.0172, 0.0178, 0.0188]
+domCurve = parseMktData(domDict)
+
+// --- Step 3: USD 贴现曲线 ---
+forDict = dict(STRING, ANY)
+forDict["mktDataType"]         = "Curve"
+forDict["curveType"]           = "IrYieldCurve"
+forDict["referenceDate"]       = pricingDate
+forDict["currency"]            = "USD"
+forDict["curveName"]           = "USD"
+forDict["dayCountConvention"]  = "Actual365"
+forDict["compounding"]         = "Continuous"
+forDict["interpMethod"]        = "CubicSpline"
+forDict["extrapMethod"]        = "Flat"
+forDict["dates"]   = [2026.04.20, 2026.06.20, 2026.09.20, 2027.03.20]
+forDict["values"]  = [0.0420, 0.0425, 0.0430, 0.0440]
+forCurve = parseMktData(forDict)
+
+// --- Step 4: 即期汇率（见 market_data/fx_spot/demo.dos）---
+spotDict = dict(STRING, ANY)
+spotDict["mktDataType"]   = "Price"
+spotDict["priceType"]     = "FxSpotRate"
+spotDict["referenceDate"] = pricingDate
+spotDict["spotDate"]      = 2026.03.22
+spotDict["value"]         = 7.25
+spotDict["unit"]          = "USDCNY"
+fxSpot = parseMktData(spotDict)
+
+// --- Step 5: 定价（通过 instrumentPricer 统一入口）---
+npv = instrumentPricer(inst, pricingDate, [domCurve, forCurve, fxSpot])
+// npv = 近端 NPV + 远端 NPV
+// 当 nearStrike ≈ spot 且 farStrike = 市场掉期点 → NPV ≈ 0
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [结果]
+//   npv = +124,732.37              — 掉期 NPV（CNY 计价）
+//
+// [金融解释]
+//   近端 Buy@7.25 + 远端 Sell@7.30：
+//   近端（1M）IRP 远期 ≈ 7.25 × exp((0.0168-0.0420)/12) ≈ 7.235
+//     → 近端 NPV ≈ (7.235 - 7.25) × 1M ≈ -15,000
+//   远端（6M）IRP 远期 ≈ 7.16
+//     → 远端 NPV ≈ -(7.16 - 7.30) × 1M ≈ +140,000（卖出价高于远期）
+//   合计 ≈ -15,000 + 140,000 = +125,000 ≈ 124,732 ✓
+//   掉期点（farStrike - nearStrike = 0.05）高于市场掉期点 → 正 NPV。
+//
+// [合理性] ✓ 远端卖出获利 > 近端买入亏损，总 NPV 为正，合理。
+// ============================================================

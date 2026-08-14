@@ -1,0 +1,798 @@
+
+//************************************test  exception**********************************\\
+@testing:case="test_function_createReactiveStateEngine_name_not_string",exception=1
+dummy = table(take(`AA, 100) as sym, rand(100, 100) as qty, rand(100, 100) as price)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine(1, [<msum(price, 10)>], dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngie_metric_not_support_function",exception=1
+dummy = table(take(`AA, 100) as sym, rand(100, 100) as qty, rand(100, 100) as price)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("engine", [<sum(qty)>], dummy, outputTable, "sym")
+dummy.append!(dummy)
+assert 1, outputTable.size()==0
+
+dropAggregator("engine")
+undef("engine")
+
+@testing:case="test_function_createReactiveStateEngine_dummy_not_table",exception=1
+dummy = dict(`sym`qty`price, [take(`AA, 100), rand(100, 100), rand(100, 100)])
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("engine", [<msum(qty, 10)>], dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_output_columns_not_consistent",exception=1
+dummy = table(take(`AA, 100) as sym, rand(100, 100) as qty, rand(100, 100) as price)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("engine", [<msum(qty, 10)>, <mavg(qty, 10)>], dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_keyColumn_vector",exception=1
+date=rand(2012.01.01..2012.12.31, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <move(qty, 12)>, dummy, outputTable, ["date", "sym"])
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_last_statement_no_return",exception=1
+n = 10000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+@state
+def foo(qty){
+    a = mavg(qty, 3, 1)
+}
+engine = createReactiveStateEngine("test", <foo(qty)>, dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_not_assignment_statement",exception=1
+@state
+def foo(qty){
+    mavg(qty, 3, 1)
+    return true
+}
+engine = createReactiveStateEngine("test", <foo(qty)>, dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_call_return_multi_objects",exception=1
+@state
+def fun1(qty){
+	a = mavg(qty, 3, 1)
+	b = msum(qty, 3, 1)
+	return a,b
+}
+@state
+def fun2(price,qty){
+	b = msum(price,3,1)
+	return fun1(qty),b
+}
+
+fun2(1 2 3 4,1 2 3 4 )
+engine = createReactiveStateEngine("test", <fun2(price,qty)>, dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_have_keyPurgeFilter_no_keyPurgeFreqInSecond",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>)
+
+@testing:case="test_function_createReactiveStateEngine_no_keyPurgeFilter_have_keyPurgeFreqInSecond",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,,1)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_not_in_outputTable",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,(max(timestamp)-timestamp)>60,1)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFilter_vector",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,[<(max(updateTime)-updateTime)>60>],1)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_string",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,"1")
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_float",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,1.1f)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_double",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,1.1)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_time",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>, 13:30:10.008)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_bool",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>, true)
+ 
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_vector",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,[1])
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_pair",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,0:4)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_matrix",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,1..10$5:2)
+
+@testing:case="test_function_createReactiveStateEngine_keyPurgeFreqInSecond_set",exception=1
+timestamp=rand(now()+1..300, 300)
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+askSeqNum=take(`name1, 100) join take(`name2, 100) join take(`name3, 100)
+Side=rand("ANJDSMK"+string(1..100), 300)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, askSeqNum, Side, price, qty, timestamp)
+outputTable = table(1000:0, `sym`askSeqNum`Side`factor1`updateTime, [STRING,STRING,STRING,DOUBLE,TIMESTAMP])
+engine = createReactiveStateEngine("test", [<mavg(qty, 2)>, <timestamp as updatetime>], dummy, outputTable, `sym`askSeqNum`Side,,,,,<(max(updateTime)-updateTime)>60>,set(1 1))
+
+dropAggregator("test")
+engine=NULL
+
+//**************************************test metric****************************\\
+@testing:case="test_function_createReactiveStateEngine_complex_metric"
+//complex metrics
+sym=take(`AA`BB`CC, 3000)
+price=round(rand(100.0, 3000), 2)
+qty=rand(1..100, 3000)
+dummy = table(sym, price, qty)
+outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//1024
+sym=take("A"+string(1..3000), 6000000)
+price=round(rand(100.0, 6000000), 2)
+qty=rand(1..100, 6000000)
+dummy = table(sym, price, qty)
+outputTable = table(6000000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 2, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//random data
+n=100000
+sym=rand("A"+string(1..3000), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..100, n)
+dummy = table(sym, price, qty)
+outputTable = table(n:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <(price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500))>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, (price - ema(qty, 500)) \ (ema(qty, 50) - ema(qty, 500)) as factor1 from dummy context by sym
+assert 3, each(eqObj, (select * from outputTable order by sym,factor1).values(), (select * from expected order by sym, factor1).values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_multiple_metrics"
+//multiple metrics
+metrics=array(ANY, 6, 6)
+metrics[0]=<ema(ffill(qty), 50)/ema(ffill(price), 50)>
+metrics[1]=<msum(price, 10)/mavg(price, 10)*ratios(qty)>
+metrics[2]=<deltas(ffill(move(price, 5)))>
+metrics[3]=<cumavg(price)+mavg(qty, 10)-msum(price, 50)>
+metrics[4]=<deltas(mavg(qty, 10))>
+metrics[5]=<move(deltas(qty), 10)*move(ratios(price), 10)>
+
+sym=take("A"+string(1..3000), 6000000)
+price=round(rand(100.0, 6000000), 2)
+qty=rand(1..100, 6000000)
+dummy = table(sym, price, qty)
+//outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+outputTable = table(6000000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("test", metrics, dummy, outputTable, "sym")
+engine.append!(dummy)
+
+expected=select sym, ema(ffill(qty), 50)/ema(ffill(price), 50) as factor1, msum(price, 10)/mavg(price, 10)*ratios(qty) as factor2, deltas(ffill(move(price, 5))) as factor3, cumavg(price)+mavg(qty, 10)-msum(price, 50) as factor4, deltas(mavg(qty, 10)) as factor5, move(deltas(qty), 10)*move(ratios(price), 10) as factor6 from dummy context by sym
+
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//random data
+sym=rand("A"+string(1..3000), 3000000)
+price=round(rand(100.0, 3000000), 2)
+qty=rand(1..100, 3000000)
+dummy = table(sym, price, qty)
+//outputTable = table(3000:0, `sym`factor1, [STRING,DOUBLE])
+outputTable = table(3000000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("test", metrics, dummy, outputTable, "sym")
+engine.append!(dummy)
+
+expected=select sym, ema(ffill(qty), 50)/ema(ffill(price), 50) as factor1, msum(price, 10)/mavg(price, 10)*ratios(qty) as factor2, deltas(ffill(move(price, 5))) as factor3, cumavg(price)+mavg(qty, 10)-msum(price, 50) as factor4, deltas(mavg(qty, 10)) as factor5, move(deltas(qty), 10)*move(ratios(price), 10) as factor6 from dummy context by sym
+
+assert 2, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_append_multiple_times"
+trade=table(1000000:0, `sym`price`qty, [SYMBOL, DOUBLE, INT])
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <[msum(price, 20)]>, trade, outputTable, "sym")
+expected=table(1000:0, `sym`factor1, [STRING, DOUBLE])
+total=0
+
+for(i in 1..10){
+	//print i
+	batch=rand(1000..6000000, 1)[0]
+	tmp = table(take("A"+string(1..50), batch) as sym, round(rand(100.0, batch), 2) as price, rand(100, batch) as qty)
+	engine.append!(tmp)
+	trade.append!(tmp)
+	num=getAggregatorStat().ReactiveStreamEngine["numRows"]
+	assert 1, (num-total)==batch
+	expected=select sym, msum(price, 20) as factor1 from trade context by sym
+	assert 2, each(eqObj, (select * from outputTable order by sym, factor1).values(), (select * from expected order by sym, factor1).values())
+	total+=batch
+}
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_tick_data"
+trade=table(1000000:0, `sym`price`qty, [SYMBOL, DOUBLE, INT])
+
+outputTable = table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [STRING,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("test", <[ema(price, 15), msum(price, 20), mavg(qty, 10), ffill(price), cumavg(price), deltas(price), ratios(qty), move(price, 3)]>, trade, outputTable, "sym")
+expected=table(1000:0, `sym`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [STRING, DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+
+syms="A"+string(1..3500)
+def randu(x, n){
+	if(n>size(x)){
+		throw "number larger than input length"
+	}
+	tmp=array(x, 0, size(x)*2).append!(x).append!(x)
+	st=rand(0..(size(x)-1), 1)[0]
+	return shuffle(tmp[st..(st+n-1)])
+}
+
+for(i in 1..10){
+	//n=2500+i
+	n=3500
+	sym="A"+string(1..3500)
+	//sym=randu(syms, n)
+	price=double(1..n)
+	qty=1..n
+	t=table(sym, price, qty)
+	engine.append!(t)
+	trade.append!(t)
+	expected=select sym, ema(price, 15) as factor1, msum(price, 20) as factor2, mavg(qty, 10) as factor3, ffill(price) as factor4, cumavg(price) as factor5, deltas(price) as factor6, ratios(qty) as factor7, move(price, 3) as factor8 from trade context by sym
+	assert 1, each(eqObj, (select * from outputTable order by sym).values(), (select * from expected order by sym).values())
+}
+
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_getAggregatorStat"
+trade=table(1000000:0, `sym`price`qty, [SYMBOL, DOUBLE, INT])
+
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <[msum(price, 20)]>, trade, outputTable, "sym")
+assert 1, getAggregatorStat().ReactiveStreamEngine.size()==1
+assert 2, getAggregatorStat().ReactiveStreamEngine["numRows"]==0
+assert 3, getAggregatorStat().ReactiveStreamEngine["numMetrics"]==1
+
+dropAggregator("test")
+engine=NULL
+assert 3, getAggregatorStat().ReactiveStreamEngine.isNull()==true
+
+engine = createReactiveStateEngine("test", <[msum(price, 20)]>, trade, outputTable, "sym")
+engine.append!(table(take(`AA`BB`CC, 10) as sym, 1..10 as price, 1..10 as qty))
+assert 4, getAggregatorStat().ReactiveStreamEngine["numRows"]==10
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_drop_multiple_times"
+for(i in 1..100){
+	trade=table(1000000:0, `sym`price`qty, [SYMBOL, DOUBLE, INT])
+	engine = createReactiveStateEngine("test", <[msum(price, 20)]>, trade, outputTable, "sym")
+	engine.append!(table(take(`AA`BB`CC, 10) as sym, 1..10 as price, 1..10 as qty))
+	go
+	dropAggregator("test")
+	engine=NULL
+}
+
+@testing:case="test_function_createReactiveStateEngine_move_negative",exception=1
+sym=take(`BB, 100) join take(`AA, 100) join take(`CC, 100)
+price=round(rand(100.0, 300), 2)
+qty=rand(1..100, 300)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <move(qty, -12)>, dummy, outputTable, "sym")
+
+
+@testing:case="test_function_createReactiveStateEngine_multiple_metric"
+@state
+def func1(qty, price){
+	return ema(qty, 10), msum(price, 20)
+}
+try{
+	dropStreamEngine(`engine)
+}
+catch (ex){}
+dummy = table(take(`AA, 100) as sym, rand(100.0, 100) as qty, rand(100.0, 100) as price)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("engine", <func1(qty, price) as `f1`f2>, dummy, outputTable, "sym")
+engine.append!(dummy)
+ex = select sym, ema(qty, 10), msum(price, 20) from dummy
+res = select * from outputTable
+assert 1, each(eqObj, res.values(), ex.values(), 6)
+try{
+	dropStreamEngine(`engine)
+}
+catch (ex){}
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_return_one_index"
+n = 100000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+@state
+def foo(qty){
+    a = mavg(qty, 3, 1)
+    return a
+}
+engine = createReactiveStateEngine("test", <foo(qty)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, mavg(qty,3,1) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//random data
+n=100000
+sym=rand("A"+string(1..3000), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(n:0, `sym`factor1, [STRING,DOUBLE])
+engine = createReactiveStateEngine("test", <foo(qty)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, mavg(qty,3,1) as factor1 from dummy context by sym
+assert 2, each(eqObj, (select * from outputTable order by sym,factor1).values(), (select * from expected order by sym, factor1).values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_return_multiple_index"
+n = 100000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,DOUBLE,DOUBLE])
+@state
+def foo(qty,price){
+    a = mavg(qty, 3, 1)
+    b = msum(price,3,1)
+    return a,b
+}
+engine = createReactiveStateEngine("test", <foo(qty,price)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, mavg(qty,3,1) as factor1,msum(price,3,1) as factor2 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//random data
+n=100000
+sym=rand("A"+string(1..3000), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("test", <foo(qty,price)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, mavg(qty,3,1) as factor1,msum(price,3,1) as factor2 from dummy context by sym
+assert 2, each(eqObj, (select * from outputTable order by sym,factor1).values(), (select * from expected order by sym, factor1).values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_call_each_other"
+n = 100000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,DOUBLE,DOUBLE])
+@state
+def fun1(qty){
+	a = mavg(qty, 3, 1)
+	return a
+}
+@state
+def fun2(price,qty){
+	b = msum(price,3,1)
+	return fun1(qty),b
+}
+
+engine = createReactiveStateEngine("test", <fun2(price,qty)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, mavg(qty,3,1) as factor1,msum(price,3,1) as factor2 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_complex"
+n = 100000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2`factor3, [STRING,DOUBLE,DOUBLE,DOUBLE])
+@state
+def fun1(qty){
+	a = mavg(qty, 3, 1)
+	return a
+}
+@state
+def fun2(price,qty){
+	a = fun1(qty)
+	b = cumavg(price)+mavg(qty, 10)-msum(price, 50)+a
+	return b
+}
+@state
+def fun3(price,qty){
+	c = msum(price, 10)/mavg(price, 10)*ratios(qty)
+	return fun1(qty),fun2(price,qty),c
+}
+engine = createReactiveStateEngine("test", <fun3(price,qty)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+
+expected=select sym, mavg(qty,3,1) as factor1,cumavg(price)+mavg(qty, 10)-msum(price, 50)+mavg(qty,3,1) as factor2,msum(price, 10)/mavg(price, 10)*ratios(qty) as factor3 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+//1024
+sym=take("A"+string(1..3000), 6000000)
+price=round(rand(100.0, 6000000), 2)
+qty=rand(1..100, 6000000)
+dummy = table(sym, price, qty)
+outputTable = table(6000000:0, `sym`factor1`factor2`factor3, [STRING,DOUBLE,DOUBLE,DOUBLE])
+engine = createReactiveStateEngine("test", <fun3(price,qty)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+
+expected=select sym, mavg(qty,3,1) as factor1,cumavg(price)+mavg(qty, 10)-msum(price, 50)+mavg(qty,3,1) as factor2,msum(price, 10)/mavg(price, 10)*ratios(qty) as factor3 from dummy context by sym
+assert 2, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_error",exception=1
+n = 1000000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+@state
+def fun1(qty){
+	a = mavg(qty, 3, 1)
+	b = a + matrix(1 2,3 4)
+	return a
+}
+engine = createReactiveStateEngine("test", <fun1(qty)>, dummy, outputTable, "sym")
+
+@testing:case="test_function_createReactiveStateEngine_metric_state_function_in_sql"
+n = 1000000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+@state
+def fun1(qty){
+	a = mavg(qty, 3, 1)
+	return a
+}
+def fun2(qty){
+	a = mavg(qty, 3, 1)
+	return a
+}
+t1 = select sym, fun1(qty) as factor1 from dummy context by sym
+t2 = select sym, fun2(qty) as factor1 from dummy context by sym
+assert 1,eqObj(t1.values(),t2.values())
+
+
+@testing:case="test_function_createReactiveStateEngine_keyColumn_different_dtypes"
+dtypes=[`bool, `char, `short, `int, `long, `date, `month, `time, `minute, `datetime, `timestamp, `string]
+for(dtype in dtypes){
+	//print string(dtype)
+	sym=take(funcByName(dtype)(1..100), 3000000)
+	price=round(rand(100.0, 3000000), 2)
+	qty=rand(1..100, 3000000)
+	dummy = table(sym, price, qty)
+	outputTable = table(3000000:0, `sym`factor1, [dtype,DOUBLE])
+	engine = createReactiveStateEngine("test", <ema(qty, 40)>, dummy, outputTable, "sym")
+	engine.append!(dummy)
+	expected=select sym, ema(qty, 40) as factor1 from dummy context by sym
+	assert 1, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+	dropAggregator("test")
+	engine=NULL
+}
+
+//ipaddr
+ipv=ipaddr("192.168.1."+string(1..100))
+sym=take(ipv, 3000000)
+price=round(rand(100.0, 3000000), 2)
+qty=rand(1..100, 3000000)
+dummy = table(sym, price, qty)
+outputTable = table(3000000:0, `sym`factor1, [IPADDR,DOUBLE])
+engine = createReactiveStateEngine("test", <ema(qty, 40)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, ema(qty, 40) as factor1 from dummy context by sym
+assert 2, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+dropAggregator("test")
+engine=NULL
+
+//uuid
+x=uuid("5d212a78-cc48-e3b1-4235-b4d91473ee"+string(10..99))
+sym=take(x, 3000000)
+price=round(rand(100.0, 3000000), 2)
+qty=rand(1..100, 3000000)
+dummy = table(sym, price, qty)
+outputTable = table(3000000:0, `sym`factor1, [UUID,DOUBLE])
+engine = createReactiveStateEngine("test", <ema(qty, 40)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, ema(qty, 40) as factor1 from dummy context by sym
+assert 3, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+dropAggregator("test")
+engine=NULL
+
+//int128
+x=int128("e1671797c52e15f763380b45e841ec32"+string(10..99))
+sym=take(x, 3000000)
+price=round(rand(100.0, 3000000), 2)
+qty=rand(1..100, 3000000)
+dummy = table(sym, price, qty)
+outputTable = table(3000000:0, `sym`factor1, [INT128,DOUBLE])
+engine = createReactiveStateEngine("test", <ema(qty, 40)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, ema(qty, 40) as factor1 from dummy context by sym
+assert 4, each(eqObj, (select * from outputTable order by sym).values(), expected.values())
+dropAggregator("test")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_call_same_state_function_multi_times"
+n = 1000000
+sym=take("A"+string(1..100), n)
+price=round(rand(100.0, n), 2)
+qty=rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1, [STRING,DOUBLE])
+@state
+def mslr_fitted_residuals(a, b, win_size)
+{
+ alpha, beta = mslr(a, b, win_size)
+ return beta*b + alpha, a - (beta*b + alpha)
+}
+engine = createReactiveStateEngine("reactiveDemo", <mslr_fitted_residuals(qty, price, 9)[1] - mmax(mslr_fitted_residuals(qty, price, 9)[1], 15)>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym,  (qty - (mslr(qty,price,9)[1]*price+mslr(qty,price,9)[0]))-mmax(qty - (mslr(qty,price,9)[1]*price+mslr(qty,price,9)[0]),15) as factor1 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym, factor1).values(), (select * from expected order by sym, factor1).values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+//************************************测试数据形式*****************************\\
+@testing:case="test_function_createReactiveStateEngine_metrics_set"
+n = 100000
+sym = take("A"+string(1..100), n)
+price = take(n..5000,n)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,BOOL])
+s1 = set(1..100)
+s2 = set(100..200)
+engine = createReactiveStateEngine("reactiveDemo", <[in(qty, s1),in(qty, s2)]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected = select sym, in(qty, s1) as factor1,in(qty, s2) as factor2 from dummy
+assert 1,eqObj(expected.values(),outputTable.values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+n=100000
+sym=rand("A"+string(1..3000), n)
+price = take(n..5000,n)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,BOOL])
+s1 = set(1..100)
+s2 = set(100..200)
+engine = createReactiveStateEngine("reactiveDemo", <[in(qty, s1),in(qty, s2)]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected = select sym, in(qty, s1) as factor1,in(qty, s2) as factor2 from dummy
+assert 2,eqObj((select * from outputTable order by sym).values(),(select * from expected order by sym).values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metrics_dict"
+n = 100000
+dict1=dict(`IBM`MSFT, 1 2)
+dict2=dict(`IBM`MSFT`GOOG, 4 5 6)
+sym = rand(`IBM`MSFT`GOOG,n)
+price=round(rand(100.0, n), 2)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,INT,INT])
+engine = createReactiveStateEngine("reactiveDemo", <[dict1[sym], dict2[sym]]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, dict1[sym] as factor1, dict2[sym] as factor2 from dummy context by sym
+assert 1, each(eqObj, (select * from outputTable order by sym,factor1,factor2).values(), (select * from expected order by sym, factor1,factor2).values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+dict1=dict(`IBM`MSFT, 1 2)
+dict2=dict(`IBM`MSFT`GOOG, 4 5 6)
+sym = rand(`IBM`MSFT`GOOG,n)
+price=round(rand(100.0, n), 2)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,INT])
+engine = createReactiveStateEngine("reactiveDemo", <[sym in dict1, find(dict2,sym)]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, sym in dict1 as factor1,  find(dict2,sym) as factor2 from dummy
+assert 2, each(eqObj, (select * from outputTable order by sym,factor1,factor2).values(), (select * from expected order by sym, factor1,factor2).values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metrics_table"
+n = 10000
+sym = take("A"+string(1..100), n)
+price = take(1..5000,n)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,BOOL])
+t = table(rand(10,n) as val1,rand(100,n) as val2)
+engine = createReactiveStateEngine("reactiveDemo", <[in(qty,t[`val1]),in(qty,t[`val2])]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, in(qty,t[`val1]) as factor1, in(qty,t[`val2]) as factor2 from dummy
+assert 1,eqObj(expected.values(),outputTable.values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metrics_matrix"
+n = 100000
+sym = take("A"+string(1..3000), n)
+price = take(1..5000,n)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,BOOL])
+m = matrix(rand(10,n),rand(10,n))
+engine = createReactiveStateEngine("reactiveDemo", <[in(qty,m[0]),in(qty,m[1])]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected=select sym, in(qty,m[0]) as factor1, in(qty,m[1]) as factor2 from dummy
+assert 1,eqObj(expected.values(),outputTable.values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+
+@testing:case="test_function_createReactiveStateEngine_metrics_vector"
+n = 100000
+sym = take("A"+string(1..3000), n)
+price = take(1..5000,n)
+qty = rand(1..10 join int(), n)
+dummy = table(sym, price, qty)
+outputTable = table(1000:0, `sym`factor1`factor2, [STRING,BOOL,BOOL])
+v1 = rand(10,n)
+v2 = rand(10,n)
+engine = createReactiveStateEngine("reactiveDemo", <[in(qty,v1),in(qty,v2)]>, dummy, outputTable, "sym")
+engine.append!(dummy)
+expected = select sym, in(qty,v1) as factor1,in(qty,v2) as factor2 from dummy
+assert 1,eqObj(outputTable.values(),expected.values())
+
+dropAggregator("reactiveDemo")
+engine=NULL
+

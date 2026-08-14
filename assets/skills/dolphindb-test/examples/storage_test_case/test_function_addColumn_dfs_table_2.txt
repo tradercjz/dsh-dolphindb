@@ -1,0 +1,1522 @@
+#include "checkChunk.txt"
+// addcolumn support decimal
+@testing:case = "test_function_addcolumn_dfs_table_createdata"
+def createAllTypeTable(n){
+	setRandomSeed(5)
+	id = rand(100, n)
+	valuep= take(`A`B`C`D,n)
+	boolv = rand([true, false], n)
+	charv = char(rand(rand(100, 10) join take(00i, 4), n))
+	intv = rand(rand(-100..100, 10) join take(00i, 4), n)
+	longv = long(rand(rand(-100..100, 10) join take(00i, 4), n))
+	shortv = short(rand(rand(-100..100, 10) join take(00i, 4), n))
+	doublev = rand(rand(-100..100, 10)*0.125 join take(00i, 4), n)
+	floatv = float(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n))
+	datev = date(rand(rand(1969.12.01..1970.05.06, 100) join take(date(), 30), n))
+	timestampv = timestamp(1969.12.31T23:59:59.979+rand(rand(100, 100) join take(int(), 30), n))
+	datetimev = datetime(1969.12.31T23:59:30+rand(rand(100, 100) join take(int(), 30), n))
+	nanotimestampv = nanotimestamp(1969.12.31T23:59:31.999999976+rand(rand(100, 100) join take(int(), 30), n))
+	timev = time(12:23:56.968+rand(rand(100, 100) join take(int(), 30), n))
+	secondv = second(12:23:56+rand(rand(100, 100) join take(int(), 30), n))
+	minutev = minute(12:23:59+rand(rand(1000, 100) join take(int(), 30), n))
+	nanotimev = nanotime(12:23:59.459879125+rand(rand(1000, 100) join take(int(), 30), n))
+	dateHourv = datehour(1969.12.31T23:59:10+rand(rand(100, 100) join take(int(), 30), n))
+	stringv = rand(("APL.S/AN"+string(rand(100, 10))) join take(string(), 10), n)
+	sym = symbol(rand(("sym"+string(rand(100, 10))) join take(string(), 10), n))
+	uuidv = uuid(rand(rand(uuid(), 10) join NULL, n))
+	ipaddrv = ipaddr(rand(rand(ipaddr(), 10) join NULL, n))
+	int128v = int128(rand(rand(int128(), 10) join NULL, n))
+	pointv = rand([point(2, 4), point(1, 4), point(10, 10)], n)
+	decimal32v = decimal32(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	decimal64v = decimal64(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	
+	data = table(id, valuep, boolv, charv, intv, longv, shortv, doublev, floatv, datev, timestampv, datetimev, nanotimestampv, timev, secondv, minutev, nanotimev, dateHourv, stringv, sym, uuidv, ipaddrv, int128v, pointv, decimal32v, decimal64v)
+	return data
+}
+
+def createInsertData1(){
+	id = [1]
+	valuep = [`A]
+	boolv = [true]
+	charv = ['a']
+	intv = [2]
+	longv = [3l]
+	shortv = [4h]
+	doublev = [-2.3]
+	floatv = [-7.9f]
+	datev = [date(1969.12.01)]
+	timestampv = [timestamp(1969.12.31T23:59:59.979)]
+	datetimev = [datetime(1969.12.31T23:59:30)]
+	nanotimestampv = [nanotimestamp(1969.12.31T23:59:31.999999976)]
+	timev = [time(12:23:56.968)]
+	secondv = [second(12:23:56)]
+	minutev = [minute(12:23:59)]
+	nanotimev = [nanotime(12:23:59.459879125)]
+	dateHourv = [datehour(1969.12.31T23:59:10)]
+	stringv = ["ABS/AN"]
+	sym = [symbol([`abc])]
+	uuidv = [uuid()]
+	ipaddrv = [ipaddr()]
+	int128v = [int128()]
+	pointv = [point(-2, 4.6)]
+	decimal32v = [decimal32(23.779, 4)]
+	decimal64v = [decimal64(-5.446, 4)]
+	
+	data = table(id, valuep, boolv, charv, intv, longv, shortv, doublev, floatv, datev, timestampv, datetimev, nanotimestampv, timev, secondv, minutev, nanotimev, dateHourv, stringv, sym, uuidv, ipaddrv, int128v, pointv, decimal32v, decimal64v)
+	return data
+}
+
+def createAllTypeWideTable(n){
+	setRandomSeed(5)
+	id = rand(100, n)
+	valuep = take(`A`B`C`D,n)
+	boolv = rand([true, false], n)
+	charv = char(rand(rand(100, 10) join take(00i, 4), n))
+	intv = rand(rand(-100..100, 10) join take(00i, 4), n)
+	longv = long(rand(rand(-100..100, 10) join take(00i, 4), n))
+	shortv = short(rand(rand(-100..100, 10) join take(00i, 4), n))
+	doublev = rand(rand(-100..100, 10)*0.125 join take(00i, 4), n)
+	floatv = float(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n))
+	datev = date(rand(rand(1969.12.01..1970.05.06, 100) join take(date(), 30), n))
+	timestampv = timestamp(1969.12.31T23:59:59.979+rand(rand(100, 100) join take(int(), 30), n))
+	datetimev = datetime(1969.12.31T23:59:30+rand(rand(100, 100) join take(int(), 30), n))
+	nanotimestampv = nanotimestamp(1969.12.31T23:59:31.999999976+rand(rand(100, 100) join take(int(), 30), n))
+	timev = time(12:23:56.968+rand(rand(100, 100) join take(int(), 30), n))
+	secondv = second(12:23:56+rand(rand(100, 100) join take(int(), 30), n))
+	minutev = minute(12:23:59+rand(rand(1000, 100) join take(int(), 30), n))
+	nanotimev = nanotime(12:23:59.459879125+rand(rand(1000, 100) join take(int(), 30), n))
+	dateHourv = datehour(1969.12.31T23:59:10+rand(rand(100, 100) join take(int(), 30), n))
+	stringv = rand(("APL.S/AN"+string(rand(100, 10))) join take(string(), 10), n)
+	sym = symbol(rand(("sym"+string(rand(100, 10))) join take(string(), 10), n))
+	uuidv = uuid(rand(rand(uuid(), 10) join NULL, n))
+	ipaddrv = ipaddr(rand(rand(ipaddr(), 10) join NULL, n))
+	int128v = int128(rand(rand(int128(), 10) join NULL, n))
+	pointv = rand([point(2, 4), point(1, 4), point(10, 10)], n)
+	decimal32v = decimal32(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	decimal64v = decimal64(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	f1 = take(-100..100, n)
+	
+	data = table(id, valuep, boolv, charv, intv, longv, shortv, doublev, floatv, datev, timestampv, datetimev, nanotimestampv, timev, secondv, minutev, nanotimev, dateHourv, stringv, sym, uuidv, ipaddrv, int128v, pointv, decimal32v, decimal64v, f1 as f1, f1 as f2, f1 as f3, f1 as f4, f1 as f5, f1 as f6, f1 as f7, f1 as f8, f1 as f9, f1 as f10, f1 as f11, f1 as f12, f1 as f13, f1 as f14, f1 as f15, f1 as f16, f1 as f17, f1 as f18, f1 as f19, f1 as f20, f1 as f21, f1 as f22, f1 as f23, f1 as f24, f1 as f25, f1 as f26, f1 as f27, f1 as f28, f1 as f29, f1 as f30, f1 as f31, f1 as f32, f1 as f33, f1 as f34, f1 as f35, f1 as f36, f1 as f37, f1 as f38, f1 as f39, f1 as f40, f1 as f41, f1 as f42, f1 as f43, f1 as f44, f1 as f45, f1 as f46, f1 as f47, f1 as f48, f1 as f49, f1 as f50, f1 as f51, f1 as f52, f1 as f53, f1 as f54, f1 as f55, f1 as f56, f1 as f57, f1 as f58, f1 as f59, f1 as f60, f1 as f61, f1 as f62, f1 as f63, f1 as f64, f1 as f65, f1 as f66, f1 as f67, f1 as f68, f1 as f69, f1 as f70, f1 as f71, f1 as f72, f1 as f73, f1 as f74, f1 as f75, f1 as f76, f1 as f77, f1 as f78, f1 as f79, f1 as f80, f1 as f81, f1 as f82, f1 as f83, f1 as f84, f1 as f85, f1 as f86, f1 as f87, f1 as f88, f1 as f89, f1 as f90, f1 as f91, f1 as f92, f1 as f93, f1 as f94, f1 as f95, f1 as f96, f1 as f97, f1 as f98, f1 as f99, f1 as f100, f1 as f101, f1 as f102, f1 as f103)
+	return data
+}
+
+def createInsertWideData1(){
+	id = [1]
+	valuep = [`A]
+	boolv = [true]
+	charv = ['a']
+	intv = [2]
+	longv = [3l]
+	shortv = [4h]
+	doublev = [-2.3]
+	floatv = [-7.9f]
+	datev = [date(1969.12.01)]
+	timestampv = [timestamp(1969.12.31T23:59:59.979)]
+	datetimev = [datetime(1969.12.31T23:59:30)]
+	nanotimestampv = [nanotimestamp(1969.12.31T23:59:31.999999976)]
+	timev = [time(12:23:56.968)]
+	secondv = [second(12:23:56)]
+	minutev = [minute(12:23:59)]
+	nanotimev = [nanotime(12:23:59.459879125)]
+	dateHourv = [datehour(1969.12.31T23:59:10)]
+	stringv = ["ABS/AN"]
+	sym = [symbol([`abc])]
+	uuidv = [uuid()]
+	ipaddrv = [ipaddr()]
+	int128v = [int128()]
+	pointv = [point(-2, 4.6)]
+	decimal32v = [decimal32(23.779, 4)]
+	decimal64v = [decimal64(-5.446, 4)]
+	f1 = 2
+	
+	data = table(id, valuep, boolv, charv, intv, longv, shortv, doublev, floatv, datev, timestampv, datetimev, nanotimestampv, timev, secondv, minutev, nanotimev, dateHourv, stringv, sym, uuidv, ipaddrv, int128v, pointv, decimal32v, decimal64v,f1 as f1, f1 as f2, f1 as f3, f1 as f4, f1 as f5, f1 as f6, f1 as f7, f1 as f8, f1 as f9, f1 as f10, f1 as f11, f1 as f12, f1 as f13, f1 as f14, f1 as f15, f1 as f16, f1 as f17, f1 as f18, f1 as f19, f1 as f20, f1 as f21, f1 as f22, f1 as f23, f1 as f24, f1 as f25, f1 as f26, f1 as f27, f1 as f28, f1 as f29, f1 as f30, f1 as f31, f1 as f32, f1 as f33, f1 as f34, f1 as f35, f1 as f36, f1 as f37, f1 as f38, f1 as f39, f1 as f40, f1 as f41, f1 as f42, f1 as f43, f1 as f44, f1 as f45, f1 as f46, f1 as f47, f1 as f48, f1 as f49, f1 as f50, f1 as f51, f1 as f52, f1 as f53, f1 as f54, f1 as f55, f1 as f56, f1 as f57, f1 as f58, f1 as f59, f1 as f60, f1 as f61, f1 as f62, f1 as f63, f1 as f64, f1 as f65, f1 as f66, f1 as f67, f1 as f68, f1 as f69, f1 as f70, f1 as f71, f1 as f72, f1 as f73, f1 as f74, f1 as f75, f1 as f76, f1 as f77, f1 as f78, f1 as f79, f1 as f80, f1 as f81, f1 as f82, f1 as f83, f1 as f84, f1 as f85, f1 as f86, f1 as f87, f1 as f88, f1 as f89, f1 as f90, f1 as f91, f1 as f92, f1 as f93, f1 as f94, f1 as f95, f1 as f96, f1 as f97, f1 as f98, f1 as f99, f1 as f100, f1 as f101, f1 as f102, f1 as f103)
+	return data
+}
+
+alltypetable_0 = createAllTypeTable(0)
+alltypetable_100 = createAllTypeTable(100)
+alltypetable_1024 = createAllTypeTable(1024)
+alltypetable_65535 = createAllTypeTable(65535)
+insertdata1 = createInsertData1()
+wideTable = createAllTypeWideTable(10)
+insertwidedata1 = createInsertWideData1()
+
+// add one column--decimal
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_onecol_decimal32"
+def func1(table_data, insertdata1){
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",RANGE,  0 51 101,, `TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`id)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,"add2",DECIMAL64(3));
+	pt = loadTable(db, `pt)
+	update insert1 set add2 = decimal64(9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID
+	update ex2 set add2 = decimal64(,3)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_onecol_decimal32_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_onecol_decimal32_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_onecol_decimal32_clear"
+dropDatabase("dfs://rangedb")
+
+// value partition
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_onecol_decimal32"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",VALUE,  `A`B`C`D,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`id)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,"add2",DECIMAL64(3));
+	pt = loadTable(db, `pt)
+	update insert1 set add2 = decimal64(9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set add2 = decimal64(,3)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_onecol_decimal32_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_onecol_decimal32_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_onecol_decimal32_clear"
+dropDatabase("dfs://rangedb")
+
+// hash partition
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_onecol_decimal32"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",HASH,  [INT, 5], ,"TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,"add2",DECIMAL64(3));
+	pt = loadTable(db, `pt)
+	update insert1 set add2 = decimal64(9.1,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set add2 = decimal64(,3)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_onecol_decimal32_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_onecol_decimal32_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_onecol_decimal32_clear"
+dropDatabase("dfs://rangedb")
+
+// compo partition
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_onecol_decimal32"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	dbvalue = database(,VALUE,  `A`B`C`D)
+	dbrange = database(,RANGE,  0 51 101)
+	db=database("dfs://rangedb",COMPO,  [dbvalue, dbrange],,"TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `valuep`id,, `valuep)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,"add2",DECIMAL64(3));
+	pt = loadTable(db, `pt)
+	update insert1 set add2 = decimal64(9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set add2 = decimal64(,3)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_onecol_decimal32_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_onecol_decimal32_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_onecol_decimal32_clear"
+dropDatabase("dfs://rangedb")
+
+// list partition
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_onecol_decimal32"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",LIST,  [`A, `B`C, `D],,"TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`valuep)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,"add2",DECIMAL64(3));
+	pt = loadTable(db, `pt)
+	update insert1 set add2 = decimal64(9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set add2 = decimal64(,3)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_onecol_decimal32_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_onecol_decimal32_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_onecol_decimal32_clear"
+dropDatabase("dfs://rangedb")
+
+// add two column--decimal+decimal
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",RANGE,  0 51 101,,"TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal32(, 4)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3), add2 = decimal32(0, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DECIMAL64(3),DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = decimal64(-2.5,3), plus2 = decimal32(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = decimal64(,3), plus2 = decimal32(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// value partition
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",VALUE,  `A`B`C`D,, "TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `valuep,, `valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal32(, 4)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3), add2 = decimal32(0, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DECIMAL64(3),DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = decimal64(-2.5,3), plus2 = decimal32(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = decimal64(,3), plus2 = decimal32(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// hash partition  D20-9147
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",HASH, [INT, 5], ,"TSDB")
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal32(, 4)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal32(0, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DECIMAL64(3),DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = decimal64(-2.5,3), plus2 = decimal32(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = decimal64(,3), plus2 = decimal32(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// compo partition
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	dbvalue = database(,VALUE,`A`B`C`D)
+	dbrange = database(,RANGE, 0 51 101)
+	db=database("dfs://rangedb",COMPO, [dbvalue, dbrange],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep`id,, `valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal32(, 4)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3), add2 = decimal32(0, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DECIMAL64(3),DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = decimal64(-2.5,3), plus2 = decimal32(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = decimal64(,3), plus2 = decimal32(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// list partition
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",LIST, [`A,`D,`B`C],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal32(, 4)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9,3), add2 = decimal32(0, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DECIMAL64(3),DECIMAL32(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = decimal64(-2.5,3), plus2 = decimal32(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = decimal64(,3), plus2 = decimal32(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+
+// add two column--decimal+other
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",RANGE,  0 51 101,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`datev)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), INT]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep, datev
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = int()
+	ex1 = select * from ex1 order by ID, valuep, datev
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = int(0)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep, datev
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep, datev
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DOUBLE,DECIMAL64(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep, datev
+	update ex2 set plus1 = double(), plus2 = decimal64(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep, datev
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// value partition
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",VALUE, `A`B`C`D,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`id)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), INT]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = int()
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = int(0)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DOUBLE,DECIMAL64(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// compo partition
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	dbvalue=database(,VALUE, `A`B`C`D)
+	dbrange = database(,RANGE, 0 51 101)
+	db=database("dfs://rangedb",COMPO, [dbvalue, dbrange],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep`id,, `sym)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), INT]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep,sym
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = int()
+	ex1 = select * from ex1 order by ID, valuep,sym
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = int(0)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep, sym
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep,sym
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DOUBLE,DECIMAL64(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep,sym
+	update ex2 set plus1 = double(), plus2 = decimal64(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep,sym
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// list partition
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_twocol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",LIST, [`A,`B`D, `C], ,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`id)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), INT]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = int()
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = int(0)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DOUBLE,DECIMAL64(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// hash partition
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",HASH, [INT, 5],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,["add1", "add2"],[DECIMAL32(3), INT]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = int()
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = int(0)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2"],[DOUBLE,DECIMAL64(4)]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4)
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_twocol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// add multi column--decimal+other
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_multicol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",RANGE,  0 51 101,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,["add1", "add2", "add3", "add4"],[DECIMAL32(3), DECIMAL64(4), DECIMAL32(5), DECIMAL64(1)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal64(,4), add3 = decimal32(, 5), add4 = decimal64(, 1)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal64(2.7,4), add3 = decimal32(0.5, 5), add4 = decimal64(-2.2222458, 1)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2", "plus3"],[DOUBLE,DECIMAL64(4), STRING]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4), plus3 = `CDS
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4), plus3 = string()
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_multicol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_multicol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_multicol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// value partition
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_multicol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",VALUE, `A`B`C`D,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep, ,`id)
+	addColumn(pt,["add1", "add2", "add3", "add4"],[DECIMAL32(3), DECIMAL64(4), DECIMAL32(5), DECIMAL64(1)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal64(,4), add3 = decimal32(, 5), add4 = decimal64(, 1)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal64(2.7,4), add3 = decimal32(0.5, 5), add4 = decimal64(-2.2222458, 1)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2", "plus3"],[DOUBLE,DECIMAL64(4), STRING]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4), plus3 = `CDS
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4), plus3 = string()
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_multicol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_multicol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_value_partition_multicol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// compo partition
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_multicol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	dbvalue = database(,VALUE, `A`B`C`D)
+	dbrange = database(,RANGE, 0 51 101)
+	db=database("dfs://rangedb",COMPO,[dbvalue, dbrange],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep`id,, `intv)
+	addColumn(pt,["add1", "add2", "add3", "add4"],[DECIMAL32(3), DECIMAL64(4), DECIMAL32(5), DECIMAL64(1)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep,intv
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal64(,4), add3 = decimal32(, 5), add4 = decimal64(, 1)
+	ex1 = select * from ex1 order by ID, valuep,intv
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal64(2.7,4), add3 = decimal32(0.5, 5), add4 = decimal64(-2.2222458, 1)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep,intv
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep,intv
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2", "plus3"],[DOUBLE,DECIMAL64(4), STRING]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4), plus3 = `CDS
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep,intv
+	update ex2 set plus1 = double(), plus2 = decimal64(,4), plus3 = string()
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep,intv
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_multicol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_multicol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_compo_partition_multicol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// list partition
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_multicol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",LIST, [`A,`D`B,`C],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `valuep,,`id)
+	addColumn(pt,["add1", "add2", "add3", "add4"],[DECIMAL32(3), DECIMAL64(4), DECIMAL32(5), DECIMAL64(1)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal64(,4), add3 = decimal32(, 5), add4 = decimal64(, 1)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal64(2.7,4), add3 = decimal32(0.5, 5), add4 = decimal64(-2.2222458, 1)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2", "plus3"],[DOUBLE,DECIMAL64(4), STRING]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4), plus3 = `CDS
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4), plus3 = string()
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_multicol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_multicol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_list_partition_multicol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// hash partition
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_multicol_decimal+other"
+def func1(table_data, insertdata1){	
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",HASH, [INT, 5],,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,["add1", "add2", "add3", "add4"],[DECIMAL32(3), DECIMAL64(4), DECIMAL32(5), DECIMAL64(1)]);
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3), add2 = decimal64(,4), add3 = decimal32(, 5), add4 = decimal64(, 1)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	update insert1 set add1 = decimal32(-9.1,3), add2 = decimal64(2.7,4), add3 = decimal32(0.5, 5), add4 = decimal64(-2.2222458, 1)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+
+	addColumn(pt,["plus1", "plus2", "plus3"],[DOUBLE,DECIMAL64(4), STRING]);
+	pt = loadTable(db, `pt)
+	update insert1 set plus1 = -2.5, plus2 = decimal64(4.5, 4), plus3 = `CDS
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	sleep(500)
+	re4 = select * from pt order by ID, valuep
+	update ex2 set plus1 = double(), plus2 = decimal64(,4), plus3 = string()
+	ex2.append!(insert1)
+	ex4 = select * from ex2 order by ID, valuep
+	arr.append!(eqObj(re4.values(), ex4.values()))
+	re5= select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex5 = select name, typeString, typeInt, extra, comment from schema(ex4)[`colDefs]
+	arr.append!(eqObj(re5.values(), ex5.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,insertdata1}, tables)
+assert 2, func1(wideTable,insertwidedata1)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_multicol_decimal_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 112
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_multicol_decimal_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_hash_partition_multicol_decimal_clear"
+dropDatabase("dfs://rangedb")
+
+// add much data
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_addmuchdata"
+def createInsertDataMuch(n){
+	setRandomSeed(5)
+	id = rand(100, n)
+	valuep= take(`A`B`C`D,n)
+	boolv = rand([true, false], n)
+	charv = char(rand(rand(100, 10) join take(00i, 4), n))
+	intv = rand(rand(-100..100, 10) join take(00i, 4), n)
+	longv = long(rand(rand(-100..100, 10) join take(00i, 4), n))
+	shortv = short(rand(rand(-100..100, 10) join take(00i, 4), n))
+	doublev = rand(rand(-100..100, 10)*0.125 join take(00i, 4), n)
+	floatv = float(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n))
+	datev = date(rand(rand(1969.12.01..1970.05.06, 100) join take(date(), 30), n))
+	timestampv = timestamp(1969.12.31T23:59:59.979+rand(rand(100, 100) join take(int(), 30), n))
+	datetimev = datetime(1969.12.31T23:59:30+rand(rand(100, 100) join take(int(), 30), n))
+	nanotimestampv = nanotimestamp(1969.12.31T23:59:31.999999976+rand(rand(100, 100) join take(int(), 30), n))
+	timev = time(12:23:56.968+rand(rand(100, 100) join take(int(), 30), n))
+	secondv = second(12:23:56+rand(rand(100, 100) join take(int(), 30), n))
+	minutev = minute(12:23:59+rand(rand(1000, 100) join take(int(), 30), n))
+	nanotimev = nanotime(12:23:59.459879125+rand(rand(1000, 100) join take(int(), 30), n))
+	dateHourv = datehour(1969.12.31T23:59:10+rand(rand(100, 100) join take(int(), 30), n))
+	stringv = rand(("APL.S/AN"+string(rand(100, 10))) join take(string(), 10), n)
+	sym = symbol(rand(("sym"+string(rand(100, 10))) join take(string(), 10), n))
+	uuidv = uuid(rand(rand(uuid(), 10) join NULL, n))
+	ipaddrv = ipaddr(rand(rand(ipaddr(), 10) join NULL, n))
+	int128v = int128(rand(rand(int128(), 10) join NULL, n))
+	pointv = rand([point(2, 4), point(1, 4), point(10, 10)], n)
+	decimal32v = decimal32(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	decimal64v = decimal64(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	add1 = decimal32(rand(rand(-100..100, 10)*0.125 join take(00i, 4), n), 4)
+	
+	data = table(id, valuep, boolv, charv, intv, longv, shortv, doublev, floatv, datev, timestampv, datetimev, nanotimestampv, timev, secondv, minutev, nanotimev, dateHourv, stringv, sym, uuidv, ipaddrv, int128v, pointv, decimal32v, decimal64v, add1)
+	return data
+}
+
+def func1(table_data, insertdata1){
+	arr = array(BOOL, 0, 100)
+	t0 = table_data
+	if(existsDatabase("dfs://rangedb"))
+		dropDatabase("dfs://rangedb")
+	db=database("dfs://rangedb",RANGE,  0 51 101,,`TSDB)
+	pt = db.createPartitionedTable(t0, `pt, `id,,`valuep)
+	addColumn(pt,"add1",DECIMAL32(3));
+	pt = loadTable(db, `pt)
+	pt.append!(t0);
+	re1 = select * from pt order by ID, valuep
+	ex1 = table_data
+	update ex1 set add1 = decimal32(,3)
+	ex1 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re1.values(), ex1.values()))
+	insert1 = insertdata1
+	//update insert1 set add1 = decimal32(-9,3)
+	pt.append!(insert1)
+	pnodeRunAllNodes(flushOLAPCache)
+	re2 = select * from pt order by ID, valuep
+	ex1.append!(insert1)
+	ex2 = select * from ex1 order by ID, valuep
+	arr.append!(eqObj(re2.values(), ex2.values()))
+	re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+	ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+	arr.append!(eqObj(re3.values(), ex3.values()))
+	return arr
+}
+tables = [alltypetable_0, alltypetable_100, alltypetable_1024, alltypetable_65535]
+assert 1, each(func1{,createInsertDataMuch(100)}, tables)
+assert 2, each(func1{,createInsertDataMuch(1024)}, tables)
+assert 3, each(func1{,createInsertDataMuch(65536)}, tables)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_addmuchdata_ex1"//, exception = 1
+pt = loadTable("dfs://rangedb", `pt)
+pt.append!(alltypetable_100);
+assert 1, count(select * from pt) == 131171
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_addmuchdata_ex2", exception = 1
+errordata = insertdata1
+update errordata set add1 = decimal32(,3)
+update errordata set add2 = string()
+pt.append!(errordata)
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_addmuchdata_clear"
+dropDatabase("dfs://rangedb")
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_onecoltable"
+t0 = table(1..6 as id)
+if(existsDatabase("dfs://rangedb"))
+	dropDatabase("dfs://rangedb")
+db=database("dfs://rangedb",RANGE,  1 4 7, ,`TSDB)
+pt = db.createPartitionedTable(t0, `pt, `id,,`id)
+addColumn(pt,"add1",DECIMAL32(3));
+pt = loadTable(db, `pt)
+pt.append!(t0);
+re1 = select * from pt order by ID
+ex1 = t0
+update ex1 set add1 = decimal32(,3)
+ex1 = select * from ex1 order by ID
+assert 1, eqObj(re1.values(), ex1.values())
+insert1 = table(1 as id, 3.45621 as add1)
+pt.append!(insert1)
+pnodeRunAllNodes(flushOLAPCache)
+re2 = select * from pt order by ID
+ex1.append!(insert1)
+ex2 = select * from ex1 order by ID
+assert 2, eqObj(re2.values(), ex2.values())
+re3 = select name, typeString, typeInt, extra, comment from schema(pt)[`colDefs]
+ex3 = select name, typeString, typeInt, extra, comment from schema(ex2)[`colDefs]
+assert 3, eqObj(re3.values(), ex3.values())
+
+@testing:case = "test_function_addcolumn_dfs_table_range_partition_addmuchdata_clear"
+dropDatabase("dfs://rangedb")

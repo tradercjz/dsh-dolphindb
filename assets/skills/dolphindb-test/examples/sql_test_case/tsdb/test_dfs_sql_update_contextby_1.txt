@@ -1,0 +1,1793 @@
+#include "checkChunk.txt"
+
+// https://dolphindb1.atlassian.net/browse/D20-14738
+login(`admin, `123456)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_range"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+db = database("dfs://test", RANGE, [2023.10.31, 2023.10.31+n/2, 2023.10.31+n+1], , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n/2),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_range", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_range", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_partitionCol_aggregate_func_sum_range"
+ext = select id, date, sum(val2), val2 from pt context by date
+update pt set val1 = sum(val2) context by date
+assert 1, each(eqObj, ext.values(), (select * from pt).values())
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_range", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_range", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_range", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_range", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_range", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_range", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_range", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_range", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_range", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_value"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+db = database("dfs://test", VALUE, 2023.10.31+1..n, , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_value", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_value", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_value", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_value", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_value", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_value", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_value", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_value", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_value", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_value", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_value", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_list"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+db = database("dfs://test", LIST, 2023.10.31+1..n, , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_list", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_list", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_partitionCol_time_conversion_func_aggregate_func_sum_list", exception=1
+update pt set val1 = sum(val2) context by month(date)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_list", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_list", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_list", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_list", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_list", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_list", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_list", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_list", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_list", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_hash"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+db = database("dfs://test", HASH, [DATE, 3], , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_hash", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_hash", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_partitionCol_time_conversion_func_aggregate_func_sum_hash", exception=1
+update pt set val1 = sum(val2) context by month(date)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_hash", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_hash", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_hash", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_hash", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_hash", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_hash", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_hash", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_hash", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_hash", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_compo_range_value"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+dbRange = database(, RANGE, [2023.10.31, 2023.10.31+n/2, 2023.10.31+n+1])
+dbValue = database(, VALUE, 1..n)
+db = database("dfs://test", COMPO, [dbRange, dbValue], , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date`id, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_range_value", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_compo_range_value", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_range_value", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_range_value", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_range_value", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_range_value", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_range_value", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_range_value", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_range_value", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_range_value", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_range_value", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_range_value_partial", exception=1
+update pt set val1 = sum(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_range_value_partial", exception=1
+update pt set val1 = first(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_range_value_partial", exception=1
+update pt set val1 = mad(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_range_value_partial", exception=1
+update pt set val1 = sem(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_range_value_partial", exception=1
+update pt set val1 = prev(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_range_value_partial", exception=1
+update pt set val1 = deltas(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_range_value_partial", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_range_value_partial", exception=1
+update pt set val1 = mmin(val2, 3) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_range_value_partial", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_range_value_partial", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_compo_list_hash"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+dbList = database(, LIST, 2023.10.31+1..n)
+dbHash = database(, HASH, [INT, 3])
+db = database("dfs://test", COMPO, [dbList, dbHash], , "TSDB")
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date`id, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_list_hash", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_compo_list_hash", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_partitionCol_time_conversion_func_aggregate_func_sum_compo_list_hash", exception=1
+update pt set val1 = sum(val2) context by month(date), id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_list_hash", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_list_hash", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_list_hash", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_list_hash", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_list_hash", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_list_hash", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_list_hash", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_list_hash", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_list_hash", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_list_hash_partial", exception=1
+update pt set val1 = sum(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_list_hash_partial", exception=1
+update pt set val1 = first(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_list_hash_partial", exception=1
+update pt set val1 = mad(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_list_hash_partial", exception=1
+update pt set val1 = sem(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_list_hash_partial", exception=1
+update pt set val1 = prev(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_list_hash_partial", exception=1
+update pt set val1 = deltas(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_list_hash_partial", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_list_hash_partial", exception=1
+update pt set val1 = mmin(val2, 3) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_list_hash_partial", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_list_hash_partial", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_compo_range_value_list"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+dbRange = database(, RANGE, [2023.10.31, 2023.10.31+n/2, 2023.10.31+n+1])
+dbValue = database(, VALUE, 1..n)
+dbList = database(, LIST, distinct(val2))
+db = database("dfs://test", COMPO, [dbRange, dbValue, dbList], , "TSDB")
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date`id`val2, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_range_value_list", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_compo_range_value_list", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_range_value_list", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_range_value_list", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_range_value_list", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_range_value_list", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_range_value_list", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_range_value_list", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_range_value_list", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_range_value_list", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_range_value_list", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_range_value_list_partial", exception=1
+update pt set val1 = sum(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_range_value_list_partial", exception=1
+update pt set val1 = first(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_range_value_list_partial", exception=1
+update pt set val1 = mad(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_range_value_list_partial", exception=1
+update pt set val1 = sem(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_range_value_list_partial", exception=1
+update pt set val1 = prev(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_range_value_list_partial", exception=1
+update pt set val1 = deltas(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_range_value_list_partial", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_range_value_list_partial", exception=1
+update pt set val1 = mmin(val2, 3) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_range_value_list_partial", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_range_value_list_partial", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_range_value_list_partial_2", exception=1
+update pt set val1 = sum(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_range_value_list_partial_2", exception=1
+update pt set val1 = first(val2) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_range_value_list_partial_2", exception=1
+update pt set val1 = mad(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_range_value_list_partial_2", exception=1
+update pt set val1 = sem(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_range_value_list_partial_2", exception=1
+update pt set val1 = prev(val2) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_range_value_list_partial_2", exception=1
+update pt set val1 = deltas(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_range_value_list_partial_2", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_range_value_list_partial_2", exception=1
+update pt set val1 = mmin(val2, 3) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_range_value_list_partial_2", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_range_value_list_partial_2", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_compo_list_hash_range"
+if (existsDatabase("dfs://test")) {
+    dropDatabase("dfs://test")
+}
+n = 10
+id = 1..n
+date = take(2023.10.31+(1..n),n)
+val1 = rand(100, n)
+val2 = rand(100, n)
+dbList = database(, LIST, 2023.10.31+1..n)
+dbHash = database(, HASH, [INT, 3])
+dbRange = database(, RANGE, [0, 50, 101])
+db = database("dfs://test", COMPO, [dbList, dbHash, dbRange], , "TSDB")
+
+t = table(id, date, val1, val2)
+pt = db.createPartitionedTable(t, `pt, `date`id`val2, , `id)
+pt.append!(t)
+pnodeRunAllNodes(flushTSDBCache)
+
+pt = loadTable("dfs://test", `pt)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_list_hash_range", exception=1
+update pt set val1 = sum(val2)
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_non_partitionCol_aggregate_func_sum_compo_list_hash_range", exception=1
+update pt set val1 = sum(val2) context by val2
+
+@testing:case="test_dfs_sql_update_special_func_with_context_by_partitionCol_time_conversion_func_aggregate_func_sum_compo_list_hash_range", exception=1
+update pt set val1 = sum(val2) context by month(date), id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_list_hash_range", exception=1
+update pt set val1 = first(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_list_hash_range", exception=1
+update pt set val1 = mad(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_list_hash_range", exception=1
+update pt set val1 = sem(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_list_hash_range", exception=1
+update pt set val1 = prev(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_list_hash_range", exception=1
+update pt set val1 = deltas(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_list_hash_range", exception=1
+update pt set val1 = cumcorr(val1, val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_list_hash_range", exception=1
+update pt set val1 = mmin(val2, 3)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_list_hash_range", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_list_hash_range", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2)
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_list_hash_range_partial", exception=1
+update pt set val1 = sum(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_list_hash_range_partial", exception=1
+update pt set val1 = first(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_list_hash_range_partial", exception=1
+update pt set val1 = mad(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_list_hash_range_partial", exception=1
+update pt set val1 = sem(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_list_hash_range_partial", exception=1
+update pt set val1 = prev(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_list_hash_range_partial", exception=1
+update pt set val1 = deltas(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_list_hash_range_partial", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_list_hash_range_partial", exception=1
+update pt set val1 = mmin(val2, 3) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_list_hash_range_partial", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_list_hash_range_partial", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sum_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = sum(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_first_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = first(val2) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_mad_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = mad(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_aggregate_func_sem_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = sem(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_prev_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = prev(val2) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_deltas_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = deltas(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_cumcorr_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = cumcorr(val1, val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_order-sensitive_func_mmin_compo_list_hash_range_partial_2", exception=1
+update pt set val1 = mmin(val2, 3) context by id, val2
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_compo_list_hash_range_partial_2", exception=1
+def myFunc(x) {
+	return x[0]
+}
+update pt set val1 = myFunc(val2) context by val2, date
+
+@testing:case="test_dfs_sql_update_special_func_without_context_by_udf_aggregate_compo_list_hash_range_partial_2", exception=1
+defg myFuncg(x) {
+	return x[0]
+}
+update pt set val1 = myFuncg(val2) context by date, id
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_list"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	valuesP = distinct(p[1])
+	db = database("dfs://test", LIST, [valuesP[:(size(valuesP)/2)], valuesP[(size(valuesP)/2):size(valuesP)]], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by date(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 1, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by month(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 2, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by time(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 3, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by minute(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 4, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by second(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 5, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by datetime(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 6, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by timestamp(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 7, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by nanotime(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 8, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by nanotimestamp(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 9, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by datehour(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 10, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_hash"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", HASH, [p[0], 3], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by date(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 1, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by month(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 2, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by time(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 3, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by minute(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 4, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by second(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 5, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by datetime(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 6, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by timestamp(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 7, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by nanotime(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 8, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by nanotimestamp(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 9, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{
+		update pt set val = mavg(val, 3) context by datehour(pcol)
+	} catch(ex) {}
+		// print(string(ex))
+	assert 10, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_compo_list_hash"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+length = size(pcols)
+
+for(i in 1..(length-1)) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, pcols[i-1][1] as pcol0, pcols[i][1] as pcol1, val as val)
+
+	valuesP = distinct(pcols[i-1][1])
+	dbList = database(, LIST, [valuesP[:(size(valuesP)/2)], valuesP[(size(valuesP)/2):size(valuesP)]])
+	dbHash = database(, HASH, [pcols[i][0], 3])
+	db = database("dfs://test", COMPO, [dbList, dbHash], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol0`pcol1, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by date(pcol0), pcol1} catch(ex) {}
+	assert 1, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by month(pcol0), pcol1} catch(ex) {}
+	assert 2, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by time(pcol0), pcol1} catch(ex) {}
+	assert 3, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by minute(pcol0), pcol1} catch(ex) {}
+	assert 4, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by second(pcol0), pcol1} catch(ex) {}
+	assert 5, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by datetime(pcol0), pcol1} catch(ex) {}
+	assert 6, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by timestamp(pcol0), pcol1} catch(ex) {}
+	assert 7, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotime(pcol0), pcol1} catch(ex) {}
+	assert 8, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotimestamp(pcol0), pcol1} catch(ex) {}
+	assert 9, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by datehour(pcol0), pcol1} catch(ex) {}
+	assert 10, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, date(pcol1)} catch(ex) {}
+	assert 11, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, month(pcol1)} catch(ex) {}
+	assert 12, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, time(pcol1)} catch(ex) {}
+	assert 13, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, minute(pcol1)} catch(ex) {}
+	assert 14, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, second(pcol1)} catch(ex) {}
+	assert 15, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, datetime(pcol1)} catch(ex) {}
+	assert 16, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, timestamp(pcol1)} catch(ex) {}
+	assert 17, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, nanotime(pcol1)} catch(ex) {}
+	assert 18, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, nanotimestamp(pcol1)} catch(ex) {}
+	assert 19, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, datehour(pcol1)} catch(ex) {}
+	assert 20, string(ex[1]) LIKE "%the partition type of the corresponding dimension must be VALUE or RANGE%"
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_diff_from_partitionSchema_partitionType_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", VALUE, distinct(p[1]), , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] != DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(pcol)} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(pcol)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(pcol)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(pcol)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(pcol)} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(pcol)} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by timestamp(pcol)} catch(ex) {}
+	assert 7, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotime(pcol)} catch(ex) {}
+	assert 8, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotimestamp(pcol)} catch(ex) {}
+	assert 9, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	if (p[0] != DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(pcol)} catch(ex) {}
+		assert 10, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+	
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_diff_from_partitionSchema_partitionType_range"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", RANGE, p[2], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] != DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(pcol)} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(pcol)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(pcol)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(pcol)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(pcol)} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (p[0] != DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(pcol)} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by timestamp(pcol)} catch(ex) {}
+	assert 7, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotime(pcol)} catch(ex) {}
+	assert 8, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotimestamp(pcol)} catch(ex) {}
+	assert 9, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	if (p[0] != DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(pcol)} catch(ex) {}
+		assert 10, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_diff_from_partitionSchema_partitionType_compo_range_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valSymbol, valDatehour]
+length = size(pcols)
+
+for (i in 1..(length-1)) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, pcols[i-1][1] as pcol0, pcols[i][1] as pcol1, val as val)
+
+	dbRange = database(, RANGE, pcols[i-1][2])
+	dbValue = database(, VALUE, distinct(pcols[i][1]))
+	db = database("dfs://test", COMPO, [dbRange, dbValue], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol0`pcol1, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (pcols[i-1][0] != DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(pcol0), pcol1} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i-1][0] != MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(pcol0), pcol1} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i-1][0] != TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(pcol0), pcol1} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i-1][0] != MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(pcol0), pcol1} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i-1][0] != SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(pcol0), pcol1} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i-1][0] != DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(pcol0), pcol1} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by timestamp(pcol0), pcol1} catch(ex) {}
+	assert 7, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotime(pcol0), pcol1} catch(ex) {}
+	assert 8, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by nanotimestamp(pcol0), pcol1} catch(ex) {}
+	assert 9, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	if (pcols[i-1][0] != DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(pcol0), pcol1} catch(ex) {}
+		assert 10, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, date(pcol1)} catch(ex) {}
+		assert 11, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, month(pcol1)} catch(ex) {}
+		assert 12, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, time(pcol1)} catch(ex) {}
+		assert 13, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, minute(pcol1)} catch(ex) {}
+		assert 14, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, second(pcol1)} catch(ex) {}
+		assert 15, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	if (pcols[i][0] != DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, datetime(pcol1)} catch(ex) {}
+		assert 16, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, timestamp(pcol1)} catch(ex) {}
+	assert 17, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, nanotime(pcol1)} catch(ex) {}
+	assert 18, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	ex = NULL
+	try{update pt set val = mavg(val, 3) context by pcol0, nanotimestamp(pcol1)} catch(ex) {}
+	assert 19, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+
+	if (pcols[i][0] != DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, datehour(pcol1)} catch(ex) {}
+		assert 20, string(ex[1]) LIKE "%the converted data type must be consistent with the partitioning scheme%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_non_partitionCol_time_conversion_func_same_as_partitionSchema_partitionType_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", VALUE, distinct(p[1]), , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] == DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(val)} catch(ex) {print(ex)}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+	
+	if (p[0] == MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(val)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(val)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(val)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(val)} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(val)} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(val)} catch(ex) {}
+		assert 7, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_non_partitionCol_time_conversion_func_same_as_partitionSchema_partitionType_range"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valDatehour]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", RANGE, p[2], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] == DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(val)} catch(ex) {print(ex)}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+	
+	if (p[0] == MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(val)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(val)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(val)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(val)} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(val)} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+	
+	if (p[0] == DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(val)} catch(ex) {}
+		assert 7, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_non_partitionCol_time_conversion_func_same_as_partitionSchema_partitionType_compo_range_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valDate = [DATE, 2013.06.13 + rand(int(n/2), n), [2013.06.13, 2013.06.13+n/4, 2013.06.13+n/2+1]]
+valMonth = [MONTH, 2012.06M + rand(int(n/2), n), [2013.06M, 2013.06M+n/4, 2013.06M+n/2+1]]
+valTime = [TIME, 13:30:10.008 + rand(int(n/2), n), [13:30:10.008, 13:30:10.008+n/4, 13:30:10.008+n/2+1]]
+valMinute = [MINUTE, 13:30m + rand(int(n/2), n), [13:30m, 13:30m+n/4, 13:30m+n/2+1]]
+valSecond = [SECOND, 13:30:10 + rand(int(n/2), n), [13:30:10, 13:30:10+n/4, 13:30:10+n/2+1]]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(n/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+n/4, 2012.06.13T13:30:10+n/2+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(n/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+n/4, datehour(2012.06.13T13:30:10)+n/2+1]]
+val = rand(n/2, n)
+
+pcols = [valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valDatehour]
+length = size(pcols)
+
+for (i in 1..(length-1)) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, pcols[i-1][1] as pcol0, pcols[i][1] as pcol1, val as val)
+
+	dbRange = database(, RANGE, pcols[i-1][2])
+	dbValue = database(, VALUE, distinct(pcols[i][1]))
+	db = database("dfs://test", COMPO, [dbRange, dbValue], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol0`pcol1, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (pcols[i-1][0] == DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by date(val), pcol1} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+	
+	if (pcols[i-1][0] == MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by month(val), pcol1} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by time(val), pcol1} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by minute(val), pcol1} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by second(val), pcol1} catch(ex) {}
+		assert 5, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datetime(val), pcol1} catch(ex) {}
+		assert 6, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by datehour(val), pcol1} catch(ex) {}
+		assert 13, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == DATE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, date(val)} catch(ex) {}
+		assert 7, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+	
+	if (pcols[i][0] == MONTH) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, month(val)} catch(ex) {}
+		assert 8, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == TIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, time(val)} catch(ex) {}
+		assert 9, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == MINUTE) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, minute(val)} catch(ex) {}
+		assert 10, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == SECOND) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, second(val)} catch(ex) {}
+		assert 11, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == DATETIME) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, datetime(val)} catch(ex) {}
+		assert 12, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == DATEHOUR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, datehour(val)} catch(ex) {}
+		assert 14, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_not_time_conversion_func_same_as_partitionSchema_partitionType_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valSymbol]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", VALUE, distinct(p[1]), , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] == CHAR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by char(pcol)} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SHORT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by short(pcol)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == INT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by int(pcol)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SYMBOL) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by symbol(pcol)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_not_time_conversion_func_same_as_partitionSchema_partitionType_range"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valSymbol]
+
+for(p in pcols) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, p[1] as pcol, val as val)
+
+	db = database("dfs://test", RANGE, p[2], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (p[0] == CHAR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by char(pcol)} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SHORT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by short(pcol)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == INT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by int(pcol)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (p[0] == SYMBOL) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by symbol(pcol)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_not_time_conversion_func_same_as_partitionSchema_partitionType_compo_range_value"
+n = 100
+id = rand(n/2, n)
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z']]
+valShort = [SHORT, rand(short(n/2), n), short([0, n/2, n+1])]
+valInt = [INT, rand(int(n/2), n), [0, n/2, n+1]]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001)]
+val = rand(n/2, n)
+
+pcols = [valChar, valShort, valInt, valSymbol]
+length = size(pcols)
+
+for (i in 1..(length-1)) {
+	if (existsDatabase("dfs://test")) {
+    	dropDatabase("dfs://test")
+	}
+	t = table(id as id, pcols[i-1][1] as pcol0, pcols[i][1] as pcol1, val as val)
+
+	dbRange = database(, RANGE, pcols[i-1][2])
+	dbValue = database(, VALUE, distinct(pcols[i][1]))
+	db = database("dfs://test", COMPO, [dbRange, dbValue], , "TSDB")
+
+	pt = db.createPartitionedTable(t, `pt, `pcol0`pcol1, , `id)
+	pt.append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", `pt)
+
+	if (pcols[i-1][0] == CHAR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by char(pcol0), pcol1} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == SHORT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by short(pcol0), pcol1} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == INT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by int(pcol0), pcol1} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i-1][0] == SYMBOL) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by symbol(pcol0), pcol1} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == CHAR) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, char(pcol1)} catch(ex) {}
+		assert 1, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == SHORT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, short(pcol1)} catch(ex) {}
+		assert 2, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == INT) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, int(pcol1)} catch(ex) {}
+		assert 3, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+
+	if (pcols[i][0] == SYMBOL) {
+		ex = NULL
+		try{update pt set val = mavg(val, 3) context by pcol0, symbol(pcol1)} catch(ex) {}
+		assert 4, string(ex[1]) LIKE "%the context by clause must include all partitioning columns%"
+	}
+}

@@ -1,0 +1,759 @@
+#include "checkChunk.txt"
+
+#include "setup/settings.txt"
+login("admin", "123456")
+
+n=1000000
+dates=2012.01.01..2012.01.10
+syms = symbol("A"+string(1..100))
+boolv = take([true, false], n)
+charv = take(char(-100..100), n)
+shortv = take(short(-100..100), n)
+intv = take(-100..100, n)
+longv = take(long(-100..100), n)
+datev = take(dates, n)
+monthv = take(2012.01M..2012.12M, n)
+timev = take(temporalAdd(09:00:00.000, 0..9, "s"), n)
+minutev = take(09:00m..15:59m, n)
+secondv = take(09:00:00+0..9, n)
+datetimev = take(temporalAdd(2012.01.01T09:00:00, 0..9, "d"), n)
+timestampv = take(temporalAdd(2012.01.01T09:00:00.000, 0..9, "d"), n)
+nanotimev = take(temporalAdd(09:00:00.000000000, 0..9, "s"), n)
+nanotimestampv = take(temporalAdd(2012.01.01T09:00:00.000000000, 0..9, "d"), n)
+floatv = take(-10..10 + 0.1f, n)
+doublev = take(-10..10 + 0.25, n)
+symbolv = take(syms, n)
+stringv = take("SSS"+string(1..100), n)
+uuidv = take(uuid(["4fcdcaa5-fe0b-d828-77c7-ea93b2365ada","28e550bc-0419-4f77-4d1f-0caa4be4ac8f","70fa1435-cf77-d362-248b-2ee1b5e380d8","d97ff782-4251-ba4d-3418-ae9d0024937a","35208126-fa77-e49b-05ce-0bcc053ce887"]), n)
+int128v = take(int128(["d8ce3a0c0435d185e7a26a988ab30301","e18d1da26696557406cc5a74a47ad448","924f1b2eb0acb007d7fad34743d47128","aab39e7c41fae8f10a704bec154e512e","972167b164d91f2e781debf36c0c36cf"]), n)
+ipaddrv = take(ipaddr(["192.168.1.3", "192.168.1.4", "192.168.1.5", "192.168.1.6", "192.168.1.7"]), n)
+datehourv = take(datehour(2012.01.01T12:00:00)+0..4, n)
+blobv = blob("B"+string(1..n))
+complexv = take(complex(-10..10, -10..10), n)
+pointv = take(point(-10..10, -10..10), n)
+doublevv = arrayVector(1..n * 10, double(1..(n*10)))
+t = table(boolv as cbool, charv as cchar, shortv as cshort, intv as cint, longv as clong, datev as cdate, monthv as cmonth, timev as ctime, minutev as cminute, secondv as csecond, datetimev as cdatetime, timestampv as ctimestamp, nanotimev as cnanotime, nanotimestampv as cnanotimestamp, floatv as cfloat, doublev as cdouble, symbolv as csymbol, stringv as cstring, uuidv as cuuid, int128v as cint128, ipaddrv as cipaddr, datehourv as cdatehour, blobv as cblob, complexv as ccomplex, pointv as cpoint, doublevv as carr)
+
+backupDir=WORK_DIR+"/backup"
+
+try{
+	rmdir(backupDir,true)
+}catch(ex){print ex}
+
+def checkDict(ex, re, excludeKey){
+	ex_keyNum = ex.keys().size()
+	re_keysNum = re.keys().size()
+	if(ex_keyNum!=re_keysNum){
+		return false
+	}
+	comparison = array(BOOL, 0, 10)
+	for(k in ex.keys()){
+		if(k!=excludeKey){
+			if(form(ex[k])==6){
+				tmp = each(eqObj, values(ex[k]), values(re[k])).flatten().all()
+			}else{
+				tmp = eqObj(ex[k], re[k])
+			}
+			comparison.append!(tmp)
+		}
+	}
+	return all(comparison)
+}
+
+@testing:case="prepare_data_for_parameter_check"
+login("admin","123456")
+dbName="dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName,VALUE,2012.01.01..2012.01.10, , "TSDB")
+pt1=db.createPartitionedTable(t,`pt1,`cdate, , `csymbol`cdate)
+pt1.append!(t)
+dt1 = db.createTable(t, `dt1, , `csymbol`cdate)
+dt1.append!(t)
+
+@testing:case="test_dfs_backupDB_backupDir_int", exception=1
+backupDB(1, dbName)
+
+@testing:case="test_dfs_backupDB_backupDir_string_null", exception=1
+backupDB("", dbName)
+
+@testing:case="test_dfs_backupDB_backupDir_string_vector", exception=1
+backupDB([backupDir, backupDir], dbName)
+
+@testing:case="test_dfs_backupDB_dbName_not_exist", exception=1
+backupDB(backupDir, "dfs://not_exist")
+
+@testing:case="test_dfs_backupDB_dbName_int", exception=1
+backupDB(backupDir, 1)
+
+@testing:case="test_dfs_backupDB_dbName_invalid", exception=1
+backupDB(backupDir, "bb")
+
+@testing:case="test_dfs_backupDB_dbName_string_vector", exception=1
+backupDB(backupDir, [dbName, dbName])
+
+@testing:case="test_prepare_data_for_restoreDB_parameters_check"
+login("admin","123456")
+dbName="dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db=database(dbName,VALUE,2012.01.01..2012.01.10, , "TSDB")
+pt1=db.createPartitionedTable(t,`pt1,`cdate, , `csymbol`cdate)
+pt1.append!(t)
+dt1 = db.createTable(t, `dt1, , `csymbol`cdate)
+dt1.append!(t)
+n = backupDB(backupDir, dbName)
+assert 1, n==11
+
+@testing:case="test_dfs_restoreDB_backupDir_string_null", exception=1
+restoreDB("", dbName)
+
+@testing:case="test_dfs_restoreDB_backupDir_not_exist", exception=1
+restoreDB(WORK_DIR+"/not_exist", dbName)
+
+@testing:case="test_dfs_restoreDB_backupDir_int", exception=1
+restoreDB(1, dbName)
+
+@testing:case="test_dfs_restoreDB_backupDir_string_vector", exception=1
+restoreDB([backupDir, backupDir], dbName)
+
+@testing:case="test_dfs_restoreDB_dbName_string_null", exception=1
+restoreDB(backupDir, string(NULL))
+
+@testing:case="test_dfs_restoreDB_dbName_invalid_dbName", exception=1
+restoreDB(backupDir, "aaa")
+
+@testing:case="test_dfs_restoreDB_dbName_not_exist", exception=1
+restoreDB(backupDir, "dfs://not_exist")
+
+@testing:case="test_dfs_restoreDB_dbName_string_vector", exception=1
+restoreDB(backupDir, [dbName, dbName])
+
+@testing:case="test_dfs_restoreDB_newDBPath_string_null", exception=1
+restoreDB(backupDir, dbName, string(NULL))
+
+@testing:case="test_dfs_restoreDB_newDBPath_int", exception=1
+restoreDB(backupDir, dbName, 1)
+
+@testing:case="test_dfs_restoreDB_newDBPath_string_vector", exception=1
+restoreDB(backupDir, dbName, [dbName, dbName])
+
+@testing:case="clear_dir"
+try{
+	rmdir(backupDir, true)
+}catch(ex){
+	print(ex)
+}
+
+@testing:case="prepare_data_for_restoreDB_to_origin_db"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName, COMPO, [db1, db2], , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1, `cdate`csymbol, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `cdate`csymbol, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `cdate`csymbol, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==319
+
+dropDatabase(dbName)
+
+@testing:case="test_dfs_backupDB_restoreDB_origin_db_partitionType_inconsistent", exception=1
+db = database(dbName, VALUE, 2012.01.01..2012.01.10, , "TSDB")
+restoreDB(backupDir, dbName)
+
+@testing:case="test_dfs_backupDB_restoreDB_origin_db_partitionScheme_inconsistent", exception=1
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 5])
+db = database(dbName, COMPO, [db1, db2], , "TSDB")
+restoreDB(backupDir, dbName)
+
+@testing:case="test_dfs_backupDB_restoreDB_origin_db_chunkGranularity_inconsistent", exception=1
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName, COMPO, [db1, db2], , "TSDB", chunkGranularity='DATABASE')
+restoreDB(backupDir, dbName)
+
+@testing:case="prepare_data_for_restoreDB_to_new_db"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName, COMPO, [db1, db2], , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1, `cdate`csymbol, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `cdate`csymbol, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `cdate`csymbol, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==319
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_engine_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db = database(dbName_new, VALUE, 2012.01.01..2012.01.10)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_partitionType_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db = database(dbName_new, VALUE, 2012.01.01..2012.01.10, , "TSDB")
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_partitionScheme_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 5])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_chunkGranularity_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB", chunkGranularity='DATABASE')
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_chunkGranularity_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB", chunkGranularity='DATABASE')
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_exist_partitionColumn_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+update scm set name=`cdatedate where name==`cdate
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdatedate`csymbol, , `csymbol`cdatedate)
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdatedate`csymbol, {"cdatetime":"delta"}, `csymbol`cdatedate)
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdatedate`csymbol, , `csymbol`cdatedate, FIRST)
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdatedate`csymbol, , `csymbol`cdatedate, LAST)
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdatedate`csymbol, {"cdatetime":"delta"}, `csymbol`cdatedate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, , `csymbol`cdatedate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csymbol`cdatedate)
+dt3 = db.createTable(dummy, `dt3, , `csymbol`cdatedate, FIRST)
+dt4 = db.createTable(dummy, `dt4, , `csymbol`cdatedate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_exist_sortColumn_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+update scm set name=`csym where name==`csymbol
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdate`csym, , `csym`cdate)
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdate`csym, {"cdatetime":"delta"}, `csym`cdate)
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdate`csym, , `csym`cdate, FIRST)
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdate`csym, , `csym`cdate, LAST)
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdate`csym, {"cdatetime":"delta"}, `csym`cdate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, , `csym`cdate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csym`cdate)
+dt3 = db.createTable(dummy, `dt3, , `csym`cdate, FIRST)
+dt4 = db.createTable(dummy, `dt4, , `csym`cdate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_exist_sortColumn_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+update scm set name=`csym where name==`csymbol
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdate`csym, , `csym`cdate)
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdate`csym, {"cdatetime":"delta"}, `csym`cdate)
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdate`csym, , `csym`cdate, FIRST)
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdate`csym, , `csym`cdate, LAST)
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdate`csym, {"cdatetime":"delta"}, `csym`cdate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, , `csym`cdate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csym`cdate)
+dt3 = db.createTable(dummy, `dt3, , `csym`cdate, FIRST)
+dt4 = db.createTable(dummy, `dt4, , `csym`cdate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_other_column_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+update scm set name=`cpoint1 where name==`cpoint
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdate`csymbol, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdate`csymbol, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdate`csymbol, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(dummy, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(dummy, `dt4, , `csymbol`cdate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_compressionMethod_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, {"cdatetime":"delta"}, `csymbol`cdate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(dummy, `dt3, {"cdatetime":"delta"}, `csymbol`cdate, FIRST)
+dt4 = db.createTable(dummy, `dt4, {"cdatetime":"delta"}, `csymbol`cdate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_restoreDB_new_db_table_sortKeyMapping_inconsistent", exception=1
+dbName_new="dfs://test_backupDB_restoreDB_new"
+if(existsDatabase(dbName_new)){
+	dropDatabase(dbName_new)
+}
+db1 = database("", VALUE, 2012.01.01..2012.01.10)
+db2 = database("",HASH,[SYMBOL, 10])
+db = database(dbName_new, COMPO, [db1, db2], , "TSDB")
+scm = schema(t).colDefs
+dummy = table(1:0, scm[`name], scm[`typeString])
+pt1 = db.createPartitionedTable(dummy,`pt1, `cdate`csymbol, , `csymbol`cdate, , [hashBucket{, 7}])
+pt2 = db.createPartitionedTable(dummy, `pt2, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, , [hashBucket{, 7}])
+pt3 = db.createPartitionedTable(dummy, `pt3, `cdate`csymbol, , `csymbol`cdate, FIRST, [hashBucket{, 7}])
+pt4 = db.createPartitionedTable(dummy, `pt4, `cdate`csymbol, , `csymbol`cdate, LAST, [hashBucket{, 7}])
+pt5 = db.createPartitionedTable(dummy, `pt5, `cdate`csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+dt1 = db.createTable(dummy,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(dummy, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(dummy, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(dummy, `dt4, , `csymbol`cdate, LAST)
+restoreDB(backupDir, dbName, dbName_new)
+
+@testing:case="test_dfs_backupDB_value_restoreDB_db_not_exist"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName,VALUE,2012.01.01..2012.01.10, , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1,`cdate, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `cdate, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `cdate, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `cdate, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==54
+
+ex_pt1 = select * from pt1
+ex_pt2 = select * from pt2
+ex_pt3 = select * from pt3
+ex_pt4 = select * from pt4
+ex_pt5 = select * from pt5
+ex_dt1 = select * from dt1
+ex_dt2 = select * from dt2
+ex_dt3 = select * from dt3
+ex_dt4 = select * from dt4
+
+ex_scm_db = schema(database(dbName))
+ex_scm_pt1 = schema(pt1)
+ex_scm_pt2 = schema(pt2)
+ex_scm_pt3 = schema(pt3)
+ex_scm_pt4 = schema(pt4)
+ex_scm_pt5 = schema(pt5)
+ex_scm_dt1 = schema(dt1)
+ex_scm_dt2 = schema(dt2)
+ex_scm_dt3 = schema(dt3)
+ex_scm_dt4 = schema(dt4)
+
+dropDatabase(dbName)
+
+re = restoreDB(backupDir, dbName)
+assert 1, re.size()==9
+
+assert 2, each(eqObj, (select * from loadTable(dbName, "pt1")).values(), ex_pt1.values())
+assert 3, each(eqObj, (select * from loadTable(dbName, "pt2")).values(), ex_pt2.values())
+assert 4, each(eqObj, (select * from loadTable(dbName, "pt3")).values(), ex_pt3.values())
+assert 5, each(eqObj, (select * from loadTable(dbName, "pt4")).values(), ex_pt4.values())
+re = select * from loadTable(dbName, "pt5")
+re.sortBy!(re.colNames())
+ex_pt5.sortBy!(ex_pt5.colNames())
+assert 6, each(eqObj, re.values(), ex_pt5.values())
+assert 7, each(eqObj, (select * from loadTable(dbName, "dt1")).values(), ex_dt1.values())
+assert 8, each(eqObj, (select * from loadTable(dbName, "dt2")).values(), ex_dt2.values())
+assert 9, each(eqObj, (select * from loadTable(dbName, "dt3")).values(), ex_dt3.values())
+assert 10, each(eqObj, (select * from loadTable(dbName, "dt4")).values(), ex_dt4.values())
+re_scm_db = schema(database(dbName))
+re_scm_pt1 = schema(loadTable(dbName, "pt1"))
+re_scm_pt2 = schema(loadTable(dbName, "pt2"))
+re_scm_pt3 = schema(loadTable(dbName, "pt3"))
+re_scm_pt4 = schema(loadTable(dbName, "pt4"))
+re_scm_pt5 = schema(loadTable(dbName, "pt5"))
+re_scm_dt1 = schema(loadTable(dbName, "dt1"))
+re_scm_dt2 = schema(loadTable(dbName, "dt2"))
+re_scm_dt3 = schema(loadTable(dbName, "dt3"))
+re_scm_dt4 = schema(loadTable(dbName, "dt4"))
+assert 13, checkDict(ex_scm_db, re_scm_db, "")
+assert 14, checkDict(ex_scm_pt1, re_scm_pt1, "colDefs")
+assert 15, checkDict(ex_scm_pt2, re_scm_pt2, "colDefs")
+assert 16, checkDict(ex_scm_pt3, re_scm_pt3, "colDefs")
+assert 17, checkDict(ex_scm_pt4, re_scm_pt4, "colDefs")
+assert 18, checkDict(ex_scm_pt5, re_scm_pt5, "colDefs")
+assert 19, checkDict(ex_scm_dt1, re_scm_dt1, "colDefs")
+assert 20, checkDict(ex_scm_dt2, re_scm_dt2, "colDefs")
+assert 21, checkDict(ex_scm_dt3, re_scm_dt3, "colDefs")
+assert 22, checkDict(ex_scm_dt4, re_scm_dt4, "colDefs")
+
+@testing:case="test_dfs_backupDB_range_restoreDB_db_not_exist"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName,RANGE,[2012.01.01, 2012.01.03, 2012.01.05, 2012.01.07, 2012.01.09, 2012.01.11], , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1,`cdate, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `cdate, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `cdate, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `cdate, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==29
+
+ex_pt1 = select * from pt1
+ex_pt2 = select * from pt2
+ex_pt3 = select * from pt3
+ex_pt4 = select * from pt4
+ex_pt5 = select * from pt5
+ex_dt1 = select * from dt1
+ex_dt2 = select * from dt2
+ex_dt3 = select * from dt3
+ex_dt4 = select * from dt4
+
+ex_scm_db = schema(database(dbName))
+ex_scm_pt1 = schema(pt1)
+ex_scm_pt2 = schema(pt2)
+ex_scm_pt3 = schema(pt3)
+ex_scm_pt4 = schema(pt4)
+ex_scm_pt5 = schema(pt5)
+ex_scm_dt1 = schema(dt1)
+ex_scm_dt2 = schema(dt2)
+ex_scm_dt3 = schema(dt3)
+ex_scm_dt4 = schema(dt4)
+
+dropDatabase(dbName)
+
+re = restoreDB(backupDir, dbName)
+assert 1, re.size()==9
+
+assert 2, each(eqObj, (select * from loadTable(dbName, "pt1")).values(), ex_pt1.values())
+assert 3, each(eqObj, (select * from loadTable(dbName, "pt2")).values(), ex_pt2.values())
+assert 4, each(eqObj, (select * from loadTable(dbName, "pt3")).values(), ex_pt3.values())
+assert 5, each(eqObj, (select * from loadTable(dbName, "pt4")).values(), ex_pt4.values())
+re = select * from loadTable(dbName, "pt5")
+re.sortBy!(re.colNames())
+ex_pt5.sortBy!(ex_pt5.colNames())
+assert 6, each(eqObj, re.values(), ex_pt5.values())
+assert 7, each(eqObj, (select * from loadTable(dbName, "dt1")).values(), ex_dt1.values())
+assert 8, each(eqObj, (select * from loadTable(dbName, "dt2")).values(), ex_dt2.values())
+assert 9, each(eqObj, (select * from loadTable(dbName, "dt3")).values(), ex_dt3.values())
+assert 10, each(eqObj, (select * from loadTable(dbName, "dt4")).values(), ex_dt4.values())
+re_scm_db = schema(database(dbName))
+re_scm_pt1 = schema(loadTable(dbName, "pt1"))
+re_scm_pt2 = schema(loadTable(dbName, "pt2"))
+re_scm_pt3 = schema(loadTable(dbName, "pt3"))
+re_scm_pt4 = schema(loadTable(dbName, "pt4"))
+re_scm_pt5 = schema(loadTable(dbName, "pt5"))
+re_scm_dt1 = schema(loadTable(dbName, "dt1"))
+re_scm_dt2 = schema(loadTable(dbName, "dt2"))
+re_scm_dt3 = schema(loadTable(dbName, "dt3"))
+re_scm_dt4 = schema(loadTable(dbName, "dt4"))
+assert 13, checkDict(ex_scm_db, re_scm_db, "")
+assert 14, checkDict(ex_scm_pt1, re_scm_pt1, "colDefs")
+assert 15, checkDict(ex_scm_pt2, re_scm_pt2, "colDefs")
+assert 16, checkDict(ex_scm_pt3, re_scm_pt3, "colDefs")
+assert 17, checkDict(ex_scm_pt4, re_scm_pt4, "colDefs")
+assert 18, checkDict(ex_scm_pt5, re_scm_pt5, "colDefs")
+assert 19, checkDict(ex_scm_dt1, re_scm_dt1, "colDefs")
+assert 20, checkDict(ex_scm_dt2, re_scm_dt2, "colDefs")
+assert 21, checkDict(ex_scm_dt3, re_scm_dt3, "colDefs")
+assert 22, checkDict(ex_scm_dt4, re_scm_dt4, "colDefs")
+
+@testing:case="test_dfs_backupDB_hash_restoreDB_db_not_exist"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName,HASH,[SYMBOL, 10], , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1,`csymbol, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `csymbol, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `csymbol, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `csymbol, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `csymbol, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==54
+
+ex_pt1 = select * from pt1
+ex_pt2 = select * from pt2
+ex_pt3 = select * from pt3
+ex_pt4 = select * from pt4
+ex_pt5 = select * from pt5
+ex_dt1 = select * from dt1
+ex_dt2 = select * from dt2
+ex_dt3 = select * from dt3
+ex_dt4 = select * from dt4
+
+ex_scm_db = schema(database(dbName))
+ex_scm_pt1 = schema(pt1)
+ex_scm_pt2 = schema(pt2)
+ex_scm_pt3 = schema(pt3)
+ex_scm_pt4 = schema(pt4)
+ex_scm_pt5 = schema(pt5)
+ex_scm_dt1 = schema(dt1)
+ex_scm_dt2 = schema(dt2)
+ex_scm_dt3 = schema(dt3)
+ex_scm_dt4 = schema(dt4)
+
+dropDatabase(dbName)
+
+re = restoreDB(backupDir, dbName)
+assert 1, re.size()==9
+
+assert 2, each(eqObj, (select * from loadTable(dbName, "pt1")).values(), ex_pt1.values())
+assert 3, each(eqObj, (select * from loadTable(dbName, "pt2")).values(), ex_pt2.values())
+assert 4, each(eqObj, (select * from loadTable(dbName, "pt3")).values(), ex_pt3.values())
+assert 5, each(eqObj, (select * from loadTable(dbName, "pt4")).values(), ex_pt4.values())
+re = select * from loadTable(dbName, "pt5")
+re.sortBy!(re.colNames())
+ex_pt5.sortBy!(ex_pt5.colNames())
+assert 6, each(eqObj, re.values(), ex_pt5.values())
+assert 7, each(eqObj, (select * from loadTable(dbName, "dt1")).values(), ex_dt1.values())
+assert 8, each(eqObj, (select * from loadTable(dbName, "dt2")).values(), ex_dt2.values())
+assert 9, each(eqObj, (select * from loadTable(dbName, "dt3")).values(), ex_dt3.values())
+assert 10, each(eqObj, (select * from loadTable(dbName, "dt4")).values(), ex_dt4.values())
+re_scm_db = schema(database(dbName))
+re_scm_pt1 = schema(loadTable(dbName, "pt1"))
+re_scm_pt2 = schema(loadTable(dbName, "pt2"))
+re_scm_pt3 = schema(loadTable(dbName, "pt3"))
+re_scm_pt4 = schema(loadTable(dbName, "pt4"))
+re_scm_pt5 = schema(loadTable(dbName, "pt5"))
+re_scm_dt1 = schema(loadTable(dbName, "dt1"))
+re_scm_dt2 = schema(loadTable(dbName, "dt2"))
+re_scm_dt3 = schema(loadTable(dbName, "dt3"))
+re_scm_dt4 = schema(loadTable(dbName, "dt4"))
+assert 13, checkDict(ex_scm_db, re_scm_db, "")
+assert 14, checkDict(ex_scm_pt1, re_scm_pt1, "colDefs")
+assert 15, checkDict(ex_scm_pt2, re_scm_pt2, "colDefs")
+assert 16, checkDict(ex_scm_pt3, re_scm_pt3, "colDefs")
+assert 17, checkDict(ex_scm_pt4, re_scm_pt4, "colDefs")
+assert 18, checkDict(ex_scm_pt5, re_scm_pt5, "colDefs")
+assert 19, checkDict(ex_scm_dt1, re_scm_dt1, "colDefs")
+assert 20, checkDict(ex_scm_dt2, re_scm_dt2, "colDefs")
+assert 21, checkDict(ex_scm_dt3, re_scm_dt3, "colDefs")
+assert 22, checkDict(ex_scm_dt4, re_scm_dt4, "colDefs")
+
+@testing:case="test_dfs_backupDB_list_restoreDB_db_not_exist"
+login("admin","123456")
+dbName = "dfs://test_backupDB_restoreDB"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName,LIST,[[2012.01.01, 2012.01.02], [2012.01.03, 2012.01.04], [2012.01.05, 2012.01.06], [2012.01.07, 2012.01.08], [2012.01.09, 2012.01.10]], , "TSDB")
+pt1 = db.createPartitionedTable(t,`pt1,`cdate, , `csymbol`cdate)
+pt2 = db.createPartitionedTable(t, `pt2, `cdate, {"cdatetime":"delta"}, `csymbol`cdate)
+pt3 = db.createPartitionedTable(t, `pt3, `cdate, , `csymbol`cdate, FIRST)
+pt4 = db.createPartitionedTable(t, `pt4, `cdate, , `csymbol`cdate, LAST)
+pt5 = db.createPartitionedTable(t, `pt5, `cdate, {"cdatetime":"delta"}, `csymbol`cdate, ALL, [hashBucket{, 7}])
+pt1.append!(t)
+pt2.append!(t)
+pt3.append!(t)
+pt4.append!(t)
+pt5.append!(t)
+dt1 = db.createTable(t,`dt1, , `csymbol`cdate)
+dt2 = db.createTable(t, `dt2, {"cdatetime":"delta"}, `csymbol`cdate)
+dt3 = db.createTable(t, `dt3, , `csymbol`cdate, FIRST)
+dt4 = db.createTable(t, `dt4, , `csymbol`cdate, LAST)
+dt1.append!(t)
+dt2.append!(t)
+dt3.append!(t)
+dt4.append!(t)
+
+n = backupDB(backupDir, dbName)
+assert 1, n==29
+
+ex_pt1 = select * from pt1
+ex_pt2 = select * from pt2
+ex_pt3 = select * from pt3
+ex_pt4 = select * from pt4
+ex_pt5 = select * from pt5
+ex_dt1 = select * from dt1
+ex_dt2 = select * from dt2
+ex_dt3 = select * from dt3
+ex_dt4 = select * from dt4
+
+ex_scm_db = schema(database(dbName))
+ex_scm_pt1 = schema(pt1)
+ex_scm_pt2 = schema(pt2)
+ex_scm_pt3 = schema(pt3)
+ex_scm_pt4 = schema(pt4)
+ex_scm_pt5 = schema(pt5)
+ex_scm_dt1 = schema(dt1)
+ex_scm_dt2 = schema(dt2)
+ex_scm_dt3 = schema(dt3)
+ex_scm_dt4 = schema(dt4)
+
+dropDatabase(dbName)
+
+re = restoreDB(backupDir, dbName)
+assert 1, re.size()==9
+
+assert 2, each(eqObj, (select * from loadTable(dbName, "pt1")).values(), ex_pt1.values())
+assert 3, each(eqObj, (select * from loadTable(dbName, "pt2")).values(), ex_pt2.values())
+assert 4, each(eqObj, (select * from loadTable(dbName, "pt3")).values(), ex_pt3.values())
+assert 5, each(eqObj, (select * from loadTable(dbName, "pt4")).values(), ex_pt4.values())
+re = select * from loadTable(dbName, "pt5")
+re.sortBy!(re.colNames())
+ex_pt5.sortBy!(ex_pt5.colNames())
+assert 6, each(eqObj, re.values(), ex_pt5.values())
+assert 7, each(eqObj, (select * from loadTable(dbName, "dt1")).values(), ex_dt1.values())
+assert 8, each(eqObj, (select * from loadTable(dbName, "dt2")).values(), ex_dt2.values())
+assert 9, each(eqObj, (select * from loadTable(dbName, "dt3")).values(), ex_dt3.values())
+assert 10, each(eqObj, (select * from loadTable(dbName, "dt4")).values(), ex_dt4.values())
+re_scm_db = schema(database(dbName))
+re_scm_pt1 = schema(loadTable(dbName, "pt1"))
+re_scm_pt2 = schema(loadTable(dbName, "pt2"))
+re_scm_pt3 = schema(loadTable(dbName, "pt3"))
+re_scm_pt4 = schema(loadTable(dbName, "pt4"))
+re_scm_pt5 = schema(loadTable(dbName, "pt5"))
+re_scm_dt1 = schema(loadTable(dbName, "dt1"))
+re_scm_dt2 = schema(loadTable(dbName, "dt2"))
+re_scm_dt3 = schema(loadTable(dbName, "dt3"))
+re_scm_dt4 = schema(loadTable(dbName, "dt4"))
+assert 13, checkDict(ex_scm_db, re_scm_db, "")
+assert 14, checkDict(ex_scm_pt1, re_scm_pt1, "colDefs")
+assert 15, checkDict(ex_scm_pt2, re_scm_pt2, "colDefs")
+assert 16, checkDict(ex_scm_pt3, re_scm_pt3, "colDefs")
+assert 17, checkDict(ex_scm_pt4, re_scm_pt4, "colDefs")
+assert 18, checkDict(ex_scm_pt5, re_scm_pt5, "colDefs")
+assert 19, checkDict(ex_scm_dt1, re_scm_dt1, "colDefs")
+assert 20, checkDict(ex_scm_dt2, re_scm_dt2, "colDefs")
+assert 21, checkDict(ex_scm_dt3, re_scm_dt3, "colDefs")
+assert 22, checkDict(ex_scm_dt4, re_scm_dt4, "colDefs")
+
+@testing:case="clear_dir"
+try{rmdir(backupDir, true)}catch(ex){print(ex)}

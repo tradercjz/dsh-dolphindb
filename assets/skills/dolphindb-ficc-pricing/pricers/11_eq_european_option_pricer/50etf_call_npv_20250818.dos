@@ -1,0 +1,69 @@
+instDict = dict(STRING, ANY)
+instDict["productType"] = "Option"
+instDict["optionType"] = "EuropeanOption"
+instDict["assetType"] = "EqEuropeanOption"
+instDict["instrumentId"] = "50ETF_C_3200"
+instDict["notionalCurrency"] = "CNY"
+instDict["notionalAmount"] = 10000.0
+instDict["maturity"] = 2026.03.18
+instDict["strike"] = 3.2
+instDict["payoffType"] = "Call"
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"] = "50ETF"
+inst = parseInstrument(instDict)
+
+pricingDate = 2025.08.18
+
+discDict = dict(STRING, ANY)
+discDict["mktDataType"] = "Curve"
+discDict["curveType"] = "IrYieldCurve"
+discDict["referenceDate"] = pricingDate
+discDict["currency"] = "CNY"
+discDict["curveName"] = "CNY"
+discDict["dayCountConvention"] = "Actual365"
+discDict["compounding"] = "Continuous"
+discDict["interpMethod"] = "Linear"
+discDict["extrapMethod"] = "Flat"
+discDict["dates"] = [2025.09.18, 2025.11.18, 2026.02.18, 2026.08.18]
+discDict["values"] = [0.013, 0.0137, 0.014, 0.0139]
+discountCurve = parseMktData(discDict)
+
+divDict = dict(STRING, ANY)
+divDict["mktDataType"] = "Curve"
+divDict["curveType"] = "DividendCurve"
+divDict["referenceDate"] = pricingDate
+divDict["curveName"] = "50ETF_DIV"
+divDict["dayCountConvention"] = "Actual365"
+divDict["compounding"] = "Continuous"
+divDict["interpMethod"] = "Linear"
+divDict["extrapMethod"] = "Flat"
+divDict["dates"] = [2025.09.18, 2026.03.18, 2026.08.18]
+divDict["values"] = [0.02, 0.02, 0.02]
+divCurve = parseMktData(divDict)
+
+volDict = dict(STRING, ANY)
+volDict["mktDataType"] = "Surface"
+volDict["surfaceType"] = "VolatilitySurface"
+volDict["referenceDate"] = pricingDate
+volDict["surfaceName"] = "50ETF_VOL"
+volDict["smileMethod"] = "Linear"
+volDict["termDates"] = [2025.11.18, 2026.03.18, 2026.08.18]
+
+s1 = dict(STRING, ANY)
+s1["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s1["vols"] = [0.22, 0.20, 0.19, 0.21, 0.25]
+
+s2 = dict(STRING, ANY)
+s2["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s2["vols"] = [0.24, 0.22, 0.21, 0.23, 0.27]
+
+s3 = dict(STRING, ANY)
+s3["strikes"] = [2.8, 3.0, 3.2, 3.5, 3.8]
+s3["vols"] = [0.26, 0.24, 0.23, 0.25, 0.29]
+
+volDict["volSmiles"] = [s1, s2, s3]
+volSurf = parseMktData(volDict)
+
+spotPrice = 3.15
+npv = eqEuropeanOptionPricer(inst, pricingDate, spotPrice, discountCurve, divCurve, volSurf)
+npv

@@ -1,0 +1,389 @@
+
+#include "checkStreaming.txt"
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_firstNot"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+insert into trades values(2018.10.08T01:01:01.785,`A,10,0)
+insert into trades values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into trades values(2018.10.08T01:01:21.785,`A,0,7)
+insert into trades values(2018.10.08T01:03:03.785,`A,7,0)
+insert into trades values(2018.10.08T01:03:14.785,`A,NULL,0)
+insert into trades values(2018.10.08T01:03:24.785,`A,0,NULL)
+insert into trades values(2018.10.08T01:04:04.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:04:14.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:04:24.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:05:00.000,`A,0,1)
+insert into trades values(2018.10.08T01:05:15.785,`A,0,0)
+insert into trades values(2018.10.08T01:05:25.785,`A,0,0)
+insert into trades values(2018.10.08T01:06:25.785,`A,0,0)
+
+output1=streamTable(1:0,`time`sym`val,[TIMESTAMP,SYMBOL,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[firstNot(price,0)]>, trades, output1, `time, false,`sym, 50,,false,,,,0)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val]==[-5,0,,,1]
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_ifirstNot"
+output1=streamTable(1:0,`time`sym`val,[TIMESTAMP,SYMBOL,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[ifirstNot(price)]>, trades, output1, `time, false,`sym, 50,,false,,,,-2)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val]==[0,-2,0,-1,0]
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_ilastNot"
+output1=streamTable(1:0,`time`sym`val,[TIMESTAMP,SYMBOL,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[ilastNot(price)]>, trades, output1, `time, false,`sym, 50,,false,,,,-2)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val]==[2,-2,1,-1,2]
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_imax,imin,lastnot,mode,nunique、prod"
+defg f1(price,k){
+	return imax(price),imin(price),lastNot(price,k),mode(price),nunique(price),prod(price)
+}
+output1=streamTable(1:0,`time`sym`val1`val2`val3`val4`val5`val6,[TIMESTAMP,SYMBOL,INT,INT,INT,INT,INT,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <f1(price,1) as`val1`val2`val3`val4`val5`val6>, trades, output1, `time, false,`sym, 50,,false,,,,-1)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val1]==[2,-1,0,-1,0]
+assert 4, output1[`val2]==[1,-1,0,-1,1]
+assert 5, output1[`val3]==[7,-1,0,,0]
+assert 6, output1[`val4]==[7,-1,0,,0]
+assert 7, output1[`val5]==[3,-1,2,1,2]
+assert 8, output1[`val6]==[0,-1,0,,0]
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_searchK_defg"
+defg f1(price,k){
+	return imax(price),searchK(price,k)
+}
+output1=streamTable(1:0,`time`sym`val1`val2,[TIMESTAMP,SYMBOL,INT,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <f1(price,2) >, trades, output1, `time, false,`sym, 50,,false,,,,-1)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val1]==[2,-1,0,,0]
+assert 3, output1[`val2]==[0,-1,0,NULL,0]
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=false_searchK"
+
+output1=streamTable(1:0,`time`sym`val1,[TIMESTAMP,SYMBOL,INT])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[ searchK(price,2)]>, trades, output1, `time, false,`sym, 50,,false,,,,-1)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:02:00.000,2018.10.08T01:03:00.000,2018.10.08T01:04:00.000,2018.10.08T01:05:00.000,2018.10.08T01:06:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A
+assert 3, output1[`val1]==[0,-1,0,NULL,0]
+
+dropAggregator("agg1")
+agg1=NULL
+
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=true_avg、Beta、corr、count、covar、first、firstNot"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val1`val2`val3`val4`val5`val6`val7`val8,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+agg1=createTimeSeriesAggregator("agg1",1000, 1000, <[avg(price),beta(price,qty),corr(price,qty),count(price),covar(price,qty),first(price),firstNot(price,0),covarp(price,qty)]>, trades, output1, `time, true,`sym, 50,,false,,,,-1)
+insert into agg1 values(2018.10.08T01:01:01.785,`A,10,0)
+insert into agg1 values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into agg1 values(2018.10.08T01:01:21.785,`A,0,7)
+sleep(2000)
+insert into agg1 values(2018.10.08T01:03:03.785,`A,7,0)
+insert into agg1 values(2018.10.08T01:03:14.785,`A,int(),0)
+insert into agg1 values(2018.10.08T01:03:24.785,`A,0,int())
+sleep(1000)
+insert into agg1 values(2018.10.08T01:04:04.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:14.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:24.785,`A,int(),int())
+sleep(1000)
+assert 1, eqFloat(output1[`val1][0:4],[2\3,-1,0,])
+assert 2, eqFloat(output1[`val2][0:4],[0.185714,-1,,],6)
+assert 3, eqFloat(output1[`val3][0:4],[0.235316,-1,,],6)
+assert 4, eqFloat(output1[`val4][0:4],[3,-1,2,0])
+assert 5, eqFloat(output1[`val5][0:4],[ 10.833333,-1,,],6)
+assert 6, eqFloat(output1[`val6][0:4],[0,-1,0,])
+assert 7, eqFloat(output1[`val7][0:4],[-5,-1,,])
+assert 8, eqFloat(output1[`val8][0:4],[covarp(10 -5 0, 0 -5 7),-1,0,])
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=true_user-defined_aggFunction"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val1,[TIMESTAMP,SYMBOL,DOUBLE])
+defg agg(price){
+	return avg(price)
+}
+agg1=createTimeSeriesAggregator("agg1",1000, 1000, <agg(price)>, trades, output1, `time, true,`sym, 50,,false,,,,-1)
+insert into agg1 values(2018.10.08T01:01:01.785,`A,10,0)
+insert into agg1 values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into agg1 values(2018.10.08T01:01:21.785,`A,0,7)
+sleep(2000)
+insert into agg1 values(2018.10.08T01:03:03.785,`A,7,0)
+insert into agg1 values(2018.10.08T01:03:14.785,`A,int(),0)
+insert into agg1 values(2018.10.08T01:03:24.785,`A,0,int())
+sleep(1000)
+insert into agg1 values(2018.10.08T01:04:04.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:14.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:24.785,`A,int(),int())
+sleep(1000)
+assert 1, eqFloat(output1[`val1][0:4],[2\3,-1,0,])
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=true_user-defined_multi_aggFunction_ifirstNot、imax,imin"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val1`val2`val3,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE])
+defg agg(price){
+	return ifirstNot(price),imax(price),imin(price)
+}
+agg1=createTimeSeriesAggregator("agg1",1000, 1000, <agg(price)>, trades, output1, `time, true,`sym, 50,,false,,,,`ffill)
+insert into agg1 values(2018.10.08T01:01:01.785,`A,10,0)
+insert into agg1 values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into agg1 values(2018.10.08T01:01:21.785,`A,0,7)
+sleep(2000)
+insert into agg1 values(2018.10.08T01:03:03.785,`A,7,0)
+insert into agg1 values(2018.10.08T01:03:14.785,`A,int(),0)
+insert into agg1 values(2018.10.08T01:03:24.785,`A,0,int())
+sleep(1000)
+insert into agg1 values(2018.10.08T01:04:04.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:14.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:24.785,`A,int(),int())
+sleep(1000)
+do{
+	if(output1.size()>=5){
+		break;
+	}
+	sleep(1000)
+}while(true)
+assert 1, eqFloat(output1[`val1][0:4],[0,0,0,-1])
+assert 2, eqFloat(output1[`val2][0:4],[2,2,0,-1])
+assert 3, eqFloat(output1[`val3][0:4],[1,1,0,-1])
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=true_user-defined_multi_aggFunction_Kurtosis、lastNot、med、min、mode、nunique、prod、searchK、skew、std、var、wavg、wsum"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val1`val2`val3`val4`val5`val6`val7`val8`val9`val10`val11`val12`val13,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE])
+agg1=createTimeSeriesAggregator("agg1",1000, 1000, <[kurtosis(price),lastNot(price),med(price),min(price),mode(price),nunique(price),prod(price),searchK(price,2),skew(price),std(price),var(price),wavg(price,qty),wsum(price,qty)]>, trades, output1, `time, true,`sym, 50,,false,,,,`ffill)
+insert into agg1 values(2018.10.08T01:01:01.785,`A,10,0)
+insert into agg1 values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into agg1 values(2018.10.08T01:01:21.785,`A,0,7)
+sleep(2000)
+insert into agg1 values(2018.10.08T01:03:03.785,`A,7,0)
+insert into agg1 values(2018.10.08T01:03:14.785,`A,int(),0)
+insert into agg1 values(2018.10.08T01:03:24.785,`A,0,int())
+sleep(1000)
+insert into agg1 values(2018.10.08T01:04:04.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:14.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:24.785,`A,int(),int())
+sleep(1000)
+assert 1, eqFloat(output1[`val1][0:4],[1.5,1.5,,])
+assert 2, eqFloat(output1[`val2][0:4],[7,7,0,])
+assert 3, eqFloat(output1[`val3][0:4],[0,0,0,])
+assert 4, eqFloat(output1[`val4][0:4],[-5,-5,0,])
+assert 5, eqFloat(output1[`val5][0:4],[7,7,0,])
+assert 6, eqFloat(output1[`val6][0:4],[3,3,2,1])
+assert 7, eqFloat(output1[`val7][0:4],[0,0,0,])
+assert 8, eqFloat(output1[`val8][0:4],[0,0,0,])
+assert 9, eqFloat(output1[`val9][0:4],[0.2007,0.2007,,],4)
+assert 10, eqFloat(output1[`val10][0:4],[6.027714,6.027714,0,],6)
+assert 11, eqFloat(output1[`val11][0:4],[36.333333,36.333333,0,],6)
+assert 12, eqFloat(output1[`val12][0:4],[5,5,0,])
+assert 13, eqFloat(output1[`val13][0:4],[25,25,0,])
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case ="test_createTimeSeriesEngine_useSystemTime=true_firstNot、ifirstNot、ilastNot、imax,imin,lastnot,mode,nunique、prod、searchK"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val1`val2`val3`val4`val5`val6`val7`val8,[TIMESTAMP,SYMBOL,INT,INT,INT,INT,INT,INT,INT,INT])
+agg1=createTimeSeriesAggregator("agg1",1000, 1000, <[firstNot(price),ifirstNot(price),ilastNot(price),imax(price),imin(price),lastNot(price),mode(price),nunique(price)]>, trades, output1, `time, true,`sym, 50,,false,,,,)
+insert into agg1 values(2018.10.08T01:01:01.785,`A,10,0)
+insert into agg1 values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into agg1 values(2018.10.08T01:01:21.785,`A,0,7)
+sleep(2000)
+insert into agg1 values(2018.10.08T01:03:03.785,`A,7,0)
+insert into agg1 values(2018.10.08T01:03:14.785,`A,int(),0)
+insert into agg1 values(2018.10.08T01:03:24.785,`A,0,int())
+sleep(1000)
+insert into agg1 values(2018.10.08T01:04:04.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:14.785,`A,int(),int())
+insert into agg1 values(2018.10.08T01:04:24.785,`A,int(),int())
+sleep(1000)
+assert 1, eqFloat(output1[`val1],[0,0,])
+assert 2, eqFloat(output1[`val2],[0,0,-1])
+assert 3, eqFloat(output1[`val3],[2,1,-1],6)
+assert 4, eqFloat(output1[`val4],[2,0,-1])
+assert 5, eqFloat(output1[`val5],[1,0,-1],6)
+assert 6, eqFloat(output1[`val6],[7,0,])
+assert 7, eqFloat(output1[`val7],[7,0,])
+assert 8, eqFloat(output1[`val8],[3,2,1])
+
+dropAggregator("agg1")
+agg1=NULL
+
+@testing:case="test_function_creatTimeSeriesEngine_outputTable_with_arrayVector_error", exception=1
+defg toVector(x){
+	return x	
+}
+share streamTable(1000:0, `time`sym`volume`price, [TIMESTAMP, SYMBOL, DOUBLE,DOUBLE]) as trades
+output1 = table(10000:0, `time`sym`sumVolume, [TIMESTAMP,STRING,DOUBLE[]])
+engine1 = createTimeSeriesEngine(name="engine1", windowSize=60000, step=60000, metrics=<[toVector([first(volume),log(volume),first(price),price])]>, dummyTable=trades, outputTable=output1, timeColumn=`time, keyColumn=`sym , useSystemTime=false, garbageSize=50, useWindowStartTime=false)
+
+
+@testing:case="test_function_creatTimeSeriesEngine_outputTable_with_arrayVector"
+defg toVector(x){
+	return x	
+}
+share streamTable(1000:0, `time`sym`volume`price, [TIMESTAMP, SYMBOL, DOUBLE,DOUBLE]) as trades
+output1 = table(10000:0, `time`sym`sumVolume, [TIMESTAMP,STRING,DOUBLE[]])
+engine1 = createTimeSeriesEngine(name="engine1", windowSize=60000, step=60000, metrics=<[toVector([first(volume),last(volume),first(price),avg(volume+price)])]>, dummyTable=trades, outputTable=output1, timeColumn=`time, keyColumn=`sym , useSystemTime=false, garbageSize=50, useWindowStartTime=false, forceTriggerTime=1000)
+def getData(start){
+	times = sort(2018.10.08T00:00:00.000 + rand(start..(start+3000*2000), 3000))
+	syms = rand("A"+string(1..10), 3000)
+	volumes = rand(rand(100.0, 10) join 2.3 NULL NULL NULL NULL, 3000)
+	prices = rand(rand(100.0, 10) join 2.3 NULL NULL NULL NULL, 3000)
+	return table(times as time, syms as sym, volumes as volume,prices as price)
+}
+batch = 3000*2000
+tmp = getData(1)
+engine1.append!(tmp)
+insert into engine1 values(2018.10.08T10:00:00.000,"A1", 100.0,432 )
+re = select * from output1 order by time,sym
+expected = select toArray([first(volume),last(volume),first(price),avg(volume+price)]) as data from tmp group by sym, interval(X=time,duration=60000, fill = "none") as time order by time,sym
+assert 1, each(eqObj, re[`sumVolume] , expected[`data])
+assert 2, each(eqObj, re[`sym], expected[`sym])
+dropAggregator(`engine1)
+
+
+@testing:case="test_function_createTimeSeriesEngine_with_dictionary"
+defg ff(price, sym, mutable openpriceDict){
+	if(not first(sym) in openpriceDict.keys()){
+		openpriceDict[first(sym)]=first(price)
+	}
+	return openpriceDict[first(sym)]
+}
+d1 = dict(STRING,DOUBLE)
+d2 = dict(STRING,DOUBLE)
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[ff(price,sym, d1)]>, trades, output1, `time, false,`sym, 50,,false,,,,"none")
+insert into trades values(2018.10.08T01:01:01.785,`A,10,0)
+insert into trades values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into trades values(2018.10.08T01:01:21.785,`B,0,7)
+insert into trades values(2018.10.08T01:03:03.785,`B,7,0)
+insert into trades values(2018.10.08T01:03:14.785,`A,NULL,12)
+insert into trades values(2018.10.08T01:03:24.785,`A,0,NULL)
+insert into trades values(2018.10.08T01:04:04.785,`C,NULL,NULL)
+insert into trades values(2018.10.08T01:04:14.785,`C,NULL,97)
+insert into trades values(2018.10.08T01:04:24.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:05:00.000,`C,0,13)
+insert into trades values(2018.10.08T01:05:15.785,`A,0,0)
+insert into trades values(2018.10.08T01:05:25.785,`D,0,0)
+insert into trades values(2018.10.08T01:06:25.785,`D,0,0)
+agg1.append!(select * from trades)
+res = select * from output1
+tmp = select * from trades
+expected = select ff(price,sym, d2) as ff_price from tmp group by sym, interval(X=time, duration=60000, fill="none" ) as time
+for(item in `A`B`C`D){
+	re1 = select * from output1 where sym=item order by time
+	ex1 = select * from expected  where sym=item order by time
+	assert 1, eqObj(re1[`val], ex1[`ff_price][:size(re1)])
+}
+dropAggregator("agg1")
+
+
+@testing:case="test_function_createTimeSeriesEngine_fill_with_dictionary"
+defg ff(price, sym, mutable openpriceDict){
+	if(not first(sym) in openpriceDict.keys()){
+		openpriceDict[first(sym)]=first(price)
+	}
+	return openpriceDict[first(sym)]
+}
+d1 = dict(STRING,DOUBLE)
+d2 = dict(STRING,DOUBLE)
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`val,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[ff(price,sym, d1)]>, trades, output1, `time, false,`sym, 50,,false,,,,432.5)
+insert into trades values(2018.10.08T01:01:01.785,`A,10,0)
+insert into trades values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into trades values(2018.10.08T01:01:21.785,`B,0,7)
+insert into trades values(2018.10.08T01:03:03.785,`B,7,0)
+insert into trades values(2018.10.08T01:03:14.785,`A,NULL,12)
+insert into trades values(2018.10.08T01:03:24.785,`A,0,NULL)
+insert into trades values(2018.10.08T01:04:04.785,`C,NULL,NULL)
+insert into trades values(2018.10.08T01:04:14.785,`C,NULL,97)
+insert into trades values(2018.10.08T01:04:24.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:05:00.000,`C,0,13)
+insert into trades values(2018.10.08T01:05:15.785,`A,0,0)
+insert into trades values(2018.10.08T01:05:25.785,`D,0,0)
+insert into trades values(2018.10.08T01:06:25.785,`D,0,0)
+agg1.append!(select * from trades)
+res = select * from output1
+tmp = select * from trades
+expected = select ff(price,sym, d2) as ff_price from tmp group by sym, interval(X=time, duration=60000, fill=432.5 ) as time
+for(item in `A`B`C`D){
+	re1 = select * from output1 where sym=item order by time
+	ex1 = select * from expected  where sym=item order by time
+	assert 1, eqObj(nullFill(re1[`val],432.5), ex1[`ff_price][:size(re1)])
+}
+dropAggregator("agg1")
+
+@testing:case="test_function_createTimeSeriesEngine_fill_multi_metrics_with_dictionary"
+defg ff2(price, sym, mutable openpriceDict){
+	if(not first(sym) in openpriceDict.keys()){
+		openpriceDict[first(sym)]=last(price)
+	}
+	return openpriceDict[last(sym)]
+}
+d1 = dict(STRING,DOUBLE)
+d2 = dict(STRING,DOUBLE)
+d3 = dict(STRING,DOUBLE)
+d4 = dict(STRING,DOUBLE)
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+output1=streamTable(1:0,`time`sym`factor1`factor2`factor3,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE])
+agg1=createTimeSeriesAggregator("agg1",60000, 60000, <[avg(price+qty),ff(price,sym, d1),ff2(qty,sym, d2)]>, trades, output1, `time, false,`sym, 50,,false,,,,[`ffill,432.5,89.3])
+insert into trades values(2018.10.08T01:01:01.785,`A,10,0)
+insert into trades values(2018.10.08T01:01:11.785,`A,-5,-5)
+insert into trades values(2018.10.08T01:01:21.785,`B,0,7)
+insert into trades values(2018.10.08T01:03:03.785,`B,7,0)
+insert into trades values(2018.10.08T01:03:14.785,`A,NULL,12)
+insert into trades values(2018.10.08T01:03:24.785,`A,0,NULL)
+insert into trades values(2018.10.08T01:04:04.785,`C,NULL,NULL)
+insert into trades values(2018.10.08T01:04:14.785,`C,NULL,97)
+insert into trades values(2018.10.08T01:04:24.785,`A,NULL,NULL)
+insert into trades values(2018.10.08T01:05:00.000,`C,0,13)
+insert into trades values(2018.10.08T01:05:15.785,`A,0,0)
+insert into trades values(2018.10.08T01:05:25.785,`D,0,0)
+insert into trades values(2018.10.08T01:06:25.785,`D,0,0)
+agg1.append!(select * from trades)
+res = select * from output1 order by sym, time
+tmp = select * from trades
+expected = select avg(price+qty) as avg,ff(price,sym, d3) as ff,ff2(qty,sym, d4) as ff2 from tmp group by sym, interval(X=time, duration=60000, fill=`null) as time
+for(item in `A`B`C`D){
+	re1 = select * from output1 where sym=item order by time
+	ex1 = select * from expected  where sym=item order by time
+	assert 1, eqObj(ffill(re1[`factor1]), ffill(ex1[`avg][:size(re1)]))
+	assert 2, eqObj(nullFill(re1[`factor2],432.5), nullFill(ex1[`ff][:size(re1)],432.5))
+	assert 3, eqObj(nullFill(re1[`factor3],89.3), nullFill(ex1[`ff2][:size(re1)],89.3))
+}
+dropAggregator("agg1")
+
+

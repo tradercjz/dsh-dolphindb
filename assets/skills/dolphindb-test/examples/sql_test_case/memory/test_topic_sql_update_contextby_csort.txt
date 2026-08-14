@@ -1,0 +1,488 @@
+login("admin", "123456")
+
+@testing:case="test_topic_update_contextby_cosrt_empty_col", syntaxError=1
+t = table(take(1..3, 10) as id, 1..10 as price)
+update t set price=sum(price) context by id csort 
+
+@testing:case="test_topic_update_contextby_cosrt_col_not_exist", exception=1
+t = table(take(1..3, 10) as id, 1..10 as price)
+update t set price=sum(price) context by id csort xxx
+
+@testing:case="test_topic_update_contextby_cosrt_col_anytype_not_support", exception=1
+t = table(take(1..3, 10) as id, 1..10 as price,take([[`a],[`a,`b],[`c,`d,`e]],10) as col)
+update t set price=sum(price) context by id csort col
+
+@testing:case="test_topic_update_contextby_cosrt_col_arryaVector_not_support", exception=1
+x = array(INT[],0,100).append!(take([[1],[1,2],[1,2,3]],10))
+t = table(take(1..3, 10) as id, 1..10 as price,x as col)
+update t set price=sum(price) context by id csort col
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex1", exception=1
+t = table(take(2020.01.01+1..3,10) as time, take(1..3, 10) as id, 1..10 as value)
+update t set value = cumsum(value) context by time csort 1
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex2", exception=1
+update t set value = cumsum(value) context by time csort 1  desc
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex3", exception=1
+update t set value = cumsum(value) context by time csort 1 having id>6
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex4", exception=1
+update t set value = cumsum(value) context by time csort id,1
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex5", exception=1
+update t set value = cumsum(value) context by time csort id,1 desc
+
+@testing:case="test_topic_update_contextby_cosrt_scalar_ex6", exception=1
+update t set value = cumsum(value) context by time csort id desc,1 desc having id>6
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex1", exception=1
+update t set value = cumsum(value) context by time csort ["aa"]
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex3", exception=1
+update t set value = cumsum(value) context by time csort ["aa"] desc
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex4", exception=1
+update t set value = cumsum(value) context by time csort ["aa"] desc having id>6
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex5", exception=1
+update t set value = cumsum(value) context by time csort id,["a"]
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex6", exception=1
+update t set value = cumsum(value) context by time csort id,["a"] desc
+
+@testing:case="test_topic_update_contextby_cosrt_vector_ex7", exception=1
+update t set value = cumsum(value) context by time csort id,["a"]  having id>6
+
+@testing:case="test_topic_update_contextby_cosrt_bigArray", exception=1
+id1 = bigarray(int,0,100000000).append!(1..100000000)
+update t set value = cumsum(value) context by time csort id1
+
+@testing:case="test_topic_sql_contextBy_csort_asc_desc"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price asc)
+    update t set val=msum(val,2) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price desc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price desc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price desc)
+    update t set val=msum(val,2) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_one_col"
+datatypes=["char", "int", "short", "long", "float", "double", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort_one_col(n, dataType){
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..2 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(1..3 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(1..3 ,n))
+    }
+    t = table(price)
+    tmp1 = select msum(price,2) from (select * from t where price=1 order by price asc)
+    tmp2 = select msum(price,2) from (select * from t where price=2 order by price asc)
+    tmp3 = select msum(price,2) from (select * from t where price=3 order by price asc)
+    update t set price=msum(price,2) context by price csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(price)
+    tmp1 = select msum(price,2) from (select * from t where price=1 order by price desc)
+    tmp2 = select msum(price,2) from (select * from t where price=2 order by price desc)
+    tmp3 = select msum(price,2) from (select * from t where price=3 order by price desc)
+    update t set price=msum(price,2) context by price csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+
+assert 1, loop(checkContextByCsort_one_col{0,},  datatypes)
+assert 2, loop(checkContextByCsort_one_col{1,},  datatypes)
+assert 3, loop(checkContextByCsort_one_col{10,},  datatypes)
+assert 4, loop(checkContextByCsort_one_col{1025,},  datatypes)
+assert 5, loop(checkContextByCsort_one_col{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_300_col"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    for(i in 1..300){
+        t["col"+string(i)] = price
+    }
+    tmp1 = select *, msum(val,2) from (select * from t where id=1 order by price asc)
+    tmp2 = select *, msum(val,2) from (select * from t where id=2 order by price asc)
+    tmp3 = select *, msum(val,2) from (select * from t where id=3 order by price asc)
+    update t set val=msum(val,2) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    update ex set val = msum_val
+    dropColumns!(ex, `msum_val)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    for(i in 1..300){
+        t["col"+string(i)] = price
+    }
+    tmp1 = select *, msum(val,2) from (select * from t where id=1 order by price desc)
+    tmp2 = select *, msum(val,2) from (select * from t where id=2 order by price desc)
+    tmp3 = select *, msum(val,2) from (select * from t where id=3 order by price desc)
+    update t set val=msum(val,2) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    update ex set val = msum_val
+    dropColumns!(ex, `msum_val)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+
+@testing:case="test_topic_sql_contextBy_csort_contain_NULL"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(NULL join 1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price asc)
+    update t set val=msum(val,2) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price desc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price desc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price desc)
+    update t set val=msum(val,2) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_where"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 and val>3 order by price asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 and val>3 order by price asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 and val>3 order by price asc)
+    tmp4 = select * from t where val<=3
+    update t set val=msum(val,2) where val>3 context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3 union all select * from tmp4)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 and val>3 order by price desc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 and val>3 order by price desc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 and val>3 order by price desc)
+    tmp4 = select * from t where val<=3
+    update t set val=msum(val,2) where val>3 context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3 union all select * from tmp4)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+
+@testing:case="test_topic_sql_contextBy_csort_having"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){ 
+    id = take(1..3, n)  
+    sym = take(symbol("sym"+string(1..3)), n) 
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(NULL join 1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=1 order by price asc)) where val>3 
+    tmp2 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=2 order by price asc)) where val>3 
+    tmp3 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=3 order by price asc)) where val>3 
+    tmp4 = select * from t where val<=3
+    update t set val=msum(val,2) context by id csort price asc having val>3
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3 union all select * from tmp4)
+    ans = select * from t   
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=1 order by price desc)) where val>3 
+    tmp2 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=2 order by price desc)) where val>3 
+    tmp3 = select id, sym, msum_val, price from (select id, sym, msum(val,2), val, price from (select * from t where id=3 order by price desc)) where val>3 
+    tmp4 = select * from t where val<=3
+    update t set val=msum(val,2) context by id csort price desc having val>3
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3 union all select * from tmp4)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_function"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, sum(val), price from (select * from t where id=1 order by price asc)
+    tmp2 = select id, sym, sum(val), price from (select * from t where id=2 order by price asc)
+    tmp3 = select id, sym, sum(val), price from (select * from t where id=3 order by price asc)
+    update t set val=sum(val) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, sum(val), price from (select * from t where id=1 order by price desc)
+    tmp2 = select id, sym, sum(val), price from (select * from t where id=2 order by price desc)
+    tmp3 = select id, sym, sum(val), price from (select * from t where id=3 order by price desc)
+    update t set val=sum(val) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result2 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price asc)
+    update t set val=msum(val,2) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result3 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price desc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price desc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price desc)
+    update t set val=msum(val,2) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result4 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, cumsum(val), price from (select * from t where id=1 order by price asc)
+    tmp2 = select id, sym, cumsum(val), price from (select * from t where id=2 order by price asc)
+    tmp3 = select id, sym, cumsum(val), price from (select * from t where id=3 order by price asc)
+    update t set val=cumsum(val) context by id csort price asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result5 = each(eqObj, ex.values(), ans.values())
+
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, cumsum(val), price from (select * from t where id=1 order by price desc)
+    tmp2 = select id, sym, cumsum(val), price from (select * from t where id=2 order by price desc)
+    tmp3 = select id, sym, cumsum(val), price from (select * from t where id=3 order by price desc)
+    update t set val=cumsum(val) context by id csort price desc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result6 = each(eqObj, ex.values(), ans.values())
+
+    return result1 join result2 join result3 join result4 join result5 join result6
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_multi_cols"
+datatypes=["char", "int", "short", "long", "float", "double", "date", "month", "time", "minute", "second", "datetime", "timestamp", "nanotime", "nanotimestamp","string","symbol","bool", "decimal32", "decimal64", "decimal128"]
+def checkContextByCsort(n, dataType){
+    id = take(1..3, n)
+    sym = take(symbol("sym"+string(1..3)), n)
+    val = rand(10.0, n)
+    if(dataType=="symbol"){
+        price = funcByName(dataType)(string(take(1..1000000 ,n)))  
+    }else if(dataType in ["decimal32", "decimal64", "decimal128"]){
+        price = funcByName(dataType)(take(1..1000000 ,n), 2)
+    }else{
+        price = funcByName(dataType)(take(1..1000000 ,n))
+    }
+    t = table(id, sym, val, price)
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price asc, sym desc, val asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price asc, sym desc, val asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price asc, sym desc, val asc)
+    update t set val=msum(val,2) context by id csort price asc, sym desc, val asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    result1 = each(eqObj, ex.values(), ans.values())
+
+    return result1
+}
+
+assert 1, loop(checkContextByCsort{0,},  datatypes)
+assert 2, loop(checkContextByCsort{1,},  datatypes)
+assert 3, loop(checkContextByCsort{10,},  datatypes)
+assert 4, loop(checkContextByCsort{1025,},  datatypes)
+assert 5, loop(checkContextByCsort{65537,},  datatypes)
+
+@testing:case="test_topic_sql_contextBy_csort_multi_times"
+n = 100000
+id = take(1..3, n)
+sym = take(symbol("sym"+string(1..3)), n)
+val = rand(10.0, n)
+price = take(1..n ,n)
+t = table(id, sym, val, price)
+for(i in 1..100){
+    tmp1 = select id, sym, msum(val,2), price from (select * from t where id=1 order by price asc, sym desc, val asc)
+    tmp2 = select id, sym, msum(val,2), price from (select * from t where id=2 order by price asc, sym desc, val asc)
+    tmp3 = select id, sym, msum(val,2), price from (select * from t where id=3 order by price asc, sym desc, val asc)
+    update t set val=msum(val,2) context by id csort price asc, sym desc, val asc
+    ex = select * from (select * from tmp1 union all select * from tmp2 union all select * from tmp3)
+    ans = select * from t
+    if(ex.rows()){ex.sortBy!(ex.columnNames())}
+    if(ans.rows()){ans.sortBy!(ans.columnNames())}
+    assert 1, each(eqObj, ex.values(), ans.values())
+}
+
+//https://dolphindb1.atlassian.net/browse/D20-16815
+@testing:case="test_topic_sql_contextBy_three_cols_csort"
+t1 = table( take(2021.01.01+1..5, 11323) as id1, rand("A"+string(1..10), 11323) as id2,  rand(100.0, 11323) as value, take([00:00:00.022,00:00:00.042,00:00:00.026,00:00:00.006,00:00:00.045,00:00:00.013,00:00:00.048,00:00:00.064,00:00:00.019,00:00:00.014], 11323) as type,rand(100.0, 11323) as value2,rand(100.0, 11323) as value3,rand(100.0, 11323) as value4)
+update t1 set timestamp = concatDateTime(iif(value > 50, temporalAdd(id1, -1, `B), id1), type)
+res1 = select id1,  type,timestamp, deltas(value) as value from t1 context by id1,  id2 , type csort timestamp order by timestamp
+res2 = select string(id1)+string(type) as type2,timestamp, deltas(value) as value from t1 context by  id2 , string(id1)+string(type) csort timestamp order by timestamp
+assert 1, each(eqObj,res1[`value], res2[`value])
+
+
+
+
+

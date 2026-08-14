@@ -1,0 +1,1206 @@
+#include "setup/settings.txt"
+DIR = DATA_DIR + "/temp"
+
+@testing:case="sql_update_no_table_ex1", exception=1
+t1="";
+update t1 set t1.id=2;
+
+@testing:case="sql_update_no_table_ex2", exception=1
+t1=table(1..3 as id, 4..6 as val)
+update t1 set price=5 from "t2"
+
+@testing:case="sql_update_join_table_ex1", exception=1
+//In a SQL update statement, the left table of a join must be the base table.
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val);
+update t1 set t1.val=t2.val from ej(t2, t1, `id) where t1.id=t2.id
+
+
+@testing:case="sql_update_join_table_where_ex1", syntaxError=1
+//Where conditions must be boolean expressions.
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val);
+update t1 set t1.val=t2.val from ej(t1, t2, `id) where "k"
+
+@testing:case="sql_update_join_table"
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val)
+update t1 set t1.val=t2.val from ej(t1, t2, `id)
+assert 1, t1.val==4 9 6
+
+@testing:case="updateOneColumn";
+id=1..10
+basePrice=50.01 49 59 59 29 29 109 259 299 19
+retailPrice=119.99 99 109 109 59 59 229 539 749 39
+brand=`BROOKS`RALPH`JCREW`BROOKS`JCREW`RALPH`TNF`TNF`ARCTEYRICS`COLUMBIA
+category=take([`APPAREL],10)
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set retailPrice=retailPrice*0.9;
+assert 1, round(t1.retailPrice[9],1)==35.1;
+
+@testing:case="updateTwoColumns";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set basePrice=basePrice*0.9, retailPrice=basePrice*2*0.9;
+assert 1,round(t1.retailPrice[9],1)==34.2;
+assert 2,round(t1.basePrice[6],1)==98.1;
+
+
+@testing:case="updateColumnsToNulls";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set retailPrice=retailPrice*0.9;
+update t1 set basePrice=NULL, retailPrice=NULL;
+assert basePriceNull,t1.basePrice[7]==NULL;
+assert retailPriceNull,t1.retailPrice[9]==NULL;
+
+
+@testing:case="updateColumnsWhereEqual";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set retailPrice=retailPrice*1.1 where brand==`BROOKS;
+assert 1,round(t1.retailPrice[0],2)==131.99;
+assert 2,round(t1.retailPrice[3],1)==119.9;
+
+
+@testing:case="updateColumnsWhereOr";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set retailPrice=retailPrice*1.1 where brand==`BROOKS or brand==`TNF;
+assert 1,round(t1.retailPrice[0],2)==131.99;
+assert 2,round(t1.retailPrice[7],1)==592.9;
+
+
+@testing:case="updateColumnsToNullsWhereOr";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set basePrice=NULL, retailPrice=NULL where brand==`BROOKS or brand==`TNF;
+assert 1,t1.retailPrice[0]==NULL;
+assert 2,t1.basePrice[3]==NULL;
+assert 3,t1.retailPrice[7]==NULL;
+assert 4,t1.basePrice[6]==NULL;
+
+@testing:case="updateFloatAndLiteralColumnsWhereIn";
+t1=table(id,basePrice,retailPrice,brand,category);
+update t1 set retailPrice=0.0, category=`SHOES where id in 7 8;
+assert LiteralUpdate,t1.category[7]==`SHOES;
+assert FloatingUpdate,round(t1.retailPrice[7])==0;
+
+
+t1=NULL;
+id=NULL;
+basePrice=NULL;
+retailPrice=NULL;
+brand=NULL;
+category=NULL
+
+
+@testing:case="statement_update_max row # from where conditions exceeds table size_ex", exception=1
+v1=1..10
+t1=table(1..3 as id, 4..6 as v2)
+update t1 set v2=1 where v1>1
+
+@testing:case="statement_update_context_by_ex1", exception=1
+//column does not belong to table
+t1=table(1 3 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, 1..5 as v1)
+x=1..3
+update t1 set v1=sum(v1) context by x
+
+@testing:case="statement_update_context_by_ex2", exception=1
+//The length of update vector is not equal to the size of the context group.
+t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, 1..5 as v1)
+update t1 set v1=1..100 context by sym
+
+@testing:case="statement_update_context_by"
+t1=table(1 1 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, 1..5 as v1)
+update t1 set v1=sum(v1) context by sym
+assert 1, size(select id from t1 where v1=6)==3
+assert 2, size(select id from t1 where v1=9)==2
+t1=table(1 3 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, 1..5 as v1)
+update t1 set v1=sum(v1) context by sym,id
+assert 3, (select v1 from t1 where id=3)[0]["v1"] == 2
+t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, 1..5 as v1)
+update t1 set v1=sum(v1) context by sym
+assert 4, size(select id from t1 where v1=6)==3
+assert 5, size(select id from t1 where v1=9)==2
+t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, 1..5 as v1)
+update t1 set v1=sum(v1*v1) context by sym
+assert 6, size(select id from t1 where v1=14)==3
+assert 7, size(select id from t1 where v1=41)==2
+
+t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, 1..5 as v1)
+t2=table(1 2 as id, 1..2 as v2)
+update t1 set v1=sum(v1*v1+v2*v2) from ej(t1,t2,`id) context by sym
+assert 8, size(select id from t1 where v1=17)==3
+assert 9, size(select id from t1 where v1=49)==2
+
+@testing:case="statement_update_context_by_no_column_reference"
+t1=table(2015.05M 2015.06M 2016.03M as mm, 1..3 as v)
+update t1 set v=sum(v) where v<3 context by year(mm)
+assert 1, t1.v==3
+
+@testing:case="statement_update_where_with_more_than_one_condition"
+def f1(){
+t1=table(1..10 as id, 1..10 as v1)
+update t1 set id=0,v1=0 where id>5, v1>6
+return t1
+}
+print t1
+t2=f1()
+assert 1, t2.id==1..6 join [0,0,0,0]
+
+@testing:case="statement_update_empty_table"
+def f1(){
+    t1=table(array(int,0,1) as id)
+    update t1 set id=0
+    return t1
+}
+t2=f1()
+assert 1, size(t2)==0
+
+@testing:case="statement_update_contextby_morethan2_cols"
+def f1(){
+    t1=table(2015.05M 2015.06M 2016.03M 2016.07M as mm, 1 1 2 3 as id, 1..4 as v)
+    update t1 set v=sum(v) where v<3 context by year(mm), id
+    return t1
+}
+print f1
+t2=f1()
+assert 1, t2.v==3 3 3 4
+
+@testing:case="statement_update_context_by_bigarray"
+n=4000000
+t1=table(take(1 1 1 2 2,n) as id, take(symbol(`AAPL`AAPL`AAPL`GOOG`GOOG),n) as sym, take(1..5,n) as v1)
+update t1 set v1=sum(v1) context by sym
+total=size(select * from t1 where sym=`AAPL, v1!=4800000)
+assert 1, total==0
+
+@testing:case="statement_update_right_table_from_join",exception=1
+t1= table(1 2 3 3 as id, 7.8 4.6 5.1 0.1 as value)
+t2 = table(5 3 1 as id, 300 500 800 as qty)
+update t2 set qty=value*qty from ej(t1,t2,`id)
+
+@testing:case="statement_update_from_ej"
+t1= table(1 2 3 3 as id, 7.8 4.6 5.1 0.1 as value)
+t2 = table(5 3 1 as id, 300 500 800 as qty)
+update t1 set value=value*qty from ej(t1,t2,`id)
+assert 1,t1.value==6240 4.6 2550 50
+
+@testing:case="statement_update_from_lj"
+t1= table(1 2 3 3 as id, 7.8 4.6 5.1 0.1 as value)
+t2 = table(5 3 1 as id, 300 500 800 as qty)
+update t1 set value=value*qty from lj(t1,t2,`id)
+assert 1,t1.value==6240 NULL 2550 50
+
+@testing:case="statement_update_from_lsj"
+t1= table(1 2 3 3 as id, 7.8 4.6 5.1 0.1 as value)
+t2 = table(5 3 1 as id, 300 500 800 as qty)
+update t2 set qty=value*qty from lsj(t2,t1,`id)
+assert 1,t2.qty==NULL 2550 6240
+
+@testing:case="statement_update_from_fj",exception=1
+t1= table(1 2 3 3 as id, 7.8 4.6 5.1 0.1 as value)
+t2 = table(5 3 1 as id, 300 500 800 as qty)
+update t1 set value=value*qty from fj(t1,t2,`id)
+//assert 1,t1.value==6240 NULL 2550 50
+
+@testing:case="statement_update_from_aj"
+t1 = table(2015.01.01+(0 31 59 90 120) as date, 1.2 7.8 4.6 5.1 9.5 as value)
+t2=table(2015.02.01+(0 15 89 89) as date, 1..4 as qty)
+update t1 set value=value*qty from aj(t1,t2,`date)
+assert 1,eqObj(t1.value,NULL 7.8 9.2 10.2 38,1)
+
+@testing:case="statement_update_from_wj"
+t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, 10.6 10.7 20.6 as price)
+t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (10+(1..10)\10-0.05) join (20+(1..10)\10-0.05) as bid, (10+(1..10)\10+0.05) join (20+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+update t1 set price=price-avg_bid from wj(t1, t2, -5:0, <avg(bid)>, `sym`time)
+assert 1,eqObj(t1.price,0.3 0.3 0.3,1)
+
+@testing:case="statement_update_from_pwj"
+t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, 10.6 10.7 20.6 as price)
+t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (10+(1..10)\10-0.05) join (20+(1..10)\10-0.05) as bid, (10+(1..10)\10+0.05) join (20+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+update t1 set price=price-first_bid+avg_offer from pwj(t1, t2, -1:1, <[first(bid), avg(offer)]>, `sym`time)
+assert 1,eqObj(t1.price,10.8 10.9 20.8,1)
+
+@testing:case="statement_update_from_cj"
+t1=table(2010 2011 2012 as year,500 850 120 as qty)
+t2=table(`A`B`C as sym,20.3 12.6 10.2 as val)
+update t2 set val=val*qty from cj(t2,t1)
+//take the last result
+assert 1,t2.val==2436 1512 1224
+
+@testing:case="statement_update_multiple_columns"
+//update one column
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+update t set sym=left(sym,2)
+assert 1,t.sym==take(`Aa`Bb,10)
+
+//update two columns
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+update t set sym=left(sym,2),id=id+1
+assert 2,t.sym==take(`Aa`Bb,10)
+assert 3,t.id==2..11
+
+//update three columns
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+update t set sym=left(sym,2),id=id+1,qty=qty+100
+assert 4,t.sym==take(`Aa`Bb,10)
+assert 5,t.id==2..11
+//assert 6,t.qty==600 300 400 550 220 980 360 410 340 250
+
+//update four columns
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+update t set sym=left(sym,2),id=id+1,qty=qty+100,val=qty*val
+assert 7,t.sym==take(`Aa`Bb,10)
+assert 8,t.id==2..11
+assert 9,t.qty==600 300 400 550 220 880 360 410 340 250
+assert 10,eqObj(t.val,double(600 440 360 990 144 1716 312 682 288 330))
+
+//update all columns
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+update t set sym=left(sym,2),id=id+1,qty=qty+100,val=qty*val,year=year+1
+
+assert 11,t.sym==take(`Aa`Bb,10)
+assert 12,t.id==2..11
+assert 13,t.qty==600 300 400 550 220 880 360 410 340 250
+assert 14,eqObj(t.val,double(600 440 360 990 144 1716 312 682 288 330))
+assert 15,t.year==2007..2016
+
+@testing:case="statement_update_with_user_define_function"
+def testUpdate(a,b){
+	return a+b
+	}
+t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,500 200 300 450 120 780 260 310 240 150 as qty,take(1.2 2.2,10) as val,2006..2015 as year)
+
+update t set val=testUpdate(qty,val) where mod(id,2)=0
+assert 1,t.val==1.2 202.2 1.2 452.2 1.2 782.2 1.2 312.2 1.2 152.2
+
+@testing:case="statement_update_block"
+t=table(take(`A`B,3000000) as sym,1..1023 join int() join 1025..1048575 join int() join 1048577..3000000 as val)
+update t set val=val+1
+assert 1,t.val==2..1024 join int() join 1026..1048576 join int() join 1048578..3000001
+
+t=table(take(`A`B,3000000) as sym,1..1022 join int() join 1024..1048574 join int() join 1048576..3000000 as val)
+update t set val=val+1
+assert 1,t.val==2..1023 join int() join 1025..1048575 join int() join 1048577..3000001
+
+t=table(take(`A`B,3000000) as sym,1..1024 join int() join 1026..1048576 join int() join 1048578..3000000 as val)
+update t set val=val+1
+assert 1,t.val==2..1025 join int() join 1027..1048577 join int() join 1048579..3000001
+
+t=table(take(`A`B,3000000) as sym,1..1022 join take(int(),3) join 1026..1048574 join take(int(),3) join 1048578..3000000 as val)
+update t set val=val+1
+assert 1,t.val==2..1023 join take(int(),3) join 1027..1048575 join take(int(),3) join 1048579..3000001
+
+@testing:case="statement_update_size_not_match",exception=1
+t1 = table(2 4 5 as a1)
+update t1 set a2=1..3 where a1=2
+
+@testing:case = "statement_update_partition_column_in_memory_partition_table",exception = 1
+n=10
+ID=rand(10, n)
+x=rand(1.0, n)
+t=table(ID, x)
+dbpath=WORK_DIR+"/tupdate"
+if(existsDatabase(dbpath)){
+	dropDatabase(dbpath)
+}
+db=database(dbpath, RANGE,  0 5 10)
+pt = db.createPartitionedTable(t, `pt, `ID)
+pt.append!(t)
+update pt set ID = 1..10
+
+@testing: case = "statement_update_partition_table_context_by_not_partition_column", exception = 1
+sym = `C`MS`MS`MS`IBM`IBM`C`C`C$symbol;                                
+price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29; 
+qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800;  
+t1 = table(sym, price, qty)
+dbpath=WORK_DIR+"/tupdate"
+if(existsDatabase(dbpath)){
+	dropDatabase(dbpath)
+}
+db = database(dbpath, RANGE, 0 2000 4000 6000)
+t3 = db.createPartitionedTable(t1, `t3, `qty)
+t3.append!(t1)
+update t3 set price=price-10 context by sym
+
+@testing:case = "statement_update_partition_table_context_by_partition_column_ex", exception=1
+sym = `C`MS`MS`MS`IBM`IBM`C`C`C$symbol;                                
+price= 49.6 29.46 29.52 30.02 174.97 175.23 50.76 50.32 51.29; 
+qty = 2200 1900 2100 3200 6800 5400 1300 2500 8800;  
+t1 = table(sym, price, qty)
+dbpath=WORK_DIR+"/tupdate"
+if(existsDatabase(dbpath)){
+	dropDatabase(dbpath)
+}
+db1 = database(dbpath, RANGE, 0 2000 4000 6000)
+t5 = db1.createPartitionedTable(t1, `t5, `qty)
+t5.append!(t1)
+update t5 set price = price-10 context by qty
+
+@testing: case="statement_update_new_column"
+a1 = 1 2 3
+t1 = table(a1)
+update t1 set a2 = 1..3
+
+@testing:case="statement_update_where_ordering_function"
+t=table(1 2 3 NULL NULL 4 5 6 as x);
+t=select *, double() as ret from t;
+update t set ret=x\prev(x) where isValid(x) and isValid(prev(x));
+assert 1, t[`x]==1 2 3 NULL NULL 4 5 6
+assert 2, eqObj(t[`ret],[NULL,NULL,1.5,NULL,NULL,NULL,1.666667,1.2],6)
+
+@testing:case="statement_update_dictionary",exception=1
+t=dict(`id`val, [1 2 3, 4 5 6])
+update t set id=id+1
+
+@testing:case="statement_update_set_table",exception=1
+date = table(2020.01.01..2020.01.10 as date);
+ticker = table(`A`B`C$SYMBOL as ticker);
+t = select *, iif(ticker=="A", 1, 0) as value from cj(date, ticker);
+update t set v2 = select iif(date==2020.01.08, 10, 11) from t;
+t
+
+@testing:case="statement_update_duplicated_colNames",syntaxError=1
+t=table(1 2 3 4 as x)
+update t set x1=msum(x,2),  x1=msum(x,2)
+@testing:case="statement_update_shared_table_from_join"
+share table(5 3 1 6 as id, 300 500 800 500 as qty, 7.8 4.6 5.1 0.1 as value) as shared_t
+tmp_t = exec max(id) id, max(qty) qty, max(value) value from shared_t
+update shared_t set value = value from ej(shared_t, tmp_t, `id)
+assert 1, eqObj((exec value from shared_t where id=6), [0.1], 1)
+
+update shared_t set value = tmp_t.value from ej(shared_t, tmp_t, `id)
+assert 2, eqObj((exec value from shared_t where id=6), [7.8], 1)
+
+undef(`shared_t, SHARED)
+
+@testing:case="statement_update_new_colum_crash",exception = 1
+t = table(take(`a,20) as sym,1..20 as price, 1..20 as vol)
+t["new_factor"] = select price*vol from t
+
+
+@testing:case="test_function_decimal_update_multiple_columns"
+//update one column
+x = rand(10.0, 100)
+t = table(take(1..10, 100) as id, x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=data1+1
+update t set data2=data2+2
+assert 1,t.data1 == decimal32(x, 3) + 1
+assert 2,t.data2 == decimal64(x, 6) + 2
+
+//update two columns
+x = rand(10.0, 100)
+t = table(take(1..10, 100) as id, x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=data1+1,data2=data2+2
+assert 3,t.data1 == decimal32(x, 3) + 1
+assert 4,t.data2 == decimal64(x, 6) + 2
+
+//update three columns
+x1 = rand(10.0, 100)
+x2 = rand(100,100)
+t = table(take(1..10, 100) as id, x1 as data, decimal32(x1, 3) as data1, decimal64(x1, 6) as data2,decimal32(x2, 0) as data3, decimal64(x2, 0) as data4)
+update t set data1=data1+1,data2=data2+2,data3=data3+100
+assert 5,t.data1 == decimal32(x1, 3) + 1
+assert 6,t.data2 == decimal64(x1, 6) + 2
+assert 7,t.data3 == decimal32(x2, 0) + 100
+
+//update four columns
+x1 = rand(10.0, 100)
+x2 = rand(100,100)
+t = table(take(1..10, 100) as id, x1 as data, decimal32(x1, 3) as data1, decimal64(x1, 6) as data2,decimal32(x2, 0) as data3, decimal64(x2, 0) as data4)
+update t set data1=data1+1,data2=data2+2,data3=data3+100,data4=data4+200
+assert 8,t.data1 == decimal32(x1, 3) + 1
+assert 9,t.data2 == decimal64(x1, 6) + 2
+assert 10,t.data3 == decimal32(x2, 0) + 100
+assert 11,t.data4 == decimal64(x2, 0) + 200
+
+//update six columns
+x1 = rand(10.0, 100)
+x2 = rand(100,100)
+x3 = rand(1.0,100)
+t = table(take(1..10, 100) as id, x1 as data, decimal32(x1, 3) as data1, decimal64(x1, 6) as data2,decimal32(x2, 0) as data3, decimal64(x2, 0) as data4,decimal32(x3, 9) as data5, decimal64(x3, 18) as data6)
+update t set data1=data1+1,data2=data2+2,data3=data3+100,data4=data4+200,data5=data5+decimal32(0.001, 9),data6=data6+decimal64(0.002, 18)
+assert 12,t.data1 == decimal32(x1, 3) + 1
+assert 13,t.data2 == decimal64(x1, 6) + 2
+assert 14,t.data3 == decimal32(x2, 0) + 100
+assert 15,t.data4 == decimal64(x2, 0) + 200
+assert 16,t.data5 == decimal32(x3, 9) + decimal32(0.001, 9)
+assert 17,t.data6 == decimal64(x3, 18) + decimal64(0.002, 18)
+
+@testing:case="test_function_decimal_update_ej"
+def f1(sca){
+	x1 = decimal32([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8 ,t1.value[1], t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from ej(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	x1 = decimal64([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8 ,t1.value[1], t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from ej(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}else if(mm > 15){
+		 mm = 15
+	}
+	
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_lj"
+def f1(sca){
+	x1 = decimal32([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8 ,NULL, t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from lj(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	x1 = decimal64([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8 ,NULL, t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from lj(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}else if(mm > 15){
+		 mm = 15
+	}
+	
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_lsj"
+def f1(sca){
+	x1 = decimal32([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8, NULL, t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from lsj(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	x1 = decimal64([0.78,0.46,0.51,0.01],sca)
+	t1= table(1 2 3 3 as id, x1 as value)
+	t2 = table(5 3 1 as id, [0.3, 0.5, 0.8] as qty)
+	ex = [t1.value[0]*0.8, NULL, t1.value[2]*0.5, t1.value[3]*0.5]
+	update t1 set value=value*qty from lsj(t1,t2,`id)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}else if(mm > 15){
+		 mm = 15
+	}
+	
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_aj"
+def f1(sca){
+	x1 = decimal32([0.29093385,0.682725219,0.867054923,0.742839545,0.006485016],sca)
+	//x1 = decimal32(rand(1.0, 5),sca)
+	t1 = table(2015.01.01+(0 31 59 90 120) as date, x1 as value)
+	t2 = table(2015.02.01+(0 15 89 89) as date, 0.1 0.2 0.3 0.4 as qty)
+	ex = [NULL ,t1.value[1]*0.1, t1.value[2]*0.2, t1.value[3]*0.2 ,t1.value[4]*0.4]
+	update t1 set value=value*qty from aj(t1,t2,`date)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}
+	return each(eqFloat,t1.value,ex,mm) 
+}
+res = loop(f1,0..9)
+assert 1, res 
+
+def f2(sca){
+	x1 = decimal64([0.29093385,0.682725219,0.867054923,0.742839545,0.006485016],sca)
+	t1 = table(2015.01.01+(0 31 59 90 120) as date, x1 as value)
+	t2 = table(2015.02.01+(0 15 89 89) as date, 0.1 0.2 0.3 0.4 as qty)
+	ex = [NULL ,t1.value[1]*0.1, t1.value[2]*0.2, t1.value[3]*0.2 ,t1.value[4]*0.4]
+	update t1 set value=value*qty from aj(t1,t2,`date)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}else if(mm > 15){
+		 mm = 15
+	}
+	return each(eqFloat,t1.value,ex,mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_wj"
+def f1(sca){
+	x1 = [decimal32(0.106,sca),decimal32(0.107,sca),decimal32(0.206,sca)]
+	x2 = [0.106,0.107,0.206]
+	t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x1 as price)
+	ex = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x2 as price)
+	t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (0.1+(1..10)\10-0.05) join (0.2+(1..10)\10-0.05) as bid, (10+(1..10)\10+0.05) join (20+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+	update t1 set price=price-avg_bid from wj(t1, t2, -5:0, <avg(bid)>, `sym`time)
+	update ex set price=price-avg_bid from wj(ex, t2, -5:0, <avg(bid)>, `sym`time)
+	mm = sca - 1
+	if(mm < 0){
+		mm = 0
+	}
+	return eqFloat(t1.price,ex.price,mm)
+}
+assert 1,loop(f1,0..9)
+
+def f2(sca){
+	x1 = [decimal64(0.106,sca),decimal64(0.107,sca),decimal64(0.206,sca)]
+	x2 = [0.106,0.107,0.206]
+	t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x1 as price)
+	ex = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x2 as price)
+	t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (0.1+(1..10)\10-0.05) join (0.2+(1..10)\10-0.05) as bid, (10+(1..10)\10+0.05) join (20+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+	update t1 set price=price-avg_bid from wj(t1, t2, -5:0, <avg(bid)>, `sym`time)
+	update ex set price=price-avg_bid from wj(ex, t2, -5:0, <avg(bid)>, `sym`time)
+	mm = sca - 1
+	if(mm < 0){
+		mm = 0
+	}
+	if(mm > 15){
+		mm = 15
+	}
+	return eqFloat(t1.price,ex.price,mm)
+}
+assert 2,loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_pwj"
+def f1(sca){
+	x1 = [decimal32(0.106,sca),decimal32(0.107,sca),decimal32(0.206,sca)]
+	x2 = [0.106,0.107,0.206]
+	t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x1 as price)
+	ex = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x2 as price)
+	t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (0.1+(1..10)\10-0.05) join (0.2+(1..10)\10-0.05) as bid, (0.1+(1..10)\10+0.05) join (0.2+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+	update t1 set price=price-first_bid+avg_offer from pwj(t1, t2, -1:1, <[first(bid), avg(offer)]>, `sym`time)
+	update ex set price=price-first_bid+avg_offer from pwj(ex, t2, -1:1, <[first(bid), avg(offer)]>, `sym`time)
+	mm = sca - 1
+	if(mm < 0){
+		mm = 0
+	}
+	return eqFloat(t1.price,ex.price,mm)
+}
+assert 1,loop(f1,0..9)
+
+def f2(sca){
+	x1 = [decimal64(0.106,sca),decimal64(0.107,sca),decimal64(0.206,sca)]
+	x2 = [0.106,0.107,0.206]
+	t1 = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x1 as price)
+	ex = table(`A`A`B as sym, 09:56:06 09:56:07 09:56:06 as time, x2 as price)
+	t2 = table(take(`A,10) join take(`B,10) as sym, take(09:56:00+1..10,20) as time, (0.1+(1..10)\10-0.05) join (0.2+(1..10)\10-0.05) as bid, (0.1+(1..10)\10+0.05) join (0.2+(1..10)\10+0.05) as offer, take(100 300 800 200 600, 20) as volume)
+	update t1 set price=price-first_bid+avg_offer from pwj(t1, t2, -1:1, <[first(bid), avg(offer)]>, `sym`time)
+	update ex set price=price-first_bid+avg_offer from pwj(ex, t2, -1:1, <[first(bid), avg(offer)]>, `sym`time)
+	mm = sca - 1
+	if(mm < 0){
+		mm = 0
+	}
+	if(mm > 15){
+		mm = 15
+	}
+	return eqFloat(t1.price,ex.price,mm)
+}
+assert 2,loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_cj"
+def f1(sca){
+	x1 = decimal32(0.5 0.85 0.12,sca)
+	t1=table(2010 2011 2012 as year,x1 as qty)
+	t2=table(`A`B`C as sym,0.203 0.126 0.102 as val)
+	ex = [t1.qty[2]*t2.val[0] ,t1.qty[2]*t2.val[1], t1.qty[2]*t2.val[2]]
+	update t2 set val=val*qty from cj(t2,t1)
+	
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}
+	return each(eqFloat,t2.val,ex,mm) 
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	x1 = decimal64(0.5 0.85 0.12,sca)
+	t1=table(2010 2011 2012 as year,x1 as qty)
+	t2=table(`A`B`C as sym,0.203 0.126 0.102 as val)
+	ex = [t1.qty[2]*t2.val[0] ,t1.qty[2]*t2.val[1], t1.qty[2]*t2.val[2]]
+	update t2 set val=val*qty from cj(t2,t1)
+	mm = sca-1
+	if(mm < 0){
+		mm = 1
+	}else if(mm > 15){
+		 mm = 15
+	}
+	
+	return each(eqFloat,t2.val,ex,mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_ColumnsToNulls"
+x = rand(10.0, 100)
+t = table(take(1..10, 100) as id, x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=NULL, data2=NULL;
+assert 1,t.data1 == NULL
+assert 2,t.data2 == NULL
+
+@testing:case="test_function_decimal_update_ColumnsWhereEqual"
+//x = rand(1.0, 10)
+x = [0.048638,0.099676,0.620984,0.135906,0.802146,0.944934,0.515286,0.465157,0.755929,0.783272]
+brand=`BROOKS`RALPH`JCREW`BROOKS`JCREW`RALPH`TNF`TNF`ARCTEYRICS`COLUMBIA
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=data1+1 where id==10;
+update t set data2=data2+1 where id==1;
+assert 1, eqFloat(t.data1[9],x[9]+1,2)
+assert 2, eqFloat(t.data2[0],x[0]+1,5)
+
+@testing:case="test_function_decimal_update_ColumnsToNullsWhereEqual"
+x = rand(1.0, 10)
+brand=`BROOKS`RALPH`JCREW`BROOKS`JCREW`RALPH`TNF`TNF`ARCTEYRICS`COLUMBIA
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=NULL where id==10;
+update t set data2=NULL where id==1;
+assert 1,t.data1[9]==NULL;
+assert 2,t.data2[0]==NULL;
+
+@testing:case="test_function_decimal_update_ColumnsWhereEqual_more_than_one_condition"
+x = 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 0.9
+brand=`BROOKS`RALPH`JCREW`BROOKS`JCREW`RALPH`TNF`TNF`ARCTEYRICS`COLUMBIA
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=0 where id>3,data<0.9;
+update t set data2=0 where id>3,data<0.9;
+assert 1, t.data1 == [decimal32(0.1,3),decimal32(0.2,3),decimal32(0.3,3)] join take(decimal32(0,3),5) join take(decimal32(0.9,3),2)
+assert 2, t.data2 == [decimal64(0.1,3),decimal64(0.2,3),decimal64(0.3,3)] join take(decimal64(0,3),5) join take(decimal64(0.9,3),2)
+
+@testing:case="test_function_decimal_update_ColumnsToNullsWhereEqual_more_than_one_condition"
+x = 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 0.9
+brand=`BROOKS`RALPH`JCREW`BROOKS`JCREW`RALPH`TNF`TNF`ARCTEYRICS`COLUMBIA
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=NULL where id>3,data<0.9;
+update t set data2=NULL where id>3,data<0.9;
+assert 1, t.data1 == [decimal32(0.1,3),decimal32(0.2,3),decimal32(0.3,3)] join [NULL,NULL,NULL,NULL,NULL,decimal32(0.9,3),decimal32(0.9,3)]
+assert 2, t.data2 == [decimal64(0.1,3),decimal64(0.2,3),decimal64(0.3,3)] join [NULL,NULL,NULL,NULL,NULL,decimal32(0.9,3),decimal32(0.9,3)]
+
+@testing:case="test_function_decimal_update_ColumnsWhereOr"
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=data1+1 where brand==`BROOKS or brand==`TNF;
+update t set data2=data2+1 where brand==`JCREW or brand==`COLUMBIA;
+assert 1, eqFloat(t.data1[0],x[0]+1,2)
+assert 2, eqFloat(t.data2[2],x[2]+1,5)
+
+@testing:case="test_function_decimal_update_ColumnsToNullsWhereOr"
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=NULL, data2=NULL where brand==`BROOKS or brand==`TNF;
+assert 1,t.data1[0]==NULL;
+assert 2,t.data1[3]==NULL;
+assert 3,t.data2[7]==NULL;
+assert 4,t.data2[6]==NULL;
+
+@testing:case="test_function_decimal_update_ColumnsWhereIn";
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=data1+1, data2=data2+1 where id in 7 8;
+assert 1,eqFloat(t.data1[7],x[7]+ 1,3)
+assert 2,eqFloat(t.data1[6],x[6]+ 1,3)
+assert 3,eqFloat(t.data2[7],x[7]+ 1,5)
+assert 4,eqFloat(t.data2[6],x[6]+ 1,5)
+
+@testing:case="test_function_decimal_update_ColumnsToNullsWhereIn";
+t = table(1..10 as id, brand,x as data, decimal32(x, 3) as data1, decimal64(x, 6) as data2)
+update t set data1=NULL, data2=NULL where id in 7 8;
+assert 1,t.data1[6]==NULL;
+assert 2,t.data2[7]==NULL;
+
+@testing:case="test_function_decimal_update_context_by"
+def f1(sca){
+	x =decimal32(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal32(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal32(6,sca))==3 && size(select id from t1 where v1=decimal32(9,sca))==2
+	}
+	return size(select id from t1 where v1=decimal32(0.6,sca))==3 && size(select id from t1 where v1=decimal32(0.9,sca))==2
+}
+assert 1,loop(f1,0..9)
+
+def f2(sca){
+	x =decimal64(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal64(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal64(6,sca))==3 && size(select id from t1 where v1=decimal64(9,sca))==2
+	}
+	return size(select id from t1 where v1=decimal64(0.6,sca))==3 && size(select id from t1 where v1=decimal64(0.9,sca))==2
+}
+assert 2,loop(f2,0..18)
+
+def f3(sca){
+	x =decimal32(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal32(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 3 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym,id
+	if(sca == 0){
+		return (select v1 from t1 where id=3)[0]["v1"] == decimal32(2,sca)
+	}
+	return (select v1 from t1 where id=3)[0]["v1"] == decimal32(0.2,sca)
+}
+assert 3,loop(f3,0..9)
+
+def f4(sca){
+	x =decimal64(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal64(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 3 1 2 2 as id, `AAPL`AAPL`AAPL`GOOG`GOOG as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym,id
+	if(sca == 0){
+		return (select v1 from t1 where id=3)[0]["v1"] == decimal64(2,sca)
+	}
+	return (select v1 from t1 where id=3)[0]["v1"] == decimal64(0.2,sca)
+}
+assert 4,loop(f4,0..18)
+
+def f5(sca){
+	x =decimal32(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal32(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal32(6,sca))==3 && size(select id from t1 where v1=decimal32(9,sca))==2
+	}
+	return size(select id from t1 where v1=decimal32(0.6,sca))==3 && size(select id from t1 where v1=decimal32(0.9,sca))==2
+}
+assert 5,loop(f5,0..9)
+
+def f6(sca){
+	x =decimal64(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal64(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	update t1 set v1=sum(v1) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal64(6,sca))==3 && size(select id from t1 where v1=decimal64(9,sca))==2
+	}
+	return size(select id from t1 where v1=decimal64(0.6,sca))==3 && size(select id from t1 where v1=decimal64(0.9,sca))==2
+}
+assert 6,loop(f6,0..18)
+
+def f7(sca){
+	x =decimal32(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal32(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	update t1 set v1=sum(v1*2) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal32(12,sca))==3 && size(select id from t1 where v1=decimal32(18,sca))==2
+	}
+	return size(select id from t1 where v1=decimal32(1.2,sca))==3 && size(select id from t1 where v1=decimal32(1.8,sca))==2
+}
+assert 7,loop(f7,0..9)
+
+def f8(sca){
+	x =decimal64(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal64(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	update t1 set v1=sum(v1*2) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal64(12,sca))==3 && size(select id from t1 where v1=decimal64(18,sca))==2
+	}
+	return size(select id from t1 where v1=decimal64(1.2,sca))==3 && size(select id from t1 where v1=decimal64(1.8,sca))==2
+}
+assert 8,loop(f8,0..18)
+
+def f9(sca){
+	x =decimal32(0.1 0.2 0.3 0.4 0.5,sca)
+	if(sca == 0){
+		x = decimal32(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	t2=table(1 2 as id, [0.1,0.2] as v2)
+	update t1 set v1=sum(v1+v2) from ej(t1,t2,`id) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal32(6,sca))==3 && size(select id from t1 where v1=decimal32(9,sca))==2
+	}
+	return size(select id from t1 where v1=decimal32(0.9,sca))==3 && size(select id from t1 where v1=decimal32(1.3,sca))==2
+}
+assert 9,loop(f9,0..9)
+
+def f10(sca){
+	x =decimal64(0.1 0.2 0.3 0.4 0.6,sca)
+	if(sca == 0){
+		x = decimal64(1 2 3 4 5,sca)
+	}
+	
+	t1=table(1 1 1 2 2 as id, symbol(`AAPL`AAPL`AAPL`GOOG`GOOG) as sym, x as v1)
+	t2=table(1 2 as id, 1..2 as v2)
+	update t1 set v1=sum(v1+v2) from ej(t1,t2,`id) context by sym
+	if(sca == 0){
+		return size(select id from t1 where v1=decimal64(9,sca))==3 && size(select id from t1 where v1=decimal64(13,sca))==2
+	}
+	return size(select id from t1 where v1=decimal64(3.6,sca))==3 && size(select id from t1 where v1=decimal64(5.0,sca))==2
+}
+assert 10,loop(f10,0..18)
+
+@testing:case="test_function_decimal_update_contextby_morethan2_cols"
+def f1(sca){
+    t1=table(2015.05M 2015.06M 2016.03M 2016.07M as mm, 1 1 2 3 as id, [decimal32(0.1,sca),decimal32(0.2,sca),decimal32(0.3,sca),decimal32(0.4,sca)] as v)
+    update t1 set v=sum(v) where v<0.3 context by year(mm), id
+    ex = 0.3 0.3 0.3 0.4
+    mm = sca - 1
+    if(sca == 0){
+    	mm = 0
+    }
+    return eqFloat(t1.v,decimal32(ex,sca),mm)
+}
+assert 1 , loop(f1,0..9)
+
+def f2(sca){
+    t1=table(2015.05M 2015.06M 2016.03M 2016.07M as mm, 1 1 2 3 as id, [decimal64(0.1,sca),decimal64(0.2,sca),decimal64(0.3,sca),decimal64(0.4,sca)] as v)
+    update t1 set v=sum(v) where v<0.3 context by year(mm), id
+    ex = 0.3 0.3 0.3 0.4
+    mm = sca - 1
+    if(sca == 0){
+    	mm = 0
+    }
+    if(sca >15){
+    	mm = 15
+    }
+    return eqFloat(t1.v,decimal64(ex,sca),mm)
+}
+assert 2 , loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_context_by_no_column_reference"
+def f1(sca){
+	t1=table(2015.05M 2015.06M 2016.03M as mm, decimal32([0.1,0.2,0.3],sca) as v)
+	update t1 set v=sum(v) where v<0.3 context by year(mm)
+	sca1 = sca - 1
+	if(sca1 < 0){
+		sca1 = 0
+	}
+	return eqFloat(t1.v,0.3,sca1)
+}
+assert 1,loop(f1,0..9)
+
+def f2(sca){
+	t1=table(2015.05M 2015.06M 2016.03M as mm, decimal64([0.1,0.2,0.3],sca) as v)
+	update t1 set v=sum(v) where v<0.3 context by year(mm)
+	sca1 = sca - 1
+	if(sca1 < 0){
+		sca1 = 0
+	}
+	 if(sca >15){
+    		sca1 = 15
+    	}
+	return eqFloat(t1.v,0.3,sca1)
+}
+assert 2,loop(f2,0..18)
+
+
+@testing:case="test_function_decimal_update_context_by_bigarray"
+def f1(sca){
+	n=4000000
+	t1=table(take(1 1 1 2 2,n) as id, take(symbol(`AAPL`AAPL`AAPL`GOOG`GOOG),n) as sym, take(decimal32([0.1,0.2,0.3,0.4,0.5],sca),n) as v1)
+	update t1 set v1=min(v1) context by sym
+	total=size(select * from t1 where sym=`AAPL)
+	return total==2400000
+}
+assert 1,loop(f1,0..9)
+
+def f2(sca){
+	n=4000000
+	t1=table(take(1 1 1 2 2,n) as id, take(symbol(`AAPL`AAPL`AAPL`GOOG`GOOG),n) as sym, take(decimal64([0.1,0.2,0.3,0.4,0.5],sca),n) as v1)
+	update t1 set v1=min(v1) context by sym
+	total=size(select * from t1 where sym=`AAPL)
+	return total==2400000
+}
+assert 2,loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_with_user_define_function"
+def testUpdate(a,b){
+	return a+b
+}
+def f1(sca){
+	a = take(decimal32(0.1,sca),10)
+	b = take(decimal32(0.2,sca),10)
+	if(sca == 0){
+		a = take(decimal32(1,sca),10)
+		b = take(decimal32(2,sca),10)
+	}
+	t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,a as qty,b as val,2006..2015 as year)
+	update t set val=testUpdate(qty,val) where mod(id,2)=0
+	if(sca == 0){
+		return t.val == 2 3 2 3 2 3 2 3 2 3
+	}else{
+		return t.val == 0.2 0.3 0.2 0.3 0.2 0.3 0.2 0.3 0.2 0.3
+	}
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	a = take(decimal64(0.1,sca),10)
+	b = take(decimal64(0.2,sca),10)
+	if(sca == 0){
+		a = take(decimal64(1,sca),10)
+		b = take(decimal64(2,sca),10)
+	}
+	t=table(take(`Aaa`Bbb,10) as sym,1..10 as id,a as qty,b as val,2006..2015 as year)
+	update t set val=testUpdate(qty,val) where mod(id,2)=0
+	if(sca == 0){
+		return t.val == 2 3 2 3 2 3 2 3 2 3
+	}else{
+		return t.val == 0.2 0.3 0.2 0.3 0.2 0.3 0.2 0.3 0.2 0.3
+	}
+}
+assert 2,loop(f2,0..18)
+
+@testing: case="test_function_decimal_update_new_column"
+def f1(sca){
+	a1 = 1 2 3
+	t1 = table(a1)
+	if(sca == 0){
+		update t1 set a2 = [decimal32(1,sca),decimal32(2,sca),decimal32(3,sca)]
+		return each(eqFloat,exec a2 from t1,[decimal32(1,sca),decimal32(2,sca),decimal32(3,sca)]) 
+	}else{
+		update t1 set a2 = [decimal32(0.1,sca),decimal32(0.2,sca),decimal32(0.3,sca)]
+		return each(eqFloat,exec a2 from t1,[decimal32(0.1,sca),decimal32(0.2,sca),decimal32(0.3,sca)]) 
+	}	
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	a1 = 1 2 3
+	t1 = table(a1)
+	if(sca == 0){
+		update t1 set a2 = [decimal64(1,sca),decimal64(2,sca),decimal64(3,sca)]
+		return each(eqFloat,exec a2 from t1,[decimal64(1,sca),decimal64(2,sca),decimal64(3,sca)]) 
+	}else{
+		update t1 set a2 = [decimal64(0.1,sca),decimal64(0.2,sca),decimal64(0.3,sca)]
+		return each(eqFloat,exec a2 from t1,[decimal64(0.1,sca),decimal64(0.2,sca),decimal64(0.3,sca)]) 
+	}
+	
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_where_ordering_function"
+def f1(sca){
+	if(sca == 0){
+		ex=table(1 2 3 NULL NULL 4 5 6 as x);
+		ex = select *,double() as ret from ex
+		update ex set ret=x/prev(x) where isValid(x) and isValid(prev(x)); 
+		t=table([decimal32(1,sca),decimal32(2,sca),decimal32(3,sca),NULL,NULL,decimal32(4,sca),decimal32(5,sca),decimal32(6,sca)] as x)
+		t = select *,double() as ret from t
+		update t set ret=x/prev(x) where isValid(x) and isValid(prev(x));
+		return eqFloat((exec ret from ex),(exec ret from t),0) 
+	}
+	ex=table(0.6 0.5 0.4 NULL NULL 0.3 0.2 0.1 as x);
+	ex = select *,double() as ret from ex
+	update ex set ret=x/prev(x) where isValid(x) and isValid(prev(x)); 
+	t=table([decimal32(0.6,sca),decimal32(0.5,sca),decimal32(0.4,sca),NULL,NULL,decimal32(0.3,sca),decimal32(0.2,sca),decimal32(0.1,sca)] as x)
+	t = select *,double() as ret from t
+	update t set ret=x/prev(x) where isValid(x) and isValid(prev(x));
+	return eqFloat((exec ret from ex),(exec ret from t),sca) 
+}
+assert 1, loop(f1,0..9)
+
+def f2(sca){
+	if(sca == 0){
+		ex=table(1 2 3 NULL NULL 4 5 6 as x);
+		ex = select *,double() as ret from ex
+		update ex set ret=x/prev(x) where isValid(x) and isValid(prev(x)); 
+		t=table([decimal64(1,sca),decimal64(2,sca),decimal64(3,sca),NULL,NULL,decimal64(4,sca),decimal64(5,sca),decimal64(6,sca)] as x)
+		t = select *,double() as ret from t
+		update t set ret=x/prev(x) where isValid(x) and isValid(prev(x));
+		return eqFloat((exec ret from ex),(exec ret from t),0) 
+	}
+	ex=table(0.6 0.5 0.4 NULL NULL 0.3 0.2 0.1 as x);
+	ex = select *,double() as ret from ex
+	update ex set ret=x/prev(x) where isValid(x) and isValid(prev(x)); 
+	t=table([decimal64(0.6,sca),decimal64(0.5,sca),decimal64(0.4,sca),NULL,NULL,decimal64(0.3,sca),decimal64(0.2,sca),decimal64(0.1,sca)] as x)
+	t = select *,double() as ret from t
+	update t set ret=x/prev(x) where isValid(x) and isValid(prev(x));
+	mm = sca
+	if(sca >15){
+		mm =15
+	}
+	return eqFloat((exec ret from ex),(exec ret from t),mm) 
+}
+assert 2, loop(f2,0..18)
+
+@testing:case="test_function_decimal_update_shared_table_from_join"
+for(sca in 1..9){
+	share table(5 3 1 6 as id, [decimal32(0.8,sca),decimal32(0.6,sca),decimal32(0.5,sca),decimal32(0.1,sca)] as value) as shared_t
+	tmp_t = exec max(id) id, max(value) value from shared_t
+	update shared_t set value = value from ej(shared_t, tmp_t, `id)
+	assert 1, each(eqFloat,(exec value from shared_t where id=6), [0.1],sca)
+	update shared_t set value = tmp_t.value from ej(shared_t, tmp_t, `id)
+	assert 2, each(eqFloat,(exec value from shared_t where id=6), [0.8],sca)
+	undef(`shared_t, SHARED)
+}
+sca = 0
+share table(5 3 1 6 as id, [decimal32(8,sca),decimal32(6,sca),decimal32(5,sca),decimal32(1,sca)] as value) as shared_t
+tmp_t = exec max(id) id, max(value) value from shared_t
+update shared_t set value = value from ej(shared_t, tmp_t, `id)
+assert 1, each(eqFloat,(exec value from shared_t where id=6), [1],sca)
+update shared_t set value = tmp_t.value from ej(shared_t, tmp_t, `id)
+assert 2, each(eqFloat,(exec value from shared_t where id=6), [8],sca)
+undef(`shared_t, SHARED)
+
+
+@testing:case="test_sql_where_in_use_vector_tuple_more_than_128_elements"
+t = table(1..1000 as x, 1..1000 as y)
+ex = table(1..1000 as x, take(10, 1000) as y)
+update t set y=10 where x in 1..1000
+assert 1, eqObj(ex.values(), t.values())
+t = table(1..1000 as x, 1..1000 as y)
+ex = table(1..1000 as x, take(10, 1000) as y)
+update t set y=10 where x in cast(1..1000, 25)
+assert 2, eqObj(ex.values(), t.values())
+
+@testing:case = "test_update_memory_table_col_index_over_left_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, -1..10] = `D
+
+@testing:case = "test_update_memory_table_col_index_over_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, 0..100] = `D
+
+@testing:case = "test_update_memory_table_col_index_over_left_and_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, -1..100] = `D
+
+@testing:case = "test_update_memory_table_col_index_cover_left_and_right_broder"
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, 0..99] = `D
+ex = table(1..100 as id, take(`D, 100) as name)
+assert 1,eqObj(t.values(),ex.values())
+
+@testing:case = "test_update_memory_table_col_index_scalar_over_left_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, -1] = `D
+
+@testing:case = "test_update_memory_table_col_index_scalar_over_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, 100] = `D
+
+@testing:case = "test_update_memory_table_col_index_scalar"
+t = table(1..100 as id, take(`A`B`C, 100) as name)
+t[`name, 2] = `D
+ex = table(1..100 as id, `A`B`D join take(`A`B`C, 97) as name)
+assert 1,eqObj(t.values(),ex.values())
+
+@testing:case = "test_update_memory_table_multiple_col_index_over_left_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, -1..10] = `D`E
+
+@testing:case = "test_update_memory_table_multiple_col_index_over_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, 0..100] = `D`E
+
+@testing:case = "test_update_memory_table_multiple_col_index_over_left_and_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, -1..100] = `D`E
+
+@testing:case = "test_update_memory_table_multiple_col_index_cover_left_and_right_broder"
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, 0..99] = `D`E
+ex = table(1..100 as id, take(`D, 100) as name, take(`E, 100) as name2)
+assert 1,eqObj(t.values(),ex.values())
+
+@testing:case = "test_update_memory_table_multiple_col_index_scalar_over_left_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, -1] = `D`E
+
+@testing:case = "test_update_memory_table_multiple_col_index_scalar_over_right_broder",exception =1 
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, 100] = `D`E
+
+@testing:case = "test_update_memory_table_multiple_col_index_scalar"
+t = table(1..100 as id, take(`A`B`C, 100) as name, take(`A`B`C, 100) as name2)
+t[`name`name2, 2] = `D`E
+ex = table(1..100 as id, `A`B`D join take(`A`B`C, 97) as name,`A`B`E join take(`A`B`C, 97) as name2)
+assert 1,eqObj(t.values(),ex.values())
+
+//https://dolphindb1.atlassian.net/browse/D20-11199
+@testing:case="test_update_null_flag"
+count=100;
+tb=table(count:0,["id","v1","v2"],[LONG,DOUBLE,DOUBLE]);
+insert into tb(id) values(1..count);
+
+vsize=count-10;
+tv1=table(1..vsize as id,rand(10.0,vsize) as v)
+update tb set tb.v1=tv1.v from ej(tb,tv1,"id")
+tv2=table(1..vsize as id,rand(10.0,vsize) as v)
+update tb set tb.v2=tv2.v from ej(tb,tv2,"id")
+re = avg(tb.v1)
+ex = avg(exec v1 from ej(tb,tv1,"id"))
+assert 1, eqObj(re, ex)
+re = avg(tb.v2)
+ex = avg(exec v2 from ej(tb,tv1,"id"))
+assert 2, eqObj(re, ex)
+
+@testing:case="sql_update_where_operator_before_not in", syntaxError=1
+t1 = table(rand(100, 30) as id1, rand(string(1..10), 30) as sym, rand(rand(100.0, 10) join NULL, 30) as val)
+update t1 set sym="5" where sym> not in ("1","0","3")
+
+// https://dolphindb1.atlassian.net/browse/D20-25879
+@testing:case="sql_update_share_multi_metrics"
+n=50000
+close=1..n + 0.05f
+high=n..1 + 0.15f
+closev=int(close)
+highv=int(high)
+share table(take([1, 0], n) as cb, symbol(take("000001.SZ", n)) as symbol, closev as close, highv as high) as sharedT
+tmp=select * from sharedT
+
+update sharedT set cbCount = sum(cb),lclose=min(close),hhigh=max(high) 
+update tmp set cbCount = sum(cb),lclose=min(close),hhigh=max(high) 
+assert 1, each(eqObj, sharedT.values(), tmp.values())
+undef("sharedT", SHARED)
+
+// https://dolphindb1.atlassian.net/browse/D20-26733
+@testing:case="sql_update_decimal_col_with_invalid_value"
+a = table(decimal32(11, 2) as id)
+update a set id = "a"+string(-9)
+assert 1, isNull(a.id)

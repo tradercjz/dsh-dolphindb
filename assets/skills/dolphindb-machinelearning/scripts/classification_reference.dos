@@ -1,0 +1,519 @@
+/*
+DolphinDB Web AI 的一次性分类脚本块库。
+不要运行整个文件。只把需要的脚本块复制到任务脚本中。
+不要定义或调用自定义 web* 函数。
+约束：输出紧凑训练、评估和模型选择摘要。
+*/
+
+// 块索引：
+// 1、24：标签分布和分类标签编码。
+// 2-10：快速 baseline 切分、训练、预测、指标、混淆矩阵、打分和摘要。
+// 11-14：模型函数可用性、候选模型表、train/val/test 切分和空切分检查。
+// 15-22：候选训练、网格候选、最佳候选、风险报告、test 评估和模型选择摘要。
+// 23：训练集欠采样；只用于类别不均衡，且不能改变验证集和测试集分布。
+
+// 块 1：检查分类标签分布。
+// 输入：webFeatures、webLabelCol。
+// 输出：webClassDistribution。
+// 适用：训练前确认类别数量、类别不均衡和空标签。
+webLabelCol = "REPLACE_LABEL_COL"
+webClassSql = "select count(*) as rows from webFeatures group by " + webLabelCol + " as label_value order by rows desc"
+webClassDistribution = eval(parseExpr(webClassSql))
+webClassDistribution
+
+// 块 2：从 webFeatures 准备训练/测试切分。
+// 输入：webFeatures、webLabelCol、webFeatureCols、webSeed。
+// 输出：webTrain、webTest、webClassCount。
+// 适用：分类训练的默认随机切分。
+webLabelCol = "REPLACE_LABEL_COL"
+webFeatureCols = ["REPLACE_FEATURE_1","REPLACE_FEATURE_2"]
+webSeed = 20260519
+webData = select * from webFeatures
+webDataRows = exec count(*) from webData
+webData["web_split_r"] = rand(1.0, webDataRows)
+webClassSql = "select count(*) as class_count from (select distinct " + webLabelCol + " from webData)"
+webClassResult = eval(parseExpr(webClassSql))
+webClassCountVector = exec class_count from webClassResult
+webClassCount = long(webClassCountVector[0])
+webTrain = select * from webData where web_split_r < 0.8
+webTest = select * from webData where web_split_r >= 0.8
+table([exec count(*) from webTrain] as train_rows, [exec count(*) from webTest] as test_rows, [webClassCount] as class_count)
+
+// 块 3：检查训练集和测试集标签分布。
+// 输入：webTrain、webTest、webLabelCol。
+// 输出：webSplitDistribution。
+// 适用：确认随机切分后类别分布是否可接受。
+webTrainSql = "select 'train' as dataset, count(*) as rows from webTrain group by " + webLabelCol + " as label_value"
+webTestSql = "select 'test' as dataset, count(*) as rows from webTest group by " + webLabelCol + " as label_value"
+webSplitDistribution = unionAll(eval(parseExpr(webTrainSql)), eval(parseExpr(webTestSql)))
+webSplitDistribution
+
+// 块 4：训练新的随机森林分类器。
+// 输入：webTrain、webLabelCol、webFeatureCols、webClassCount、webSeed。
+// 输出：webModel、webModelName。
+// 适用：表格数据分类的稳健默认模型。
+webModelName = "randomForestClassifier"
+webTrainDS = sqlDS(<select * from webTrain>)
+webModel = randomForestClassifier(webTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=200, maxDepth=12, randomSeed=webSeed)
+webModelName
+
+// 块 5：预测并构建测试集预测表。
+// 输入：webModel、webTest、webFeatureCols、webLabelCol。
+// 输出：webPredictions。
+// 适用：模型训练后评估测试集。
+webPred = predict(webModel, webTest)
+webActualSql = "select " + webLabelCol + " as actual_label from webTest"
+webActual = eval(parseExpr(webActualSql))
+webPredictions = table(webActual.actual_label as actual_label, webPred as predicted_label)
+webPredictions
+
+// 块 6：计算通用准确率。
+// 输入：webPredictions、webClassCount、webModelName。
+// 输出：webAccuracyReport。
+// 适用：二分类和多分类都需要的基础指标。
+webAccuracy = sum(int(webPredictions.actual_label == webPredictions.predicted_label)) \ double(size(webPredictions.actual_label))
+webAccuracyReport = table(["test"] as dataset, [size(webPredictions.actual_label)] as rows, [webClassCount] as classes, [webAccuracy] as accuracy, [webModelName] as model_function)
+webAccuracyReport
+
+// 块 7：构建混淆矩阵摘要。
+// 输入：webPredictions。
+// 输出：webConfusionReport。
+// 适用：查看实际类别和预测类别组合。
+webConfusionReport = select actual_label, predicted_label, count(*) as rows from webPredictions group by actual_label, predicted_label order by actual_label, predicted_label
+webConfusionReport
+
+// 块 8：二分类 precision、recall 和 F1。
+// 输入：webPredictions、webPositiveLabel、webClassCount、webModelName。
+// 输出：webEvalReport。
+// 适用：二分类任务，尤其是风险、故障、异常检测。
+webPositiveLabel = 1
+webTp = sum(int(webPredictions.actual_label == webPositiveLabel && webPredictions.predicted_label == webPositiveLabel))
+webFp = sum(int(webPredictions.actual_label != webPositiveLabel && webPredictions.predicted_label == webPositiveLabel))
+webFn = sum(int(webPredictions.actual_label == webPositiveLabel && webPredictions.predicted_label != webPositiveLabel))
+webAccuracy = sum(int(webPredictions.actual_label == webPredictions.predicted_label)) \ double(size(webPredictions.actual_label))
+webPrecision = iif(webTp + webFp == 0, 0.0, webTp \ double(webTp + webFp))
+webRecall = iif(webTp + webFn == 0, 0.0, webTp \ double(webTp + webFn))
+webF1 = iif(webPrecision + webRecall == 0, 0.0, 2.0 * webPrecision * webRecall \ (webPrecision + webRecall))
+webEvalReport = table(["test"] as dataset, [size(webPredictions.actual_label)] as rows, [webClassCount] as classes, [webAccuracy] as accuracy, [webPrecision] as precision, [webRecall] as recall, [webF1] as f1, [webModelName] as model_function)
+webEvalReport
+
+// 块 9：为当前或预测时点特征行打分。
+// 输入：webModel、webScoreFeatures、webFeatureCols、webEntityCol。
+// 输出：webPredictionReport。
+// 适用：输出实体级预测标签或风险结果。
+webEntityCol = "REPLACE_ENTITY_COL"
+webScorePred = predict(webModel, webScoreFeatures)
+webEntitySql = "select " + webEntityCol + " as entity_id from webScoreFeatures"
+webScoreEntities = eval(parseExpr(webEntitySql))
+webPredictionReport = table(webScoreEntities.entity_id as entity_id, webScorePred as predicted_label)
+webPredictionReport
+
+// 块 10：分类建模结果摘要。
+// 输入：webAccuracyReport、webConfusionReport、webEvalReport。
+// 输出：webClassificationSummary。
+// 适用：向聊天答案汇总模型和指标。
+webClassificationSummary = table([string(webAccuracyReport)] as accuracy_report, [string(webConfusionReport)] as confusion_report, [string(webEvalReport)] as binary_metrics)
+webClassificationSummary
+
+// 块 11：分类模型函数可用性检查。
+// 输入：无。
+// 输出：webClassificationModelAvailability。
+// 适用：选择候选分类模型前，确认当前 DolphinDB 运行时支持哪些训练函数。
+webClassificationModelAvailability = table(["random_forest","logistic_regression","gaussian_nb","multinomial_nb","glm_classifier","adaboost_classifier"] as model_id, ["randomForestClassifier","logisticRegression","gaussianNB","multinomialNB","glm","adaBoostClassifier"] as function_name, [defined("randomForestClassifier", DEF), defined("logisticRegression", DEF), defined("gaussianNB", DEF), defined("multinomialNB", DEF), defined("glm", DEF), defined("adaBoostClassifier", DEF)] as available)
+webClassificationModelAvailability
+
+// 块 12：分类候选模型表。
+// 输入：webSelectedModelId、webFallbackModelId、webCandidateModelIds、webClassificationModelAvailability。
+// 输出：webClassificationCandidateModels。
+// 适用：把用户指定、默认 fallback 和候选列表合并为可审查的模型选择表。
+webSelectedModelId = ""
+webFallbackModelId = "random_forest"
+webCandidateModelIds = ["random_forest","logistic_regression","gaussian_nb","adaboost_classifier"]
+webRequestedModelIds = distinct([webSelectedModelId, webFallbackModelId] join webCandidateModelIds)
+webClassificationCandidateModels = table(100:0, `model_id`function_name`available`selection_source, [STRING,STRING,BOOL,STRING])
+for(webModelId in webRequestedModelIds){
+    if(strlen(trim(string(webModelId))) > 0){
+        webModelRow = select * from webClassificationModelAvailability where model_id = string(webModelId)
+        webModelRowCount = exec count(*) from webModelRow
+        webFunctionName = ""
+        webAvailable = false
+        if(webModelRowCount > 0){
+            webFunctionName = string(webModelRow.function_name[0])
+            webAvailable = bool(webModelRow.available[0])
+        }
+        webSelectionSource = iif(string(webModelId) == webSelectedModelId, "selected", iif(string(webModelId) == webFallbackModelId, "fallback", "candidate"))
+        webClassificationCandidateModels.append!(table([string(webModelId)] as model_id, [webFunctionName] as function_name, [webAvailable] as available, [webSelectionSource] as selection_source))
+    }
+}
+webClassificationCandidateModels
+
+// 块 13：分类 train/val/test 切分。
+// 输入：webFeatures、webLabelCol、webTimeCol、webSplitMode、webTrainRatio、webValRatio。
+// 输出：webTrain、webVal、webTest、webSplitReport。
+// 适用：需要模型选择或网格搜索时，比简单 train/test 更稳健。
+webTimeCol = "REPLACE_TIME_COL"
+webSplitMode = "time_based"
+webTrainRatio = 0.70
+webValRatio = 0.15
+webRows = exec count(*) from webFeatures
+if(webSplitMode == "time_based"){
+    webSplitWork = eval(parseExpr("select * from webFeatures order by " + webTimeCol))
+    webSplitWork["web_split_idx"] = 0..(webRows - 1)
+    webTrainEnd = int(floor(webRows * webTrainRatio))
+    webValEnd = int(floor(webRows * (webTrainRatio + webValRatio)))
+    webTrain = select * from webSplitWork where web_split_idx < webTrainEnd
+    webVal = select * from webSplitWork where web_split_idx >= webTrainEnd and web_split_idx < webValEnd
+    webTest = select * from webSplitWork where web_split_idx >= webValEnd
+} else {
+    webSplitWork = select * from webFeatures
+    webSplitWork["web_split_r"] = rand(1.0, webRows)
+    webTrain = select * from webSplitWork where web_split_r < webTrainRatio
+    webVal = select * from webSplitWork where web_split_r >= webTrainRatio and web_split_r < webTrainRatio + webValRatio
+    webTest = select * from webSplitWork where web_split_r >= webTrainRatio + webValRatio
+}
+webSplitReport = table([webSplitMode] as split_mode, [exec count(*) from webTrain] as train_rows, [exec count(*) from webVal] as val_rows, [exec count(*) from webTest] as test_rows)
+webSplitReport
+
+// 块 14：分类空切分检查。
+// 输入：webSplitReport。
+// 输出：webSplitReadinessReport。
+// 适用：训练前阻断 train、val 或 test 任一集合为空的情况。
+webTrainRows = exec train_rows from webSplitReport
+webValRows = exec val_rows from webSplitReport
+webTestRows = exec test_rows from webSplitReport
+webSplitReady = webTrainRows[0] > 0 && webValRows[0] > 0 && webTestRows[0] > 0
+webSplitReadinessReport = table([webSplitReady] as split_ready, [long(webTrainRows[0])] as train_rows, [long(webValRows[0])] as val_rows, [long(webTestRows[0])] as test_rows, [iif(webSplitReady, "", "train/val/test must all be non-empty")] as blocking_reason)
+webSplitReadinessReport
+
+// 块 15：训练候选分类模型模板。
+// 输入：webTrain、webLabelCol、webFeatureCols、webClassCount、webSelectedModelId、webSeed。
+// 输出：webModel、webModelName。
+// 适用：按候选模型训练当前请求的候选分类模型。
+webSelectedModelId = "random_forest"
+webTrainDS = sqlDS(<select * from webTrain>)
+if(webSelectedModelId == "logistic_regression"){
+    webModelName = "logisticRegression"
+    webModel = logisticRegression(webTrainDS, webLabelCol, webFeatureCols, maxIter=200, regularizationCoeff=0.01)
+} else if(webSelectedModelId == "gaussian_nb"){
+    webModelName = "gaussianNB"
+    webTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webTrain"))
+    webTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webTrain"))
+    webTrainY = exec label_value from webTrainYTable
+    webModel = gaussianNB(webTrainY, webTrainX)
+} else if(webSelectedModelId == "multinomial_nb"){
+    webModelName = "multinomialNB"
+    webTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webTrain"))
+    webTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webTrain"))
+    webTrainY = exec label_value from webTrainYTable
+    webModel = multinomialNB(webTrainY, webTrainX)
+} else if(webSelectedModelId == "glm_classifier"){
+    webModelName = "glm"
+    webModel = glm(webTrainDS, webLabelCol, webFeatureCols, family="binomial", link="logit", maxIter=200, tolerance=0.000001)
+} else if(webSelectedModelId == "adaboost_classifier"){
+    webModelName = "adaBoostClassifier"
+    webModel = adaBoostClassifier(webTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=200, maxDepth=2, learningRate=0.1, randomSeed=webSeed)
+} else {
+    webModelName = "randomForestClassifier"
+    webModel = randomForestClassifier(webTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=200, maxDepth=12, randomSeed=webSeed)
+}
+webModelName
+
+// 块 16：分类网格候选结果表。
+// 输入：webCandidateId、webSelectedModelId、webModelName、webEvalReport、webSelectionMetric。
+// 输出：webGridCandidateReport。
+// 适用：评估多个候选模型或参数组合后，保留紧凑可比较记录。
+webCandidateId = 1
+webSelectionMetric = "f1"
+webMetricValue = iif(webSelectionMetric == "recall", exec recall from webEvalReport, iif(webSelectionMetric == "precision", exec precision from webEvalReport, iif(webSelectionMetric == "accuracy", exec accuracy from webEvalReport, exec f1 from webEvalReport)))
+webGridCandidateReport = table([webCandidateId] as candidate_id, [webSelectedModelId] as model_id, [webModelName] as model_function, ["success"] as status, [webSelectionMetric] as selection_metric, [double(webMetricValue[0])] as selection_score, [string(webEvalReport)] as eval_report)
+webGridCandidateReport
+
+// 块 17：分类最佳候选选择表。
+// 输入：webGridCandidateReport。
+// 输出：webBestClassificationCandidate。
+// 适用：网格搜索或多模型比较后，选择验证集指标最优的候选。
+webBestClassificationCandidate = select top 1 * from webGridCandidateReport where status = "success" order by selection_score desc, candidate_id
+webBestClassificationCandidate
+
+// 块 18：分类模型风险报告。
+// 输入：webEvalReport、webClassCount。
+// 输出：webClassificationRiskReport。
+// 适用：把低召回、低精确率、低准确率等风险转成聊天可解释结论。
+webRiskLevel = "LOW"
+webRiskWhere = "classification metrics have no major warning"
+webRiskAction = "continue with current evaluation and monitor with newer data"
+if(webClassCount == 2){
+    webRecallValue = exec recall from webEvalReport
+    webPrecisionValue = exec precision from webEvalReport
+    if(webRecallValue[0] < 0.80){
+        webRiskLevel = "HIGH"
+        webRiskWhere = "recall is below 0.80 and positive events may be missed"
+        webRiskAction = "confirm positive label, improve class balance, and tune for recall"
+    } else if(webPrecisionValue[0] < 0.80){
+        webRiskLevel = "MEDIUM"
+        webRiskWhere = "precision is below 0.80 and false alarms may increase"
+        webRiskAction = "inspect false positives and tune threshold or features"
+    }
+} else {
+    webAccuracyValue = exec accuracy from webEvalReport
+    if(webAccuracyValue[0] < 0.80){
+        webRiskLevel = "HIGH"
+        webRiskWhere = "multiclass accuracy is below 0.80"
+        webRiskAction = "inspect class balance and feature quality before relying on the model"
+    }
+}
+webClassificationRiskReport = table(["classification_model"] as risk_subject, [webRiskLevel] as risk_level, [webRiskWhere] as risk_where, [webRiskAction] as risk_action)
+webClassificationRiskReport
+
+// 块 19：分类轻量网格计划表。
+// 输入：webClassificationModelAvailability、webGridCandidateLimit。
+// 输出：webClassificationGridPlan、webClassificationGridPlanSummary。
+// 适用：按旧版 registry 的默认网格生成当前请求内可审查的候选计划，默认最多执行 20 个候选。
+webGridCandidateLimit = 20
+webRfAvailable = bool(exec available from webClassificationModelAvailability where model_id = "random_forest")
+webLogisticAvailable = bool(exec available from webClassificationModelAvailability where model_id = "logistic_regression")
+webGaussianAvailable = bool(exec available from webClassificationModelAvailability where model_id = "gaussian_nb")
+webAdaAvailable = bool(exec available from webClassificationModelAvailability where model_id = "adaboost_classifier")
+webClassificationGridPlan = table(
+    1..12 as candidate_id,
+    ["random_forest","random_forest","random_forest","random_forest","logistic_regression","logistic_regression","logistic_regression","gaussian_nb","adaboost_classifier","adaboost_classifier","adaboost_classifier","adaboost_classifier"] as model_id,
+    ["randomForestClassifier","randomForestClassifier","randomForestClassifier","randomForestClassifier","logisticRegression","logisticRegression","logisticRegression","gaussianNB","adaBoostClassifier","adaBoostClassifier","adaBoostClassifier","adaBoostClassifier"] as model_function,
+    ["{\"numTrees\":100,\"maxDepth\":8}","{\"numTrees\":100,\"maxDepth\":12}","{\"numTrees\":200,\"maxDepth\":8}","{\"numTrees\":200,\"maxDepth\":12}","{\"maxIter\":100,\"regularizationCoeff\":0.001}","{\"maxIter\":200,\"regularizationCoeff\":0.01}","{\"maxIter\":200,\"regularizationCoeff\":0.1}","{}","{\"numTrees\":100,\"maxDepth\":2,\"learningRate\":0.05}","{\"numTrees\":100,\"maxDepth\":3,\"learningRate\":0.1}","{\"numTrees\":200,\"maxDepth\":2,\"learningRate\":0.05}","{\"numTrees\":200,\"maxDepth\":3,\"learningRate\":0.1}"] as params_json,
+    [100,100,200,200,0,0,0,0,100,100,200,200] as num_trees,
+    [8,12,8,12,0,0,0,0,2,3,2,3] as max_depth,
+    [0,0,0,0,100,200,200,0,0,0,0,0] as max_iter,
+    [0.0,0.0,0.0,0.0,0.001,0.01,0.1,0.0,0.0,0.0,0.0,0.0] as regularization_coeff,
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.05,0.1,0.05,0.1] as learning_rate,
+    [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0] as tolerance,
+    [webRfAvailable,webRfAvailable,webRfAvailable,webRfAvailable,webLogisticAvailable,webLogisticAvailable,webLogisticAvailable,webGaussianAvailable,webAdaAvailable,webAdaAvailable,webAdaAvailable,webAdaAvailable] as available
+)
+webClassificationGridPlan["skip_reason"] = iif(webClassificationGridPlan.available, "", "function_unavailable")
+webClassificationGridPlanSummary = table([webGridCandidateLimit] as grid_candidate_limit, [exec count(*) from webClassificationGridPlan] as grid_candidate_total_estimated, [exec count(*) from webClassificationGridPlan > webGridCandidateLimit] as grid_truncated)
+webClassificationGridPlan
+
+// 块 20：分类轻量网格搜索示例。
+// 输入：webTrain、可选 webTrainForModel、webVal、webLabelCol、webFeatureCols、webClassCount、webPositiveLabel、webSelectionMetric、webClassificationGridPlan、webClassificationGridPlanSummary、webSeed。
+// 输出：webClassificationGridSearchReport。
+// 适用：在验证集上评估当前请求内的候选模型和参数组合。
+webSelectionMetric = iif(webClassCount == 2, "f1", "accuracy")
+webClassificationGridSearchReport = table(100:0, `candidate_id`status`error_message`model_id`model_function`params_json`selection_metric`selection_score`rank`is_best`val_accuracy`val_precision`val_recall`val_f1`num_trees`max_depth`candidate_elapsed_ms, [INT,STRING,STRING,STRING,STRING,STRING,STRING,DOUBLE,INT,BOOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,INT,INT,LONG])
+webCandidateLimitValue = exec grid_candidate_limit from webClassificationGridPlanSummary
+webGridRows = select * from webClassificationGridPlan where candidate_id <= webCandidateLimitValue[0]
+webGridRowCount = exec count(*) from webGridRows
+webGridTrain = webTrain
+if(defined("webTrainForModel", VAR)){
+    webGridTrain = webTrainForModel
+}
+webCandidateTrainDS = sqlDS(<select * from webGridTrain>)
+if(webGridRowCount > 0){
+    for(webGridI in 0..(webGridRowCount - 1)){
+        webGridRow = select * from webGridRows where candidate_id = int(webGridI + 1)
+        webCandidateId = int(webGridRow.candidate_id[0])
+        webCandidateStart = now()
+        webSelectedModelId = string(webGridRow.model_id[0])
+        webModelName = string(webGridRow.model_function[0])
+        webParamsJson = string(webGridRow.params_json[0])
+        webCandidateStatus = "success"
+        webCandidateError = ""
+        webCandidateAccuracy = 0.0
+        webCandidatePrecision = 0.0
+        webCandidateRecall = 0.0
+        webCandidateF1 = 0.0
+        webCandidateScore = -1.0
+        if(!bool(webGridRow.available[0])){
+            webCandidateStatus = "skipped"
+            webCandidateError = string(webGridRow.skip_reason[0])
+        } else {
+            try{
+                if(webSelectedModelId == "logistic_regression"){
+                    webCandidateModel = logisticRegression(webCandidateTrainDS, webLabelCol, webFeatureCols, maxIter=int(webGridRow.max_iter[0]), regularizationCoeff=double(webGridRow.regularization_coeff[0]))
+                } else if(webSelectedModelId == "gaussian_nb"){
+                    webCandidateTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webGridTrain"))
+                    webCandidateTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webGridTrain"))
+                    webCandidateTrainY = exec label_value from webCandidateTrainYTable
+                    webCandidateModel = gaussianNB(webCandidateTrainY, webCandidateTrainX)
+                } else if(webSelectedModelId == "multinomial_nb"){
+                    webCandidateTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webGridTrain"))
+                    webCandidateTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webGridTrain"))
+                    webCandidateTrainY = exec label_value from webCandidateTrainYTable
+                    webCandidateModel = multinomialNB(webCandidateTrainY, webCandidateTrainX)
+                } else if(webSelectedModelId == "glm_classifier"){
+                    webCandidateModel = glm(webCandidateTrainDS, webLabelCol, webFeatureCols, family="binomial", link="logit", maxIter=int(webGridRow.max_iter[0]), tolerance=double(webGridRow.tolerance[0]))
+                } else if(webSelectedModelId == "adaboost_classifier"){
+                    webCandidateModel = adaBoostClassifier(webCandidateTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=int(webGridRow.num_trees[0]), maxDepth=int(webGridRow.max_depth[0]), learningRate=double(webGridRow.learning_rate[0]), randomSeed=webSeed)
+                } else {
+                    webCandidateModel = randomForestClassifier(webCandidateTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=int(webGridRow.num_trees[0]), maxDepth=int(webGridRow.max_depth[0]), randomSeed=webSeed)
+                }
+                if(webSelectedModelId in ["gaussian_nb","multinomial_nb"]){
+                    webCandidateValX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webVal"))
+                    webCandidatePredicted = predict(webCandidateModel, webCandidateValX)
+                } else {
+                    webCandidatePredicted = predict(webCandidateModel, webVal)
+                }
+                webCandidatePredictions = table(webVal[webLabelCol] as actual_label, webCandidatePredicted as predicted_label)
+                webCandidateAccuracy = sum(int(webCandidatePredictions.actual_label == webCandidatePredictions.predicted_label)) \ double(size(webCandidatePredictions.actual_label))
+                if(webClassCount == 2){
+                    webTp = sum(int(webCandidatePredictions.actual_label == webPositiveLabel && webCandidatePredictions.predicted_label == webPositiveLabel))
+                    webFp = sum(int(webCandidatePredictions.actual_label != webPositiveLabel && webCandidatePredictions.predicted_label == webPositiveLabel))
+                    webFn = sum(int(webCandidatePredictions.actual_label == webPositiveLabel && webCandidatePredictions.predicted_label != webPositiveLabel))
+                    webCandidatePrecision = iif(webTp + webFp == 0, 0.0, webTp \ double(webTp + webFp))
+                    webCandidateRecall = iif(webTp + webFn == 0, 0.0, webTp \ double(webTp + webFn))
+                    webCandidateF1 = iif(webCandidatePrecision + webCandidateRecall == 0, 0.0, 2.0 * webCandidatePrecision * webCandidateRecall \ (webCandidatePrecision + webCandidateRecall))
+                    webCandidateScore = iif(webSelectionMetric == "recall", webCandidateRecall, iif(webSelectionMetric == "precision", webCandidatePrecision, iif(webSelectionMetric == "accuracy", webCandidateAccuracy, webCandidateF1)))
+                } else {
+                    webCandidateScore = webCandidateAccuracy
+                }
+            } catch(ex) {
+                webCandidateStatus = "failed"
+                webCandidateError = string(ex)
+            }
+        }
+        webClassificationGridSearchReport.append!(table([webCandidateId] as candidate_id, [webCandidateStatus] as status, [webCandidateError] as error_message, [webSelectedModelId] as model_id, [webModelName] as model_function, [webParamsJson] as params_json, [webSelectionMetric] as selection_metric, [webCandidateScore] as selection_score, [0] as rank, [false] as is_best, [webCandidateAccuracy] as val_accuracy, [webCandidatePrecision] as val_precision, [webCandidateRecall] as val_recall, [webCandidateF1] as val_f1, [int(webGridRow.num_trees[0])] as num_trees, [int(webGridRow.max_depth[0])] as max_depth, [long(now() - webCandidateStart)] as candidate_elapsed_ms))
+    }
+}
+webClassificationGridSearchReport
+
+// 块 21：分类最佳候选 test 评估。
+// 输入：webTrain、webVal、可选 webFinalTrainForModel、webTest、webLabelCol、webFeatureCols、webClassCount、webPositiveLabel、webClassificationGridSearchReport、webSeed。
+// 输出：webFinalModel、webFinalModelName、webBestClassificationCandidate、webBestClassificationPredictions、webBestClassificationTestReport。
+// 适用：验证集选出最佳候选后，用 train+val 重新训练，并只用 test 指标作为最终泛化报告。
+webBestClassificationCandidate = select top 1 * from webClassificationGridSearchReport where status = "success" order by selection_score desc, candidate_id
+webBestClassificationCandidateRows = exec count(*) from webBestClassificationCandidate
+if(webBestClassificationCandidateRows == 0){
+    throw "没有成功的分类网格候选；请先查看 webClassificationGridSearchReport.error_message，并运行最小 API 验证后再继续。"
+}
+webBestModelId = string(webBestClassificationCandidate.model_id[0])
+webFinalModelName = string(webBestClassificationCandidate.model_function[0])
+webFinalTrain = unionAll(webTrain, webVal)
+if(defined("webFinalTrainForModel", VAR)){
+    webFinalTrain = webFinalTrainForModel
+}
+webFinalTrainDS = sqlDS(<select * from webFinalTrain>)
+if(webBestModelId == "logistic_regression"){
+    webFinalModel = logisticRegression(webFinalTrainDS, webLabelCol, webFeatureCols, maxIter=200, regularizationCoeff=0.01)
+} else if(webBestModelId == "gaussian_nb"){
+    webFinalTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webFinalTrain"))
+    webFinalTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webFinalTrain"))
+    webFinalTrainY = exec label_value from webFinalTrainYTable
+    webFinalModel = gaussianNB(webFinalTrainY, webFinalTrainX)
+} else if(webBestModelId == "multinomial_nb"){
+    webFinalTrainX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webFinalTrain"))
+    webFinalTrainYTable = eval(parseExpr("select " + webLabelCol + " as label_value from webFinalTrain"))
+    webFinalTrainY = exec label_value from webFinalTrainYTable
+    webFinalModel = multinomialNB(webFinalTrainY, webFinalTrainX)
+} else if(webBestModelId == "glm_classifier"){
+    webFinalModel = glm(webFinalTrainDS, webLabelCol, webFeatureCols, family="binomial", link="logit", maxIter=200, tolerance=0.000001)
+} else if(webBestModelId == "adaboost_classifier"){
+    webFinalModel = adaBoostClassifier(webFinalTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=int(webBestClassificationCandidate.num_trees[0]), maxDepth=int(webBestClassificationCandidate.max_depth[0]), learningRate=0.1, randomSeed=webSeed)
+} else {
+    webFinalModel = randomForestClassifier(webFinalTrainDS, webLabelCol, webFeatureCols, int(webClassCount), numTrees=int(webBestClassificationCandidate.num_trees[0]), maxDepth=int(webBestClassificationCandidate.max_depth[0]), randomSeed=webSeed)
+}
+if(webBestModelId in ["gaussian_nb","multinomial_nb"]){
+    webTestX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webTest"))
+    webBestPredicted = predict(webFinalModel, webTestX)
+} else {
+    webBestPredicted = predict(webFinalModel, webTest)
+}
+webBestClassificationPredictions = table(webTest[webLabelCol] as actual_label, webBestPredicted as predicted_label)
+webBestAccuracy = sum(int(webBestClassificationPredictions.actual_label == webBestClassificationPredictions.predicted_label)) \ double(size(webBestClassificationPredictions.actual_label))
+webBestPrecision = 0.0
+webBestRecall = 0.0
+webBestF1 = 0.0
+if(webClassCount == 2){
+    webTp = sum(int(webBestClassificationPredictions.actual_label == webPositiveLabel && webBestClassificationPredictions.predicted_label == webPositiveLabel))
+    webFp = sum(int(webBestClassificationPredictions.actual_label != webPositiveLabel && webBestClassificationPredictions.predicted_label == webPositiveLabel))
+    webFn = sum(int(webBestClassificationPredictions.actual_label == webPositiveLabel && webBestClassificationPredictions.predicted_label != webPositiveLabel))
+    webBestPrecision = iif(webTp + webFp == 0, 0.0, webTp \ double(webTp + webFp))
+    webBestRecall = iif(webTp + webFn == 0, 0.0, webTp \ double(webTp + webFn))
+    webBestF1 = iif(webBestPrecision + webBestRecall == 0, 0.0, 2.0 * webBestPrecision * webBestRecall \ (webBestPrecision + webBestRecall))
+}
+webBestClassificationTestReport = table(["test"] as dataset, [size(webBestClassificationPredictions.actual_label)] as rows, [webClassCount] as classes, [webBestAccuracy] as accuracy, [webBestPrecision] as precision, [webBestRecall] as recall, [webBestF1] as f1, [webFinalModelName] as model_function, [webBestModelId] as model_id)
+webBestClassificationTestReport
+
+// 块 22：分类模型选择摘要。
+// 输入：webClassificationGridPlanSummary、webClassificationGridSearchReport、webBestClassificationCandidate、webBestClassificationTestReport。
+// 输出：webClassificationModelSelectionSummary。
+// 适用：最终聊天输出前，解释候选、截断、最佳模型、验证集选择指标和测试集最终指标。
+webClassificationModelSelectionSummary = table([string(webClassificationGridPlanSummary)] as grid_plan_summary, [string(select * from webClassificationGridSearchReport order by selection_score desc, candidate_id)] as grid_search_report, [string(webBestClassificationCandidate)] as best_candidate, [string(webBestClassificationTestReport)] as test_report)
+webClassificationModelSelectionSummary
+
+// 块 23：分类训练集欠采样。
+// 输入：webTrain、webVal、webLabelCol、webFeatureCols、webUnderSampleMaxMajorityToMinorityRatio。
+// 输出：webTrainForModel、webFinalTrainForModel、webUnderSampleReport、webUnderSampleBeforeDistribution、webUnderSampleAfterDistribution、webFinalUnderSampleAfterDistribution。
+// 适用：二分类或多分类训练集类别明显不均衡，且目标是提升少数类 recall/F1；只改训练数据，不改验证集和测试集。
+webUnderSampleMaxMajorityToMinorityRatio = 1.0
+if(webUnderSampleMaxMajorityToMinorityRatio <= 0){
+    webUnderSampleMaxMajorityToMinorityRatio = 1.0
+}
+webUnderSampleCols = distinct(webFeatureCols join [webLabelCol])
+webUnderSampleSelectCols = concat(webUnderSampleCols, ",")
+webUnderSampleTrainSql = "select " + webUnderSampleSelectCols + " from webTrain"
+webUnderSampleTrainSource = eval(parseExpr(webUnderSampleTrainSql))
+webUnderSampleWorkSql = "select *, " + webLabelCol + " as web_us_label from webUnderSampleTrainSource"
+webUnderSampleWork = eval(parseExpr(webUnderSampleWorkSql))
+webUnderSampleWorkRows = exec count(*) from webUnderSampleWork
+webUnderSampleWork["web_us_random"] = rand(1.0, webUnderSampleWorkRows)
+webUnderSampleBeforeDistribution = select count(*) as before_rows from webUnderSampleWork group by web_us_label as label_value order by before_rows
+webUnderSampleClassCount = exec count(*) from webUnderSampleBeforeDistribution
+if(webUnderSampleClassCount < 2){
+    throw "欠采样至少需要两个类别；请检查分类标签列。"
+}
+webUnderSampleMinorityRows = long(min(webUnderSampleBeforeDistribution.before_rows))
+if(webUnderSampleMinorityRows <= 0){
+    throw "少数类样本数为 0，不能欠采样。"
+}
+webUnderSampleTargetRowsPerClass = long(ceil(webUnderSampleMinorityRows * webUnderSampleMaxMajorityToMinorityRatio))
+if(webUnderSampleTargetRowsPerClass < webUnderSampleMinorityRows){
+    webUnderSampleTargetRowsPerClass = webUnderSampleMinorityRows
+}
+webTrainForModelWork = select * from webUnderSampleWork context by web_us_label csort web_us_random limit webUnderSampleTargetRowsPerClass
+webTrainForModel = eval(parseExpr("select " + webUnderSampleSelectCols + " from webTrainForModelWork"))
+webUnderSampleAfterSql = "select count(*) as after_rows from webTrainForModel group by " + webLabelCol + " as label_value order by after_rows"
+webUnderSampleAfterDistribution = eval(parseExpr(webUnderSampleAfterSql))
+webFinalTrainRaw = unionAll(eval(parseExpr("select " + webUnderSampleSelectCols + " from webTrain")), eval(parseExpr("select " + webUnderSampleSelectCols + " from webVal")))
+webFinalUnderSampleWorkSql = "select *, " + webLabelCol + " as web_us_label from webFinalTrainRaw"
+webFinalUnderSampleWork = eval(parseExpr(webFinalUnderSampleWorkSql))
+webFinalUnderSampleWorkRows = exec count(*) from webFinalUnderSampleWork
+webFinalUnderSampleWork["web_us_random"] = rand(1.0, webFinalUnderSampleWorkRows)
+webFinalUnderSampleBeforeDistribution = select count(*) as before_rows from webFinalUnderSampleWork group by web_us_label as label_value order by before_rows
+webFinalUnderSampleMinorityRows = long(min(webFinalUnderSampleBeforeDistribution.before_rows))
+webFinalUnderSampleTargetRowsPerClass = long(ceil(webFinalUnderSampleMinorityRows * webUnderSampleMaxMajorityToMinorityRatio))
+if(webFinalUnderSampleTargetRowsPerClass < webFinalUnderSampleMinorityRows){
+    webFinalUnderSampleTargetRowsPerClass = webFinalUnderSampleMinorityRows
+}
+webFinalTrainForModelWork = select * from webFinalUnderSampleWork context by web_us_label csort web_us_random limit webFinalUnderSampleTargetRowsPerClass
+webFinalTrainForModel = eval(parseExpr("select " + webUnderSampleSelectCols + " from webFinalTrainForModelWork"))
+webFinalUnderSampleAfterSql = "select count(*) as after_rows from webFinalTrainForModel group by " + webLabelCol + " as label_value order by after_rows"
+webFinalUnderSampleAfterDistribution = eval(parseExpr(webFinalUnderSampleAfterSql))
+webUnderSampleReport = table([exec count(*) from webTrain] as train_before_rows, [exec count(*) from webTrainForModel] as train_after_rows, [exec count(*) from webFinalTrainRaw] as final_train_before_rows, [exec count(*) from webFinalTrainForModel] as final_train_after_rows, [webUnderSampleTargetRowsPerClass] as train_target_rows_per_class, [webFinalUnderSampleTargetRowsPerClass] as final_target_rows_per_class, [webUnderSampleMaxMajorityToMinorityRatio] as max_majority_to_minority_ratio, [string(webUnderSampleBeforeDistribution)] as train_before_distribution, [string(webUnderSampleAfterDistribution)] as train_after_distribution, [string(webFinalUnderSampleAfterDistribution)] as final_after_distribution)
+webUnderSampleReport
+
+// 块 24：分类标签编码落地。
+// 输入：webFeatures、webRawLabelCol、webEncodedLabelCol、webPositiveLabelValue。
+// 输出：webFeatures、webLabelCol、webClassCount、webPositiveLabel、webLabelEncodingMap、webLabelEncodingReport。
+// 适用：分类标签为 SYMBOL/STRING/非连续编码时，训练前生成 0..N-1 的整数标签列。
+webRawLabelCol = "REPLACE_RAW_LABEL_COL"
+webEncodedLabelCol = "label_code"
+webPositiveLabelValue = "REPLACE_POSITIVE_LABEL_VALUE"
+webLabelDomainSql = "select distinct string(" + webRawLabelCol + ") as web_label_value from webFeatures where not isNull(" + webRawLabelCol + ") order by web_label_value"
+webLabelDomain = eval(parseExpr(webLabelDomainSql))
+webClassCount = exec count(*) from webLabelDomain
+if(webClassCount < 2){
+    throw "分类标签编码至少需要两个非空类别；请检查标签列。"
+}
+webLabelEncodingMap = table(webLabelDomain.web_label_value as web_label_value, int(0..(size(webLabelDomain.web_label_value) - 1)) as label_code)
+webLabelSourceSql = "select *, string(" + webRawLabelCol + ") as web_label_value from webFeatures where not isNull(" + webRawLabelCol + ")"
+webLabelSource = eval(parseExpr(webLabelSourceSql))
+webLabelJoined = lj(webLabelSource, webLabelEncodingMap, `web_label_value)
+webLabelEncodedSql = "select *, int(label_code) as " + webEncodedLabelCol + " from webLabelJoined"
+webFeatures = eval(parseExpr(webLabelEncodedSql))
+webLabelCol = webEncodedLabelCol
+webPositiveRows = select label_code from webLabelEncodingMap where web_label_value = webPositiveLabelValue
+webPositiveRowCount = exec count(*) from webPositiveRows
+if(webPositiveRowCount > 0){
+    webPositiveLabel = int(webPositiveRows.label_code[0])
+} else {
+    webPositiveLabel = int(max(webLabelEncodingMap.label_code))
+}
+webLabelEncodingReport = table([webRawLabelCol] as raw_label_col, [webEncodedLabelCol] as encoded_label_col, [webClassCount] as class_count, [webPositiveLabelValue] as requested_positive_value, [webPositiveLabel] as positive_label_code, [string(webLabelEncodingMap)] as label_encoding_map)
+webLabelEncodingReport

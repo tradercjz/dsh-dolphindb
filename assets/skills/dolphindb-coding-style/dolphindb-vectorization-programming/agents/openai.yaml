@@ -1,0 +1,4 @@
+interface:
+  display_name: "DolphinDB 向量化编程"
+  short_description: "检查 DolphinDB 代码中的非向量化编程问题并给出改写"
+  default_prompt: "Use $dolphindb-vectorization-programming to 检查这段 DolphinDB 代码里的非向量化写法，并给出向量化改写建议。"

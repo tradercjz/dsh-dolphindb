@@ -1,0 +1,80 @@
+// ============================================================
+// Orca DStream API: 资金净流入比例因子（双流图版）
+// 功能：
+// 1. Trade -> 1分钟 K 线 (OHLC + Volume) -> netAmount
+// 2. fork 两路分别计算最近5分钟 / 10分钟 netAmount 总和
+// 3. asofJoin 对齐后计算 factor = 前5根和 / 后5根和
+// ============================================================
+
+// ===================== 环境准备 =====================
+if (!existsCatalog("orcaDemo")) { createCatalog("orcaDemo") }
+go
+use catalog orcaDemo
+
+try { dropStreamGraph("mainGraph", true) } catch(ex) { }
+try { dropStreamGraph("factorGraph", true) } catch(ex) { }
+
+// ===================== 通用函数 =====================
+def calcNetAmount(msg) {
+    return select *, volume * iif(close >= open, 1, -1) as netAmount from msg
+}
+
+def calcFactor(msg) {
+    return select *, (total10 - last5) * 1.0 / last5 as factor from msg where last5 != 0
+}
+
+// ===================== 流图1：生成两个窗口表 =====================
+ohlcMetrics = [
+    <first(Price) as open>,
+    <max(Price) as high>,
+    <min(Price) as low>,
+    <last(Price) as close>,
+    <sum(Volume) as volume>
+]
+
+g1 = createStreamGraph("mainGraph")
+
+intermediate = g1.source("Trade", `Datetime`Symbol`Price`Volume, [TIMESTAMP, SYMBOL, DOUBLE, LONG])
+    .timeSeriesEngine(windowSize=60000, step=60000, metrics=ohlcMetrics, timeColumn=`Datetime, keyColumn=`Symbol)
+    .map(calcNetAmount)
+    .buffer("klineNet")
+
+branches = intermediate.fork(2)
+
+branches[0].timeSeriesEngine(windowSize=300000, step=60000, metrics=<[sum(netAmount) as last5]>, timeColumn=`Datetime, keyColumn=`Symbol)
+    .sink("window5")
+
+branches[1].timeSeriesEngine(windowSize=600000, step=60000, metrics=<[sum(netAmount) as total10]>, timeColumn=`Datetime, keyColumn=`Symbol)
+    .sink("window10")
+
+g1.submit()
+
+// ===================== 流图2：asofJoin 计算 factor =====================
+g2 = createStreamGraph("factorGraph")
+
+leftSource = g2.sourceByName("orcaDemo.orca_table.window5")
+rightSource = g2.sourceByName("orcaDemo.orca_table.window10")
+
+leftSource.asofJoinEngine(
+    rightStream=rightSource,
+    metrics=<[last5, total10]>,
+    matchingColumn=`Symbol,
+    timeColumn=[`Datetime, `Datetime]
+).map(calcFactor).sink("factorOutput")
+
+g2.submit()
+
+// ===================== 写入 mock 数据 =====================
+sleep(3000)
+
+Datetime = take(2024.01.02T09:30:00.000 + 1..43 * 1000, 43)
+Symbol = take("AAPL", 43)
+Price = 150..192
+Volume = take(100, 43)
+mockTrade = table(Datetime, Symbol, Price, Volume)
+appendOrcaStreamTable("Trade", mockTrade)
+
+sleep(5000)
+
+// ===================== 查询结果 =====================
+select * from orca_table.factorOutput

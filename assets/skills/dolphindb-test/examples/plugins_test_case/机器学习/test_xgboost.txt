@@ -1,0 +1,751 @@
+#include "setup/settings.txt"
+login("admin","123456")
+try{loadPlugin(getHomeDir()+"/plugins/xgboost/PluginXgboost.txt")}catch(ex){print ex}
+
+go
+
+// ------------ xgboost::train argument validation --------------
+@testing:case="test_function_xgboost_train_args_ex1", exception=1
+xgboost::train("1..3", 1..3$3:1)
+
+@testing:case="test_function_xgboost_train_args_ex1_scalar", exception=1
+xgboost::train(1, 1..3$3:1)
+
+@testing:case="test_function_xgboost_train_args_ex1_not_numeric", exception=1
+xgboost::train(`a`b`c, 1..3$3:1)
+
+@testing:case="test_function_xgboost_train_args_ex2", exception=1
+xgboost::train(1..3, 1..3)
+
+@testing:case="test_function_xgboost_train_args_ex2_not_match", exception=1
+xgboost::train(1..3, 1..3$1:3)
+
+@testing:case="test_function_xgboost_train_args_ex2_non_basic_table", exception=1
+db = database("", VALUE, 1..3)
+t = db.createPartitionedTable(table(1..3 as id), `tb, `id)
+xgboost::train(1..3, t)
+
+@testing:case="test_function_xgboost_train_args_ex2_table_contain_non_numeric_col", exception=1
+xgboost::train(1..3, table(1..3 as id, `1`2`3 as val))
+
+@testing:case="test_function_xgboost_train_args_ex3", exception=1
+xgboost::train(1..3, 1..3$3:1, 1 2)
+
+@testing:case="test_function_xgboost_train_args_ex3_dict_type", exception=1
+model = xgboost::train(1..3, 1..3$3:1, dict(INT, INT))
+
+@testing:case="test_function_xgboost_train_args_ex4_nonpositive", exception=1
+xgboost::train(1..3, 1..3$3:1, {objective: "reg:linear"}, 0)
+
+@testing:case="test_function_xgboost_train_args_ex4_vector", exception=1
+xgboost::train(1..3, 1..3$3:1, {objective: "reg:linear"}, 2 3)
+
+@testing:case="test_function_xgboost_train_args_ex4_non_integer", exception=1
+xgboost::train(1..3, 1..3$3:1, {objective: "reg:linear"}, `0)
+
+@testing:case="test_function_xgboost_train_args_ex5", exception=1
+xgboost::train(1..3, 1..3$3:1, {objective: "reg:linear"}, 2, 1)
+
+// ------------ xgboost::predict argument validation --------------
+@testing:case="test_function_xgboost_predict_args_ex1", exception=1
+xgboost::predict(2, 1..3$3:1)
+
+@testing:case="test_function_xgboost_predict_args_ex2", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3)
+
+@testing:case="test_function_xgboost_train_args_ex2_non_basic_table", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+db = database("", VALUE, 1..3)
+t = db.createPartitionedTable(table(1..3 as id), `tb, `id)
+xgboost::predict(model, t)
+
+@testing:case="test_function_xgboost_train_args_ex2_table_contain_non_numeric_col", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, table(1..3 as id, `1`2`3 as val))
+
+@testing:case="test_function_xgboost_predict_args_ex3", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, 2)
+
+@testing:case="test_function_xgboost_predict_args_ex3_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, true true)
+
+@testing:case="test_function_xgboost_predict_args_ex4", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , `0)
+
+@testing:case="test_function_xgboost_predict_args_ex4_negative", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , -1)
+
+@testing:case="test_function_xgboost_predict_args_ex4_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 1 2)
+
+@testing:case="test_function_xgboost_predict_args_ex5", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, 2)
+
+@testing:case="test_function_xgboost_predict_args_ex5_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, true true)
+
+@testing:case="test_function_xgboost_predict_args_ex6", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, false, 1)
+
+@testing:case="test_function_xgboost_predict_args_ex6_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, false, false false)
+
+@testing:case="test_function_xgboost_predict_args_ex7", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, false, , 0)
+
+@testing:case="test_function_xgboost_predict_args_ex7_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::predict(model, 1..3$3:1, , 0, false, , false false)
+
+// --------- xgboost::saveModel and xgboost::loadModel argument validation ----------
+@testing:case="test_function_xgboost_saveModel_args_ex1", exception=1
+xgboost::saveModel(1, "test.model")
+
+@testing:case="test_function_xgboost_saveModel_args_ex2", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::saveModel(model, 2)
+
+@testing:case="test_function_xgboost_saveModel_args_ex2_vector", exception=1
+model = xgboost::train(1..3, 1..3$3:1)
+xgboost::saveModel(model, `a`b)
+
+@testing:case="test_function_xgboost_loadModel_args_ex1", exception=1
+xgboost::loadModel(1)
+
+@testing:case="test_function_xgboost_loadModel_args_ex1", exception=1
+xgboost::loadModel(`1`2)
+
+@testing:case="test_function_xgboost_loadModel_args_ex1", exception=1
+xgboost::loadModel("foo.bar")
+
+@testing:case="test_xgboost_train_more"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063,1.918349,7.039501,32.694199,58.885143],4)
+
+model = xgboost::train(label, t, params, 100, model)
+res=xgboost::predict(model, t)
+assert 2, eqObj(res,[0.810127,2.14585,7.755153,29.555456,63.833134],6)
+
+@testing:case="test_function_xgboost_train_objective_types_reg_squaredlogerror"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:squaredlogerror"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [7.581779, 7.581779, 8.253231, 8.253231, 8.253231],4)
+
+@testing:case="test_function_xgboost_train_objective_types_reg_logistic"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 0.1 0.2 0.9 0.28 0.65
+params = {objective: "reg:logistic"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [0.426, 0.426, 0.426, 0.426, 0.426],4)
+
+@testing:case="test_function_xgboost_train_objective_types_reg_pseudohubererror"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:pseudohubererror"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [9.0161495, 9.0161495, 9.0161495, 9.0161495, 9.0161495],4)
+
+@testing:case="test_function_xgboost_train_objective_types_binary_logistic"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 0.1 0.2 0.9 0.28 0.65
+params = {objective: "binary:logistic"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [0.426, 0.426, 0.426, 0.426, 0.426],4)
+
+@testing:case="test_function_xgboost_train_objective_types_binary_logitraw"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 0.1 0.2 0.9 0.28 0.65
+params = {objective: "binary:logitraw"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [-0.29818997, -0.29818997, -0.29818997, -0.29818997, -0.29818997],4)
+
+@testing:case="test_function_xgboost_train_objective_types_count:poisson"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "count:poisson"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [1.0012877,  2.0010574,  9.001719 , 28.002106 , 64.99372],4)
+
+@testing:case="test_function_xgboost_train_objective_types_survival:cox"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "survival:cox"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [1.2437928 , 1.2437928 , 1.2437928 , 0.20972069, 0.20972069],4)
+
+@testing:case="test_function_xgboost_train_objective_types_rank:pairwise"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "rank:pairwise"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [-2.125827 , -1.4920784,0.3028569,2.2079,2.9761057],4)
+
+@testing:case="test_function_xgboost_train_objective_types_rank:ndcg"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "rank:ndcg"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [0.34555674, 0.34555674, 0.6494081 , 0.6494081 , 0.6494081],4)
+
+@testing:case="test_function_xgboost_train_objective_types_rank:map"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "rank:map"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [0.5, 0.5, 0.5, 0.5, 0.5],4)
+
+@testing:case="test_function_xgboost_train_objective_types_reg:gamma"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:gamma"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [1.0007006,  2.0006185,  9.000848 , 27.99904  , 64.93056],4)
+
+@testing:case="test_function_xgboost_train_objective_types_reg:tweedie"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:tweedie"}
+model = xgboost::train(label, t, params, 100)
+res=xgboost::predict(model, t)
+assert 1, eqObj(res, [1.0007758,  2.0002458,  9.002404 , 28.001812 , 64.98312],4)
+
+@testing:case="test_xgboost_train_param_ex1",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:xxx", max_depth: 5, eta: 0.1, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+@testing:case="test_xgboost_train_param_ex2",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: `abc, eta: 0.1, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+
+@testing:case="test_xgboost_train_param_ex3",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: `abc, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+@testing:case="test_xgboost_train_param_ex4",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.2, min_child_weight: `abc, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+@testing:case="test_xgboost_train_param_ex5",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.2, min_child_weight: 1, subsample: `abc, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+
+@testing:case="test_xgboost_train_param_ex6",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.2, min_child_weight: 1, subsample: 0.5, colsample_bytree: `abc, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+
+@testing:case="test_xgboost_train_param_ex7",exception=1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.2, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: `abc}
+model = xgboost::train(label, t, params, 100)
+
+// ----------------- Test correctness -----------------------
+@testing:case="test_function_xgboost_train_predict"
+X = 1 2 3 4 5 2 4 6 8 10 3 6 9 12 15$5:3
+Y = 1 2 9 28 65
+model = xgboost::train(Y, X)
+res = xgboost::predict(model, X)
+assert 1, eqObj(res, [0.9432226, 1.8570193, 8.413501, 24.921408, 51.936802], 5)
+
+model = xgboost::train(Y, X, , 100)
+res = xgboost::predict(model, X)
+assert 2, eqObj(res, [1.0008556, 2.0002477, 8.999961, 28.000086, 64.99885], 5)
+
+model = xgboost::train(Y, table(X), , 100)
+res = xgboost::predict(model, X)
+assert 3, eqObj(res, [1.0008556, 2.0002477, 8.999961, 28.000086, 64.99885], 5)
+
+model = xgboost::train(Y, X, , 100)
+res = xgboost::predict(model, table(X))
+assert 3, eqObj(res, [1.0008556, 2.0002477, 8.999961, 28.000086, 64.99885], 5)
+
+@testing:case="test_function_xgboost_train_predict_params"
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(Y, X, params)
+res = xgboost::predict(model, X)
+assert 1, eqObj(res, [1.9051162, 2.0026162, 6.5048714, 13.966722, 13.966722], 5)
+
+model = xgboost::train(Y, X, params, 100)
+res = xgboost::predict(model, X)
+assert 2, eqObj(res, [0.96006227, 1.9183493, 7.0395026, 32.694195, 58.885143], 5)
+
+params = {objective: "reg:squarederror", max_depth: 10, eta: 0.01, min_child_weight: 1, subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(Y, X, params, 50)
+res = xgboost::predict(model, X)
+assert 3, eqObj(res, [1.4511688, 1.634087, 4.1526937, 8.712539, 8.712539], 5)
+
+@testing:case="test_function_xgboost_train_predict_return_matrix"
+model = xgboost::train(Y, X)
+res = xgboost::predict(model, X, , , true)
+assert 1, res == ([3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 3, 6, 6, 6, 6, 6, 6, 6, 6, 5, 4, 4, 4, 4, 4, 4, 6, 6, 6, 6, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]$10:5).transpose()
+
+model = xgboost::train(Y, X)
+res = xgboost::predict(model, X, , 2, true)
+assert 1, res == 3 3 4 2 2 5 6 4 2 2$5:2
+
+@testing:case="test_function_xgboost_saveModel_loadModel"
+model = xgboost::train(Y, X)
+xgboost::saveModel(model, WORK_DIR + "/xgboost001.model")
+model = xgboost::loadModel(WORK_DIR + "/xgboost001.model")
+res = xgboost::predict(model, X)
+assert 1, eqObj(res, [0.9432226, 1.8570193, 8.413501, 24.921408, 51.936802], 5)
+
+@testing:case="test_function_xgboost_train_continue"
+model = xgboost::train(Y, X)
+xgboost::saveModel(model, WORK_DIR + "/xgboost001.model")
+model = xgboost::loadModel(WORK_DIR + "/xgboost001.model")
+model = xgboost::train(Y, X, , , model)
+res = xgboost::predict(model, X)
+assert 1, eqObj(res, [0.99432653, 1.9708369, 8.884533, 27.393906, 62.428192], 5)
+
+// classifier
+X = take(1..10, 50)$10:5
+params = {objective: "binary:hinge"}
+model = xgboost::train(0 0 0 0 0 1 1 1 1 1, X, params)
+res = xgboost::predict(model, X)
+assert 4, res == 0 0 0 0 0 1 1 1 1 1
+
+// multiclass
+X = take(1..10, 50)$10:5
+params = {objective: "multi:softmax", num_class: 4}
+model = xgboost::train(0 0 1 1 1 2 2 2 3 3, X, params)
+res = xgboost::predict(model, X)
+assert 5, res == 0 0 0 1 1 2 2 3 3 3
+
+// ----------- Test correctness bigarray -------------
+n = 3000000
+x1 = take(1..44101, n)
+x2 = take(1..58169, n)
+X = table(x1, x2)
+Y = -0.5 * x1 + 0.7 * x2 - 0.3
+params = {objective: "reg:squarederror"}
+model = xgboost::train(Y, X, params)
+res = xgboost::predict(model, X)
+assert 6, eqObj(res[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+
+
+@testing:case = "test_xgboot_train_multithread"
+def sub_train(){
+	for(i in 1..5){
+		n = 3000000
+		x1 = take(1..44101, n)
+		x2 = take(1..58169, n)	
+		X = table(x1, x2)
+		Y = -0.5 * x1 + 0.7 * x2 - 0.3
+		params = {objective: "reg:squarederror"}
+		model = xgboost::train(Y, X, params)
+	}
+	return model 
+}
+jobId1 = submitJob("sub_train1","",sub_train)
+jobId2 = submitJob("sub_train2","",sub_train)
+jobId3 = submitJob("sub_train3","",sub_train)
+jobId4 = submitJob("sub_train4","",sub_train)
+jobId5 = submitJob("sub_train5","",sub_train)
+re1 = getJobReturn(jobId1,true)
+re2 = getJobReturn(jobId2,true)
+re3 = getJobReturn(jobId3,true)
+re4 = getJobReturn(jobId4,true)
+re5 = getJobReturn(jobId5,true)
+
+@testing:case = "test_xgboot_predict_multithread"
+n = 3000000
+x1 = take(1..44101, n)
+x2 = take(1..58169, n)	
+X = table(x1, x2)
+Y = -0.5 * x1 + 0.7 * x2 - 0.3
+params = {objective: "reg:squarederror"}
+model = xgboost::train(Y, X, params)
+def sub_predict(model,X){
+	for(i in 1..20){
+		res = xgboost::predict(model, X)
+	}
+	return res  
+}
+jobId1 = submitJob("sub_predict1","",sub_predict,model, X)
+jobId2 = submitJob("sub_predict2","",sub_predict,model, X)
+jobId3 = submitJob("sub_predict3","",sub_predict,model, X)
+jobId4 = submitJob("sub_predict4","",sub_predict,model, X)
+jobId5 = submitJob("sub_predict5","",sub_predict,model, X)
+re1 = getJobReturn(jobId1,true)
+re2 = getJobReturn(jobId2,true)
+re3 = getJobReturn(jobId3,true)
+re4 = getJobReturn(jobId4,true)
+re5 = getJobReturn(jobId5,true)
+assert 1, eqObj(re1[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 2, eqObj(re2[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 3, eqObj(re3[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 4, eqObj(re4[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 5, eqObj(re5[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+
+
+@testing:case = "test_xgboot_saveModel_multithread"
+n = 3000000
+x1 = take(1..44101, n)
+x2 = take(1..58169, n)
+X = table(x1, x2)
+Y = -0.5 * x1 + 0.7 * x2 - 0.3
+params = {objective: "reg:squarederror"}
+model = xgboost::train(Y, X, params)
+
+def sub_saveModel(model, fname){
+	for(i in 1..100){
+		res = xgboost::saveModel(model, fname)
+	}
+	return res  
+}
+
+jobId1 = submitJob("sub_saveModel1","",sub_saveModel,model, WORK_DIR + "/test_xgboot_saveModel_multithread1")
+jobId2 = submitJob("sub_saveModel2","",sub_saveModel,model, WORK_DIR + "/test_xgboot_saveModel_multithread2")
+jobId3 = submitJob("sub_saveModel3","",sub_saveModel,model, WORK_DIR + "/test_xgboot_saveModel_multithread3")
+jobId4 = submitJob("sub_saveModel4","",sub_saveModel,model, WORK_DIR + "/test_xgboot_saveModel_multithread4")
+jobId5 = submitJob("sub_saveModel5","",sub_saveModel,model, WORK_DIR + "/test_xgboot_saveModel_multithread5")
+getJobReturn(jobId1,true)
+getJobReturn(jobId2,true)
+getJobReturn(jobId3,true)
+getJobReturn(jobId4,true)
+getJobReturn(jobId5,true)
+assert 1,exists(WORK_DIR + "/test_xgboot_saveModel_multithread1")
+assert 2,exists(WORK_DIR + "/test_xgboot_saveModel_multithread2")
+assert 3,exists(WORK_DIR + "/test_xgboot_saveModel_multithread3")
+assert 4,exists(WORK_DIR + "/test_xgboot_saveModel_multithread4")
+assert 5,exists(WORK_DIR + "/test_xgboot_saveModel_multithread5")
+
+@testing:case = "test_xgboot_loadModel_multithread"
+n = 3000000
+x1 = take(1..44101, n)
+x2 = take(1..58169, n)
+X = table(x1, x2)
+def sub_loadModel(fname,X){
+	for(i in 1..20){
+		tmp_model = xgboost::loadModel(fname)
+		res = xgboost::predict(tmp_model, X)
+	}
+	return res  
+}
+jobId1 = submitJob("sub_loadModel1","",sub_loadModel,WORK_DIR + "/test_xgboot_saveModel_multithread1",X)
+jobId2 = submitJob("sub_loadModel2","",sub_loadModel,WORK_DIR + "/test_xgboot_saveModel_multithread2",X)
+jobId3 = submitJob("sub_loadModel3","",sub_loadModel,WORK_DIR + "/test_xgboot_saveModel_multithread3",X)
+jobId4 = submitJob("sub_loadModel4","",sub_loadModel,WORK_DIR + "/test_xgboot_saveModel_multithread4",X)
+jobId5 = submitJob("sub_loadModel5","",sub_loadModel,WORK_DIR + "/test_xgboot_saveModel_multithread5",X)
+re1 = getJobReturn(jobId1,true)
+re2 = getJobReturn(jobId2,true)
+re3 = getJobReturn(jobId3,true)
+re4 = getJobReturn(jobId4,true)
+re5 = getJobReturn(jobId5,true)
+assert 1, eqObj(re1[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 2, eqObj(re2[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 3, eqObj(re3[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 4, eqObj(re4[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+assert 5, eqObj(re5[[0,1000,10000,2000000]], [12.839462, 110.50454, 1788.3998, 7618.66], 2)
+
+// https://dolphindb1.atlassian.net/browse/D20-20167
+@testing:case="test_function_xgboost_setLogLevel_empty",exception=1
+xgboost::setLogLevel()
+
+@testing:case="test_function_xgboost_setLogLevel_arg_over",syntaxError=1
+xgboost::setLogLevel(INFO, 2)
+
+@testing:case="test_function_xgboost_setLogLevel_other_saclar_1",exception=1
+xgboost::setLogLevel(true)
+
+@testing:case="test_function_xgboost_setLogLevel_other_saclar_2",exception=1
+xgboost::setLogLevel(DOUBLE)
+
+@testing:case="test_function_xgboost_setLogLevel_vector",exception=1
+xgboost::setLogLevel([INFO, INFO])
+
+@testing:case="test_function_xgboost_setLogLevel_pair",exception=1
+xgboost::setLogLevel(INFO:INFO)
+
+@testing:case="test_function_xgboost_setLogLevel_matrix",exception=1
+xgboost::setLogLevel(1..6$2:3)
+
+@testing:case="test_function_xgboost_setLogLevel_set",exception=1
+xgboost::setLogLevel(set(1 2 3))
+
+@testing:case="test_function_xgboost_setLogLevel_dict",exception=1
+xgboost::setLogLevel(dict(1 2 3, 1 2 3))
+
+@testing:case="test_function_xgboost_setLogLevel_table",exception=1
+xgboost::setLogLevel(table(1 2 3 as x))
+
+@testing:case="test_function_xgboost_getLogLevel_arg_over",syntaxError=1
+xgboost::getLogLevel(1)
+
+@testing:case="test_xgboost_getLogLevel_default"
+assert 1, eqObj(xgboost::getLogLevel(), getConfig("logLevel"))
+
+@testing:case="test_function_xgboost_getLogLevel_setLogLevel_multi_times"
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	xgboost::setLogLevel(logLevel)
+	ans = xgboost::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_function_xgboost_getLogLevel_setLogLevel_multi_jobs"
+def submitJob_set(){
+	for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+		xgboost::setLogLevel(logLevel)
+	}
+}
+
+def submitJob_get(){
+	for(i in 1..1000){
+		ans = xgboost::getLogLevel()
+		assert 1, ans in ["DEBUG", "INFO", "WARNING", "ERROR"]
+	}
+}
+
+job1 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job2 = submitJob("submitJob_set", "submitJob_set", submitJob_set)
+job3 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+job4 = submitJob("submitJob_get", "submitJob_get", submitJob_get)
+getJobReturn(job1, true)
+getJobReturn(job2, true)
+getJobReturn(job3, true)
+getJobReturn(job4, true)
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	xgboost::setLogLevel(logLevel)
+	ans = xgboost::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case = "test_xgboost_function_train_keyword_Y"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(Y=label, X=t, params=params, numBoostRound=100)
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_train_keyword_X"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, X=t, params=params, numBoostRound=100)
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_train_keyword_params"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params=params, numBoostRound=100)
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_train_keyword_numBoostRound"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, numBoostRound=100)
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_train_keyword_model"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = NULL
+model = xgboost::train(label, t, params, 100, model=model)
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_train_keyword_wrong_arg_name", syntaxError = 1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+model = xgboost::train(label, wrongName=t)
+
+@testing:case = "test_xgboost_function_train_syntax"
+res = syntax(xgboost::train)
+ex = "train(Y, X, [params], [numBoostRound=10], [model])"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_xgboost_function_predict_keyword_model"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model=model, X=t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_X"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, X=t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_outputMargin"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, outputMargin=false)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_ntreeLimit"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, ntreeLimit=0)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_predLeaf"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, predLeaf=false)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_predContribs"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, predContribs=false)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_training"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, training=false)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_not_specify_all_option_args"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, t, outputMargin=false, training=false)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_predict_keyword_wrong_arg_name", syntaxError = 1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+res = xgboost::predict(model, wrongName=t)
+
+@testing:case = "test_xgboost_function_predict_syntax"
+res = syntax(xgboost::predict)
+ex = "predict(model, X, [outputMargin=false], [ntreeLimit=0], [predLeaf=false]," +
+	" [predContribs=false], [training=false])"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_xgboost_function_saveModel_keyword_model"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+xgboost::saveModel(model=model, filePath=WORK_DIR + "/xgboost001.model")
+res = exists(WORK_DIR + "/xgboost001.model")
+assert 1, res == true
+
+@testing:case = "test_xgboost_function_saveModel_keyword_filePath"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+xgboost::saveModel(model, filePath=WORK_DIR + "/xgboost001.model")
+res = exists(WORK_DIR + "/xgboost001.model")
+assert 1, res == true
+
+@testing:case = "test_xgboost_function_saveModel_keyword_wrong_arg_name", syntaxError = 1
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+label = 1 2 9 28 65
+params = {objective: "reg:linear", max_depth: 5, eta: 0.1, min_child_weight: 1,
+	subsample: 0.5, colsample_bytree: 1, num_parallel_tree: 1}
+model = xgboost::train(label, t, params, 100)
+xgboost::saveModel(model, wrongName=WORK_DIR + "/xgboost001.model")
+
+@testing:case = "test_xgboost_function_saveModel_syntax"
+res = syntax(xgboost::saveModel)
+ex = "saveModel(model, filePath)"
+assert 1, eqObj(res, ex)
+
+@testing:case = "test_xgboost_function_loadModel_keyword_filePath"
+t = table(1..5 as c1, 1..5 * 2 as c2, 1..5 * 3 as c3)
+model = xgboost::loadModel(filePath=WORK_DIR + "/xgboost001.model")
+res = xgboost::predict(model, t)
+assert 1, eqObj(res, [0.960063, 1.918349, 7.039501, 32.694199, 58.885143], 4)
+
+@testing:case = "test_xgboost_function_loadModel_keyword_wrong_arg_name", syntaxError = 1
+model = xgboost::loadModel(wrongName=WORK_DIR + "/xgboost001.model")
+
+@testing:case = "test_xgboost_function_loadModel_syntax"
+res = syntax(xgboost::loadModel)
+ex = "loadModel(filePath)"
+assert 1, eqObj(res, ex)

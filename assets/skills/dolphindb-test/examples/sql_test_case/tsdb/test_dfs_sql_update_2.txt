@@ -1,0 +1,264 @@
+
+#include "setup/settings.txt"
+login(`admin, `123456)
+
+@testing:case = "test_dfs_sql_update_createTables_prepare"
+def createTables(){
+	if(existsDatabase("dfs://test_update")){
+		dropDatabase("dfs://test_update")
+	}
+	db1 = database("", VALUE, 2021.03.01+0..10)
+	db2 = database("", HASH, [INT, 5])
+	db = database("dfs://test_update", COMPO, [db1, db2], , "TSDB")
+	n = 6000
+	t = table(take(2021.03.01 + 1..30, n) as ts, take(time(10) + 1..30, n) as time, take(1..300000, n) as qty, take(`A`B`C`D, n) as sym, rand(10.0, n) as price)
+	dt = db.createPartitionedTable(t, `dt, `ts`qty, {ts: "delta", qty: "delta"}, `qty`ts)
+	empt = db.createPartitionedTable(t, `empt, `ts`qty, , `qty`ts)
+	wt = db.createTable(t, `wt, , `qty`ts)
+	dt.append!(t)
+	wt.append!(t)
+	n = 6
+	t1 = table(take(2021.03.01 + 1..6, n) as ts, take(time(10) + 1..6, n) as time, take(1..10000, n) as qty, take(`A`B`C`D, n) as sym, rand(100.0, n) as price)
+	dt1 = db.createPartitionedTable(t, `dt1, `ts`qty, , `qty`ts).append!(t1)
+	wt1 = db.createTable(t, `wt1, , `qty`ts).append!(t1)
+}
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+dt1 = loadTable("dfs://test_update", `dt1)
+wt1 = loadTable("dfs://test_update", `wt1)
+t = select * from dt
+
+@testing:case = "test_dfs_sql_update_where"
+createTables()
+empt = loadTable("dfs://test_update", `empt)
+dt = loadTable("dfs://test_update", `dt)
+wt = loadTable("dfs://test_update", `wt)
+t = select * from dt
+for(i in 0:5){
+	update dt set price = price-1000 where sym =`A
+	update wt set price = price-1000 where sym =`A
+	update t set price = price-1000 where sym =`A
+	update empt set price = price-1000 where sym =`A
+	dts = select * from dt order by ts, qty
+	wts = select * from wt order by ts, qty
+	expected = select * from t order by ts, qty
+	assert 1, each(eqObj, dts.values(), expected.values())
+	assert 2, each(eqObj, wts.values(), expected.values())
+}
+// Aggregate or order-sensitive functions are not allowed without context by clause when updating a partitioned table.
+// for(i in 0:5){
+//	r = rand([10, 4000000, NULL], 1)[0]
+//	update dt set sym = `E, price = avg(price)+r where qty = r
+//	update wt set sym = `E, price = avg(price)+r where qty = r
+//	update t set sym = `E, price = avg(price)+r where qty = r
+//	update empt set sym = `E, price = avg(price)+r where qty = r
+//	dts = select * from dt order by ts, qty
+//	wts = select * from wt order by ts, qty
+//	expected = select * from t order by ts, qty
+//	assert 3, each(eqObj, dts.values(), expected.values())
+//	assert 4, each(eqObj, wts.values(), expected.values())
+//}
+for(i in 0:5){
+	update dt set price = price+1 where sym = `A and qty > 5
+	update wt set price = price+1 where sym = `A and qty > 5
+	update t set price = price+1 where sym = `A and qty > 5
+	update empt set price = price+1 where sym = `A and qty > 5
+	dts = select * from dt order by ts, qty
+	wts = select * from wt order by ts, qty
+	expected = select * from t order by ts, qty
+	assert 5, each(eqObj, dts.values(), expected.values())
+	assert 6, each(eqObj, wts.values(), expected.values())
+}
+
+for(i in 0:5){
+	r = rand(1..30, 1)[0]
+	update dt set price = price+1 where qty between r:(r+2)
+	update wt set price = price+1 where qty between r:(r+2)
+	update t set price = price+1 where qty between r:(r+2)
+	update empt set price = price+1 where qty between r:(r+2)
+	dts = select * from dt order by ts, qty
+	wts = select * from wt order by ts, qty
+	expected = select * from t order by ts, qty
+	assert 7, each(eqObj, dts.values(), expected.values())
+	assert 8, each(eqObj, wts.values(), expected.values())
+}
+//partition
+if(existsDatabase("dfs://test_update")){
+	dropDatabase("dfs://test_update")
+}
+db1 = database("", VALUE, 2021.03.01+0..10)
+db2 = database("", HASH, [INT, 50])
+db = database("dfs://test_update", COMPO, [db1, db2], , "TSDB")
+n = 6000
+t = table(take(2021.03.01 + 1..30, n) as ts, take(1..300000, n) as qty, take(`A`B`C`D, n) as sym, rand(10.0, n) as price)
+dt = db.createPartitionedTable(t, `dt, `ts`qty, {ts: "delta", qty: "delta"}, `qty`ts)
+wt = db.createPartitionedTable(t, `wt, `ts`qty, {ts: "delta", qty: "delta"}, `qty`ts).append!(t)
+dt.append!(t)
+update dt set price = price+1 where ts = 2021.03.02, partition(qty, 21 31)
+update t set price = price+1 where ts = 2021.03.02 and hashBucket(qty, 50) in 21 31
+update wt set price = price+1 where ts = 2021.03.02 and hashBucket(qty, 50) in 21 31
+dts = select * from dt order by ts, qty
+wts = select * from wt order by ts, qty
+expected = select * from t order by ts, qty
+assert 9, each(eqObj, dts.values(), expected.values())
+assert 10, each(eqObj, wts.values(), expected.values())
+
+@testing:case = "test_dfs_sql_update_new_tablename"
+createTables()
+pt = loadTable("dfs://test_update", `dt)
+t = select * from pt
+wtt = loadTable("dfs://test_update", `wt)
+for(i in 0:5){
+	update pt set price = price+1 where ts > 2020.04.20
+	update wtt set price = price+1 where ts > 2020.04.20
+	update t set price = price+1 where ts > 2020.04.20
+	dts = select * from pt order by ts, qty
+	wtts = select * from wtt order by ts, qty
+	expected = select * from t order by ts, qty
+	assert 1, each(eqObj, dts.values(), expected.values())
+	assert 2, each(eqObj, wtts.values(), expected.values())
+}
+
+@testing:case = "test_dfs_sql_update_dropDB"
+if(existsDatabase("dfs://test_update")){
+	dropDatabase("dfs://test_update")
+}
+
+@testing:case = "test_dfs_sql_update_after_addColumn"
+dbName = "dfs://test_update"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(dbName, VALUE, 2012.01.01..2012.01.10, , "TSDB")
+n = 1000000
+t = table(rand(2012.01.01..2012.01.10, n) as date, rand("A"+string(1..1000), n) as sym, rand(100.0, n) as price)
+pt1 = db.createPartitionedTable(t, "pt1", "date", , ["sym", "date"]).append!(t)
+pt2 = db.createPartitionedTable(t, "pt2", "date", , ["sym", "date"]).append!(t)
+dt1 = db.createTable(t, "dt1", , ["sym", "date"]).append!(t)
+dt2 = db.createTable(t, "dt2", , ["sym", "date"]).append!(t)
+
+//pt1
+addColumn(pt1, "col1", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col1=1
+re = select * from pt1
+assert 1, re[`col1]==1
+
+addColumn(pt1, "col2", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col2=2
+re = select * from pt1
+assert 2, re[`col2]==2
+
+addColumn(pt1, "col3", DOUBLE)
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col3=3
+re = select * from pt1
+assert 3, re[`col3]==3
+
+addColumn(pt1, "col4", [BOOL])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col4=true where int(col3)==3
+re = select * from pt1
+assert 4, re[`col4]==true
+
+addColumn(pt1, "col5", [DOUBLE])
+pt1 = loadTable(dbName, "pt1")
+update pt1 set col5=price/col2*col3
+re = select * from pt1
+assert 5, re[`col5]==re["price"]/re["col2"]*re["col3"]
+
+//pt2
+addColumn(pt2, "col1", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col1=1
+re = select * from pt2
+assert 6, re[`col1]==1
+
+addColumn(pt2, "col2", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col2=2
+re = select * from pt2
+assert 7, re[`col2]==2
+
+addColumn(pt2, "col3", DOUBLE)
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col3=3
+re = select * from pt2
+assert 8, re[`col3]==3
+
+addColumn(pt2, "col4", [BOOL])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col4=true where int(col3)==3
+re = select * from pt2
+assert 9, re[`col4]==true
+
+addColumn(pt2, "col5", [DOUBLE])
+pt2 = loadTable(dbName, "pt2")
+update pt2 set col5=price/col2*col3
+re = select * from pt2
+assert 10, re[`col5]==re["price"]/re["col2"]*re["col3"]
+
+//dt1
+addColumn(dt1, "col1", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col1=1
+re = select * from dt1
+assert 11, re[`col1]==1
+
+addColumn(dt1, "col2", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col2=2
+re = select * from dt1
+assert 12, re[`col2]==2
+
+addColumn(dt1, "col3", DOUBLE)
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col3=3
+re = select * from dt1
+assert 13, re[`col3]==3
+
+addColumn(dt1, "col4", [BOOL])
+dt1 = loadTable(dbName, "dt1")
+update dt1 set col4=true where int(col3)==3
+re = select * from dt1
+assert 14, re[`col4]==true
+
+addColumn(dt1, "col5", [DOUBLE])
+dt1 = loadTable(dbName, "pt1")
+update dt1 set col5=price/col2*col3
+re = select * from dt1
+assert 15, re[`col5]==re["price"]/re["col2"]*re["col3"]
+
+//dt2
+addColumn(dt2, "col1", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col1=1
+re = select * from dt2
+assert 16, re[`col1]==1
+
+addColumn(dt2, "col2", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col2=2
+re = select * from dt2
+assert 17, re[`col2]==2
+
+addColumn(dt2, "col3", DOUBLE)
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col3=3
+re = select * from dt2
+assert 18, re[`col3]==3
+
+addColumn(dt2, "col4", [BOOL])
+dt2 = loadTable(dbName, "dt2")
+update dt2 set col4=true where int(col3)==3
+re = select * from dt2
+assert 19, re[`col4]==true
+
+addColumn(dt2, "col5", [DOUBLE])
+dt2 = loadTable(dbName, "pt2")
+update dt2 set col5=price/col2*col3
+re = select * from dt2
+assert 20, re[`col5]==re["price"]/re["col2"]*re["col3"]

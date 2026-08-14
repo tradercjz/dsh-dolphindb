@@ -1,0 +1,230 @@
+#include "checkChunk.txt"
+def createDB(dbName, tableName, t, days){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db1 = database("",VALUE,days)
+	db2=database("",HASH,[IPADDR,10])
+	db = database(dbName,COMPO,[db1,db2], , "TSDB")
+	db.createPartitionedTable(t,tableName,`cdate`cip, , `cdate)
+}
+
+def generateTable(n){
+	basicTable= table(100:0,`id`cbool`cchar`cshort`cint`clong`cdate`cmonth`ctime`cminute`csecond`cdatetime`ctimestamp`cnanotime`cnanotimestamp`cfloat`cdouble`csymbol`cstring`cuuid`cip`cint128,[LONG,BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,SYMBOL,STRING,UUID,IPADDR,INT128])
+	vid = 1..n
+	vbool = rand([true,false],n)
+	vchar = rand(-127..127,n)
+	vshort = rand(-32767..32767,n)
+	vint = rand(-214747..2143647,n)
+	vlong = rand(-92237..922807,n)
+	vdate = take(2012.06.12..2016.05.02,n) //first 
+	vmonth = rand(2010.01M..2020.12M,n)
+	vtime = rand(00:00:00.001..00:00:59.999,n)
+	vminute = rand(01:00m..23:02m,n)
+	vsecond = rand(01:58:59..12:02:01,n)
+	vdatetime = rand(2018.01.01T01:58:59..2018.01.02T12:02:01,n)
+	vtimestamp = rand(2018.01.01T01:58:59.001..2018.01.01T01:59:59.001,n)
+	vnanotime = rand(01:58:59.000000001..01:58:59.000100000,n)
+	vnanotimestamp = rand(2018.01.01T01:58:59.000000001..2018.01.01T01:58:59.000100001,n)
+	vfloat = rand(1..10000,n)
+	vdouble = rand(-19999..19999,n)
+	vsymbol = take(`A`B`C`D`E,n) // second
+	vstring = rand(`APPL`GOOG`MS`INTEL`BBA,n)
+	vuuid=rand(uuid(),n)
+	vip=rand(ipaddr("192.168.1."+string(1..200)),n)
+	vint128=rand(int128(),n)
+	insert into basicTable values(vid, vbool,vchar,vshort,vint,vlong,vdate,vmonth,vtime,vminute,vsecond,vdatetime,vtimestamp,vnanotime,vnanotimestamp,vfloat,vdouble,vsymbol,vstring,vuuid,vip,vint128)
+	return basicTable
+}
+
+@testing:case="test_topic_append!_with_replaceColumn!"
+t=generateTable(1000000)
+idv=exec id from t
+replaceColumn!(t,`cint,string(idv))
+dbName="dfs://test_append_db1"
+tableName="pt"
+days=2019.09.10..2019.09.20
+createDB(dbName,tableName,t,days)
+
+pt=loadTable(dbName,tableName)
+assert 1,(exec typeString from schema(pt).colDefs where name=`cint)==[`STRING]
+
+@testing:case="test_topic_append!_with_reorderColumns!"
+t=generateTable(1000000)
+newColOrder=shuffle(t.colNames())
+reorderColumns!(t,newColOrder)
+dbName="dfs://test_append_db1"
+tableName="pt"
+days=2019.09.10..2019.09.20
+createDB(dbName,tableName,t,days)
+
+pt=loadTable(dbName,tableName)
+assert 1,schema(pt).colDefs.name==newColOrder
+
+@testing:case="topic_topic_append!_empty_table"
+if(existsDatabase("dfs://dbctable")){
+	dropDatabase("dfs://dbctable")
+}
+db = database("dfs://dbctable", VALUE, 1..7 ,,'TSDB')
+t1 = table(1..7 as id, 1..7 as v)
+t2 = table(10:0,`id`v,[INT,INT])
+dt1=db.createPartitionedTable(t1, "t1",`id,,`v)
+for(i in 0:10){
+	dt1.append!(t2)
+	assert 1,(exec count(*) from dt1)==0
+}
+dt1.append!(t1)
+assert 2,each(eqObj,(select * from dt1 order by id).values(),t1.values())
+
+//https://dolphindb1.atlassian.net/browse/D20-8655
+@testing:case="test_topic_tsdb_append_char_data_flush"
+def generateData(n){
+	colNames = `id`ts`code`cbool`cchar`cshort`cint`clong`cdate`cmonth`ctime`cminute`csecond`cdatetime`ctimestamp`cnanotime`cnanotimestamp`cfloat`cdouble`csymbol`cstring`cdatehour`cint128`cuuid`cipaddr`cblob`ccomplex`cpoint`cdecimal32`cdecimal64
+	colTypes = [INT, TIMESTAMP, SYMBOL, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, DATEHOUR, INT128, UUID, IPADDR, BLOB, COMPLEX, POINT, DECIMAL32(4), DECIMAL64(6)]
+	t = table(n:n, colNames, colTypes)
+	t[`id] = rand(1..100, n)
+	t[`ts] = concatDateTime(rand(2012.01.01..2012.01.12, n), rand(nanotime(00:00:00..23:59:59), n))
+	t[`code] = rand("A"+string(1..2000), n)
+	t[`cbool] = rand([true, false, NULL], n)
+	t[`cchar] = rand(char(-100..100 join NULL), n)
+	t[`cshort] = rand(short(-100..100 join NULL), n)
+	t[`cint] = rand(-100..100 join NULL, n)
+	t[`clong] = rand(-100..100 join NULL, n)
+	t[`cdate] = rand(1969.01.01..1970.12.31 join NULL, n)
+	t[`cmonth] = rand(1965.01M..1975.12M join NULL, n)
+	t[`ctime] = rand(time(00:00:00..23:59:59 join NULL), n)
+	t[`cminute] = rand(00:00m..23:59m join NULL, n)
+	t[`csecond] = rand(00:00:00..23:59:59 join NULL, n)
+	t[`cdatetime] = concatDateTime(rand(1969.01.01..1970.12.31 join NULL, n), rand(00:00:00..23:59:59 join NULL, n))
+	t[`ctimestamp] = concatDateTime(rand(1969.01.01..1970.12.31 join NULL, n), rand(time(00:00:00..23:59:59 join NULL), n))
+	t[`cnanotime] = rand(nanotime(00:00:00..23:59:59 join NULL), n)
+	t[`ctimestamp] = concatDateTime(rand(1969.01.01..1970.12.31 join NULL, n), rand(nanotime(00:00:00..23:59:59 join NULL), n))
+	t[`cfloat] = rand(-100..100 join NULL, n) + float(rand(1.0, n))
+	t[`cdouble] = rand(-100..100 join NULL, n) + rand(1.0, n)
+	t[`csymbol] = rand("A"+string(1..1000) join NULL, n)
+	t[`cstring] = rand("B"+string(1..1000) join NULL, n)
+	t[`cdatehour] = datehour(concatDateTime(rand(1969.01.01..1970.12.31 join NULL, n), rand(00:00:00..23:59:59 join NULL, n)))
+	t[`cint128] = rand(int128(["e1671797c52e15f763380b45e841ec31", "e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", "e1671797c52e15f763380b45e841ec34", "e1671797c52e15f763380b45e841ec35"]) join NULL, n)
+	t[`cuuid] = rand(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee81", "5d212a78-cc48-e3b1-4235-b4d91473ee82", "5d212a78-cc48-e3b1-4235-b4d91473ee83", "5d212a78-cc48-e3b1-4235-b4d91473ee84", "5d212a78-cc48-e3b1-4235-b4d91473ee85"]) join NULL, n)
+	t[`cipaddr] = rand(ipaddr(["192.168.1.11", "192.168.1.12", "192.168.1.13", "192.168.1.14", "192.168.1.15"]) join NULL, n)
+	t[`cblob] = blob("blob"+string(1..n))
+	t[`ccomplex] = complex(rand(-100..100 join NULL, n), rand(-100..100 join NULL, n))
+	t[`cpoint] = point(rand(-100..100 join NULL, n), rand(-100..100 join NULL, n))
+	t[`cdecimal32] = decimal32(rand(-100..100 join NULL, n) + rand(1.0, n), 4)
+	t[`cdecimal64] = decimal64(rand(-100..100 join NULL, n) + rand(1.0, n), 6)
+	return t
+}
+
+def createDatabase(dbName){
+	if(existsDatabase(dbName)){
+		dropDatabase(dbName)
+	}
+	db = database(dbName, VALUE, 1..30, , "TSDB")
+	colNames = `id`ts`code`cbool`cchar`cshort`cint`clong`cdate`cmonth`ctime`cminute`csecond`cdatetime`ctimestamp`cnanotime`cnanotimestamp`cfloat`cdouble`csymbol`cstring`cdatehour`cint128`cuuid`cipaddr`cblob`ccomplex`cpoint`cdecimal32`cdecimal64
+	colTypes = [INT, TIMESTAMP, SYMBOL, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, DATEHOUR, INT128, UUID, IPADDR, BLOB, COMPLEX, POINT, DECIMAL32(4), DECIMAL64(6)]
+	dummy = table(1:0, colNames, colTypes)
+	pt1 = db.createPartitionedTable(dummy, "pt1", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, ALL)
+	pt2 = db.createPartitionedTable(dummy, "pt2", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, FIRST)
+	pt3 = db.createPartitionedTable(dummy, "pt3", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, LAST)
+	pt4 = db.createPartitionedTable(dummy, "pt4", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, ALL, [hashBucket{, 20}, ])
+	pt5 = db.createPartitionedTable(dummy, "pt5", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, FIRST, [hashBucket{, 20}, ])
+	pt6 = db.createPartitionedTable(dummy, "pt6", `id, {"cdate":"delta", "clong":"delta"}, `code`id`ts, LAST, [hashBucket{, 20}, ])
+	dt1 = db.createTable(dummy, "dt1", {"cdate":"delta", "clong":"delta"}, `code`id`ts, ALL)
+	dt2 = db.createTable(dummy, "dt2", {"cdate":"delta", "clong":"delta"}, `code`id`ts, FIRST)
+	dt3 = db.createTable(dummy, "dt3", {"cdate":"delta", "clong":"delta"}, `code`id`ts, LAST)
+}
+
+def writeData(dbName, tableName, data){
+	loadTable(dbName, tableName).append!(data)
+}
+
+dbName = "dfs://test_tsdb_value_not_sortKey"
+createDatabase(dbName)
+colNames = `id`ts`code`cbool`cchar`cshort`cint`clong`cdate`cmonth`ctime`cminute`csecond`cdatetime`ctimestamp`cnanotime`cnanotimestamp`cfloat`cdouble`csymbol`cstring`cdatehour`cint128`cuuid`cipaddr`cblob`ccomplex`cpoint`cdecimal32`cdecimal64
+colTypes = [INT, TIMESTAMP, SYMBOL, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, DATEHOUR, INT128, UUID, IPADDR, BLOB, COMPLEX, POINT, DECIMAL32(4), DECIMAL64(6)]
+allData = table(10000000:0, colNames, colTypes)
+n = 100000
+tableNames = ["pt1", "pt2", "pt3", "pt4", "pt5", "pt6", "dt1", "dt2", "dt3"]
+tmp = generateData(n)
+for(tableName in tableNames){
+	writeData(dbName, tableName, tmp)
+}
+allData.append!(tmp)
+
+exTable1 = select * from allData
+exTable2 = select * from allData where isDuplicated([code, id, ts], FIRST)==false
+exTable3 = select * from allData where isDuplicated([code, id, ts], LAST)==false
+
+for(tableName in tableNames){
+	re = select * from loadTable(dbName, tableName) order by id, code, ts
+	if(in(tableName, ["pt1", "pt4", "dt1"])){
+		ex = select * from exTable1 order by id, code, ts
+	}else if(in(tableName, ["pt2", "pt5", "dt2"])){
+		ex = select * from exTable2 order by id, code, ts
+	}else if(in(tableName, ["pt3", "pt6", "dt3"])){
+		ex = select * from exTable3 order by id, code, ts
+	}
+	assert 1, each(eqObj, re.values(), ex.values())
+}
+
+pnodeRunAllNodes(flushTSDBCache)
+
+for(tableName in tableNames){
+	re = select * from loadTable(dbName, tableName) order by id, code, ts
+	if(in(tableName, ["pt1", "pt4", "dt1"])){
+		ex = select * from exTable1 order by id, code, ts
+	}else if(in(tableName, ["pt2", "pt5", "dt2"])){
+		ex = select * from exTable2 order by id, code, ts
+	}else if(in(tableName, ["pt3", "pt6", "dt3"])){
+		ex = select * from exTable3 order by id, code, ts
+	}
+	assert 2, each(eqObj, re.values(), ex.values())
+}
+
+@testing:case="topic_topic_append!_after_addcolumn"
+if (existsDatabase("dfs://rangedb_tradedata")){
+	dropDatabase("dfs://rangedb_tradedata")
+}
+db=database("dfs://rangedb_tradedata", RANGE, `A`F`M`O,,'TSDB')
+n=5
+t=table(rand(`IBM`MS`APPL`AMZN,n) as symbol, rand(10.0, n) as value)
+Trades=db.createPartitionedTable(t, "Trades", "symbol",, "symbol")
+tp=Trades.append!(t)
+addColumn(Trades, "date", DATETIME);
+Trades = loadTable("dfs://rangedb_tradedata", `Trades)
+tp=Trades.append!(t)
+t2=table(rand(`IBM`MS`APPL`AMZN,n) as symbol, rand(10.0, n) as value, timestamp(now()) + 1..n as date)
+tp=Trades.append!(t2)
+pnodeRunAllNodes(flushTSDBCache)
+sleep(1000)
+ex=select symbol,value,datetime(date) from unionAll(unionAll(t,t),t2,true)
+res=select * from Trades
+ex.sortBy!(ex.colNames())
+res.sortBy!(res.colNames())
+assert 1,each(eqObj,res.values(),ex.values())
+
+@testing:case="test_topic_append!_over_2billion"
+pnodeRunAllNodes(setMaxMemSize{64})
+pnodeRunAllNodes(clearAllCache)
+clearDbNames = getClusterDFSDatabases()
+for(clearDbName in clearDbNames){
+	pnodeRunAllNodes(clearCachedDatabase{clearDbName})
+}
+sleep(1000)
+dbName = "dfs://test_append_repeat_row_two_billion"
+if(existsDatabase(dbName)){
+    dropDatabase(dbName)
+}
+
+t = table(take(1, 1000000) as id, take("a", 1000000) as name, take(1, 1000000) as price)
+db = database(dbName, VALUE, 1..10,,"TSDB")
+pt = createPartitionedTable(db, t, `pt, `id, ,`id`price, LAST)
+
+for(i in 1..3000){
+    print(i)
+    pt.append!(t)
+}
+
+ans = exec rowNum from pnodeRunAllNodes(getTabletsMeta) where dfsPath like "%test_append_repeat_row_two_billion%"
+assert 1, eqObj(ans[0], 2147483647)
+pnodeRunAllNodes(setMaxMemSize{32})

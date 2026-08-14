@@ -1,0 +1,139 @@
+module easy_datayes::tbSchema::dfsSchema::snapshotSchema
+
+/*
+ * @FunctionName: snapshotSchemaTb
+ * @Brief: Defines the schema for the snapshot data table (61 fields, merged Shanghai and Shenzhen markets).
+ * @Return: A table schema defining the structure of the snapshot data table.
+ */
+def snapshotSchemaTb(){
+	schemaTable = table(
+		array(SYMBOL, 0) as code,
+		array(SYMBOL, 0) as exchange,
+		array(DATE, 0) as trade_date,
+		array(TIME, 0) as trade_time,
+		array(DOUBLE, 0) as pre_close,
+		array(DOUBLE, 0) as open_price,
+		array(DOUBLE, 0) as high_price,
+		array(DOUBLE, 0) as low_price,
+		array(DOUBLE, 0) as last_price,
+		array(DOUBLE, 0) as price_up,
+		array(DOUBLE, 0) as price_down,
+		array(DOUBLE, 0) as dif_price1,
+		array(DOUBLE, 0) as dif_price2,
+		array(DOUBLE, 0) as close_price,
+		array(INT, 0) as total_num,
+		array(LONG, 0) as total_qty,
+		array(DOUBLE, 0) as total_amt,
+		array(DOUBLE, 0) as peratio1,
+		array(DOUBLE, 0) as peratio2,
+		array(INT, 0) as sell_level_num,
+		array(LONG, 0) as total_sell_qty,
+		array(DOUBLE, 0) as wtavg_sell_price,
+		array(DOUBLE[], 0) as sell_price,
+		array(LONG[], 0) as sell_qty,
+		array(INT[], 0) as sell_num,
+		array(INT, 0) as buy_level_num,
+		array(DOUBLE, 0) as total_buy_qty,
+		array(DOUBLE, 0) as wtavg_buy_price,
+		array(DOUBLE[], 0) as buy_price,
+		array(LONG[], 0) as buy_qty,
+		array(INT[], 0) as buy_num,
+		array(SYMBOL, 0) as phase_code,
+		array(DOUBLE, 0) as nav,
+		array(DOUBLE, 0) as iopv,
+		array(DOUBLE, 0) as premium_rate,
+		array(INT, 0) as trade_num,
+		array(LONG, 0) as trade_qty,
+		array(DOUBLE, 0) as trade_amt,
+		array(INT, 0) as etf_buy_num,
+		array(LONG, 0) as etf_buy_qty,
+		array(DOUBLE, 0) as etf_buy_amt,
+		array(INT, 0) as etf_sell_num,
+		array(LONG, 0) as etf_sell_qty,
+		array(DOUBLE, 0) as etf_sell_amt,
+		array(DOUBLE, 0) as ytm,
+		array(LONG, 0) as total_buy_num,
+		array(LONG, 0) as total_sell_num,
+		array(INT, 0) as withdraw_buy_num,
+		array(LONG, 0) as withdraw_buy_qty,
+		array(DOUBLE, 0) as withdraw_buy_amt,
+		array(INT, 0) as withdraw_sell_num,
+		array(LONG, 0) as withdraw_sell_qty,
+		array(DOUBLE, 0) as withdraw_sell_amt,
+		array(DOUBLE, 0) as max_buy_duration,
+		array(DOUBLE, 0) as max_sell_duration,
+		array(INT, 0) as buy_order_num,
+		array(INT, 0) as sell_order_num,
+		array(LONG, 0) as total_warrant_exec_vol,
+		array(DOUBLE, 0) as warrant_down_limit,
+		array(DOUBLE, 0) as warrant_up_limit,
+		array(TIMESTAMP, 0) as update_time)
+	return schemaTable
+}
+
+// 定义 snapshot 表的注释字典
+def snapshotComments(){
+    comments_snapshot = dict(STRING, STRING)
+	comments_snapshot["code"] = "证券代码"
+	comments_snapshot["exchange"] = "交易所代码"
+	comments_snapshot["trade_date"] = "交易日期"
+	comments_snapshot["trade_time"] = "交易发生时间"
+	comments_snapshot["pre_close"] = "昨日收盘价"
+	comments_snapshot["open_price"] = "开盘价"
+	comments_snapshot["high_price"] = "最高价"
+	comments_snapshot["low_price"] = "最低价"
+	comments_snapshot["last_price"] = "最新价"
+	comments_snapshot["price_up"] = "涨停价"
+	comments_snapshot["price_down"] = "跌停价"
+	comments_snapshot["dif_price1"] = "升跌 1"
+	comments_snapshot["dif_price2"] = "升跌 2"
+	comments_snapshot["close_price"] = "今日收盘价"
+	comments_snapshot["total_num"] = "成交总笔数"
+	comments_snapshot["total_qty"] = "成交总量"
+	comments_snapshot["total_amt"] = "成交总额"
+	comments_snapshot["peratio1"] = "市盈率 1"
+	comments_snapshot["peratio2"] = "市盈率 2"
+	comments_snapshot["sell_level_num"] = "卖盘显示档位数"
+	comments_snapshot["total_sell_qty"] = "委托卖出总量"
+	comments_snapshot["wtavg_sell_price"] = "加权平均委卖价"
+	comments_snapshot["sell_price"] = "申卖价1-10"
+	comments_snapshot["sell_qty"] = "申卖量1-10"
+	comments_snapshot["sell_num"] = "最优十档价格上的委卖笔数"
+	comments_snapshot["buy_level_num"] = "买盘显示档位数"
+	comments_snapshot["total_buy_qty"] = "委托买入总量"
+	comments_snapshot["wtavg_buy_price"] = "加权平均买入价"
+	comments_snapshot["buy_price"] = "申买价1-10"
+	comments_snapshot["buy_qty"] = "申买量1-10"
+	comments_snapshot["buy_num"] = "最优十档价格上的委买笔数"
+	comments_snapshot["phase_code"] = "当前品种交易状态"
+	comments_snapshot["nav"] = "基金 T-1 日净值"
+	comments_snapshot["iopv"] = "基金实时参考净值"
+	comments_snapshot["premium_rate"] = "权证溢价率"
+	comments_snapshot["trade_num"] = "分笔期间成交笔数"
+	comments_snapshot["trade_qty"] = "分笔期间成交量"
+	comments_snapshot["trade_amt"] = "分笔期间成交金额"
+	comments_snapshot["etf_buy_num"] = "ETF 申购笔数"
+	comments_snapshot["etf_buy_qty"] = "ETF 申购数量"
+	comments_snapshot["etf_buy_amt"] = "ETF 申购金额"
+	comments_snapshot["etf_sell_num"] = "ETF 赎回笔数"
+	comments_snapshot["etf_sell_qty"] = "ETF 赎回数量"
+	comments_snapshot["etf_sell_amt"] = "ETF 赎回金额"
+	comments_snapshot["ytm"] = "到期收益率"
+	comments_snapshot["total_buy_num"] = "买入总笔数"
+	comments_snapshot["total_sell_num"] = "卖出总笔数"
+	comments_snapshot["withdraw_buy_num"] = "买入撤单笔数"
+	comments_snapshot["withdraw_buy_qty"] = "买入撤单数量"
+	comments_snapshot["withdraw_buy_amt"] = "买入撤单金额"
+	comments_snapshot["withdraw_sell_num"] = "卖出撤单笔数"
+	comments_snapshot["withdraw_sell_qty"] = "卖出撤单数量"
+	comments_snapshot["withdraw_sell_amt"] = "卖出撤单金额"
+	comments_snapshot["max_buy_duration"] = "买入委托成交最大等待时间"
+	comments_snapshot["max_sell_duration"] = "卖出委托成交最大等待时间"
+	comments_snapshot["buy_order_num"] = "买方委托价位数"
+	comments_snapshot["sell_order_num"] = "卖方委托价位数"
+	comments_snapshot["total_warrant_exec_vol"] = "总权证执行数量"
+	comments_snapshot["warrant_down_limit"] = "权证跌停价"
+	comments_snapshot["warrant_up_limit"] = "权证涨停价"
+	comments_snapshot["update_time"] = "数据写入数据库时间"
+    return comments_snapshot
+}

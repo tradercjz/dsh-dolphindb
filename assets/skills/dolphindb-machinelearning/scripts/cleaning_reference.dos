@@ -1,0 +1,349 @@
+/*
+DolphinDB Web AI 的一次性清洗脚本块库。
+不要运行整个文件。只把需要的脚本块复制到任务脚本中。
+不要定义或调用自定义 web* 函数。
+约束：输出清洗统计摘要、清洗方案和清洗前后对比。
+*/
+
+// 块索引：
+// 1-3：清洗前基线、缺失率和常量列。
+// 4-7：重复、业务 key、空标签和非法枚举。
+// 8-13、18：填充、异常标记、winsorize 和填充标记。
+// 15-17：业务 key 去重和行列缺失阈值决策。
+// 19-22：质量码、单位、时间间隔和信号异常。
+// 14、23-24：清洗摘要、标签编码映射、风险和警告。
+
+// 块 1：清洗前基础诊断。
+// 输入：webSource、webColDefs。
+// 输出：webCleaningBaseline。
+// 适用：任何清洗动作前记录源表规模和列数。
+webRowsBefore = exec count(*) from webSource
+webColsBefore = size(exec name from webColDefs)
+webCleaningBaseline = table([webRowsBefore] as rows_before, [webColsBefore] as columns_before)
+webCleaningBaseline
+
+// 块 2：按列统计缺失率。
+// 输入：webSource、webColDefs。
+// 输出：webMissingnessReport。
+// 适用：决定是否填充、删除或保留缺失值。
+webColumnNames = exec name from webColDefs
+webTotalRows = exec count(*) from webSource
+webMissingnessReport = table(100:0, `column_name`null_rows`rows`null_ratio, [STRING,LONG,LONG,DOUBLE])
+for(webCol in webColumnNames){
+    webSql = "select count(*) as null_rows from webSource where isNull(" + webCol + ")"
+    webNullResult = eval(parseExpr(webSql))
+    webNullRows = exec null_rows from webNullResult
+    webMissingnessReport.append!(table([webCol] as column_name, [long(webNullRows[0])] as null_rows, [webTotalRows] as rows, [long(webNullRows[0]) \ double(webTotalRows)] as null_ratio))
+}
+webMissingnessReport = select * from webMissingnessReport order by null_ratio desc
+webMissingnessReport
+
+// 块 3：检测常量列或近似常量列。
+// 输入：webSource、webColDefs。
+// 输出：webConstantColumnReport。
+// 适用：特征工程前排除无信息列。
+webColumnNames = exec name from webColDefs
+webRows = exec count(*) from webSource
+webConstantColumnReport = table(100:0, `column_name`distinct_values`distinct_ratio`is_constant, [STRING,LONG,DOUBLE,BOOL])
+for(webCol in webColumnNames){
+    webSql = "select count(*) as distinct_values from (select distinct " + webCol + " from webSource)"
+    webDistinctResult = eval(parseExpr(webSql))
+    webDistinctValues = exec distinct_values from webDistinctResult
+    webConstantColumnReport.append!(table([webCol] as column_name, [long(webDistinctValues[0])] as distinct_values, [long(webDistinctValues[0]) \ double(webRows)] as distinct_ratio, [long(webDistinctValues[0]) <= 1] as is_constant))
+}
+webConstantColumnReport = select * from webConstantColumnReport order by distinct_values
+webConstantColumnReport
+
+// 块 4：删除完全重复行。
+// 输入：webSource。
+// 输出：webCleaned、webCleaningSteps。
+// 适用：重复行不是有意义事件时。
+webRowsBefore = exec count(*) from webSource
+webCleaned = select distinct * from webSource
+webRowsAfter = exec count(*) from webCleaned
+webCleaningSteps = table(["exact_duplicate_dedup"] as step, [webRowsBefore] as rows_before, [webRowsAfter] as rows_after, [webRowsBefore - webRowsAfter] as rows_removed, ["distinct full rows"] as note)
+webCleaningSteps
+
+// 块 5：按业务 key 检测重复记录。
+// 输入：webCleaned、webKeyCols。
+// 输出：webDuplicateKeyReport。
+// 适用：实体时间粒度、订单粒度或主键粒度检查。
+webKeyCols = ["REPLACE_KEY_COL_1","REPLACE_KEY_COL_2"]
+webGroupExpr = concat(webKeyCols, ",")
+webSql = "select top 50 " + webGroupExpr + ", count(*) as rows from webCleaned group by " + webGroupExpr + " having count(*) > 1 order by rows desc"
+webDuplicateKeyReport = eval(parseExpr(webSql))
+webDuplicateKeyReport
+
+// 块 6：删除监督学习标签为空的行。
+// 输入：webCleaned、webLabelCol。
+// 输出：webCleaned、webLabelCleaningStep。
+// 适用：分类或回归训练前。
+webLabelCol = "REPLACE_LABEL_COL"
+webRowsBefore = exec count(*) from webCleaned
+webSql = "select * from webCleaned where not isNull(" + webLabelCol + ")"
+webCleaned = eval(parseExpr(webSql))
+webRowsAfter = exec count(*) from webCleaned
+webLabelCleaningStep = table(["drop_null_label"] as step, [webRowsBefore] as rows_before, [webRowsAfter] as rows_after, [webRowsBefore - webRowsAfter] as rows_removed, [webLabelCol] as column_name)
+webLabelCleaningStep
+
+// 块 7：检测枚举列非法值。
+// 输入：webCleaned、webCategoryCol、webAllowedValues。
+// 输出：webInvalidValueReport。
+// 适用：状态列、质量列、类别列的有效值检查。
+webCategoryCol = "REPLACE_CATEGORY_COL"
+webAllowedValues = ["REPLACE_ALLOWED_1","REPLACE_ALLOWED_2"]
+webAllowedText = "'" + concat(webAllowedValues, "','") + "'"
+webSql = "select top 50 " + webCategoryCol + " as invalid_value, count(*) as rows from webCleaned where not " + webCategoryCol + " in (" + webAllowedText + ") group by " + webCategoryCol + " order by rows desc"
+webInvalidValueReport = eval(parseExpr(webSql))
+webInvalidValueReport
+
+// 块 8：用中位数填充一个数值特征。
+// 输入：webCleaned、webFeatureCol。
+// 输出：webCleaned、webFillStep。
+// 适用：模型不能处理缺失值且中位数填充合理时。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webMedianSql = "select med(" + webFeatureCol + ") as fill_value from webCleaned where not isNull(" + webFeatureCol + ")"
+webFillResult = eval(parseExpr(webMedianSql))
+webFillVector = exec fill_value from webFillResult
+webFillValue = double(webFillVector[0])
+webUpdateSql = "select *, iif(isNull(" + webFeatureCol + "), " + string(webFillValue) + ", " + webFeatureCol + ") as " + webFeatureCol + "_filled from webCleaned"
+webCleaned = eval(parseExpr(webUpdateSql))
+webFillStep = table(["median_fill"] as step, [webFeatureCol] as column_name, [double(webFillValue)] as fill_value)
+webFillStep
+
+// 块 9：用均值填充一个数值特征。
+// 输入：webCleaned、webFeatureCol。
+// 输出：webCleaned、webFillStep。
+// 适用：近似对称分布的数值特征。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webMeanSql = "select avg(" + webFeatureCol + ") as fill_value from webCleaned where not isNull(" + webFeatureCol + ")"
+webFillResult = eval(parseExpr(webMeanSql))
+webFillVector = exec fill_value from webFillResult
+webFillValue = double(webFillVector[0])
+webUpdateSql = "select *, iif(isNull(" + webFeatureCol + "), " + string(webFillValue) + ", " + webFeatureCol + ") as " + webFeatureCol + "_mean_filled from webCleaned"
+webCleaned = eval(parseExpr(webUpdateSql))
+webFillStep = table(["mean_fill"] as step, [webFeatureCol] as column_name, [double(webFillValue)] as fill_value)
+webFillStep
+
+// 块 10：按分组中位数填充一个数值特征。
+// 输入：webCleaned、webGroupCol、webFeatureCol。
+// 输出：webGroupFillValues、webFillStep。
+// 适用：不同实体、产线或类别的数值水平差异明显时。
+webGroupCol = "REPLACE_GROUP_COL"
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webSql = "select " + webGroupCol + ", med(" + webFeatureCol + ") as fill_value from webCleaned where not isNull(" + webFeatureCol + ") group by " + webGroupCol
+webGroupFillValues = eval(parseExpr(webSql))
+webFillStep = table(["group_median_fill_plan"] as step, [webGroupCol] as group_column, [webFeatureCol] as column_name, [exec count(*) from webGroupFillValues] as groups)
+webFillStep
+webGroupFillValues
+
+// 块 11：为一个数值特征标记 IQR 异常值。
+// 输入：webCleaned、webFeatureCol。
+// 输出：webCleaned、webOutlierStep。
+// 适用：先标记异常值，暂不删除记录。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webQSql = "select percentile(" + webFeatureCol + ", 25) as q1, percentile(" + webFeatureCol + ", 75) as q3 from webCleaned where not isNull(" + webFeatureCol + ")"
+webQ = eval(parseExpr(webQSql))
+webQ1Vector = exec q1 from webQ
+webQ3Vector = exec q3 from webQ
+webQ1 = double(webQ1Vector[0])
+webQ3 = double(webQ3Vector[0])
+webIqr = webQ3 - webQ1
+webLower = webQ1 - 1.5 * webIqr
+webUpper = webQ3 + 1.5 * webIqr
+webFlagCol = webFeatureCol + "_outlier_flag"
+webFlagSql = "select *, (" + webFeatureCol + " < " + string(webLower) + " or " + webFeatureCol + " > " + string(webUpper) + ") as " + webFlagCol + " from webCleaned"
+webCleaned = eval(parseExpr(webFlagSql))
+webOutlierRowsSql = "select count(*) as outlier_rows from webCleaned where " + webFlagCol
+webOutlierResult = eval(parseExpr(webOutlierRowsSql))
+webOutlierVector = exec outlier_rows from webOutlierResult
+webOutlierRows = long(webOutlierVector[0])
+webOutlierStep = table(["iqr_outlier_flag"] as step, [webFeatureCol] as column_name, [double(webLower)] as lower_bound, [double(webUpper)] as upper_bound, [webOutlierRows] as outlier_rows)
+webOutlierStep
+
+// 块 12：为一个数值特征标记 z-score 异常值。
+// 输入：webCleaned、webFeatureCol、webZThreshold。
+// 输出：webCleaned、webZScoreStep。
+// 适用：分布近似对称且希望用标准差识别异常。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webZThreshold = 3.0
+webStatSql = "select avg(" + webFeatureCol + ") as mean_value, std(" + webFeatureCol + ") as std_value from webCleaned where not isNull(" + webFeatureCol + ")"
+webStat = eval(parseExpr(webStatSql))
+webMeanVector = exec mean_value from webStat
+webStdVector = exec std_value from webStat
+webMeanValue = double(webMeanVector[0])
+webStdValue = double(webStdVector[0])
+webFlagCol = webFeatureCol + "_z_outlier_flag"
+webFlagSql = "select *, abs((" + webFeatureCol + " - " + string(webMeanValue) + ") \ " + string(webStdValue) + ") > " + string(webZThreshold) + " as " + webFlagCol + " from webCleaned"
+webCleaned = eval(parseExpr(webFlagSql))
+webZScoreStep = table(["zscore_outlier_flag"] as step, [webFeatureCol] as column_name, [double(webMeanValue)] as mean_value, [double(webStdValue)] as std_value, [webZThreshold] as threshold)
+webZScoreStep
+
+// 块 13：对一个数值特征做上下界裁剪。
+// 输入：webCleaned、webFeatureCol、webLower、webUpper。
+// 输出：webCleaned、webWinsorStep。
+// 适用：用户或领域规则明确要求限制极端值。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webLower = -999999.0
+webUpper = 999999.0
+webCappedCol = webFeatureCol + "_capped"
+webSql = "select *, iif(" + webFeatureCol + " < " + string(webLower) + ", " + string(webLower) + ", iif(" + webFeatureCol + " > " + string(webUpper) + ", " + string(webUpper) + ", " + webFeatureCol + ")) as " + webCappedCol + " from webCleaned"
+webCleaned = eval(parseExpr(webSql))
+webWinsorStep = table(["winsorize"] as step, [webFeatureCol] as column_name, [webCappedCol] as output_column, [webLower] as lower_bound, [webUpper] as upper_bound)
+webWinsorStep
+
+// 块 14：清洗前后对比摘要。
+// 输入：webRowsBefore、webCleaned、webCleaningSteps。
+// 输出：webCleaningSummary。
+// 适用：向聊天答案说明清洗影响。
+webRowsAfter = exec count(*) from webCleaned
+webColsAfter = size(schema(webCleaned)["colDefs"].name)
+webCleaningSummary = table([webRowsBefore] as rows_before, [webRowsAfter] as rows_after, [webRowsBefore - webRowsAfter] as rows_removed, [webColsAfter] as columns_after, [string(webCleaningSteps)] as applied_steps)
+webCleaningSummary
+
+// 块 15：业务 key 重复决策表。
+// 输入：webCleaned、webBusinessKeyCols。
+// 输出：webBusinessKeyDuplicateReport。
+// 适用：旧版业务记录清洗能力拆分，用于确认哪些 key 组合存在多条记录。
+webBusinessKeyCols = ["REPLACE_KEY_COL_1","REPLACE_KEY_COL_2"]
+webBusinessKeyExpr = string(webBusinessKeyCols[0])
+if(size(webBusinessKeyCols) > 1){
+    for(webI in 1..(size(webBusinessKeyCols) - 1)){
+        webBusinessKeyExpr = webBusinessKeyExpr + ", " + string(webBusinessKeyCols[webI])
+    }
+}
+webDupSql = "select " + webBusinessKeyExpr + ", count(*) as duplicate_rows from webCleaned group by " + webBusinessKeyExpr + " having count(*) > 1 order by duplicate_rows desc"
+webBusinessKeyDuplicateReport = eval(parseExpr(webDupSql))
+webBusinessKeyDuplicateReport
+
+// 块 16：按质量和更新时间保留业务 key 最优记录。
+// 输入：webCleaned、webBusinessKeyCols、webQualityCol、webUpdateCol。
+// 输出：webCleaned、webBusinessKeyDedupStep。
+// 适用：用户确认业务 key 重复可以压缩为一条记录后，保留质量更高或更新时间更晚的记录。
+webQualityCol = "REPLACE_QUALITY_COL"
+webUpdateCol = "REPLACE_UPDATE_TIME_COL"
+webBusinessKeyExpr = string(webBusinessKeyCols[0])
+if(size(webBusinessKeyCols) > 1){
+    for(webI in 1..(size(webBusinessKeyCols) - 1)){
+        webBusinessKeyExpr = webBusinessKeyExpr + ", " + string(webBusinessKeyCols[webI])
+    }
+}
+webRowsBeforeBusinessDedup = exec count(*) from webCleaned
+webOrderExpr = webQualityCol + " desc, " + webUpdateCol + " desc"
+webDedupSql = "select top 1 *, count(*) as duplicate_conflict_count from webCleaned context by " + webBusinessKeyExpr + " csort " + webOrderExpr
+webCleaned = eval(parseExpr(webDedupSql))
+webRowsAfterBusinessDedup = exec count(*) from webCleaned
+webBusinessKeyDedupStep = table(["business_key_best_record"] as step, [string(webBusinessKeyCols)] as key_columns, [webRowsBeforeBusinessDedup] as rows_before, [webRowsAfterBusinessDedup] as rows_after, [webRowsBeforeBusinessDedup - webRowsAfterBusinessDedup] as rows_removed, [webOrderExpr] as priority_rule)
+webBusinessKeyDedupStep
+
+// 块 17：行列缺失阈值决策。
+// 输入：webCleaned、webNullableCols、webRowDropNullRatio、webColumnDropNullRatio。
+// 输出：webMissingThresholdDecision。
+// 适用：决定高缺失行、列是否只标记、填充或请求用户确认。
+webNullableCols = ["REPLACE_FEATURE_1","REPLACE_FEATURE_2"]
+webRowDropNullRatio = 0.50
+webColumnDropNullRatio = 0.80
+webRows = exec count(*) from webCleaned
+webMissingThresholdDecision = table(100:0, `column_name`null_rows`null_ratio`decision, [STRING,LONG,DOUBLE,STRING])
+for(webCol in webNullableCols){
+    webNullSql = "select count(*) as null_rows from webCleaned where isNull(" + webCol + ")"
+    webNullResult = eval(parseExpr(webNullSql))
+    webNullVector = exec null_rows from webNullResult
+    webNullRows = long(webNullVector[0])
+    webNullRatio = webNullRows \ double(webRows)
+    webDecision = iif(webNullRatio >= webColumnDropNullRatio, "confirm_before_exclude_column", iif(webNullRatio > 0, "impute_or_flag", "keep"))
+    webMissingThresholdDecision.append!(table([webCol] as column_name, [webNullRows] as null_rows, [webNullRatio] as null_ratio, [webDecision] as decision))
+}
+webMissingThresholdDecision
+
+// 块 18：数值填充并生成填充标记列。
+// 输入：webCleaned、webFeatureCol、webFillValue。
+// 输出：webCleaned、webImputeFlagStep。
+// 适用：模型需要非空特征，并且希望保留缺失曾经发生的信息。
+webFeatureCol = "REPLACE_NUMERIC_FEATURE"
+webFillValue = 0.0
+webFlagCol = webFeatureCol + "_imputed_flag"
+webFilledCol = webFeatureCol + "_filled"
+webImputeSql = "select *, isNull(" + webFeatureCol + ") as " + webFlagCol + ", iif(isNull(" + webFeatureCol + "), " + string(webFillValue) + ", " + webFeatureCol + ") as " + webFilledCol + " from webCleaned"
+webCleaned = eval(parseExpr(webImputeSql))
+webImputeFlagRows = exec count(*) from webCleaned where webCleaned[webFlagCol]
+webImputeFlagStep = table(["impute_with_flag"] as step, [webFeatureCol] as source_column, [webFilledCol] as filled_column, [webFlagCol] as flag_column, [webFillValue] as fill_value, [webImputeFlagRows] as imputed_rows)
+webImputeFlagStep
+
+// 块 19：质量码无效标记。
+// 输入：webCleaned、webQualityCol。
+// 输出：webCleaned、webQualityInvalidReport。
+// 适用：工业传感或生产记录中质量字段表示坏点、无效或失败时。
+webQualityCol = "REPLACE_QUALITY_COL"
+webQualityFlagCol = webQualityCol + "_invalid_flag"
+webQualitySql = "select *, lower(string(" + webQualityCol + ")) in ['invalid','bad','fail','false','0','null'] as " + webQualityFlagCol + " from webCleaned"
+webCleaned = eval(parseExpr(webQualitySql))
+webQualityInvalidRows = exec count(*) from webCleaned where webCleaned[webQualityFlagCol]
+webQualityInvalidReport = table([webQualityCol] as quality_column, [webQualityFlagCol] as flag_column, [webQualityInvalidRows] as invalid_rows)
+webQualityInvalidReport
+
+// 块 20：单位标准化建议表。
+// 输入：webCleaned、webUnitCol、webValueCol。
+// 输出：webUnitStandardizationPlan。
+// 适用：发现同一数值列存在多个单位时，先给出转换建议并请求确认。
+webUnitCol = "REPLACE_UNIT_COL"
+webValueCol = "REPLACE_VALUE_COL"
+webUnitSql = "select lower(string(" + webUnitCol + ")) as unit_value, count(*) as rows from webCleaned group by lower(string(" + webUnitCol + ")) order by rows desc"
+webUnitDistribution = eval(parseExpr(webUnitSql))
+webUnitStandardizationPlan = table(webUnitDistribution.unit_value as unit_value, webUnitDistribution.rows as rows, take(webValueCol, size(webUnitDistribution.unit_value)) as value_column, take("confirm_conversion_rule_before_applying", size(webUnitDistribution.unit_value)) as action)
+webUnitStandardizationPlan
+
+// 块 21：实体时间间隔缺失风险。
+// 输入：webCleaned、webEntityCol、webTimeCol、webExpectedInterval。
+// 输出：webGapRiskReport。
+// 适用：旧版时序清洗能力拆分，用于识别采样间隔异常或疑似漏写。
+webEntityCol = "REPLACE_ENTITY_COL"
+webTimeCol = "REPLACE_TIME_COL"
+webExpectedInterval = 60
+webGapSql = "select " + webEntityCol + " as entity_id, " + webTimeCol + " as current_time, prev(" + webTimeCol + ") as previous_time, " + webTimeCol + " - prev(" + webTimeCol + ") as actual_interval from (select * from webCleaned order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webGapWork = eval(parseExpr(webGapSql))
+webGapRiskReport = select *, actual_interval > webExpectedInterval * 3 as missing_write_risk_flag from webGapWork where not isNull(previous_time) and actual_interval > webExpectedInterval * 3 order by actual_interval desc
+webGapRiskReport
+
+// 块 22：stuck、spike、jump 信号异常标记。
+// 输入：webCleaned、webEntityCol、webTimeCol、webValueCol、webJumpThreshold。
+// 输出：webCleaned、webSignalAnomalyReport。
+// 适用：工业时序中识别连续不变、尖峰或跳变风险。
+webValueCol = "REPLACE_VALUE_COL"
+webJumpThreshold = 3.0
+webStuckCol = webValueCol + "_stuck_flag"
+webJumpCol = webValueCol + "_jump_flag"
+webSignalSql = "select *, " + webValueCol + " == prev(" + webValueCol + ") as " + webStuckCol + ", abs(" + webValueCol + " - prev(" + webValueCol + ")) >= " + string(webJumpThreshold) + " as " + webJumpCol + " from (select * from webCleaned order by " + webEntityCol + ", " + webTimeCol + ") context by " + webEntityCol
+webCleaned = eval(parseExpr(webSignalSql))
+webStuckRows = exec count(*) from webCleaned where webCleaned[webStuckCol]
+webJumpRows = exec count(*) from webCleaned where webCleaned[webJumpCol]
+webSignalAnomalyReport = table(["stuck","jump"] as anomaly_type, [webStuckCol, webJumpCol] as flag_column, [webStuckRows, webJumpRows] as rows)
+webSignalAnomalyReport
+
+// 块 23：标签编码映射。
+// 输入：webCleaned、webLabelCol、webEncodedLabelCol。
+// 输出：webCleaned、webLabelEncodingMap、webLabelEncodingStep。
+// 适用：分类标签为字符串、符号或非连续编码时，训练前生成 0..N-1 的整数标签列并请求确认。
+webLabelCol = "REPLACE_LABEL_COL"
+webEncodedLabelCol = "label_code"
+webLabelDomainSql = "select distinct string(" + webLabelCol + ") as web_label_value from webCleaned where not isNull(" + webLabelCol + ") order by web_label_value"
+webLabelDomain = eval(parseExpr(webLabelDomainSql))
+webLabelEncodingMap = table(webLabelDomain.web_label_value as web_label_value, int(0..(size(webLabelDomain.web_label_value) - 1)) as label_code)
+webLabelSourceSql = "select *, string(" + webLabelCol + ") as web_label_value from webCleaned where not isNull(" + webLabelCol + ")"
+webLabelSource = eval(parseExpr(webLabelSourceSql))
+webLabelJoined = lj(webLabelSource, webLabelEncodingMap, `web_label_value)
+webLabelEncodedSql = "select *, int(label_code) as " + webEncodedLabelCol + " from webLabelJoined"
+webCleaned = eval(parseExpr(webLabelEncodedSql))
+webLabelEncodingStep = table(["label_encode"] as step, [webLabelCol] as raw_label_col, [webEncodedLabelCol] as encoded_label_col, [exec count(*) from webLabelEncodingMap] as class_count, [string(webLabelEncodingMap)] as label_encoding_map)
+webLabelEncodingStep
+
+// 块 24：清洗风险和警告摘要。
+// 输入：webCleaningSummary、webMissingThresholdDecision、webQualityInvalidReport、webGapRiskReport、webSignalAnomalyReport。
+// 输出：webCleaningWarningSummary。
+// 适用：清洗完成后向用户输出清洗方案、结果和需要确认的风险。
+webMissingWarnings = exec count(*) from webMissingThresholdDecision where decision != "keep"
+webQualityWarnings = exec invalid_rows from webQualityInvalidReport
+webGapWarnings = exec count(*) from webGapRiskReport
+webSignalWarnings = exec sum(rows) from webSignalAnomalyReport
+webCleaningWarningSummary = table(["missing","quality","time_gap","signal"] as warning_type, [long(webMissingWarnings), long(webQualityWarnings[0]), long(webGapWarnings), long(webSignalWarnings)] as warning_rows_or_items, ["review missing threshold decisions","review invalid quality policy","review sampling gap risk","review stuck/jump flags"] as required_confirmation)
+webCleaningWarningSummary

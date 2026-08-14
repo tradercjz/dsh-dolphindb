@@ -1,0 +1,31 @@
+module easy_datayes::tbSchema::dfsSchema::tickSchema
+
+/*
+ * @FunctionName: tickSchemaTb
+ * @Brief: Defines the schema for the tick data table (merged order transaction data).
+ * @Return: A table schema defining the structure of the tick data table.
+ */
+def tickSchemaTb(){
+	name = `code`exchange`trade_date`trade_time`msg_type`data_type`channel_no`appl_seq`price`qty`buy_order`sell_order`side`update_time
+	type = `SYMBOL`SYMBOL`DATE`TIME`INT`INT`INT`LONG`LONG`LONG`LONG`LONG`INT`TIMESTAMP
+	return table(1:0, name, type)
+}
+
+def tickComments(){
+    comments = dict(STRING, STRING)
+    comments["code"] = "证券代码"
+    comments["exchange"] = "交易所代码"
+    comments["trade_date"] = "交易日期"
+    comments["trade_time"] = "交易发生时间"
+    comments["msg_type"] = "数据类型：0=逐笔委托，1=逐笔成交"
+    comments["data_type"] = "数据子类型（委托类型/成交类型等）"
+    comments["channel_no"] = "频道代码"
+    comments["appl_seq"] = "消息记录号"
+    comments["price"] = "价格（乘以10000后的长整型）"
+    comments["qty"] = "数量"
+    comments["buy_order"] = "买方订单号"
+    comments["sell_order"] = "卖方订单号"
+    comments["side"] = "买卖方向：1=买，2=卖"
+    comments["update_time"] = "数据写入数据库时间"
+    return comments
+}

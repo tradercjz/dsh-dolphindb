@@ -1,0 +1,34 @@
+module easy_datayes::tbSchema::dfsSchema::entrustSchema
+
+/*
+ * @FunctionName: entrustSchemaTb
+ * @Brief: Defines the schema for the entrust data table (merged Shanghai and Shenzhen markets).
+ * @Return: A table schema defining the structure of the entrust data table.
+ */
+def entrustSchemaTb(){
+	name = `code`exchange`trade_date`trade_time`channel_no`appl_seq`order_price`order_qty`order_type`side`order_no`rec_id`trade_qty`update_time
+	type = `SYMBOL`SYMBOL`DATE`TIME`INT`LONG`DOUBLE`DOUBLE`SYMBOL`SYMBOL`LONG`LONG`DOUBLE`TIMESTAMP
+	return table(1:0, name, type)
+}
+
+
+// 定义 entrust 表的注释字典
+
+def entrustComments(){
+    comments_entrust = dict(STRING, STRING)
+	comments_entrust["channel_no"] = "频道代码"
+	comments_entrust["appl_seq"] = "消息记录号"
+	comments_entrust["code"] = "证券代码"
+	comments_entrust["order_price"] = "委托价格"
+	comments_entrust["order_qty"] = "委托数量"
+	comments_entrust["side"] = "买卖方向"
+	comments_entrust["trade_date"] = "交易日期"
+	comments_entrust["trade_time"] = "委托时间"
+	comments_entrust["order_type"] = "委托类别"
+	comments_entrust["order_no"] = "委托订单号"
+	comments_entrust["exchange"] = "交易所代码"
+	comments_entrust["rec_id"] = "委托序号"
+	comments_entrust["trade_qty"] = "已成交的委托数量"
+	comments_entrust["update_time"] = "数据写入数据库时间"
+    return comments_entrust 
+} 

@@ -1,0 +1,31 @@
+// ============================================================
+// FxEuropeanOption — parseInstrument 构建示例
+// 构建一只 USDCNY 欧式外汇看涨期权
+// ============================================================
+// 金融含义：
+//   外汇欧式期权赋予持有者在到期日以约定汇率(strike)买入/卖出外币
+//   的权利。使用 Garman-Kohlhagen 模型定价（BSM 的双币版本）。
+//   定价需要四类市场数据：本外币贴现曲线、即期汇率、FX波动率曲面。
+//   payoffType = "Call" 表示看涨期权（买入外币的权利）。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Option"            // 期权类产品
+instDict["optionType"]         = "EuropeanOption"     // 欧式期权
+instDict["assetType"]          = "FxEuropeanOption"   // 外汇欧式期权
+
+// --- 期权要素 ---
+instDict["notionalCurrency"]   = "USD"
+instDict["notionalAmount"]     = 1000000.0           // 名义本金 100万 USD
+instDict["strike"]             = 7.30                // 执行价
+instDict["maturity"]           = 2026.09.20          // 到期日
+instDict["payoffType"]         = "Call"              // 看涨（Call）/ 看跌（Put）
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "USDCNY"            // 标的货币对
+instDict["domesticCurve"]      = "CNY"               // 本币曲线标签
+instDict["foreignCurve"]       = "USD"               // 外币曲线标签
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

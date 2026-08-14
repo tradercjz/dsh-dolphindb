@@ -1,0 +1,28 @@
+// ============================================================
+// Deposit — parseInstrument 构建示例
+// 构建一笔银行间同业存款（FR007 定盘利率锚点）
+// ============================================================
+// 金融含义：
+//   Deposit 是最简单的零息结构：在起息日存入本金，到期日一次性
+//   归还本金+利息。在 FICC 定价体系中，Deposit 主要用作利率曲线
+//   短端的 Bootstrap 锚点（如 FR007 7D / SHIBOR 3M）。
+//   payReceive = "Receive" 表示资金存放方（收利息），"Pay" 为借出方。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Cash"            // 现金类产品
+instDict["assetType"]          = "Deposit"          // 存款
+
+// --- 存款要素 ---
+instDict["start"]              = 2026.03.20        // 起息日
+instDict["maturity"]           = 2026.03.27        // 到期日（7天期 FR007）
+instDict["rate"]               = 0.0149            // 存款利率（FR007 官方定盘 1.49%）
+instDict["dayCountConvention"] = "Actual365"        // 日期计数惯例
+instDict["notionalCurrency"]   = "CNY"              // 货币
+instDict["notionalAmount"]     = 100000000.0        // 本金 1亿
+instDict["payReceive"]         = "Receive"          // 方向：收取利息
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

@@ -1,0 +1,68 @@
+if (!existsCatalog("orca")) { createCatalog("orca") }
+go
+use catalog orca
+go
+
+// 清理旧流图和流表
+try { dropStreamGraph("industry_amt_rank_graph", true) } catch(ex) { }
+go
+
+g = createStreamGraph("industry_amt_rank_graph")
+
+// 右表：股票 → 行业映射流表
+industryMapStream = g.source("security_industry_map", `SecurityID`Industry, [SYMBOL, SYMBOL])
+
+// 左表：逐笔成交流
+g.source("trade_stream", `TradeTime`SecurityID`Price`Volume, [TIMESTAMP, SYMBOL, DOUBLE, LONG])
+ .lookupJoinEngine(
+    industryMapStream,
+    metrics=<[TradeTime, Industry, Price * Volume as TradeAmount]>,
+    matchingColumn=`SecurityID
+ )
+ .map(msg -> select TradeTime, Industry, TradeAmount from msg where not isNull(Industry))
+ .timeSeriesEngine(
+    windowSize=60000,
+    step=60000,
+    metrics=<[sum(TradeAmount)]>,
+    timeColumn="TradeTime",
+    useSystemTime=false,
+    keyColumn="Industry",
+    useWindowStartTime=false
+ )
+ .crossSectionalEngine(
+    metrics=<[Industry, sum_TradeAmount, rank(sum_TradeAmount, false) as amtRank]>,
+    keyColumn="Industry",
+    triggeringPattern="perBatch",
+    useSystemTime=false,
+    timeColumn="TradeTime"
+ )
+ .sink("industry_amt_rank")
+
+g.submit()
+go
+
+// 写入行业映射数据
+industryMapData = table(
+    symbol(`000001`000002`600000`600519`300750`002415) as SecurityID,
+    symbol(`Bank`RealEstate`Bank`Liquor`Battery`Security) as Industry
+)
+appendOrcaStreamTable("security_industry_map", industryMapData)
+
+// 写入测试逐笔成交数据
+tradeData = table(
+    [
+        2024.01.02T09:30:01.000, 2024.01.02T09:30:02.000,
+        2024.01.02T09:30:10.000, 2024.01.02T09:30:20.000,
+        2024.01.02T09:30:30.000, 2024.01.02T09:31:01.000,
+        2024.01.02T09:31:05.000, 2024.01.02T09:31:20.000,
+        2024.01.02T09:32:01.000
+    ] as TradeTime,
+    symbol(`000001`600000`600519`300750`002415`000002`600519`300750`000001) as SecurityID,
+    [10.1, 8.2, 1700.0, 390.0, 32.5, 12.0, 1710.0, 395.0, 10.2] as Price,
+    [1000, 2000, 100, 500, 3000, 1000, 120, 600, 100] as Volume
+)
+appendOrcaStreamTable("trade_stream", tradeData)
+go
+
+// 查看结果
+select * from orca_table.industry_amt_rank order by TradeTime, amtRank

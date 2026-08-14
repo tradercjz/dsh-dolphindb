@@ -1,0 +1,113 @@
+// ==================== 清理环境 ====================
+use catalog slippage
+
+// 销毁流图并同时删除关联的流表（source、sink 等）
+try {
+    dropStreamGraph('slippageMonitor', true)
+} catch(ex) {
+    print("流图已清理或不存在: " + ex)
+}
+go
+
+// ==================== 重新创建环境 ====================
+if (!existsCatalog("slippage")) {
+    createCatalog("slippage")
+}
+go
+use catalog slippage
+
+// ==================== 构建流图 ====================
+g = createStreamGraph('slippageMonitor')
+
+// 委托流（右表）
+orderSrc = g.source(
+    "orderStream",
+    `time`orderID`sym`side`orderPrice,
+    [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE]
+)
+
+// 成交流（左表）
+tradeSrc = g.source(
+    "tradeStream",
+    `time`tradeID`orderID`sym`tradePrice`tradeQty,
+    [TIMESTAMP, SYMBOL, SYMBOL, SYMBOL, DOUBLE, INT]
+)
+
+// 关联并计算滑点
+joined = tradeSrc.lookupJoinEngine(
+    rightStream = orderSrc,
+    metrics = <[
+        time,
+        sym,
+        tradePrice,
+        tradeQty * tradePrice as tradeAmount,
+        iif(side == "BUY",
+            tradePrice - orderPrice,
+            orderPrice - tradePrice
+        ) as slippage
+    ]>,
+    matchingColumn = `orderID,
+    rightTimeColumn = `time
+)
+
+// 每分钟按股票聚合
+output = joined.timeSeriesEngine(
+    windowSize = 60000,
+    step = 60000,
+    metrics = <[
+        avg(slippage) as avgSlippage,
+        max(slippage) as maxSlippage,
+        sum(tradeAmount) as totalAmount,
+        count(slippage) as tradeCount
+    ]>,
+    timeColumn = `time,
+    keyColumn = `sym,
+    useSystemTime = false
+)
+
+output.sink("slippageOutput")
+g.submit()
+go
+
+// ==================== 生成并注入模拟数据 ====================
+// 模拟订单数据（时间分布在两个窗口）
+orders = table(
+    [
+        2024.01.01T10:00:01.000,
+        2024.01.01T10:00:02.000,
+        2024.01.01T10:00:03.000,
+        2024.01.01T10:00:04.000,
+        2024.01.01T10:01:01.000,
+        2024.01.01T10:01:02.000
+    ] as time,
+    [`O001, `O002, `O003, `O004, `O005, `O006] as orderID,
+    [`AAPL, `AAPL, `GOOGL, `GOOGL, `AAPL, `GOOGL] as sym,
+    [`BUY, `SELL, `BUY, `SELL, `BUY, `BUY] as side,
+    [150.0, 150.5, 2500.0, 2501.0, 150.0, 2500.0] as orderPrice
+)
+
+// 模拟成交数据（与订单一一对应）
+trades = table(
+    [
+        2024.01.01T10:00:10.000,
+        2024.01.01T10:00:12.000,
+        2024.01.01T10:00:15.000,
+        2024.01.01T10:00:18.000,
+        2024.01.01T10:01:20.000,
+        2024.01.01T10:01:25.000
+    ] as time,
+    [`T001, `T002, `T003, `T004, `T005, `T006] as tradeID,
+    [`O001, `O002, `O003, `O004, `O005, `O006] as orderID,
+    [`AAPL, `AAPL, `GOOGL, `GOOGL, `AAPL, `GOOGL] as sym,
+    [151.0, 149.5, 2502.0, 2499.0, 152.0, 2505.0] as tradePrice,
+    [100, 200, 10, 20, 50, 30] as tradeQty
+)
+
+// 先注入订单，再注入成交（确保关联时右表数据已存在）
+appendOrcaStreamTable("orderStream", orders)
+sleep(500)
+appendOrcaStreamTable("tradeStream", trades)
+sleep(2000)
+
+// ==================== 查看聚合结果 ====================
+select * from orca_table.slippageOutput

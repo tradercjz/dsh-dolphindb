@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "assets": {
+    "stock": {
+      "assetType": "股票",
+      "supported": true,
+      "strategyGroups": ["stock"],
+      "defaultAccountType": "stock",
+      "configRef": "refs/config_complete/stock.jsonl",
+      "symbolSuffixRules": {
+        "Shanghai": ".XSHG",
+        "Shenzhen": ".XSHE"
+      },
+      "resourceRoots": {
+        "datasource": "refs/datasource/stock",
+        "initialize": "refs/initialize/interfaces/stock",
+        "callback": "refs/callback/stock"
+      },
+      "notes": [
+        "Only refs bundled under this skill are authoritative at runtime.",
+        "Sector or industry classification limits belong to the specific datasource helper refs that implement them."
+      ]
+    },
+    "securityCreditAccount": {
+      "assetType": "融资融券账户",
+      "supported": true,
+      "strategyGroups": ["securityCreditAccount"],
+      "defaultAccountType": "securityCreditAccount",
+      "configRef": "refs/config_complete/securityCreditAccount.jsonl",
+      "symbolSuffixRules": {
+        "Shanghai": ".XSHG",
+        "Shenzhen": ".XSHE"
+      },
+      "resourceRoots": {
+        "datasource": "refs/datasource/securityCreditAccount",
+        "initialize": "refs/initialize/interfaces/securityCreditAccount",
+        "callback": "refs/callback/securityCreditAccount"
+      },
+      "requiredRuntimeArtifacts": [
+        "securityReference"
+      ],
+      "notes": [
+        "Configuration requirements differ from stock and must be read from refs/config_complete/securityCreditAccount.jsonl.",
+        "Final assembly requires securityReference when creating the backtester; datasource should generate it with bundled helper refs."
+      ]
+    }
+  }
+}

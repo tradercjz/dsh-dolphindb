@@ -1,0 +1,1383 @@
+#include "checkChunk.txt"
+
+def myTriggerPKEYCompaction(dbName){
+	flushPKEYCache()
+	suffix=substr(dbName, 5)
+	chunkIds=exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+    triggerPKEYCompaction(chunkIds, false)
+}
+
+def myUpdatePKEYDeleteBitmap(dbName){
+	suffix = substr(dbName, 5)
+	chunkIds = exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	updatePKEYDeleteBitmap(chunkIds)
+}
+
+//value partition
+@testing:case="value_limti_k_smaller_to_patition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",VALUE,`A`B`C`D`E, , "PKEY")
+t=table(take(`A`B`C`D`E,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==26 27
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==26 27
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==26 27
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+@testing:case="value_limit_k_equal_to_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 1 records
+testdb=database("dfs://test_limit_partitioned",VALUE,`A`B`C`D`E, , "PKEY")
+t=table(take(`A`B`C`D`E,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 1
+assert 1,re.id==`A
+assert 2,re.val==26
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 1
+assert 1,re.id==`A
+assert 2,re.val==26
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 1
+assert 1,re.id==`A
+assert 2,re.val==26
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10
+assert 3,re.id==`A`B`C`D`E
+assert 4,re.val==26..30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C`D`E
+assert 6,re.val==26..30
+
+@testing:case="value_limit_k_larger_than_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",VALUE,`A`B`C, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="value_limit_k_larger_than_table_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 1 records
+testdb=database("dfs://test_limit_partitioned",VALUE,`A`B`C, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+//range partition
+@testing:case="range_limti_k_smaller_to_patition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",RANGE,`A`B`C`D, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="range_limit_k_equal_to_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",RANGE,`A`B`C`D, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="range_limit_k_larger_than_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",RANGE,`A`B`C`D, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="range_limit_k_larger_than_table_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",RANGE,`A`B`C`D, , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+//hash partition
+@testing:case="hash_limti_k_smaller_to_patition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",HASH,[SYMBOL,3], , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) order by id limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 2
+assert 1,re.id==`A`B
+assert 2,re.val==28 29
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 2 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -2 
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="hash_limit_k_equal_to_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",HASH,[SYMBOL,3], , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) order by id limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 10
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 10 
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -10
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="hash_limit_k_larger_than_partition_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",HASH,[SYMBOL,3], , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+
+re=select * from testdb.loadTable(`pt) order by id limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) order by id limit 12
+assert 1,re.id==`A`B`C
+assert 2,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 12
+assert 3,re.id==`A`B`C
+assert 4,re.val==28 29 30
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -12
+assert 5,re.id==`A`B`C
+assert 6,re.val==28 29 30
+
+@testing:case="hash_limit_k_larger_than_table_size"
+dbName = "dfs://test_limit_partitioned"
+if(existsDatabase("dfs://test_limit_partitioned")){
+	dropDatabase("dfs://test_limit_partitioned")
+	}
+// each parititon 10 records
+testdb=database("dfs://test_limit_partitioned",HASH,[SYMBOL,3], , "PKEY")
+t=table(take(`A`B`C,30) as id,1..30 as val)
+pt=testdb.createPartitionedTable(t,`pt,`id, , `id)
+pt.append!(t)
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re=select * from testdb.loadTable(`pt) limit 32
+assert 1,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit 32
+assert 2,re.rows()==3
+
+re=select * from testdb.loadTable(`pt) context by id order by id limit -32
+assert 3,re.rows()==3
+
+@testing:case="test_limit_RANGE_partitionScheme"
+dbName = "dfs://limit_range_pkey"
+dbName2 = "dfs://limit_range_olap"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+if(existsDatabase(dbName2)){
+	dropDatabase(dbName2)
+}
+
+partitions = (0..1000)*2000
+db = database(dbName,RANGE,partitions,,"PKEY")
+db2 = database(dbName2,RANGE,partitions)
+n = 2000000
+ids = 1..n
+syms = take(`a`b`c`d,n)
+dates = take(2010.01.01T01:01:01.001..2010.01.10T01:01:01.001,n)
+vals = rand(1000,n)
+prices =  rand(1000,n)\10
+t = table(ids as id,syms as sym,dates as date,vals as val,prices as price)
+pt = createPartitionedTable(db,t,`pt,`id,,`id`date).append!(t)
+pt2 = createPartitionedTable(db2,t,`pt,`id).append!(select * from t where !isDuplicated([id,date],LAST))
+
+pt = loadTable(dbName,`pt)
+pt2 = loadTable(dbName2,`pt)
+
+re = select  * from pt order by id limit 10
+ex = select * from pt2 order by id limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id limit 1025
+ex_3 = select * from pt2 order by id limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select * from pt order by id limit 1048579 
+ex_4 = select * from pt2 order by id limit 1048579 
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id limit 10
+ex_7 = select * from pt2 where id>20 order by id limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName2})
+re = select  * from pt order by id limit 10
+ex = select * from pt2 order by id limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id limit 1025
+ex_3 = select * from pt2 order by id limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select * from pt order by id limit 1048579 
+ex_4 = select * from pt2 order by id limit 1048579 
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id limit 10
+ex_7 = select * from pt2 where id>20 order by id limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName2})
+re = select  * from pt order by id limit 10
+ex = select * from pt2 order by id limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id limit 1025
+ex_3 = select * from pt2 order by id limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select * from pt order by id limit 1048579 
+ex_4 = select * from pt2 order by id limit 1048579 
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id limit 10
+ex_7 = select * from pt2 where id>20 order by id limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort sym,id limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+@testing:case="test_limit_HASH_partitionScheme"
+dbName = "dfs://limit_hash_PKEY"
+dbName2 = "dfs://limit_hash_olap"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+if(existsDatabase(dbName2)){
+	dropDatabase(dbName2)
+}
+
+db = database(dbName,HASH,[INT,200],,"PKEY")
+db2 = database(dbName2,HASH,[INT,200])
+n = 1000000
+ids = 1..n
+syms = take(`a`b`c`d,n)
+dates = take(2010.01.01T01:01:01.001..2010.01.10T01:01:01.001,n)
+vals = rand(1000,n)
+prices =  rand(1000,n)\10
+t = table(ids as id,syms as sym,dates as date,vals as val,prices as price)
+pt = createPartitionedTable(db,t,`pt,`id,,`id`date).append!(t)
+pt2 = createPartitionedTable(db2,t,`pt,`id).append!(select * from t where !isDuplicated([id,date],LAST))
+
+pt = loadTable(dbName,`pt)
+pt2 = loadTable(dbName2,`pt)
+
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id limit 10 
+ex_9 = select * from pt2 context by sym csort sym,id limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName2})
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id limit 10 
+ex_9 = select * from pt2 context by sym csort sym,id limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName2})
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id limit 10 
+ex_9 = select * from pt2 context by sym csort sym,id limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+@testing:case="test_limit_VALUE_partitionScheme"
+dbName = "dfs://limit_value_PKEY"
+dbName2 = "dfs://limit_value_olap"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+if(existsDatabase(dbName2)){
+	dropDatabase(dbName2)
+}
+
+partitions = 0..20000
+db = database(dbName,VALUE,partitions,,"PKEY")
+db2 = database(dbName2,VALUE,partitions)
+n = 1000000
+ids = take(0..200,n)
+syms = take(`a`b`c`d,n)
+dates = take(2010.01.01T01:01:01.001..2010.01.10T01:01:01.001,n)
+vals = rand(1000,n)
+prices =  rand(1000,n)\10
+t = table(ids as id,syms as sym,dates as date,vals as val,prices as price)
+pt = createPartitionedTable(db,t,`pt,`id,,`id`date).append!(t)
+pt2 = createPartitionedTable(db2,t,`pt,`id).append!(select * from t where !isDuplicated([id,date],LAST))
+
+pt = loadTable(dbName,`pt)
+pt2 = loadTable(dbName2,`pt)
+
+re = select * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName2})
+re = select * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName2})
+re = select * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select  * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+@testing:case="test_limit_LIST_partitionScheme"
+dbName = "dfs://limit_list_PKEY"
+dbName2 = "dfs://limit_list_olap"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+if(existsDatabase(dbName2)){
+	dropDatabase(dbName2)
+}
+
+partitions = []
+for(i in 0..49){
+	partitions.append!((1..200)+200*i)
+}
+db = database(dbName,LIST,partitions,,"PKEY")
+db2 = database(dbName2,LIST,partitions)
+n = 200000
+ids = take(1..10000, n)
+syms = take(`a`b`c`d,n)
+dates = take(2010.01.01T01:01:01.001..2010.01.10T01:01:01.001,n)
+vals = rand(1000,n)
+prices =  rand(1000,n)\10
+t = table(ids as id,syms as sym,dates as date,vals as val,prices as price)
+pt = createPartitionedTable(db,t,`pt,`id,,`id`date).append!(t)
+pt2 = createPartitionedTable(db2,t,`pt,`id).append!(select * from t where !isDuplicated([id,date],LAST))
+
+pt = loadTable(dbName,`pt)
+pt2 = loadTable(dbName2,`pt)
+
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName2})
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName2})
+re = select  * from pt order by id,date limit 10
+ex = select * from pt2 order by id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select  * from pt order by id,date limit 1025
+ex_3 = select  * from pt2 order by id,date limit 1025
+assert 3,each(eqObj,re_3.values(),ex_3.values())
+
+re_4 = select  * from pt order by id,date limit 1048579
+ex_4 = select  * from pt2 order by id,date limit 1048579
+assert 4,each(eqObj,re_4.values(),ex_4.values())
+
+re_7 = select * from pt where id>20 order by id,date limit 10
+ex_7 = select  * from pt2 where id>20 order by id,date limit 10
+assert 7,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort id,date,sym limit 10 
+ex_9 = select * from pt2 context by sym csort id,date,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,date,sym,val limit 10
+ex_10 = select * from pt2 context by sym,val csort id,date,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,date,sym limit 10
+ex_11 = select * from pt2 where id>20 context by sym csort id,date,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+ex_12 = select * from pt2 where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,date,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+@testing:case="test_limit_COMPO_partitionScheme"
+dbName = "dfs://limit_compo_pkey"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+
+partitions1 = 2010.01.01T01:01:01..2010.01.01T01:01:10
+partitions2 = (0..100)*20000
+db_1 = database(,VALUE,`a`b`c`d)
+db_2 = database(,RANGE,partitions2)
+db = database(dbName,COMPO,[db_2,db_1],,"PKEY")
+n = 2000000
+ids = take(0..20000,n)
+syms = take(`a`b`c`d,n)
+dates = take(2010.01.01T01:01:01.001..2010.01.01T01:01:02.001,n)
+vals = rand(1000,n)
+prices =  rand(1000,n)\10
+t = table(ids as id,syms as sym,dates as date,vals as val,prices as price)
+pt = createPartitionedTable(db,t,`pt,`id`sym,,`sym`id).append!(t)
+
+pt = loadTable(dbName,`pt)
+tmp = select * from t where !isDuplicated([sym,id],LAST) order by sym,id
+
+re = select * from pt order by sym,id,date limit 10 
+ex = select * from tmp order by sym,id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select * from pt order by sym,id,date  limit 1025
+ex_3 = select * from tmp order by sym,id,date  limit 1025
+assert 2,each(eqObj,re_3.values(),ex_3.values())
+
+re_7 = select * from pt where id>20 order by sym,id,date limit 10
+ex_7 = select * from tmp where id>20 order by sym,id,date limit 10
+assert 3,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id,sym limit 10 
+ex_9 = select * from tmp context by sym csort sym,id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from tmp context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from tmp where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from tmp where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myUpdatePKEYDeleteBitmap{dbName})
+re = select * from pt order by sym,id,date limit 10 
+ex = select * from tmp order by sym,id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select * from pt order by sym,id,date  limit 1025
+ex_3 = select * from tmp order by sym,id,date  limit 1025
+assert 2,each(eqObj,re_3.values(),ex_3.values())
+
+re_7 = select * from pt where id>20 order by sym,id,date limit 10
+ex_7 = select * from tmp where id>20 order by sym,id,date limit 10
+assert 3,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id,sym limit 10 
+ex_9 = select * from tmp context by sym csort sym,id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from tmp context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from tmp where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from tmp where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+pt.append!(t)
+pnodeRunAllNodes(flushPKEYCache)
+pnodeRunAllNodes(myTriggerPKEYCompaction{dbName})
+re = select * from pt order by sym,id,date limit 10 
+ex = select * from tmp order by sym,id,date limit 10
+assert 1,each(eqObj,re.values(),ex.values())
+
+re_3 = select * from pt order by sym,id,date  limit 1025
+ex_3 = select * from tmp order by sym,id,date  limit 1025
+assert 2,each(eqObj,re_3.values(),ex_3.values())
+
+re_7 = select * from pt where id>20 order by sym,id,date limit 10
+ex_7 = select * from tmp where id>20 order by sym,id,date limit 10
+assert 3,each(eqObj,re_7.values(),ex_7.values())
+
+re_9 = select * from pt context by sym csort sym,id,sym limit 10 
+ex_9 = select * from tmp context by sym csort sym,id,sym limit 10
+if(size(re_9)!=0){re_9.sortBy!(re_9.columnNames())}
+if(size(ex_9)!=0){ex_9.sortBy!(ex_9.columnNames())}
+assert 9,each(eqObj,re_9.values(),ex_9.values())
+
+re_10 = select  * from pt context by sym,val csort id,sym,val limit 10
+ex_10 = select * from tmp context by sym,val csort id,sym,val limit 10
+if(size(re_10)!=0){re_10.sortBy!(re_10.columnNames())}
+if(size(ex_10)!=0){ex_10.sortBy!(ex_10.columnNames())}
+assert 10,each(eqObj,re_10.values(),ex_10.values())
+
+re_11 = select * from pt where id>20 context by sym csort id,sym limit 10
+ex_11 = select * from tmp where id>20 context by sym csort id,sym limit 10
+if(size(re_11)!=0){re_11.sortBy!(re_11.columnNames())}
+if(size(ex_11)!=0){ex_11.sortBy!(ex_11.columnNames())}
+assert 11,each(eqObj,re_11.values(),ex_11.values())
+
+re_12 = select * from pt where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+ex_12 = select * from tmp where id>20 and date<2010.01.01T01:01:10.001 context by sym csort id,sym limit 10
+if(size(re_12)!=0){re_12.sortBy!(re_12.columnNames())}
+if(size(ex_12)!=0){ex_12.sortBy!(ex_12.columnNames())}
+assert 12,each(eqObj,re_12.values(),ex_12.values())
+
+// @testing:case="test_limit_sort_keys_for_grouping"
+// dbName = "dfs://limit_compo_PKEY"
+// if(existsDatabase(dbName)){
+// 	dropDatabase(dbName)
+// }
+// partitions1 = 2010.01.01T01:01:01..2010.01.01T01:01:10
+// partitions2 = (0..100)*20000
+// db_1 = database(,VALUE,2010.01.01..2010.01.11)
+// db_2 = database(,HASH,[SYMBOL,5])
+// db = database(dbName,COMPO,[db_1,db_2],,"PKEY")
+// n = 2000
+// ids = take(0..20000,n)
+// syms = take("a"+string(1..114),n)
+// TradeTimes = take(2010.01.01T01:01:01..2010.01.11T01:01:02,n)
+// vals = rand(1000,n)
+// prices =  rand(1000,n)\10
+// t = table(ids as id,syms as sym,TradeTimes as TradeTime,vals as val,prices as price)
+// pt = createPartitionedTable(db,t,`pt,`TradeTime`sym,,`sym`TradeTime, , [hashBucket{, 999}]).append!(t)
+// res=exec sym from pt where date(TradeTime)>=2010.01.01  and date(TradeTime)<=2010.01.01  group by sym limit 100
+// ex=exec sym from pt where date(TradeTime)>=2010.01.01  and date(TradeTime)<=2010.01.01  group by sym 
+// assert 1,eqObj(res,ex[0:100])

@@ -1,0 +1,1101 @@
+
+#include "setup/settings.txt"
+try{rpc(getControllerAlias(), enableTDEKey{DATA_DIR+"/encrypt/tde_key.txt"})}catch(ex){print(ex)}
+@testing:case="test_topic_create_pointManager_prepare"
+def pnodeRunAllNodes(function, nodes=NULL, addNodeAlias=true){
+	allNodes = exec name from rpc(getControllerAlias(),getClusterPerf) where mode=0 or mode=4
+	if((isNull(nodes)).any() && addNodeAlias==true){
+		return pnodeRun(function,nodes=allNodes, addNodeAlias=true)
+	}else if((isNull(nodes)).any() && addNodeAlias==false){
+		return pnodeRun(function,nodes=allNodes,addNodeAlias=false)
+	}else if((!isNull(nodes)).any() && addNodeAlias==true){
+		return pnodeRun(function,nodes=nodes, addNodeAlias=true)
+	}else if((!isNull(nodes)).any() && addNodeAlias==false){
+		return pnodeRun(function,nodes=nodes, addNodeAlias=false)
+	}
+}
+
+def nodeCompaction(dbName,level){
+	 suffix = substr(dbName, 5)
+	 chunkIds = exec chunkId from getAllChunks() where like(dfsPath, suffix+"/%"), type==1, flag==0
+	 for(x in chunkIds){
+	 	triggerTSDBCompaction(x,level)
+	 }
+}
+
+
+def getAllChunksMeta(){
+	return pnodeRun(getTabletsMeta)
+}
+
+def checkChunkByReadTabletChunk(dbName, targetTableName, targetChunk){
+	for(i in 1..10){
+		dbName_len=substr(dbName, 5).strlen()
+		chunkInfo=exec *, substr(dfsPath, dbName_len) as chunkPath from pnodeRun(getTabletsMeta) where chunkId=targetChunk, tableName=targetTableName
+		length=exec count(*) from loadTable(dbName, targetTableName)
+		re=false
+		try{
+			res1=rpc(chunkInfo[`node][0], readTabletChunk, string(targetChunk), dbName, chunkInfo[`dfsPath][0], targetTableName, 0, length)
+			res2=rpc(chunkInfo[`node][1], readTabletChunk, string(targetChunk), dbName, chunkInfo[`dfsPath][1], targetTableName, 0, length)
+			re=each(eqObj, res1.values(), res2.values()).all()
+			if(re==true){
+				break
+			}
+		}catch(ex){
+			sleep(1000)
+			if(re==false  && i==10){
+				throw dbName+"/"+targetTableName+" "+string(targetChunk)+" different"
+			}
+		}
+	}
+}
+
+def getData(dates,names, datatype, n, dbName, tableName){
+	ta = table(n:n, `id`name`flag`createTime, [STRING, STRING,STRING,TIMESTAMP])
+	ta[`id] = take(string(datatype), n)
+	ta[`name] = take(names, n)
+	ta[`flag] =  take(symbol(rand(string(1..100000),400)+".SZ"), n)
+	ta[`createTime] =  concatDateTime(rand(dates, n), time(rand(1000000..1040000, n)))
+	ta[`value] = rand(`AA`BB`CC`DD`EE`FF`GG`HH, n)
+	tmp1 = select count(*) from loadTable(dbName, tableName) group by name
+	delete  ta from ej(ta, tmp1, `name)
+	return ta
+}
+
+def getValueData(counts, datatype){
+	if(string(datatype) in ["symbol", "string"]){
+		value = datatype(take(`AA`BB`CC`DD`EE`FF`GG`HH, counts))
+	}else{
+		value = datatype(rand(100.0, counts).decimal128(3))
+	}	
+	return value
+}
+
+def cancelJobs(){
+	res = select node , jobId from pnodeRun(getRecentJobs) where endTime is null and like(jobDesc,"%query%")
+	for(index in 0:res.rows()){
+		rpc(res.row(index).node, cancelJob, res.row(index).jobId)	
+	}
+}
+
+//update same type
+@testing:case="test_topic_create_pointManagement_with_update_parallel"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, datatype, n,dbName, tableName)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		//datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		dtype = (exec id from tmp where name = names)[0]
+		datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData)
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`name,`createTime]
+encryptMode="aes_128_ctr"
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+@testing:case="test_topic_create_pointManagement_with_update_parallel_flush"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, datatype, n,dbName, tableName)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		//datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		dtype = (exec id from tmp where name = names)[0]
+		datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData)
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`name,`createTime]
+encryptMode="aes_128_ctr"
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+@testing:case="test_topic_create_pointManagement_with_update_parallel_with_keep_last"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, datatype, n,dbName, tableName)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names 
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		//datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		dtype = (exec id from tmp where name = names)[0]
+		datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData)
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`name,`flag,`createTime]
+encryptMode="aes_128_ctr"
+keepDuplicates=LAST
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d and isDuplicated([name,flag,createTime], LAST) = false
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d and isDuplicated([name,flag,createTime], LAST) = false
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d 
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+@testing:case="test_topic_create_pointManagement_with_update_parallel_with_query"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:30){
+		ta = getData(dates,names, datatype, n,dbName, tableName)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData){
+	//try{
+		update loadTable(dbName, tableName) set value = data where name  = names 
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		exTable.append!(tmp1)
+	//}catch(ex){
+	//	print(exec count(*) from exTable where  name  = names)	
+	//	print(data.size())
+	//}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		//datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		dtype = (exec id from tmp where name = names)[0]
+		datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData)
+		pnodeRun(flushTSDBCache)
+		pnodeRun(nodeCompaction{dbName,0})
+	}
+}
+
+
+def query(dbName, tableName){
+	start = now()
+	do{
+		try{
+			timer select * from loadTable(dbName, tableName)
+		}catch(ex){}
+	}while((now()-start)/1000 < 600)		
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`name,`flag,`createTime]
+encryptMode="aes_128_ctr"
+keepDuplicates=LAST
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+
+nodes = exec node from pnodeRun(getNodeAlias)
+for(i in 0:4){
+	rpc(nodes[i%nodes.size()],submitJob,"query", "query",query,dbName, "pt1")
+}
+
+for(job in jobs){
+	getJobReturn(job, true)	
+}
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d and isDuplicated([name,flag,createTime], LAST) = false
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d 
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+cancelJobs()
+
+//update diff type
+@testing:case="test_topic_create_pointManagement_with_update_diff_type_parallel"
+def getData(dates,names, n){
+	n1 = n/8
+	n2 = n - (n1*7)
+	datatypes = [string, symbol,char, short, int, long, float, double]
+	tmpTable =  table([string(),string()] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)
+	start = 0
+	end = 0
+	for(i in 0:datatypes.rows()){
+		num = iif(i == 6, n1, n2)
+		datatype = datatypes[i]
+		val = rand(`AA`BB`CC`DD`EE`FF`GG`HH, num)
+		ta = table(num:num, `id`name`flag`createTime, [STRING, STRING,STRING,TIMESTAMP])
+		ta[`id] = take(string(datatype), num)
+		ta[`name] = take(names, num)
+		start = end + 1
+		end = start + 999
+		ta[`flag] =  take(rand(string(start..end),10)+".SZ", num)
+		ta[`createTime] =  concatDateTime(rand(dates, num), time(rand(1000000..1040000, num)))
+		ta[`value] = val
+		tmpTable.append!(ta)
+	}
+	return select * from tmpTable where id is not null
+}
+
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, n)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData, datatypes){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		update loadTable(dbName, tableName) set id = datatypes where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		update tmp1 set  id = datatypes where name  = names
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		//dtype = (exec id from tmp where name = names)[0]
+		//datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData, take(string(datatype), counts))
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`flag,`name,`createTime]
+encryptMode="aes_128_ctr"
+sortkeyMappingFunction=[hashBucket{,10},]
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+
+@testing:case="test_topic_create_pointManagement_with_update_diff_type_parallel_flush"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, n)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData, datatypes){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		update loadTable(dbName, tableName) set id = datatypes where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		update tmp1 set  id = datatypes where name  = names
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		//dtype = (exec id from tmp where name = names)[0]
+		//datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData, take(string(datatype), counts))
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`flag,`name,`createTime]
+encryptMode="aes_128_ctr"
+sortkeyMappingFunction=[hashBucket{,10},]
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+@testing:case="test_topic_create_pointManagement_with_update_diff_type_parallel_query"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, n)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData, datatypes){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		update loadTable(dbName, tableName) set id = datatypes where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		update tmp1 set  id = datatypes where name  = names
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		//dtype = (exec id from tmp where name = names)[0]
+		//datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData, take(string(datatype), counts))
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+def query(dbName, tableName){
+	start = now()
+	do{
+		try{
+			timer select * from loadTable(dbName, tableName)
+		}catch(ex){}
+	}while((now()-start)/1000 < 600)		
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`flag,`name,`createTime]
+encryptMode="aes_128_ctr"
+sortkeyMappingFunction=[hashBucket{,10},]
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+
+nodes = exec node from pnodeRun(getNodeAlias)
+for(i in 0:4){
+	rpc(nodes[i%nodes.size()],submitJob,"query", "query",query,dbName, "pt1")
+}
+
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+cancelJobs()
+
+@testing:case="test_topic_create_pointManagement_with_update_diff_type_parallel_clearAllTSDBStaticTableCache"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, n)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData, datatypes){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		update loadTable(dbName, tableName) set id = datatypes where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		update tmp1 set  id = datatypes where name  = names
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		//dtype = (exec id from tmp where name = names)[0]
+		//datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData, take(string(datatype), counts))
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`flag,`name,`createTime]
+encryptMode="aes_128_ctr"
+sortkeyMappingFunction=[hashBucket{,10},]
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+
+
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+
+cancelJobs()
+
+@testing:case="test_topic_create_pointManagement_with_update_diff_type_parallel_clearAllTSDBStaticTableCache_clearAllTSDBLatestKeyCache"
+def appendData( dbName, tableName, dates,names, datatype, n, mutable exData){
+	pt = loadTable(dbName, tableName)
+	exTable =  table(["1","2"] as id, `A`A as name, `A`C as flag, timestamp(0 0) as createTime,["1", "a"] as value)	
+	//exData[dates[0]] = exTable
+	for(i in 0:20){
+		ta = getData(dates,names, n)
+		pt.append!(ta)	
+		exTable.append!(ta)
+	}	
+	exData[dates[0]] = exTable
+}
+
+def updateData1(dbName, tableName, d, names, data,  mutable exData, datatypes){
+	try{
+		update loadTable(dbName, tableName) set value = data where name  = names
+		update loadTable(dbName, tableName) set id = datatypes where name  = names
+		exTable = exData[d]
+		//update exTable set value = data where  name  = names
+		tmp1 = select * from exTable where name  = names
+		delete from exTable where name  = names
+		replaceColumn!(tmp1, `value, take(data, tmp1.rows()))
+		update tmp1 set  id = datatypes where name  = names
+		exTable.append!(tmp1)
+	}catch(ex){
+		print(exec count(*) from exTable where  name  = names)	
+		print(data.size())
+	}
+	exData[d] = exTable
+}
+
+def updateData2(dbName, tableName, d,  mutable exData){
+	for(i in 0:10){
+		tmp =exec last(id) as id, count(*) from loadTable(dbName, tableName) where date(createTime) = d group by name
+		names = rand(tmp.name, 1)[0]
+		counts = (exec count from tmp where name = names)[0]
+		datatype = rand([char, short, int, long, float, double, string, symbol], 1)[0]
+		//dtype = (exec id from tmp where name = names)[0]
+		//datatype  = funcByName(iif(dtype=="symbol", "string", dtype))
+		data = getValueData(counts, datatype)[0]
+		updateData1(dbName, tableName, d, names, data, exData, take(string(datatype), counts))
+		pnodeRunAllNodes(flushTSDBCache)
+		pnodeRunAllNodes(nodeCompaction{dbName,0})
+	}
+}
+
+dbName = "dfs://testPointManager"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)	
+}
+dbId = database("", VALUE, "A"+string(1..100))
+dbDate = database("",VALUE, 2021.01.01..2021.01.30)
+db = database(dbName,COMPO ,[dbId, dbDate],,`TSDB)
+create table "dfs://testPointManager"."pt1"(
+	id STRING,
+	name STRING,
+	flag STRING,
+	createTime TIMESTAMP,
+	value STRING
+)
+partitioned by name,createTime
+sortColumns=[`flag,`name,`createTime]
+encryptMode="aes_128_ctr"
+sortkeyMappingFunction=[hashBucket{,10},]
+
+
+jobs = array(STRING)
+exData = dict(DATE,ANY)
+datatypes = [char, short, int, long, float, double, string]
+start = 0
+end = 0
+for(date in 2021.01.01..2021.01.05){
+	end = start + 100 - 1
+	names = rand("A"+string(start..end), 40)
+	datatype = rand(datatypes, 1)[0]
+	jobs.append!(submitJob("appendData", "appendData", appendData{dbName, "pt1", [date],names, datatype, 100000,exData}))
+	start = end + 1
+}
+
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 1, each(eqObj, res.values(), ext.values())	
+}
+
+//update Data
+jobs = array(STRING)
+for(d in 2021.01.01..2021.01.05){
+	jobs.append!(submitJob("updateData", "updateData",updateData2{dbName, "pt1", d, exData}))
+}
+for(job in jobs){
+	getJobReturn(job,true)
+//getRecentJobs()
+}
+
+for(d in 2021.01.01..2021.01.05){
+	ext = select id, name, flag, createTime, string(value) as value from exData[d] where date(createTime) = d
+	res = select id, name, flag, createTime, string(value) as value from loadTable(dbName, "pt1") where createTime = d
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())
+	assert 2, each(eqObj, res.values(), ext.values())	
+}
+cancelJobs()

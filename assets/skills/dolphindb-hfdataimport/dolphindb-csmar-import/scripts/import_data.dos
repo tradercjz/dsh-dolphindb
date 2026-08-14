@@ -1,0 +1,15 @@
+clearCachedModules()
+use easy_csmar::stock::stock_load_data
+
+file_dir = "/hdd/hdd4/csmar/"   //文件储存的路径
+db_name="dfs://level2_stock_db"
+start_date="20260429"
+end_date="20260429"
+parallel=4
+
+data_types = ["snapshot","orderqueue"]   // 只需改这里即可切换导入数据类型：snapshot / entrust / trade / orderqueue / tick  支持数组 ["snapshot","trade"]
+auto_load_csmar_stock_data(file_dir, data_types, db_name, NULL, start_date, end_date, parallel)
+
+
+tb = loadTable("dfs://level2_stock_db","orderqueue")
+select count(*) from tb 

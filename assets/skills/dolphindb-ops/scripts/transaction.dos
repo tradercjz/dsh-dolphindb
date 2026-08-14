@@ -1,0 +1,39 @@
+// DolphinDB 事务监控脚本
+// 包含事务状态统计
+
+// @description 事务状态统计（按类型统计事务数量）
+// @collect slow-query, system-hang
+// @permission readonly
+def checkTransactionStatus() {
+    t = getTransactionStatus()
+    total_count = exec count(*) from t
+    cnt_by_type = select count(*) as cnt from t group by type
+
+    d = dict(STRING, ANY)
+    d["total_count"] = total_count
+    d["count_by_type"] = cnt_by_type
+    d["transactions"] = t
+
+    return d
+}
+
+// @description 获取长时间运行的事务
+// @params thresholdSeconds:int:required
+// @collect slow-query, system-hang
+// @permission readonly
+def checkLongRunningTransactions(thresholdSeconds) {
+    if (thresholdSeconds <= 0) {
+        throw "thresholdSeconds must be positive"
+    }
+    
+    t = getTransactionStatus()
+    
+    d = dict(STRING, ANY)
+    d["long_running"] = select * from t 
+                        where (now() - startTime) > thresholdSeconds * 1000
+                        order by startTime
+    d["threshold_seconds"] = thresholdSeconds
+    d["total_long_running"] = size(d["long_running"])
+    
+    return d
+}

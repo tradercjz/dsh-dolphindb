@@ -1,0 +1,192 @@
+module easy_datayes::setconfig
+
+/*
+*  @FunctionName: set_exchange
+*  @Brief: 设置导入市场的枚举值
+*  @SampleUsage: set_exchange()
+*/
+def set_exchange(){
+    return ["SZ", "SH"]
+}
+
+/*
+*  @FunctionName: set_data_type
+*  @Brief: 设置导入任务的枚举值
+            key 是导入数据的数据类型
+            value 是实际使用对应枚举值; 对应 dfs://job_info 库内的 data_type 字段, 以及主函数的 dataSource 取值
+*  @SampleUsage: set_data_type()
+*/
+def set_data_type(){
+    data_type = {
+        "snapshot": "tl_snapshot",  // 快照
+        "trade": "tl_trade",       // 逐笔成交
+        "entrust": "tl_entrust",    // 逐笔委托
+        "tick": "tl_tick",          // 逐笔成交逐笔委托合并表
+        "order_queue": "tl_order_queue" // 最优报价50档委托队列
+    }
+    return data_type
+}
+
+/*
+*  @FunctionName: set_partition_schema
+*  @Brief: 设置分区方案。 要求: set_data_type().values() 里的所有类型, 都需要有一个默认库表的创建方案
+*  @SampleUsage: set_partition_schema()
+*/
+def set_partition_schema(){
+    data_type = {
+        "compo":{
+            "dtype":["snapshot", "trade", "entrust", "tick", "order_queue"],
+            "hash":50,
+            "schema_table":[
+                "easy_datayes::tbSchema::dfsSchema::snapshotSchema::snapshotSchemaTb",
+                "easy_datayes::tbSchema::dfsSchema::tradeSchema::tradeSchemaTb",
+                "easy_datayes::tbSchema::dfsSchema::entrustSchema::entrustSchemaTb",
+                "easy_datayes::tbSchema::dfsSchema::tickSchema::tickSchemaTb",
+                "easy_datayes::tbSchema::dfsSchema::orderQueueSchema::orderQueueSchemaTb"],
+            "sort_columns":[
+                `exchange`code`trade_time,
+                `exchange`code`trade_time,
+                `exchange`code`trade_time,
+                `exchange`code`trade_time,
+                `exchange`code`trade_time],
+            "partition_columns":[
+                `trade_date`code,
+                `trade_date`code,
+                `trade_date`code,
+                `trade_date`code,
+                `trade_date`code
+            ],
+            "column_comments":[
+                "easy_datayes::tbSchema::dfsSchema::snapshotSchema::snapshotComments",
+                "easy_datayes::tbSchema::dfsSchema::tradeSchema::tradeComments",
+                "easy_datayes::tbSchema::dfsSchema::entrustSchema::entrustComments",
+                "easy_datayes::tbSchema::dfsSchema::tickSchema::tickComments",
+                "easy_datayes::tbSchema::dfsSchema::orderQueueSchema::orderQueueComments"
+            ]
+        }
+    }
+    return data_type
+}
+
+/*
+*  @FunctionName: set_transform_function
+*  @Brief: 设置导入的转换函数。
+            要求: cj(table(flatten(set_data_type().values()) as data_type), table(set_exchange() as exchange)) 里的所有组合, 都需要有一个transform函数
+                transform 函数要求是一个二元函数：
+                    第一个入参: TABLE, 是 csv 导入到内存的数据
+                    第二个入参: DATE, 是当前导入数据的交易日期 
+*  @SampleUsage: set_transform_function()
+*/
+def set_transform_function(){
+    res = {
+        "tl_snapshot":{
+            "SH":[
+                {   "datafile": ["MarketData"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::snapshotCsvSchema::snapshotCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDaySnapshot::transformSnapshotSH"]
+                }],
+            "SZ":[
+                {   "datafile": ["mdl_6_28_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::snapshotCsvSchema::snapshotCsvSchemaSZmdl6280"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDaySnapshot::transformSnapshotSZmdl6280"]
+                },
+                {   "datafile": ["MarketData"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::snapshotCsvSchema::snapshotCsvSchemaSZMarketData"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDaySnapshot::transformSnapshotSZMarketData"]
+                }]},
+        "tl_trade":{
+            "SH":[
+                {   "datafile": ["mdl_4_24_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeEntrustCsvSchema::tradeEntrustCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTradeEntrust::transformTradeSH"]
+                },
+                {   "datafile": ["Transaction"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTrade::transformTradeSH"]
+                }],
+            "SZ":[
+                {   "datafile": ["mdl_6_36_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSZmdl6360"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTrade::transformTradeSZmdl6360"]
+                },
+                {   "datafile": ["Trade"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSZTrade"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTrade::transformTradeSZTrade"]
+                }]},
+        "tl_entrust":{
+            "SH":[
+                {   "datafile": ["mdl_4_24_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeEntrustCsvSchema::tradeEntrustCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTradeEntrust::transformEntrustSH"]
+                },
+                {   "datafile": ["mdl_4_19_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayEntrust::transformEntrustSH"]
+                }],
+            "SZ":[
+                {   "datafile": ["mdl_6_33_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSZmdl6330"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayEntrust::transformEntrustSZmdl6330"]
+                },
+                {   "datafile": ["Order\\."],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSZOrder"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayEntrust::transformEntrustSZOrder"]
+                }]},
+        "tl_tick":{
+            "SH":[
+                {   "datafile": ["mdl_4_24_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeEntrustCsvSchema::tradeEntrustCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformCombinedCsvToTick"]
+                },{   "datafile": ["Transaction", "mdl_4_19_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSH",
+                                    "easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformTradeCsvToTickSH",
+                                  "easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformEntrustCsvToTickSH"]
+                },{   "datafile": ["Transaction"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSH"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformTradeCsvToTickSH"]
+                }],
+            "SZ":[
+                {   "datafile": ["mdl_6_36_0", "mdl_6_33_0"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSZmdl6360",
+                                    "easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSZmdl6330"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformTradeCsvToTickSZmdl6360",
+                                  "easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformEntrustCsvToTickSZmdl6330"]
+                },
+                {   "datafile": ["Trade\\.", "Order\\."],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::tradeCsvSchema::tradeCsvSchemaSZTrade",
+                                    "easy_datayes::tbSchema::csvSchema::entrustCsvSchema::entrustCsvSchemaSZOrder"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformTradeCsvToTickSZTrade",
+                                  "easy_datayes::loadData::loadOneDayData::loadOneDayTick::transformEntrustCsvToTickSZOrder"]
+                }]
+        },
+        "tl_order_queue":{
+            "SH":[
+                {   "datafile": ["OrderQueue\\."],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::orderQueueCsvSchema::orderQueueCsvSchema"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayOrderQueue::transformOrderQueueSH"]
+                }],
+            "SZ":[
+                {   "datafile": ["mdl_6_28_1", "mdl_6_28_2"],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::orderQueueCsvSchema::orderQueueCsvSchema",
+                                    "easy_datayes::tbSchema::csvSchema::orderQueueCsvSchema::orderQueueCsvSchema"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayOrderQueue::transformOrderQueueSZmdl6281",
+                                  "easy_datayes::loadData::loadOneDayData::loadOneDayOrderQueue::transformOrderQueueSZmdl6282"]
+                },
+                {   "datafile": ["OrderQueue\\."],
+                    "csv_schema": ["easy_datayes::tbSchema::csvSchema::orderQueueCsvSchema::orderQueueCsvSchema"],
+                    "transform": ["easy_datayes::loadData::loadOneDayData::loadOneDayOrderQueue::transformOrderQueueSZOrderQueue"]
+                }]
+        }
+    }
+    return res
+}
+
+/*
+*  @FunctionName: set_unzip_filedir
+*  @Brief: 设置默认解压路径。 "" 表示和 zip 文件同一层文件
+*  @SampleUsage: set_unzip_filedir()
+*/
+def set_unzip_filedir(){
+    return ""
+}

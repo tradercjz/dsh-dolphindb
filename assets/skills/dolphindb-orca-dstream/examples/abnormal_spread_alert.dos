@@ -1,0 +1,124 @@
+// ============================================================
+// 连续异常价差告警 - Orca DStream API 完整脚本（含清理）
+// ============================================================
+
+// -------- 0. 清理旧环境（便于重复运行）--------
+use catalog alertRun
+try { dropStreamGraph("spreadAlert", true) } catch(ex) {}
+
+go
+
+// -------- 1. 创建数据目录 --------
+if (!existsCatalog("alertRun")) {
+    createCatalog("alertRun")
+}
+go
+use catalog alertRun
+
+// -------- 2. 创建流图 --------
+g = createStreamGraph("spreadAlert")
+
+// -------- 3. 声明共享键值表（记录每只股票的连续异常次数）--------
+g.sharedKeyedTable("consecutiveCount", "symbol", 1:0, `symbol`count, [SYMBOL, INT])
+
+// -------- 4. 定义数据源（盘口快照流表）--------
+sourceStream = g.source(
+    "snapshot",
+    `symbol`bidPrice1`offerPrice1`lastPrice`time,
+    [SYMBOL, DOUBLE, DOUBLE, DOUBLE, TIMESTAMP]
+)
+
+// -------- 5. 定义有状态的连续异常检测逻辑 --------
+alertStream = sourceStream.udfEngine(def(msg) {
+    counter = orcaObj("consecutiveCount")
+    alertTable = table(100:0, `symbol`time`spreadRatio`alertMsg, [SYMBOL, TIMESTAMP, DOUBLE, STRING])
+
+    for (i in 0:msg.size()) {
+        sym = msg.symbol[i]
+        bid = msg.bidPrice1[i]
+        offer = msg.offerPrice1[i]
+        last = msg.lastPrice[i]
+        t = msg.time[i]
+
+        // 计算价差比率
+        spreadRatio = (offer - bid) / last
+
+        // 读取当前连续异常次数
+        old = select count from counter where symbol = sym
+        curCount = 0
+        if (old.size() > 0) curCount = old.count[0]
+
+        // 更新连续计数
+        if (spreadRatio > 0.005) curCount += 1
+        else curCount = 0
+
+        // 写回共享表（键值表自动覆盖相同主键的行）
+        counter.append!(table(sym as symbol, curCount as count))
+
+        // 达到连续 3 次异常，输出告警并重置计数
+        if (curCount >= 3) {
+            alertTable.append!(
+                table(sym as symbol, t as time, spreadRatio as spreadRatio, "连续3次价差异常" as alertMsg)
+            )
+            counter.append!(table(sym as symbol, 0 as count))
+        }
+    }
+    return alertTable
+})
+
+// -------- 6. 将告警结果输出到流表 --------
+alertStream.sink("alerts")
+
+// -------- 7. 提交流图，启动流计算作业 --------
+g.submit()
+go
+
+// ============================================================
+// 8. 模拟数据注入（测试用）
+// ============================================================
+
+// 第一批：所有股票正常价差
+data1 = table(
+    `000001`000002`000003 as symbol,
+    [10.0, 20.0, 30.0] as bidPrice1,
+    [10.05, 20.08, 30.12] as offerPrice1,
+    [10.0, 20.0, 30.0] as lastPrice,
+    [2025.01.01T09:30:00.000, 2025.01.01T09:30:01.000, 2025.01.01T09:30:02.000] as time
+)
+appendOrcaStreamTable("alertRun.orca_table.snapshot", data1)
+
+// 第二批：000001 连续 3 次异常
+data2 = table(
+    `000001`000001`000001 as symbol,
+    [10.0, 10.0, 10.0] as bidPrice1,
+    [10.08, 10.09, 10.10] as offerPrice1,
+    [10.0, 10.0, 10.0] as lastPrice,
+    [2025.01.01T09:30:03.000, 2025.01.01T09:30:04.000, 2025.01.01T09:30:05.000] as time
+)
+appendOrcaStreamTable("alertRun.orca_table.snapshot", data2)
+
+// 第三批：000002 连续 2 次异常，000001 恢复正常
+data3 = table(
+    `000002`000002`000001 as symbol,
+    [20.0, 20.0, 10.0] as bidPrice1,
+    [20.15, 20.18, 10.04] as offerPrice1,
+    [20.0, 20.0, 10.0] as lastPrice,
+    [2025.01.01T09:30:06.000, 2025.01.01T09:30:07.000, 2025.01.01T09:30:08.000] as time
+)
+appendOrcaStreamTable("alertRun.orca_table.snapshot", data3)
+
+// 第四批：000002 再发一条异常（累计 3 次，触发告警）
+data4 = table(
+    `000002 as symbol,
+    [20.0] as bidPrice1,
+    [20.20] as offerPrice1,
+    [20.0] as lastPrice,
+    [2025.01.01T09:30:09.000] as time
+)
+appendOrcaStreamTable("alertRun.orca_table.snapshot", data4)
+
+// 等待流处理完成
+sleep(2000)
+
+// -------- 9. 查看告警结果 --------
+select * from alertRun.orca_table.alerts order by time

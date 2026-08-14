@@ -1,0 +1,32 @@
+// Example: IoT anomaly detection with stream engines
+
+// Step 1: Create input stream table
+share streamTable(1:0, `deviceID`ts`temperature, [INT, DATETIME, FLOAT]) as sensor
+
+// Step 2: Create output warning table
+share streamTable(1:0, `time`deviceID`anomalyType`anomalyString,
+                 [DATETIME, INT, INT, SYMBOL]) as warningTable
+
+// Step 3: Create anomaly detection engine
+engine1 = createAnomalyDetectionEngine(
+    name="engine1",
+    metrics=<[sum(temperature > 40) > 2 && sum(temperature > 30) > 3]>,
+    dummyTable=sensor,
+    outputTable=warningTable,
+    timeColumn=`ts,
+    keyColumn=`deviceID,
+    windowSize=180,
+    step=180
+)
+
+// Step 4: Subscribe sensor data to engine
+subscribeTable(tableName="sensor", actionName="sensorAnomalyDetection",
+    offset=0, handler=append!{engine1}, msgAsTable=true)
+
+// Step 5: Test with sample data
+insert into sensor values(1, 2024.01.01T10:00:00, 42.5)
+insert into sensor values(1, 2024.01.01T10:00:01, 43.0)
+insert into sensor values(1, 2024.01.01T10:00:02, 44.0)
+
+// Step 6: Check warnings
+select * from warningTable

@@ -1,0 +1,50 @@
+// ============================================================
+// FxExoticOption — parseInstrument 构建示例
+// 构建两类外汇奇异期权：数字期权 + 区间累计期权
+// ============================================================
+// 金融含义：
+//   奇异期权(Exotic)的 payoff 结构比 Vanilla 更复杂：
+//   - Digital（数字期权）：到期时标的价在 strike 之上(Call)/下(Put)
+//     则支付固定金额(notionalAmount)，否则为 0。类似二元赌注。
+//   - RangeAccrual（区间累计）：在存续期内，标的价格每天落在
+//     [lowerBarrier, upperBarrier] 区间内即累计 1 天的收益。
+//   两者都使用 FxVolatilitySurface + 本外币贴现曲线。
+// ============================================================
+
+// ---- Demo 1: FxDigitalOption（数字期权）----
+digDict = dict(STRING, ANY)
+digDict["productType"]        = "Option"
+digDict["optionType"]         = "DigitalOption"           // 数字期权
+digDict["assetType"]          = "FxDigitalOption"          // 外汇数字期权
+digDict["instrumentId"]       = "USDCNY_DIG_C_730"
+digDict["notionalCurrency"]   = "USD"
+digDict["notionalAmount"]     = 10000000.0                 // 触发时支付的固定金额
+digDict["strike"]             = 7.30                       // 触发价
+digDict["maturity"]           = 2026.09.20
+digDict["direction"]          = "Buy"                      // 买入方（支付权利金，拥有触发收益权）
+digDict["payoffType"]         = "Call"                     // 到期 spot > strike 则触发
+digDict["dayCountConvention"] = "Actual365"
+digDict["underlying"]         = "USDCNY"
+digDict["domesticCurve"]      = "CNY"
+digDict["foreignCurve"]       = "USD"
+digDict["domesticCurrency"]   = "CNY"
+instDigital = parseInstrument(digDict)
+
+// ---- Demo 2: FxRangeAccrualOption（区间累计期权）----
+raDict = dict(STRING, ANY)
+raDict["productType"]        = "Option"
+raDict["optionType"]         = "RangeAccrualOption"        // 区间累计期权
+raDict["assetType"]          = "FxRangeAccrualOption"       // 外汇区间累计期权
+raDict["instrumentId"]       = "USDCNY_RA_700_750"
+raDict["notionalCurrency"]   = "USD"
+raDict["notionalAmount"]     = 10000000.0
+raDict["start"]              = 2026.03.20                   // 观察期起始日
+raDict["maturity"]           = 2026.09.20                   // 观察期结束日
+raDict["direction"]          = "Buy"
+raDict["upperBarrier"]       = 7.50                         // 区间上界
+raDict["lowerBarrier"]       = 7.00                         // 区间下界
+raDict["dayCountConvention"] = "Actual365"
+raDict["underlying"]         = "USDCNY"
+raDict["domesticCurve"]      = "CNY"
+raDict["foreignCurve"]       = "USD"
+instRangeAccrual = parseInstrument(raDict)

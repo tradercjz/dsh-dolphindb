@@ -1,0 +1,656 @@
+#include "setup/settings.txt"
+#include "checkStreaming.txt"
+login(`admin,`123456)
+@testing:case="test_function_createCrossSesctionalAggregator_outputTable_dfs_table"
+share streamTable(10:0,`time`sym`price`qty,[TIMESTAMP,SYMBOL,DOUBLE,INT]) as trades
+outputTable = table(1:0, `time`avgPrice`sumqty`Total, [TIMESTAMP,DOUBLE,INT,DOUBLE])
+
+dbName = "dfs://test_CrossSesctionalAggregator"
+if(existsDatabase(dbName)){
+ dropDatabase(dbName)
+}
+db =database(dbName,VALUE,2018.10.01..2018.10.31)
+db.createPartitionedTable(outputTable,`pt,`time)
+db.createTable(outputTable,`dt)
+
+tradesCrossAggregator = createCrossSectionalAggregator("CrossSectionalDemo", <[avg(price), sum(qty), sum(price*qty)]>, trades, loadTable(dbName,"pt"), `sym, `perRow,,false,`time)
+tradesCrossAggregator1 = createCrossSectionalAggregator("CrossSectionalDemo1", <[avg(price), sum(qty), sum(price*qty)]>, trades, loadTable(dbName,"dt"), `sym, `perRow,,false,`time)
+tradesCrossAggregator2 = createCrossSectionalAggregator("CrossSectionalDemo2", <[avg(price), sum(qty), sum(price*qty)]>, trades, outputTable, `sym, `perRow,,false,`time)
+
+topic1 = subscribeTable(,"trades","tradesCrossAggregator",-1,append!{tradesCrossAggregator},true)
+topic2 = subscribeTable(,"trades","tradesCrossAggregator1",-1,append!{tradesCrossAggregator1},true)
+topic3 = subscribeTable(,"trades","tradesCrossAggregator2",-1,append!{tradesCrossAggregator2},true)
+
+def writeData(n){
+  timev  = 2018.10.01T01:01:01.001 +1..n
+  symv   = take(`A`B`C, n)
+  pricev = 1..n
+  qtyv   = 1..n
+  insert into trades values(timev, symv, pricev,qtyv)
+}
+writeData(100)
+sleep(10000)
+
+checkStreamingSubWorkers(topic1, trades.size())
+checkStreamingSubWorkers(topic2, trades.size())
+checkStreamingSubWorkers(topic3, trades.size())
+
+re1 = select * from loadTable(dbName,"pt") order by time
+re2 = select * from loadTable(dbName,"dt") order by time
+ex = select * from outputTable order by time
+assert 1,eqObj(re1.values(),ex.values())
+assert 2,eqObj(re2.values(),ex.values())
+
+unsubscribeTable(, "trades", "tradesCrossAggregator")
+unsubscribeTable(, "trades", "tradesCrossAggregator1")
+unsubscribeTable(, "trades", "tradesCrossAggregator2")
+dropAggregator("CrossSectionalDemo")
+dropAggregator("CrossSectionalDemo1")
+dropAggregator("CrossSectionalDemo2")
+tradesCrossAggregator = NULL
+tradesCrossAggregator1 = NULL
+tradesCrossAggregator2 = NULL
+undef(`trades,SHARED)
+
+
+@testing:case="test_function_createCrossSesctionalAggregator_ append_diff_length_column", exception=1
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time)
+i=5
+time=2018.01.01T09:30:00.000+0..i
+sym="A"+string(0..i)
+price=rand(100.0, i)
+volume=rand(100, i)
+type=take(`A`S`D`F,i)
+insert into agg1 values(time, sym, price, volume,type)
+
+@testing:case="test_function_createCrossSesctionalAggregator_dropAggregator"
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+
+@testing:case="test_function_createCrossSesctionalAggregator_contextByColumn_nometrics",exception=1
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+agg1=createCrossSectionalAggregator(name="test",dummyTable=trades1, keyColumn=`sym, triggeringPattern="keyCount", useSystemTime=false, timeColumn="time",contextByColumn="type")
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_not_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount",triggeringInterval=1000, useSystemTime=false, lastBatchOnly=true,timeColumn=`time,contextByColumn=`type)
+for(i in 1..100){
+	t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i*100, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select last(time) as time,type as type, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time) as time, avg(price) as factor1, double(sum(volume)) as factor2, beta(price, volume) as factor3, corr(price, volume) as factor4, std(price) as factor5, double(max(volume)) as factor6 from t group by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,2:8].values(), expected[,2:8].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_aggregative_and_Nonaggregative"
+//dropAggregator(`Engine)
+dt=table(1:0, `ts`id`x`y`type, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING])
+colNames = [`dateTime,`type,`c1,`c2,`c3,`c4,`c5,`c6,`c7,`c8,`c9,`c10,`c11,`c12,`c13,`c14,`c15,`c16,`c17]
+colTypes = [TIMESTAMP,STRING,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE]
+output = table(1:0, colNames, colTypes)
+defg myfun(x,y,win) {
+	return atImax(x,y),contextCount(x,y),corr(x,y),count(x),imax(y),sum2(x), avg(x),ema(x,win),mavg(x,win),mcovar(x,y,win),ewmCorr(x,,,,0.2,2,,true,y), mwsum(x, y, win),first(x),rank(y),cumavg(x),cumcorr(x,y),mcovarp(x,y,win)
+}
+agg1 = createCrossSectionalAggregator("Engine", <[myfun(x,y,20) as `c1`c2`c3`c4`c5`c6`c7`c8`c9`c10`c11`c12`c13`c14`c15`c16`c17]>, dt, output,  `id, `keyCount, 1000,false,`ts,false,`type);
+t=keyedTable(`id,1:0, `ts`id`x`y`type, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING])
+t=keyedTable(`id,1:0, `ts`id`x`y`type, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING])
+expected = table(1:0, colNames, colTypes)
+for(i in 1..50){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`S`D`F,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	res=select  ts,type,atImax(x,y),contextCount(x,y),corr(x,y),count(x),imax(y),sum2(x), avg(x),ema(x,20),mavg(x,20),mcovar(x,y,20),ewmCorr(x,,,,0.2,2,,true,y), mwsum(x, y, 20),first(x),rank(y),cumavg(x),cumcorr(x,y),mcovarp(x,y,20) from agg1 context by type
+	expected.append!(res)
+	assert 2, each(eqObj, (select * from output order by type,c14,c8,c9,c10)[,1:17].values(), (select *  from expected  order by type,c14,c8,c9,c10)[,1:17].values())
+}
+t1=select * from output order by type,c14,c8,c9,c10
+t2=select *  from expected  order by type,c14,c8,c9,c10
+dropAggregator(`Engine)
+agg1=NULL
+//undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_perBatch_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000, num)
+	sym="A"+string(1..num)
+	price=rand(100.0, num)
+	type=take(`A`S`D`F,num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select last(time) as time,type as type, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=perBatch_contextByColumn_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time) as time, avg(price) as factor1, double(sum(volume)) as factor2, beta(price, volume) as factor3, corr(price, volume) as factor4, std(price) as factor5, double(max(volume)) as factor6 from t group by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,2:8].values(), expected[,2:8].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregative_and_Nonaggregative_function_perBatch_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+def myfun(price,volume){
+	return price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price)
+}
+agg1=createCrossSectionalAggregator(name="test", metrics=<[myfun(price,volume) as `factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000, num)
+	sym="A"+string(1..num)
+	type=take(`A`S`D`F,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	ret=select time,type,price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price) from t context by type
+	expected.append!(ret)
+	assert 2, each(eqObj, (select * from outputTable)[,2:9].values(), expected[,2:9].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_perRow_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	insert into agg1 values(time, sym, price, volume,type)
+	insert into t values(time, sym, price, volume,type)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time,type as type, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregate_function_perRow_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	insert into agg1 values(time, sym, price, volume,type)
+	insert into t values(time, sym, price, volume,type)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time),avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume) from t group by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,2:8].values(), expected[,2:8].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregate_and_Nonaggregative_function_perRow_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+def myfun(price,volume){
+	return price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price)
+}
+agg1=createCrossSectionalAggregator(name="test", metrics=<[myfun(price,volume) as `factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	insert into agg1 values(time, sym, price, volume,type)
+	insert into t values(time, sym, price, volume,type)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time,type,price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price) from t context by type
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_interval_contextByColumn"
+share streamTable(10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING])
+outputTable = table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="interval", useSystemTime=false, timeColumn=`time,contextByColumn=`type)
+for(i in 1..10){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i*1000, num)
+	sym="A"+string(1..num)
+	price=rand(100.0, num)
+	type=take(`A`S`D`F,num)
+	volume=rand(100, num)
+	tmp=table(time, sym, price, volume,type)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time as time,type as type, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type
+	expected.append!(re)
+	sleep(2000)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+//https://dolphindb1.atlassian.net/browse/D20-13324
+@testing:case="test_function_createCrossSesctionalAggregator_contextByColumn_string_vector_outputTable_colNumber_inconsistent1", exception=1
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING, SYMBOL, SYMBOL]) as trades1
+outputTable = table(1:0, `time`type`str1`factor1, [TIMESTAMP,STRING, SYMBOL, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount",triggeringInterval=1000, useSystemTime=false, lastBatchOnly=true,timeColumn=`time,contextByColumn=`type`str1`str2)
+
+@testing:case="test_function_createCrossSesctionalAggregator_contextByColumn_string_vector_outputTable_colNumber_inconsistent2", exception=1
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING, SYMBOL, SYMBOL]) as trades1
+outputTable = table(1:0, `time`type`str1`str2`str3`factor1, [TIMESTAMP,STRING, SYMBOL, SYMBOL, SYMBOL, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount",triggeringInterval=1000, useSystemTime=false, lastBatchOnly=true,timeColumn=`time,contextByColumn=`type`str1`str2)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_string_vector_not_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING, SYMBOL, SYMBOL]) as trades1
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, SYMBOL, SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, SYMBOL, SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount",triggeringInterval=1000, useSystemTime=false, lastBatchOnly=true,timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..100){
+	t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING, SYMBOL, SYMBOL])
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i*100, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type, str1, str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select last(time) as time,type as type, str1, str2, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type, str1, str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_string_vector_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING, SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`str1`str2`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,SYMBOL,SYMBOL,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="keyCount", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time) as time, avg(price) as factor1, double(sum(volume)) as factor2, beta(price, volume) as factor3, corr(price, volume) as factor4, std(price) as factor5, double(max(volume)) as factor6 from t group by type,str1,str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,4:10].values(), expected[,4:10].values(),6)
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=keyCount_contextByColumn_string_vector_aggregative_and_Nonaggregative"
+//dropAggregator(`Engine)
+dt=table(1:0, `ts`id`x`y`type`str1`str2, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING,STRING,STRING])
+colNames = [`dateTime,`type,`str1,`str2,`c1,`c2,`c3,`c4,`c5,`c6,`c7,`c8,`c9,`c10,`c11,`c12,`c13,`c14,`c15,`c16,`c17]
+colTypes = [TIMESTAMP,STRING,SYMBOL, SYMBOL, DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE]
+output = table(1:0, colNames, colTypes)
+defg myfun(x,y,win) {
+	return atImax(x,y),contextCount(x,y),corr(x,y),count(x),imax(y),sum2(x), avg(x),ema(x,win),mavg(x,win),mcovar(x,y,win),ewmCorr(x,,,,0.2,2,,true,y), mwsum(x, y, win),first(x),rank(y),cumavg(x),cumcorr(x,y),mcovarp(x,y,win)
+}
+agg1 = createCrossSectionalAggregator("Engine", <[myfun(x,y,20) as `c1`c2`c3`c4`c5`c6`c7`c8`c9`c10`c11`c12`c13`c14`c15`c16`c17]>, dt, output,  `id, `keyCount, 1000,false,`ts,false,`type`str1`str2);
+t=keyedTable(`id,1:0, `ts`id`x`y`type`str1`str2, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING,SYMBOL, SYMBOL])
+t=keyedTable(`id,1:0, `ts`id`x`y`type`str1`str2, [TIMESTAMP,STRING, DOUBLE, DOUBLE,STRING,SYMBOL, SYMBOL])
+expected = table(1:0, colNames, colTypes)
+for(i in 1..50){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`S`D`F,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	res=select  ts,type,str1, str2, atImax(x,y),contextCount(x,y),corr(x,y),count(x),imax(y),sum2(x), avg(x),ema(x,20),mavg(x,20),mcovar(x,y,20),ewmCorr(x,,,,0.2,2,,true,y), mwsum(x, y, 20),first(x),rank(y),cumavg(x),cumcorr(x,y),mcovarp(x,y,20) from agg1 context by type, str1, str2
+	expected.append!(res)
+	assert 2, each(eqObj, (select * from output order by type,c14,c8,c9,c10)[,1:20].values(), (select *  from expected  order by type,c14,c8,c9,c10)[,1:20].values())
+}
+t1=select * from output order by type,c14,c8,c9,c10
+t2=select *  from expected  order by type,c14,c8,c9,c10
+dropAggregator(`Engine)
+agg1=NULL
+//undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_perBatch_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000, num)
+	sym="A"+string(1..num)
+	price=rand(100.0, num)
+	type=take(`A`S`D`F,num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select last(time) as time,type as type, str1, str2, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type, str1, str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSesctionalAggregator_triggeringPattern=perBatch_contextByColumn_string_vector_aggregate"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`str1`str2`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,SYMBOL,SYMBOL,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i, num)
+	sym="A"+string(1..num)
+	type=take(`A`B`C`D`E,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time) as time, avg(price) as factor1, double(sum(volume)) as factor2, beta(price, volume) as factor3, corr(price, volume) as factor4, std(price) as factor5, double(max(volume)) as factor6 from t group by type,str1,str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,4:10].values(), expected[,4:10].values(), 6)
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregative_and_Nonaggregative_function_perBatch_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING, SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+def myfun(price,volume){
+	return price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price)
+}
+agg1=createCrossSectionalAggregator(name="test", metrics=<[myfun(price,volume) as `factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perBatch", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..100){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000, num)
+	sym="A"+string(1..num)
+	type=take(`A`S`D`F,num)
+	price=rand(100.0, num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	ret=select time,type,str1, str2, price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price) from t context by type,str1,str2
+	expected.append!(ret)
+	assert 2, each(eqObj, (select * from outputTable)[,4:12].values(), expected[,4:12].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_perRow_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	str1 = rand("A"+string(1..100), 1)
+	str2 = rand("B"+string(1..100), 1)
+	insert into agg1 values(time, sym, price, volume,type,str1,str2)
+	insert into t values(time, sym, price, volume,type,str1,str2)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time,type as type, str1, str2, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type,str1,str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregate_function_perRow_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `type`str1`str2`time`factor1`factor2`factor3`factor4`factor5`factor6, [STRING,SYMBOL,SYMBOL,TIMESTAMP, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	str1 = rand("A"+string(1..100), 1)
+	str2 = rand("B"+string(1..100), 1)
+	insert into agg1 values(time, sym, price, volume,type,str1,str2)
+	insert into t values(time, sym, price, volume,type,str1,str2)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select max(time),avg(price), sum(volume), beta(price, volume), corr(price, volume), std(price), max(volume) from t group by type,str1,str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable[,4:10].values(), expected[,4:10].values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_aggregate_and_Nonaggregative_function_perRow_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+def myfun(price,volume){
+	return price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price)
+}
+agg1=createCrossSectionalAggregator(name="test", metrics=<[myfun(price,volume) as `factor1`factor2`factor3`factor4`factor5`factor6`factor7`factor8]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="perRow", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..1000){
+	time=2018.01.01T09:30:00.000+i
+	sym="A"+string(i)
+	price=rand(100.0, 1)[0]
+	volume=rand(100, 1)[0]
+	type=rand(`A`S`D`F,1)
+	str1 = rand("A"+string(1..100), 1)
+	str2 = rand("B"+string(1..100), 1)
+	insert into agg1 values(time, sym, price, volume,type,str1,str2)
+	insert into t values(time, sym, price, volume,type,str1,str2)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time,type,str1,str2,price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price),corr(price,volume),lastNot(price) from t context by type,str1,str2
+	expected.append!(re)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+
+@testing:case="test_function_createCrossSectionalAggregator_metrics_not_aggregate_function_interval_contextByColumn_string_vector"
+share streamTable(10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL]) as trades1
+t=keyedTable(`sym,10:0,`time`sym`price`volume`type`str1`str2,[TIMESTAMP,SYMBOL,DOUBLE,INT,STRING,SYMBOL,SYMBOL])
+outputTable = table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+expected=table(1:0, `time`type`str1`str2`factor1`factor2`factor3`factor4`factor5`factor6, [TIMESTAMP,STRING,SYMBOL,SYMBOL, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE, DOUBLE])
+agg1=createCrossSectionalAggregator(name="test", metrics=<[price>volume, mavg(price, 5), iif(price>volume, price*0.1, volume*0.1), (price+volume)/price, prev(price), deltas(price)]>, dummyTable=trades1, outputTable=outputTable, keyColumn=`sym, triggeringPattern="interval", useSystemTime=false, timeColumn=`time,contextByColumn=`type`str1`str2)
+for(i in 1..10){
+	num=rand(3000..6000, 1)[0]
+	time=take(2018.01.01T09:30:00.000+i*1000, num)
+	sym="A"+string(1..num)
+	price=rand(100.0, num)
+	type=take(`A`S`D`F,num)
+	volume=rand(100, num)
+	str1 = rand("A"+string(1..100), num)
+	str2 = rand("B"+string(1..100), num)
+	tmp=table(time, sym, price, volume,type,str1,str2)
+	upsert!(t, tmp)
+	agg1.append!(tmp)
+	assert 1, each(eqObj, (select * from agg1).values(), t.values())
+	re=select time as time,type as type, str1, str2, price>volume as factor1, mavg(price, 5) as factor2, iif(price>volume, price*0.1, volume*0.1) as factor3, (price+volume)/price as factor4, prev(price) as factor5, deltas(price) as factor6 from t context by type, str1, str2
+	expected.append!(re)
+	sleep(2000)
+	assert 2, each(eqObj, outputTable.values(), expected.values())
+}
+
+dropAggregator("test")
+agg1=NULL
+undef(`trades1, SHARED)
+

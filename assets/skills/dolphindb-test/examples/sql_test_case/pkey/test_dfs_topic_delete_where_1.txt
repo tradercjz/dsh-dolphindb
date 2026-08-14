@@ -1,0 +1,173 @@
+
+@testing:case="test_dfs_topic_delete_where_single_primaryKey_int"
+login(`admin,`123456)
+dbName = "dfs://delete_where"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(directory=dbName, partitionType=HASH, partitionScheme=[SYMBOL,50], engine="PKEY")
+n = 100000
+t = table(n:n, [`intv,`doublev,`symv,`timestampv,`datev,`blobv], [INT, DOUBLE, SYMBOL, TIMESTAMP,DATE,BLOB])
+t[`intv] = rand(100,n)
+t[`doublev] = rand(100.0,n)
+t[`symv] = rand("A"+string(1..100),n)
+t[`timestampv] = temporalAdd(2012.06.13T13:30:10.000,1000*( take(1..1000,n).sort!() ),"s")
+t[`datev] =  rand(2020.01.01..2020.01.10 ,n)
+t[`blobv] = rand("abcdefg"+string(1..100),n)
+x1 = [<intv>10>, <intv<10>, <intv=10>, <intv!=10>, <intv in 1..50>, <not intv in 1..50>, <intv between 1:50>]
+t = select * from t where !isDuplicated([symv,intv],LAST)
+for(ac in x1){
+	tem = t
+	pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`intv).append!(tem)
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	sqlDelete(tem, where=ac).eval()
+	re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+	ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+	assert 1,each(eqObj,re.values(),ex.values())
+	dropTable(database(dbName),`pt1)	
+}
+//where primaryKey value not exist
+x1 = [<intv>100>, <intv<-1>, <intv=200>, <intv in 200..300>, <not intv in 0..100>, <intv between 200:300>]
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`intv).append!(t)
+for(ac in x1){
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	re = exec count(*) from pt 
+	assert 2,eqObj(re,size(t))
+}
+
+@testing:case="test_dfs_topic_delete_where_single_primaryKey_timestamp"
+login(`admin,`123456)
+dbName = "dfs://delete_where"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(directory=dbName, partitionType=HASH, partitionScheme=[SYMBOL,50], engine="PKEY")
+n = 100000
+t = table(n:n, [`intv,`doublev,`symv,`timestampv,`datev,`blobv], [INT, DOUBLE, SYMBOL, TIMESTAMP,DATE,BLOB])
+t[`intv] = rand(1..100 join(take(int(),5)),n)
+t[`doublev] = rand(100.0,n)
+t[`symv] = rand("A"+string(1..100),n)
+t[`timestampv] = temporalAdd(2012.06.13T13:30:10.000,1000*( take(1..1000,n).sort!() ),"s")
+t[`datev] =  rand(2020.01.01..2020.01.10 join(take(date(),5)) ,n)
+t[`blobv] = rand("abcdefg"+string(1..100),n)
+t = select * from t where !isDuplicated([symv,timestampv],LAST)
+x2 = [<date(timestampv)>2012.06.20>, <date(timestampv)<2012.06.20>, <date(timestampv)=2012.06.20>, <date(timestampv)!=2012.06.20>, <date(timestampv) in 2012.06.20..2012.06.25>, <not date(timestampv) in 2012.06.20..2012.06.25>, <date(timestampv) between 2012.06.20:2012.06.25>]
+for(ac in x2){
+	tem = t
+	pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	sqlDelete(tem, where=ac).eval()
+	re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+	ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+	assert 1,each(eqObj,re.values(),ex.values())
+	dropTable(database(dbName),`pt1)	
+}
+//where primaryKey value not exist
+x2 = [<date(timestampv)>2020.06.20>, <date(timestampv)<2010.06.20>, <date(timestampv)=2010.06.20>, <date(timestampv) in 2020.06.20..2020.06.25>, <not date(timestampv) in 2012.06.13..2012.06.25>, <date(timestampv) between 2020.06.20:2020.06.25>]
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(t)
+for(ac in x2){
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	re = exec count(*) from pt 
+	assert 2,eqObj(re,size(t))
+}
+
+@testing:case="test_dfs_topic_delete_where_two_primaryKey"
+login(`admin,`123456)
+dbName = "dfs://delete_where"
+if(existsDatabase(dbName)){
+	dropDatabase(dbName)
+}
+db = database(directory=dbName, partitionType=HASH, partitionScheme=[SYMBOL,50], engine="PKEY")
+n = 100000
+t = table(n:n, [`intv,`doublev,`symv,`timestampv,`datev,`blobv], [INT, DOUBLE, SYMBOL, TIMESTAMP,DATE,BLOB])
+t[`intv] = rand(1..100 join(take(int(),5)),n)
+t[`doublev] = rand(100.0,n)
+t[`symv] = rand("A"+string(1..100),n)
+t[`timestampv] = temporalAdd(2012.06.13T13:30:10.000,1000*( take(1..1000,n).sort!() ),"s")
+t[`datev] =  rand(2020.01.01..2020.01.10 join(take(date(),5)) ,n)
+t[`blobv] = rand("abcdefg"+string(1..100),n)
+x1 = [<date(timestampv)>2012.06.20>, <date(timestampv)<2012.06.20>, <date(timestampv)=2012.06.20>, <date(timestampv)!=2012.06.20>, <date(timestampv) in 2012.06.20..2012.06.25>, <not date(timestampv) in 2012.06.20..2012.06.25>, <date(timestampv) between 2012.06.20:2012.06.25>]
+x2 = [<symv>"A5">, <symv="A5">, <symv<"A5">, <symv!="A5">, <symv in "A"+string(1..50)>, <not symv in "A"+string(1..50)>, <symv between "A1":"A5">]
+t = select * from t where !isDuplicated([symv,timestampv],LAST)
+for(ac in x1){
+	tem = t
+	pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	sqlDelete(tem, where=ac).eval()
+	re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+	ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+	assert 1,each(eqObj,re.values(),ex.values())
+	dropTable(database(dbName),`pt1)	
+}
+for(ac in x2){
+	tem = t
+	pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+	print(sqlDelete(pt, where=ac))
+	sqlDelete(pt, where=ac).eval()
+	sqlDelete(tem, where=ac).eval()
+	re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+	ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+	assert 2,each(eqObj,re.values(),ex.values())
+	dropTable(database(dbName),`pt1)	
+}
+
+tem = t
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+delete from pt where date(timestampv)>2012.06.20,symv>"A5"
+delete from tem where date(timestampv)>2012.06.20,symv>"A5"
+re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+assert 3,each(eqObj,re.values(),ex.values())
+dropTable(database(dbName),`pt1)	
+
+tem = t
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+delete from pt where date(timestampv) in 2012.06.20..2012.06.25,symv in "A"+string(1..50)
+delete from tem where date(timestampv) in 2012.06.20..2012.06.25,symv in "A"+string(1..50)
+re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+assert 4,each(eqObj,re.values(),ex.values())
+dropTable(database(dbName),`pt1)	
+
+tem = t
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+delete from pt where date(timestampv)!=2012.06.20,symv<"A5"
+delete from tem where date(timestampv)!=2012.06.20,symv<"A5"
+re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+assert 5,each(eqObj,re.values(),ex.values())
+dropTable(database(dbName),`pt1)	
+
+tem = t
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+delete from pt where not date(timestampv) in 2012.06.20..2012.06.25,symv between "A1":"A5"
+delete from tem where not date(timestampv) in 2012.06.20..2012.06.25,symv between "A1":"A5"
+re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+assert 6,each(eqObj,re.values(),ex.values())
+dropTable(database(dbName),`pt1)	
+
+tem = t
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(tem)
+delete from pt where date(timestampv) between 2012.06.20:2012.06.25,symv in "A"+string(1..50)
+delete from tem where date(timestampv) between 2012.06.20:2012.06.25,symv in "A"+string(1..50)
+re = select * from pt order by intv,doublev,symv,timestampv,datev,blobv
+ex = select * from tem order by intv,doublev,symv,timestampv,datev,blobv
+assert 7,each(eqObj,re.values(),ex.values())
+dropTable(database(dbName),`pt1)	
+
+//where primaryKey value not exist
+pt = database(dbName).createPartitionedTable(table=t, tableName=`pt1, partitionColumns=`symv, primaryKey=`symv`timestampv).append!(t)
+delete from pt where date(timestampv) between 2022.06.20:2022.06.25,symv in "A"+string(1..50)
+re = exec count(*) from pt 
+assert 8,eqObj(re,size(t))
+delete from pt where date(timestampv)>2012.06.20,symv in "A"+string(200..300)
+re = exec count(*) from pt 
+assert 9,eqObj(re,size(t))
+dropTable(database(dbName),`pt1)	
+

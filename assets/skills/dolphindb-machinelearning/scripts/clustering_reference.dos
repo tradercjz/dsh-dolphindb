@@ -1,0 +1,339 @@
+/*
+DolphinDB Web AI 的一次性聚类脚本块库。
+不要运行整个文件。只把需要的脚本块复制到任务脚本中。
+不要定义或调用自定义 web* 函数。
+约束：输出紧凑聚类、画像和模型选择摘要。
+*/
+
+// 块索引：
+// 1-3：聚类特征表、缺失检查和 k 规模检查。
+// 4-10：快速 kmeans 训练、分配、簇规模、画像、代表样本和摘要。
+// 11-12：模型函数可用性和候选模型表。
+// 13-16：winsorize+zscore、PCA+kmeans 候选、中心距离和近似 silhouette。
+// 17-23：候选结果、最佳候选、风险报告、轻量搜索、最终分配和模型选择摘要。
+
+// 块 1：准备聚类特征表。
+// 输入：webFeatures、webFeatureCols、webEntityCol。
+// 输出：webClusterData。
+// 适用：聚类训练前构造输入矩阵。
+webFeatureCols = ["REPLACE_FEATURE_1","REPLACE_FEATURE_2"]
+webEntityCol = "REPLACE_ENTITY_COL"
+webClusterData = select * from webFeatures
+table([exec count(*) from webClusterData] as rows, [string(webFeatureCols)] as feature_cols)
+
+// 块 2：检查聚类特征缺失情况。
+// 输入：webClusterData、webFeatureCols。
+// 输出：webClusterFeatureMissingness。
+// 适用：训练前确认连续数值特征可用性。
+webClusterFeatureMissingness = table(100:0, `feature_name`null_rows`rows`null_ratio, [STRING,LONG,LONG,DOUBLE])
+webRows = exec count(*) from webClusterData
+for(webCol in webFeatureCols){
+    webSql = "select count(*) as null_rows from webClusterData where isNull(" + webCol + ")"
+    webNullResult = eval(parseExpr(webSql))
+    webNullRows = exec null_rows from webNullResult
+    webClusterFeatureMissingness.append!(table([webCol] as feature_name, [long(webNullRows[0])] as null_rows, [webRows] as rows, [long(webNullRows[0]) \ double(webRows)] as null_ratio))
+}
+webClusterFeatureMissingness
+
+// 块 3：检查不同 k 的聚类规模。
+// 输入：webClusterData、webFeatureCols、webKCandidates、webSeed。
+// 输出：webKSizeReport。
+// 适用：选择不会塌缩或产生极小簇的 k。
+webKCandidates = [2,3,4,5]
+webSeed = 20260519
+webKSizeReport = table(100:0, `k`cluster_id`rows, [INT,INT,LONG])
+webClusterX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webClusterData"))
+for(webK in webKCandidates){
+    webTmpModel = kmeans(webClusterX, webK, randomSeed=webSeed)
+    webTmpClusterIds = predict(webTmpModel, webClusterX)
+    webTmpAssignments = table(webTmpClusterIds as cluster_id)
+    webTmpSize = select cluster_id, count(*) as rows from webTmpAssignments group by cluster_id
+    webKSizeReport.append!(select webK as k, cluster_id, rows from webTmpSize)
+}
+webKSizeReport
+
+// 块 4：训练新的 k-means 模型。
+// 输入：webClusterData、webFeatureCols、webClusterCount、webSeed。
+// 输出：webModel、webModelName、webClusterCount。
+// 适用：确定 k 后训练最终聚类模型。
+webClusterCount = 4
+webSeed = 20260519
+webModelName = "kmeans"
+webClusterX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webClusterData"))
+webModel = kmeans(webClusterX, webClusterCount, randomSeed=webSeed)
+webModelName
+
+// 块 5：分配聚类 ID。
+// 输入：webModel、webClusterData、webFeatureCols、webEntityCol。
+// 输出：webClusterAssignments。
+// 适用：给每个实体或样本分配簇。
+webClusterX = eval(parseExpr("select " + concat(webFeatureCols, ",") + " from webClusterData"))
+webClusterIds = predict(webModel, webClusterX)
+webEntitySql = "select " + webEntityCol + " as entity_id from webClusterData"
+webEntities = eval(parseExpr(webEntitySql))
+webClusterAssignments = table(webEntities.entity_id as entity_id, webClusterIds as cluster_id)
+webClusterAssignments
+
+// 块 6：聚类规模画像。
+// 输入：webClusterAssignments。
+// 输出：webClusterSizeReport。
+// 适用：理解每个簇的样本量。
+webClusterSizeReport = select cluster_id, count(*) as rows from webClusterAssignments group by cluster_id order by cluster_id
+webClusterSizeReport
+
+// 块 7：单个特征的聚类均值画像。
+// 输入：webClusterData、webClusterIds、webProfileFeature。
+// 输出：webClusterProfile。
+// 适用：解释某个关键特征在各簇上的差异。
+webProfileFeature = "REPLACE_FEATURE_1"
+webProfileSql = "select cluster_id, avg(" + webProfileFeature + ") as avg_value from (select *, webClusterIds as cluster_id from webClusterData) group by cluster_id order by cluster_id"
+webClusterProfile = eval(parseExpr(webProfileSql))
+webClusterProfile
+
+// 块 8：多特征聚类均值画像。
+// 输入：webClusterData、webClusterIds、webFeatureCols。
+// 输出：webClusterMultiFeatureProfile。
+// 适用：生成各簇的主要数值画像。
+webClusterMultiFeatureProfile = table(100:0, `cluster_id`feature_name`avg_value, [INT,STRING,DOUBLE])
+for(webCol in webFeatureCols){
+    webSql = "select cluster_id, '" + webCol + "' as feature_name, avg(" + webCol + ") as avg_value from (select *, webClusterIds as cluster_id from webClusterData) group by cluster_id"
+    webClusterMultiFeatureProfile.append!(eval(parseExpr(webSql)))
+}
+webClusterMultiFeatureProfile
+
+// 块 9：每簇代表样本。
+// 输入：webClusterAssignments。
+// 输出：webClusterExamples。
+// 适用：为聊天解释提供少量代表实体。
+webClusterExamples = select top 5 * from webClusterAssignments context by cluster_id
+webClusterExamples
+
+// 块 10：聚类结果摘要。
+// 输入：webModelName、webClusterSizeReport、webClusterMultiFeatureProfile。
+// 输出：webClusteringSummary。
+// 适用：向聊天答案汇总聚类规模和画像。
+webClusteringSummary = table([webModelName] as model_function, [webClusterCount] as cluster_count, [string(webClusterSizeReport)] as size_report, [string(webClusterMultiFeatureProfile)] as feature_profile)
+webClusteringSummary
+
+// 块 11：聚类模型函数可用性检查。
+// 输入：无。
+// 输出：webClusteringModelAvailability。
+// 适用：选择 kmeans 或 PCA+kmeans 候选前，确认当前运行时可用函数。
+webClusteringModelAvailability = table(["kmeans","pca_kmeans"] as model_id, ["kmeans","pca + kmeans"] as function_name, [defined("kmeans", DEF), defined("kmeans", DEF) && defined("pca", DEF)] as available)
+webClusteringModelAvailability
+
+// 块 12：聚类候选模型表。
+// 输入：webSelectedModelId、webFallbackModelId、webCandidateModelIds、webClusteringModelAvailability。
+// 输出：webClusteringCandidateModels。
+// 适用：把用户指定、默认 fallback 和候选列表合并为可审查的聚类模型选择表。
+webSelectedModelId = ""
+webFallbackModelId = "kmeans"
+webCandidateModelIds = ["kmeans","pca_kmeans"]
+webRequestedModelIds = distinct([webSelectedModelId, webFallbackModelId] join webCandidateModelIds)
+webClusteringCandidateModels = table(100:0, `model_id`function_name`available`selection_source, [STRING,STRING,BOOL,STRING])
+for(webModelId in webRequestedModelIds){
+    if(strlen(trim(string(webModelId))) > 0){
+        webModelRow = select * from webClusteringModelAvailability where model_id = string(webModelId)
+        webModelRowCount = exec count(*) from webModelRow
+        webFunctionName = ""
+        webAvailable = false
+        if(webModelRowCount > 0){
+            webFunctionName = string(webModelRow.function_name[0])
+            webAvailable = bool(webModelRow.available[0])
+        }
+        webSelectionSource = iif(string(webModelId) == webSelectedModelId, "selected", iif(string(webModelId) == webFallbackModelId, "fallback", "candidate"))
+        webClusteringCandidateModels.append!(table([string(webModelId)] as model_id, [webFunctionName] as function_name, [webAvailable] as available, [webSelectionSource] as selection_source))
+    }
+}
+webClusteringCandidateModels
+
+// 块 13：聚类 winsorize 加 z-score 预处理。
+// 输入：webClusterData、webFeatureCols、webLowQuantile、webHighQuantile。
+// 输出：webClusterPreprocessData、webClusterPreprocessReport、webClusterModelFeatureCols。
+// 适用：kmeans 或 PCA+kmeans 前，降低尺度差异和极端值影响。
+webLowQuantile = 0.01
+webHighQuantile = 0.99
+webClusterPreprocessData = select * from webClusterData
+webClusterPreprocessReport = table(100:0, `source_feature`model_feature`lower_bound`upper_bound`train_mean`train_std`preprocess_rule, [STRING,STRING,DOUBLE,DOUBLE,DOUBLE,DOUBLE,STRING])
+webClusterModelFeatureCols = take("", 0)
+for(webCol in webFeatureCols){
+    webLower = percentile(webClusterPreprocessData[webCol], webLowQuantile * 100)
+    webUpper = percentile(webClusterPreprocessData[webCol], webHighQuantile * 100)
+    webClipCol = "pp_" + webCol + "_winsor"
+    webModelCol = "pp_" + webCol + "_z"
+    webClipSql = "select *, iif(" + webCol + " < " + string(webLower) + ", " + string(webLower) + ", iif(" + webCol + " > " + string(webUpper) + ", " + string(webUpper) + ", " + webCol + ")) as " + webClipCol + " from webClusterPreprocessData"
+    webClusterPreprocessData = eval(parseExpr(webClipSql))
+    webMean = avg(webClusterPreprocessData[webClipCol])
+    webStd = std(webClusterPreprocessData[webClipCol])
+    webScaleSql = "select *, iif(" + string(webStd) + " == 0, 0.0, (" + webClipCol + " - " + string(webMean) + ") \\ " + string(webStd) + ") as " + webModelCol + " from webClusterPreprocessData"
+    webClusterPreprocessData = eval(parseExpr(webScaleSql))
+    webClusterModelFeatureCols.append!(webModelCol)
+    webClusterPreprocessReport.append!(table([webCol] as source_feature, [webModelCol] as model_feature, [webLower] as lower_bound, [webUpper] as upper_bound, [webMean] as train_mean, [webStd] as train_std, ["winsorized+zscore"] as preprocess_rule))
+}
+webClusterPreprocessReport
+
+// 块 14：PCA+kmeans 候选计划。
+// 输入：webClusterModelFeatureCols、webPcaComponents、webClusterCount。
+// 输出：webPcaKmeansPlan。
+// 适用：特征维度较多时，先明确降维候选；实际执行前确认当前运行时支持 PCA。
+webPcaComponents = min(5, size(webClusterModelFeatureCols))
+webPcaAvailable = defined("pca", DEF)
+webPcaKmeansPlan = table(["pca_kmeans"] as model_id, [webPcaAvailable] as pca_available, [webPcaComponents] as pca_components, [webClusterCount] as cluster_count, [iif(webPcaAvailable, "can_try_pca_then_kmeans", "fallback_to_kmeans_or_top_variance_features")] as action)
+webPcaKmeansPlan
+
+// 块 15：簇中心距离摘要。
+// 输入：webClusterMultiFeatureProfile。
+// 输出：webClusterCenterDistanceReport。
+// 适用：解释簇之间是否有清晰间隔。
+webCenterA = select cluster_id as cluster_a, feature_name, avg_value as avg_a from webClusterMultiFeatureProfile
+webCenterB = select cluster_id as cluster_b, feature_name, avg_value as avg_b from webClusterMultiFeatureProfile
+webCenterJoined = ej(webCenterA, webCenterB, `feature_name)
+webClusterCenterDistanceReport = select cluster_a, cluster_b, sqrt(sum(pow(avg_a - avg_b, 2))) as center_distance from webCenterJoined where cluster_a < cluster_b group by cluster_a, cluster_b order by center_distance desc
+webClusterCenterDistanceReport
+
+// 块 16：近似 silhouette 摘要。
+// 输入：webClusterCenterDistanceReport、webClusterSizeReport。
+// 输出：webApproxSilhouetteReport。
+// 适用：没有完整 silhouette 实现时，用中心距离和簇规模给出粗略可分性线索。
+webMinCenterDistance = min(webClusterCenterDistanceReport.center_distance)
+webAvgCenterDistance = avg(webClusterCenterDistanceReport.center_distance)
+webSmallestClusterRows = min(webClusterSizeReport.rows)
+webLargestClusterRows = max(webClusterSizeReport.rows)
+webApproxScore = iif(webAvgCenterDistance == 0, 0.0, webMinCenterDistance \ webAvgCenterDistance)
+webApproxSilhouetteReport = table([webApproxScore] as approximate_separation_score, [webMinCenterDistance] as min_center_distance, [webAvgCenterDistance] as avg_center_distance, [webSmallestClusterRows] as smallest_cluster_rows, [webLargestClusterRows] as largest_cluster_rows)
+webApproxSilhouetteReport
+
+// 块 17：聚类网格候选结果表。
+// 输入：webCandidateId、webSelectedModelId、webModelName、webClusterCount、webApproxSilhouetteReport。
+// 输出：webGridCandidateReport。
+// 适用：比较不同 k、预处理或模型候选时，保留紧凑候选记录。
+webCandidateId = 1
+webSelectionScore = exec approximate_separation_score from webApproxSilhouetteReport
+webGridCandidateReport = table([webCandidateId] as candidate_id, [webSelectedModelId] as model_id, [webModelName] as model_function, [webClusterCount] as cluster_count, ["success"] as status, ["approximate_separation_score"] as selection_metric, [double(webSelectionScore[0])] as selection_score, [string(webApproxSilhouetteReport)] as eval_report)
+webGridCandidateReport
+
+// 块 18：聚类最佳候选选择表。
+// 输入：webGridCandidateReport。
+// 输出：webBestClusteringCandidate。
+// 适用：多 k 或多预处理比较后，选择近似可分性得分最高的候选。
+webBestClusteringCandidate = select top 1 * from webGridCandidateReport where status = "success" order by selection_score desc, candidate_id
+webBestClusteringCandidate
+
+// 块 19：聚类风险报告。
+// 输入：webClusterSizeReport、webApproxSilhouetteReport。
+// 输出：webClusteringRiskReport。
+// 适用：识别簇塌缩、极小簇或可分性过弱等解释风险。
+webTotalClusterRows = sum(webClusterSizeReport.rows)
+webSmallestClusterRows = min(webClusterSizeReport.rows)
+webApproxScore = exec approximate_separation_score from webApproxSilhouetteReport
+webRiskLevel = "LOW"
+webRiskWhere = "cluster sizes and center separation have no major warning"
+webRiskAction = "use profiles and representative samples for interpretation"
+if(webSmallestClusterRows < max(5, int(webTotalClusterRows * 0.02))){
+    webRiskLevel = "MEDIUM"
+    webRiskWhere = "at least one cluster is very small"
+    webRiskAction = "try a smaller k or inspect whether the small cluster is an outlier group"
+} else if(webApproxScore[0] < 0.20){
+    webRiskLevel = "MEDIUM"
+    webRiskWhere = "center separation is weak"
+    webRiskAction = "standardize features, reduce noisy features, or compare alternative k values"
+}
+webClusteringRiskReport = table(["clustering_model"] as risk_subject, [webRiskLevel] as risk_level, [webRiskWhere] as risk_where, [webRiskAction] as risk_action)
+webClusteringRiskReport
+
+// 块 20：聚类轻量网格计划表。
+// 输入：webClusteringModelAvailability、webGridCandidateLimit。
+// 输出：webClusteringGridPlan、webClusteringGridPlanSummary。
+// 适用：按旧版 registry 的默认网格生成 kmeans 与 PCA+kmeans 候选计划，默认最多执行 20 个候选。
+webGridCandidateLimit = 20
+webKmeansAvailable = bool(exec available from webClusteringModelAvailability where model_id = "kmeans")
+webPcaKmeansAvailable = bool(exec available from webClusteringModelAvailability where model_id = "pca_kmeans")
+webClusteringGridPlan = table(
+    1..13 as candidate_id,
+    ["kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","pca_kmeans","pca_kmeans","pca_kmeans"] as model_id,
+    ["kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","kmeans","pca + kmeans","pca + kmeans","pca + kmeans"] as model_function,
+    ["{\"numClusters\":2,\"initMethod\":\"random\",\"maxIter\":300}","{\"numClusters\":3,\"initMethod\":\"random\",\"maxIter\":300}","{\"numClusters\":4,\"initMethod\":\"random\",\"maxIter\":300}","{\"numClusters\":5,\"initMethod\":\"random\",\"maxIter\":300}","{\"numClusters\":6,\"initMethod\":\"random\",\"maxIter\":300}","{\"numClusters\":2,\"initMethod\":\"k-means++\",\"maxIter\":300}","{\"numClusters\":3,\"initMethod\":\"k-means++\",\"maxIter\":300}","{\"numClusters\":4,\"initMethod\":\"k-means++\",\"maxIter\":300}","{\"numClusters\":5,\"initMethod\":\"k-means++\",\"maxIter\":300}","{\"numClusters\":6,\"initMethod\":\"k-means++\",\"maxIter\":300}","{\"pcaNumComponents\":3,\"numClusters\":3,\"initMethod\":\"random\",\"maxIter\":300}","{\"pcaNumComponents\":5,\"numClusters\":4,\"initMethod\":\"random\",\"maxIter\":300}","{\"pcaNumComponents\":8,\"numClusters\":5,\"initMethod\":\"random\",\"maxIter\":300}"] as params_json,
+    [2,3,4,5,6,2,3,4,5,6,3,4,5] as num_clusters,
+    [0,0,0,0,0,0,0,0,0,0,3,5,8] as pca_components,
+    ["random","random","random","random","random","k-means++","k-means++","k-means++","k-means++","k-means++","random","random","random"] as init_method,
+    [300,300,300,300,300,300,300,300,300,300,300,300,300] as max_iter,
+    [webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webKmeansAvailable,webPcaKmeansAvailable,webPcaKmeansAvailable,webPcaKmeansAvailable] as available
+)
+webClusteringGridPlan["skip_reason"] = iif(webClusteringGridPlan.available, "", "function_unavailable")
+webClusteringGridPlanSummary = table([webGridCandidateLimit] as grid_candidate_limit, [exec count(*) from webClusteringGridPlan] as grid_candidate_total_estimated, [exec count(*) from webClusteringGridPlan > webGridCandidateLimit] as grid_truncated)
+webClusteringGridPlan
+
+// 块 21：聚类轻量候选搜索示例。
+// 输入：webClusterPreprocessData、webClusterModelFeatureCols、webClusteringGridPlan、webClusteringGridPlanSummary、webSeed。
+// 输出：webClusteringGridSearchReport。
+// 适用：比较 k、预处理和模型候选；PCA+kmeans 在当前 Web 示例中仅在运行时具备投影实现后执行，否则记录跳过。
+webClusterSearchData = webClusterPreprocessData
+webClusterSearchFeatureCols = webClusterModelFeatureCols
+webClusterSearchX = eval(parseExpr("select " + concat(webClusterSearchFeatureCols, ",") + " from webClusterSearchData"))
+webClusteringGridSearchReport = table(100:0, `candidate_id`status`error_message`model_id`model_function`params_json`selection_metric`selection_score`rank`is_best`cluster_count`smallest_cluster_rows`largest_cluster_rows`pca_components`candidate_elapsed_ms, [INT,STRING,STRING,STRING,STRING,STRING,STRING,DOUBLE,INT,BOOL,INT,LONG,LONG,INT,LONG])
+webCandidateLimitValue = exec grid_candidate_limit from webClusteringGridPlanSummary
+webGridRows = select * from webClusteringGridPlan where candidate_id <= webCandidateLimitValue[0]
+webGridRowCount = exec count(*) from webGridRows
+if(webGridRowCount > 0){
+    for(webGridI in 0..(webGridRowCount - 1)){
+        webGridRow = select * from webGridRows where candidate_id = int(webGridI + 1)
+        webCandidateId = int(webGridRow.candidate_id[0])
+        webCandidateStart = now()
+        webSelectedModelId = string(webGridRow.model_id[0])
+        webModelName = string(webGridRow.model_function[0])
+        webParamsJson = string(webGridRow.params_json[0])
+        webCandidateStatus = "success"
+        webCandidateError = ""
+        webClusterCount = int(webGridRow.num_clusters[0])
+        webSmallestRows = long(0)
+        webLargestRows = long(0)
+        webCandidateScore = -1.0
+        if(!bool(webGridRow.available[0])){
+            webCandidateStatus = "skipped"
+            webCandidateError = string(webGridRow.skip_reason[0])
+        } else if(webSelectedModelId == "pca_kmeans"){
+            webCandidateStatus = "skipped"
+            webCandidateError = "pca_projection_requires_runtime_specific_block"
+        } else {
+            try{
+                webCandidateModel = kmeans(webClusterSearchX, webClusterCount, randomSeed=webSeed)
+                webCandidateClusterIds = predict(webCandidateModel, webClusterSearchX)
+                webCandidateAssignments = table(webCandidateClusterIds as cluster_id)
+                webCandidateSizeReport = select cluster_id, count(*) as rows from webCandidateAssignments group by cluster_id
+                webActualClusterCount = exec count(*) from webCandidateSizeReport
+                webSmallestRows = long(min(webCandidateSizeReport.rows))
+                webLargestRows = long(max(webCandidateSizeReport.rows))
+                webCandidateScore = iif(webActualClusterCount < webClusterCount, 0.0, webSmallestRows \ double(webLargestRows))
+            } catch(ex) {
+                webCandidateStatus = "failed"
+                webCandidateError = string(ex)
+            }
+        }
+        webClusteringGridSearchReport.append!(table([webCandidateId] as candidate_id, [webCandidateStatus] as status, [webCandidateError] as error_message, [webSelectedModelId] as model_id, [webModelName] as model_function, [webParamsJson] as params_json, ["cluster_balance_score"] as selection_metric, [webCandidateScore] as selection_score, [0] as rank, [false] as is_best, [webClusterCount] as cluster_count, [webSmallestRows] as smallest_cluster_rows, [webLargestRows] as largest_cluster_rows, [int(webGridRow.pca_components[0])] as pca_components, [long(now() - webCandidateStart)] as candidate_elapsed_ms))
+    }
+}
+webClusteringGridSearchReport
+
+// 块 22：聚类最佳候选选择和最终分配。
+// 输入：webClusterPreprocessData、webClusterModelFeatureCols、webEntityCol、webClusteringGridSearchReport、webSeed。
+// 输出：webBestClusteringCandidate、webFinalClusterModel、webFinalClusterAssignments、webFinalClusterSizeReport。
+// 适用：选择验证候选后，在同一特征表上训练最终聚类并输出分配和规模。
+webBestClusteringCandidate = select top 1 * from webClusteringGridSearchReport where status = "success" order by selection_score desc, candidate_id
+webBestClusteringCandidateRows = exec count(*) from webBestClusteringCandidate
+if(webBestClusteringCandidateRows == 0){
+    throw "没有成功的聚类网格候选；请先查看 webClusteringGridSearchReport.error_message，并运行最小 API 验证后再继续。"
+}
+webBestClusterCount = int(webBestClusteringCandidate.cluster_count[0])
+webFinalClusterX = eval(parseExpr("select " + concat(webClusterModelFeatureCols, ",") + " from webClusterPreprocessData"))
+webFinalClusterModel = kmeans(webFinalClusterX, webBestClusterCount, randomSeed=webSeed)
+webFinalClusterIds = predict(webFinalClusterModel, webFinalClusterX)
+webFinalClusterAssignments = table(webClusterPreprocessData[webEntityCol] as entity_id, webFinalClusterIds as cluster_id)
+webFinalClusterSizeReport = select cluster_id, count(*) as rows from webFinalClusterAssignments group by cluster_id order by cluster_id
+webFinalClusterSizeReport
+
+// 块 23：聚类模型选择摘要。
+// 输入：webClusteringGridPlanSummary、webClusteringGridSearchReport、webBestClusteringCandidate、webFinalClusterSizeReport。
+// 输出：webClusteringModelSelectionSummary。
+// 适用：最终聊天输出前，解释候选、截断、最佳 k、跳过候选和最终簇规模。
+webClusteringModelSelectionSummary = table([string(webClusteringGridPlanSummary)] as grid_plan_summary, [string(select * from webClusteringGridSearchReport order by selection_score desc, candidate_id)] as grid_search_report, [string(webBestClusteringCandidate)] as best_candidate, [string(webFinalClusterSizeReport)] as final_cluster_size_report)
+webClusteringModelSelectionSummary

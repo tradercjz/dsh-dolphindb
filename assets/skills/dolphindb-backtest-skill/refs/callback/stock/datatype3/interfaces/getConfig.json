@@ -1,0 +1,25 @@
+{
+  "id": "getConfig",
+  "name": "获取回测配置",
+  "signature": "Backtest::getConfig(engine)",
+  "description": "在回调函数中调用该接口获取回测引擎的当前配置，适用于需要读取回测起止时间、资金参数或其他已配置选项来辅助策略判断的场景。",
+  "parameters": [
+    {
+      "name": "engine",
+      "type": "HANDLE",
+      "description": "回测引擎句柄，通常从 context[\"engine\"] 读取"
+    }
+  ],
+  "constraints": [
+    "只有当用户需求、配置或策略逻辑明确需要读取回测配置时，才允许生成该接口调用。",
+    "如果当前逻辑不依赖回测配置，不要主动调用该接口。",
+    "读取配置项时只能使用当前策略逻辑明确需要的 key，不要臆造不存在的配置字段。"
+  ],
+  "returns": {
+    "type": "DICT",
+    "description": "返回回测引擎当前配置字典，可用于读取 startDate 等配置项。"
+  },
+  "examples": [
+    "config = Backtest::getConfig(context[\"engine\"])"
+  ]
+}

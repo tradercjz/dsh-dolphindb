@@ -1,0 +1,25 @@
+{
+    "name": "isort",
+    "desc": "返回排序后每个元素在原始向量中的索引，满足 X[isort(X)] 等价于 sort(X)。",
+    "syntax": "isort(X, [ascending=true])",
+    "parameters": {
+        "X": {
+            "type": "VECTOR",
+            "desc": "一个向量"
+        },
+        "ascending": {
+            "type": "BOOL",
+            "desc": "布尔值标量，表示按升序还是降序排序，默认值为 true。"
+        }
+    },
+    "results": {
+        "result": {
+            "type": "INT_VECTOR",
+            "desc": "排序后的每个元素在原始向量中的索引。"
+        }
+    },
+    "example": [
+        "idx = isort(close)",
+        "sortedClose = close[idx]"
+    ]
+}

@@ -1,0 +1,2512 @@
+
+def unsubtopic(topic){
+	v = topic.split('/');
+	alias=v[0].ltrim().split(':')[2]
+	unsubscribeTable(alias,v[1],v[2])
+}
+def clearSub(){
+	loop(unsubtopic,(exec topic from getStreamingStat().subWorkers))
+	sub=(exec topic from getStreamingStat().subWorkers)[0]
+	if(isNull(sub)){
+		print "clear all subscription successfully !!!"
+		}
+	}
+def clearAgg(){
+	aggType=getAggregatorStat().keys()
+	for(x in aggType){
+	loop(dropAggregator,getAggregatorStat()[x].name)
+		}
+	if(getAggregatorStat().keys().size()==0){
+		print "clear all aggregators successfully !!!"
+		}
+	}
+
+def getAllShare(){
+	return select name from objs(true) where shared=1
+	}
+
+def clearShare(){
+	allShare=exec name from pnodeRun(getAllShare)
+	for(i in allShare){
+		try{
+			rpc((exec node from pnodeRun(getAllShare) where name =i)[0],clearTablePersistence,objByName(i))
+			}catch(ex1){}
+		rpc((exec node from pnodeRun(getAllShare) where name =i)[0],undef,i,SHARED)
+	}
+	try{
+		if((exec name from pnodeRun(getAllShare)).size()==0){
+			print "clear all shared variables successfully !!! "
+		}
+		PST_DIR=rpc(getControllerAlias(),getDataNodeConfig{getNodeAlias()})['persistenceDir']
+		if((exec filename from files(PST_DIR) where isDir=true).size()==0){
+			print "clear all table persistence successfully !!!"
+		}
+	}catch(ex1){}
+}
+
+//https://dolphindb1.atlassian.net/browse/D20-25723
+@testing:case="test_topic_class_reactiveEngine_with_null", exception=1
+class MyCumSum {
+  sum :: DOUBLE
+  def MyCumSum() {
+    sum = 0.0
+  }
+  def setInit(init){
+    sum = init
+  }
+  def append(sym, value) {
+    sum = sum + value
+    print(typestr(
+        (sum,value)
+        ))
+    return sum, value
+  }
+}
+go
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res`res2, [SYMBOL, DOUBLE, DOUBLE])
+try{dropStreamEngine("reactiveDemo")}catch(ex){}
+go
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics = [<MyCumSum().setInit(2.0).append(sym, val)>],
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+
+@testing:case="test_topic_class_reactiveEngine_not_append", exception=1
+class MyCumSum {
+  sum :: DOUBLE
+  def MyCumSum() {
+    sum = 0.0
+  }
+  def setInit(init){
+    sum = init
+  }
+  def append(sym, value) {
+    sum = sum + value
+    print(typestr(
+        (sum,value)
+        ))
+    return sum, value
+  }
+}
+go
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res`res2, [SYMBOL, DOUBLE, DOUBLE])
+try{dropStreamEngine("reactiveDemo")}catch(ex){}
+go
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics = [<MyCumSum().setInit(2.0)>],
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+
+@testing:case="test_topic_class_reactiveEngine_append_paramater_error", exception=1
+class MyCumSum {
+  sum :: DOUBLE
+  def MyCumSum() {
+    sum = 0.0
+  }
+  def setInit(init){
+    sum = init
+  }
+  def append(sym, value) {
+    sum = sum + value
+    print(typestr(
+        (sum,value)
+        ))
+    return sum, value
+  }
+}
+go
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res`res2, [SYMBOL, DOUBLE, DOUBLE])
+try{dropStreamEngine("reactiveDemo")}catch(ex){}
+go
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics = [<MyCumSum().append(sym)>],
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+
+@testing:case = "test_class_oometric_without_special_function"
+class MyMovingSum {
+	state :: ANY
+	window :: INT
+	q :: ANY
+	def MyMovingSum(state_, window_) {
+		window = window_
+		state = state_
+		q = []
+	}
+	def append(val) {
+		q.append!(val)
+		if (size(q) > window) {
+			state = state - q[0] + val
+			q.removeHead!(1)
+		} else {
+	  		state = state + val
+		}
+		return state
+	}
+	def getReturnType() {
+		return ANY
+	}
+}
+
+def execute(dtype, metrics, input) {
+	try {
+		dropStreamEngine("reactiveDemo")
+	} catch (ex) {}
+	result = table(1000:0, `sym`res, [SYMBOL, dtype])
+	rse = createReactiveStateEngine(
+			name="reactiveDemo",
+			metrics=metrics,
+			dummyTable=table(1:0, `sym`val, [SYMBOL, dtype]),
+			outputTable=result,
+			keyColumn="sym")
+	rse.append!(input)
+	res = select * from result order by sym
+
+	try {
+		dropStreamEngine("reactiveDemo2")
+	} catch (ex) {}
+	result = table(1000:0, `sym`res, [SYMBOL, dtype])
+	rse2 = createReactiveStateEngine(
+			name="reactiveDemo2",
+			metrics=[<msum(val, 3, 1)>],
+			dummyTable=table(1:0, `sym`val, [SYMBOL, dtype]),
+			outputTable=result,
+			keyColumn="sym")
+	rse2.append!(input)
+	ex = select * from result order by sym
+
+	// return [res, ex]
+	return each(eqObj, res.values(), ex.values())
+}
+
+n = 10240
+t = table(rand(`A`B`C, n) as sym, rand(100, n) as val)
+assert 1, execute(CHAR, [<MyMovingSum(0, 3).append(val)>], t)
+assert 2, execute(BOOL, [<MyMovingSum(0, 3).append(val)>], t)
+assert 3, execute(SHORT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 4, execute(INT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 5, execute(LONG, [<MyMovingSum(0, 3).append(val)>], t)
+assert 6, execute(FLOAT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 7, execute(DOUBLE, [<MyMovingSum(0, 3).append(val)>], t)
+assert 8, execute(DECIMAL32(2), [<MyMovingSum(0$DECIMAL32(2), 3).append(val)>], t)
+assert 9, execute(DECIMAL64(5), [<MyMovingSum(0$DECIMAL64(5), 3).append(val)>], t)
+assert 10, execute(DECIMAL128(5), [<MyMovingSum(0$DECIMAL32(5), 3).append(val)>], t)
+
+@testing:case = "test_class_oometric_without_special_function_multiple_keys"
+n = 10240
+syms = each(def(x): "A"+x, take(0..2048, n))
+t = table(syms as sym, rand(5, n) as val)
+assert 1, execute(CHAR, [<MyMovingSum(0, 3).append(val)>], t)
+assert 2, execute(BOOL, [<MyMovingSum(0, 3).append(val)>], t)
+assert 3, execute(SHORT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 4, execute(INT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 5, execute(LONG, [<MyMovingSum(0, 3).append(val)>], t)
+assert 6, execute(FLOAT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 7, execute(DOUBLE, [<MyMovingSum(0, 3).append(val)>], t)
+assert 8, execute(DECIMAL32(2), [<MyMovingSum(0$DECIMAL32(2), 3).append(val)>], t)
+assert 9, execute(DECIMAL64(5), [<MyMovingSum(0$DECIMAL64(5), 3).append(val)>], t)
+assert 10, execute(DECIMAL128(5), [<MyMovingSum(0$DECIMAL32(5), 3).append(val)>], t)
+
+@testing:case = "test_class_oometric_without_other_method_function"
+class MyMovingSum {
+	state :: ANY
+	window :: INT
+	q :: ANY
+	def MyMovingSum(state_, window_) {
+		window = window_
+		state = state_
+		q = []
+	}
+	def maintainQueue() {
+		if (size(q) > window) {
+	  		state = state - q[0]
+			q.removeHead!(1)
+		}
+	}
+	def append(val) {
+		q.append!(val)
+		maintainQueue()
+		state = state + val
+		return state
+	}
+	def getReturnType() {
+		return ANY
+	}
+}
+
+def execute(dtype, metrics, input) {
+	try {
+		dropStreamEngine("reactiveDemo")
+	} catch (ex) {}
+	inputTable = table(1:0, `sym`val, [SYMBOL, dtype])
+	result = table(1000:0, `sym`res, [SYMBOL, dtype])
+	rse = createReactiveStateEngine(
+			name="reactiveDemo",
+			metrics=metrics,
+			dummyTable=inputTable,
+			outputTable=result,
+			keyColumn="sym")
+	rse.append!(input)
+	res = select * from result order by sym
+
+	try {
+		dropStreamEngine("reactiveDemo2")
+	} catch (ex) {}
+	inputTable = table(1:0, `sym`val, [SYMBOL, dtype])
+	result = table(1000:0, `sym`res, [SYMBOL, dtype])
+	rse2 = createReactiveStateEngine(
+			name="reactiveDemo2",
+			metrics=[<msum(val, 3, 1)>],
+			dummyTable=inputTable,
+			outputTable=result,
+			keyColumn="sym")
+	rse2.append!(input)
+	ex = select * from result order by sym
+
+	return each(eqObj, res.values(), ex.values())
+}
+
+n = 10240
+t = table(rand(`A`B`C, n) as sym, rand(100, n) as val)
+assert 1, execute(CHAR, [<MyMovingSum(0, 3).append(val)>], t)
+assert 2, execute(BOOL, [<MyMovingSum(0, 3).append(val)>], t)
+assert 3, execute(SHORT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 4, execute(INT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 5, execute(LONG, [<MyMovingSum(0, 3).append(val)>], t)
+assert 6, execute(FLOAT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 7, execute(DOUBLE, [<MyMovingSum(0, 3).append(val)>], t)
+assert 8, execute(DECIMAL32(2),   [<MyMovingSum(0$DECIMAL32(2), 3).append(val)>], t)
+assert 9, execute(DECIMAL64(5),   [<MyMovingSum(0$DECIMAL64(5), 3).append(val)>], t)
+assert 10, execute(DECIMAL128(5), [<MyMovingSum(0$DECIMAL32(5), 3).append(val)>], t)
+
+@testing:case = "test_class_oometric_without_other_method_function_multiple_keys"
+n = 10240
+syms = each(def(x): "A"+x, take(0..2048, n))
+t = table(syms as sym, rand(5, n) as val)
+assert 1, execute(CHAR, [<MyMovingSum(0, 3).append(val)>], t)
+assert 2, execute(BOOL, [<MyMovingSum(0, 3).append(val)>], t)
+assert 3, execute(SHORT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 4, execute(INT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 5, execute(LONG, [<MyMovingSum(0, 3).append(val)>], t)
+assert 6, execute(FLOAT, [<MyMovingSum(0, 3).append(val)>], t)
+assert 7, execute(DOUBLE, [<MyMovingSum(0, 3).append(val)>], t)
+assert 8, execute(DECIMAL32(2),   [<MyMovingSum(0$DECIMAL32(2), 3).append(val)>], t)
+assert 9, execute(DECIMAL64(5),   [<MyMovingSum(0$DECIMAL64(5), 3).append(val)>], t)
+assert 10, execute(DECIMAL128(5), [<MyMovingSum(0$DECIMAL32(5), 3).append(val)>], t)
+
+@testing:case="test_RSE_lambda_use_lambda_in_constructor_and_as_param_of_append"
+class MyCumSum {
+  sum :: DOUBLE
+  
+  def MyCumSum() {
+    g = def (): 0
+    sum = g()
+  }
+
+  def append(value, f) {
+    sum = f(sum, value)
+    return sum
+  }
+}
+
+metrics = [<MyCumSum().append(val, def (a, b): a + b)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+result2 = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try {
+    dropStreamEngine("reactiveDemo")
+    dropStreamEngine("reactiveDemo2")
+} catch (exp) {
+    
+}
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics =metrics,
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+rse2 = createReactiveStateEngine(
+          name="reactiveDemo2",
+          metrics =[<cumsum(val)>],
+          dummyTable=inputTable,
+          outputTable=result2,
+          keyColumn="sym")
+t = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t)
+rse2.append!(t)
+t1 = select * from result ORDER BY sym
+t2 = select * from result2 ORDER BY sym
+assert eqObj(t1.res, t2.res)
+
+@testing:case="test_RSE_lambda_use_lambda_in_append"
+class MyCumMIN {
+  minVal :: DOUBLE
+
+  def MyCumMIN() {
+    minVal = NULL
+  }
+
+  def append(value) {
+    if (minVal == NULL) {
+        minVal = value
+    } else {
+        f = def(a, b): a < b
+        if (!f(minVal, value)) {
+            minVal = value
+        }
+    }
+    return minVal
+  }
+}
+
+metrics = [<MyCumMIN().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+result2 = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try {
+    dropStreamEngine("reactiveDemo")
+    dropStreamEngine("reactiveDemo2")
+} catch (exp) {
+
+}
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics =metrics,
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+rse2 = createReactiveStateEngine(
+          name="reactiveDemo2",
+          metrics =[<cummin(val)>],
+          dummyTable=inputTable,
+          outputTable=result2,
+          keyColumn="sym")
+t = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t)
+rse2.append!(t)
+t1 = select * from result ORDER BY sym
+t2 = select * from result2 ORDER BY sym
+
+assert eqObj(t1.res, t2.res)
+
+@testing:case="test_RSE_lambda_use_lambda_in_append"
+class MyCumSum2 {
+  sum2 :: DOUBLE
+
+  def MyCumSum2() {
+    sum2 = 0
+  }
+
+  def append(value) {
+    f = def (a) : a * a
+    sum2 += f(value)
+    return sum2
+  }
+}
+
+metrics = [<MyCumSum2().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+result2 = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try {
+    dropStreamEngine("reactiveDemo")
+    dropStreamEngine("reactiveDemo2")
+} catch (exp) {
+
+}
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics =metrics,
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+t = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t)
+t1 = select * from result ORDER BY sym
+for (i in `A`B`C) {
+    tmp = select * from t where sym = i
+    result2.append!(cumsum2(tmp))
+}
+t2 = select * from result2 ORDER BY sym
+
+assert eqObj(t1.res, t2.res)
+
+@testing:case="test_RSE_lambda_use_lambda_as_object_variable"
+class MyCumSum2 {
+  sum2 :: DOUBLE
+  f :: ANY
+
+  def MyCumSum2() {
+    sum2 = 0
+    f = a -> a * a
+  }
+
+  def append(value) {
+    sum2 += f(value)
+    return sum2
+  }
+}
+
+metrics = [<MyCumSum2().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+result2 = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try {
+    dropStreamEngine("reactiveDemo")
+    dropStreamEngine("reactiveDemo2")
+} catch (exp) {
+
+}
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics =metrics,
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+t = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t)
+t1 = select * from result ORDER BY sym
+for (i in `A`B`C) {
+    tmp = select * from t where sym = i
+    result2.append!(cumsum2(tmp))
+}
+t2 = select * from result2 ORDER BY sym
+
+assert eqObj(t1.res, t2.res)
+
+@testing:case="test_RSE_lambda_use_lambda_in_inheritance"
+class MyCumMinOrMax {
+    f :: ANY
+    
+    def MyCumMinOrMax() {
+    }
+}
+
+class MyCumMIN : MyCumMinOrMax {
+  minVal :: DOUBLE
+
+  def MyCumMIN() {
+    minVal = NULL
+    f = def(a, b): a < b
+  }
+
+  def append(value) {
+    if (minVal == NULL) {
+        minVal = value
+    } else {
+        if (!f(minVal, value)) {
+            minVal = value
+        }
+    }
+    return minVal
+  }
+}
+
+class MyCumMax : MyCumMinOrMax {
+  maxVal :: DOUBLE
+
+  def MyCumMax() {
+    maxVal = NULL
+    f = def(a, b): a > b
+  }
+
+  def append(value) {
+    if (maxVal == NULL) {
+        maxVal = value
+    } else {
+        if (f(value, maxVal)) {
+            maxVal = value
+        }
+    }
+    return maxVal
+  }
+}
+
+metrics = [<MyCumMIN().append(val)>, <MyCumMax().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res`res2, [SYMBOL, DOUBLE, DOUBLE])
+result2 = table(1000:0, `sym`res`res2, [SYMBOL, DOUBLE, DOUBLE])
+try {
+    dropStreamEngine("reactiveDemo")
+    dropStreamEngine("reactiveDemo2")
+} catch (exp) {
+
+}
+rse = createReactiveStateEngine(
+          name="reactiveDemo",
+          metrics =metrics,
+          dummyTable=inputTable,
+          outputTable=result,
+          keyColumn="sym")
+rse2 = createReactiveStateEngine(
+          name="reactiveDemo2",
+          metrics =[<cummin(val)>, <cummax(val)>],
+          dummyTable=inputTable,
+          outputTable=result2,
+          keyColumn="sym")
+t = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t)
+rse2.append!(t)
+t1 = select * from result ORDER BY sym
+t2 = select * from result2 ORDER BY sym
+
+assert eqObj(t1.res, t2.res)
+assert eqObj(t1.res2, t2.res2)
+
+@testing:case="test_class_reactiveState_cum_char"
+/*****************序列函数 cumsum append 返回 char*******************/
+class MyCumSum {
+    last :: ANY
+    def MyCumSum() {
+        last = 'f'
+    }
+    def append(value) {
+        if (last == 't' && value < 50) {
+            last = 'f'
+        } else if (last == 'f' && value > 50) {
+            last = 't'
+        }
+      return last
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+def accumulateRule(last, this) {
+    if (last == 't' && this < 50) {
+        return 'f'
+    } else if (last == 'f' && this > 50) {
+        return 't'
+    } else {
+        return last
+    }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, CHAR])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, 'f') from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+@testing:case="test_class_reactiveState_cum_bool"
+/*****************序列函数 cumsum append 返回 bool*******************/
+class MyCumSum {
+    last :: ANY
+    def MyCumSum() {
+        last = false
+    }
+    def append(value) {
+        if (last && value < 50) {
+            last = false
+        } else if (!last && value > 50) {
+            last = true
+        }
+      return last
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+def accumulateRule(last, this) {
+    if (last && this < 50) {
+        return false
+    } else if (!last && this > 50) {
+        return true
+    } else {
+        return last
+    }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, BOOL])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, false) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+@testing:case="test_class_reactiveState_cum_short_int_long"
+// short, int 和 long 的 case 依赖这个定义
+class MyCumSum {
+    sum :: ANY
+    def MyCumSum() {
+      sum = 0
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+/*****************序列函数 cumsum append 返回 short*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, SHORT])
+result = table(1000:0, `sym`res, [SYMBOL, SHORT])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, short(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+
+
+/*****************序列函数 cumsum append 返回 int*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, INT])
+result = table(1000:0, `sym`res, [SYMBOL, INT])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, int(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+
+
+/*****************序列函数 cumsum append 返回 long*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, LONG])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_float"
+/*****************序列函数 cumsum append 返回 float*******************/
+class MyCumSum {
+    sum :: DOUBLE
+    def MyCumSum() {
+      sum = 0.0
+    }
+    def append(value) {
+      sum = sum + value
+      return float(sum)
+    }
+    def getReturnType() {
+      return FLOAT
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, float(rand(100.0, 100)) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, float(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_double"
+/*****************序列函数 cumsum append 返回 double*******************/
+class MyCumSum {
+    sum :: DOUBLE
+    def MyCumSum() {
+      sum = 0.0
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DOUBLE
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal32"
+/*****************序列函数 cumsum append 返回 decimal32*******************/
+class MyCumSum {
+    sum :: DECIMAL32(4)
+    def MyCumSum() {
+      sum = decimal32(0.0, 4)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL32(4)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL32(4)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL32(4)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, decimal32(rand(100.0, 100), 4) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) as res from t1 context by sym order by sym
+assert 1, (abs(res[`res]-ex[`res]) < 0.0001).all()
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal64"
+/*****************序列函数 cumsum append 返回 decimal64*******************/
+class MyCumSum {
+    sum :: DECIMAL64(6)
+    def MyCumSum() {
+      sum = decimal64(0.0, 6)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL64(6)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL64(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL64(6)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, decimal64(rand(100.0, 100), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal128"
+/*****************序列函数 cumsum append 返回 decimal128*******************/
+class MyCumSum {
+    sum :: DECIMAL128(6)
+    def MyCumSum() {
+      sum = decimal128(0.0, 6)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL128(6)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL128(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL128(6)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, decimal128(rand(100.0, 100), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+/***************key 个数大于等于 1024*****************/
+@testing:case="test_class_reactiveStateEngine_cum_char_key>1024"
+numRows = 100000
+symbols = "S" + string(1..10000)
+
+/*****************序列函数 cumsum append 返回 char*******************/
+class MyCumSum {
+  last :: ANY
+  def MyCumSum() {
+      last = 'f'
+  }
+  def append(value) {
+      if (last == 't' && value < 50) {
+          last = 'f'
+      } else if (last == 'f' && value > 50) {
+          last = 't'
+      }
+    return last
+  }
+  def getReturnType() {
+    return ANY
+  }
+}
+
+def accumulateRule(last, this) {
+  if (last == 't' && this < 50) {
+      return 'f'
+  } else if (last == 'f' && this > 50) {
+      return 't'
+  } else {
+      return last
+  }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, CHAR])
+try{
+  dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, rand(100, numRows) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, 'f') from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_bool_key>1024"
+/*****************序列函数 cumsum append 返回 bool*******************/
+class MyCumSum {
+  last :: ANY
+  def MyCumSum() {
+      last = false
+  }
+  def append(value) {
+      if (last && value < 50) {
+          last = false
+      } else if (!last && value > 50) {
+          last = true
+      }
+    return last
+  }
+  def getReturnType() {
+    return ANY
+  }
+}
+
+def accumulateRule(last, this) {
+  if (last && this < 50) {
+      return false
+  } else if (!last && this > 50) {
+      return true
+  } else {
+      return last
+  }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, BOOL])
+try{
+  dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, rand(100, numRows) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, false) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_long_short_key>1024"
+/*****************short, int 和 long 的 case 依赖这个定义***************/
+class MyCumSum {
+  sum :: ANY
+  def MyCumSum() {
+    sum = 0
+  }
+  def append(value) {
+    sum = sum + value
+    return sum
+  }
+  def getReturnType() {
+    return ANY
+  }
+}
+
+/*****************序列函数 cumsum append 返回 short*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, SHORT])
+result = table(1000:0, `sym`res, [SYMBOL, SHORT])
+try{
+  dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, rand(100, numRows) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, short(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+/*****************序列函数 cumsum append 返回 int*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, INT])
+result = table(1000:0, `sym`res, [SYMBOL, INT])
+try{
+  dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, rand(100, numRows) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, int(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+/*****************序列函数 cumsum append 返回 long*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, LONG])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, rand(100, numRows) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_float_key>1024"
+/*****************序列函数 cumsum append 返回 float*******************/
+class MyCumSum {
+  sum :: DOUBLE
+  def MyCumSum() {
+    sum = 0.0
+  }
+  def append(value) {
+    sum = sum + value
+    return float(sum)
+  }
+  def getReturnType() {
+    return FLOAT
+  }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, float(rand(100.0, numRows)) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, float(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_double_key>1024"
+/*****************序列函数 cumsum append 返回 double*******************/
+class MyCumSum {
+  sum :: DOUBLE
+  def MyCumSum() {
+    sum = 0.0
+  }
+  def append(value) {
+    sum = sum + value
+    return sum
+  }
+  def getReturnType() {
+    return DOUBLE
+  }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, float(rand(100.0, numRows)) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal32_key>1024"
+/*****************序列函数 cumsum append 返回 decimal32*******************/
+class MyCumSum {
+  sum :: DECIMAL32(4)
+  def MyCumSum() {
+    sum = decimal32(0.0, 4)
+  }
+  def append(value) {
+    sum = sum + value
+    return sum
+  }
+  def getReturnType() {
+    return DECIMAL32(4)
+  }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL32(4)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL32(4)])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, decimal32(rand(100.0, numRows), 4) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal64_key>1024"
+/*****************序列函数 cumsum append 返回 decimal64*******************/
+class MyCumSum {
+  sum :: DECIMAL64(6)
+  def MyCumSum() {
+    sum = decimal64(0.0, 6)
+  }
+  def append(value) {
+    sum = sum + value
+    return sum
+  }
+  def getReturnType() {
+    return DECIMAL64(6)
+  }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL64(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL64(6)])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, decimal64(rand(100.0, numRows), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_cum_decimal128_key>1024"
+/*****************序列函数 cumsum append 返回 decimal128*******************/
+class MyCumSum {
+  sum :: DECIMAL128(6)
+  def MyCumSum() {
+    sum = decimal128(0.0, 6)
+  }
+  def append(value) {
+    sum = sum + value
+    return sum
+  }
+  def getReturnType() {
+    return DECIMAL128(6)
+  }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL128(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL128(6)])
+try{
+  dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+      name="reactiveDemo",
+      metrics =metrics,
+      dummyTable=inputTable,
+      outputTable=result,
+      keyColumn="sym")
+t1 = table(rand(symbols, numRows) as sym, decimal128(rand(100.0, numRows), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+/***************key 个数小于 1024*****************/
+
+@testing:case="test_class_reactiveStateEngine_aggregate_char_key<1024"
+/***********************************************************
+聚合函数 moving
+append 返回类型:
+[CHAR]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+class MyMovingClass {
+    window :: LONG
+    minPeriods :: LONG
+    windowBuffer :: ANY
+
+    def MyMovingClass(window_, minPeriods_) {
+        // 假定 minPeriods_ <= window_
+        window = window_
+        minPeriods = minPeriods_
+        windowBuffer = array(ANY, 0)
+    }
+    def append(value) {
+        windowBuffer.append!(value)
+
+        if (windowBuffer.size() > window) {
+            windowBuffer = windowBuffer[1:]
+        }
+        
+        if (windowBuffer.size() < minPeriods) {
+            return char(NULL)
+        }
+
+        if (max(each(max, windowBuffer)) < 50) {
+            return 'f'
+        }
+
+        return 't'
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+defg charAggregator(window) {
+    if (max(window) < 50) {
+        return 'f'
+    }
+    return 't'
+}
+
+// moving window size
+curWindowSize = 3
+inputType = LONG[]
+resType = CHAR
+
+arrVec = array(inputType, 0)
+numLengthGroups = 10
+numArrPerLen = 15
+// numLengthGroups 组随机长度
+for (length in rand(1..15, numLengthGroups)) {
+    // 每个长度随机生成 numArrPerLen 个
+    grp = []
+    for (iter in 1..numArrPerLen) {
+        grp.append!(rand(100, length))
+    }
+    arrVec.append!(grp)
+}
+
+metrics = [
+    parseExpr("MyMovingClass(" + string(curWindowSize) + ", " + string(curWindowSize) + ").append(val)")
+]
+inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+result = table(1000:0, `sym`res, [SYMBOL, resType])
+
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym"
+)
+
+numRows = 100
+t1 = table(rand(`A`B`C, numRows) as sym, rand(arrVec, numRows) as val)
+rse.append!(t1)
+
+res = select * from result order by sym
+ex = select sym, moving(charAggregator, val, curWindowSize, curWindowSize) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_aggregate_bool_key<1024"
+/***********************************************************
+聚合函数 moving
+append 返回类型:
+[BOOL]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+class MyMovingClass {
+    window :: LONG
+    minPeriods :: LONG
+    windowBuffer :: ANY
+
+    def MyMovingClass(window_, minPeriods_) {
+        // 假定 minPeriods_ <= window_
+        window = window_
+        minPeriods = minPeriods_
+        windowBuffer = array(ANY, 0)
+    }
+    def append(value) {
+        windowBuffer.append!(value)
+
+        if (windowBuffer.size() > window) {
+            windowBuffer = windowBuffer[1:]
+        }
+        
+        if (windowBuffer.size() < minPeriods) {
+            return bool(NULL)
+        }
+
+        if (max(each(max, windowBuffer)) < 50) {
+            return false
+        }
+
+        return true
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+defg boolAggregator(window) {
+    if (max(window) < 50) {
+        return false
+    }
+    return true
+}
+
+// moving window size
+curWindowSize = 3
+inputType = LONG[]
+resType = BOOL
+
+arrVec = array(inputType, 0)
+numLengthGroups = 10
+numArrPerLen = 15
+// numLengthGroups 组随机长度
+for (length in rand(1..15, numLengthGroups)) {
+    // 每个长度随机生成 numArrPerLen 个
+    grp = []
+    for (iter in 1..numArrPerLen) {
+        grp.append!(rand(100, length))
+    }
+    arrVec.append!(grp)
+}
+
+metrics = [
+    parseExpr("MyMovingClass(" + string(curWindowSize) + ", " + string(curWindowSize) + ").append(val)")
+]
+inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+result = table(1000:0, `sym`res, [SYMBOL, resType])
+
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym"
+)
+
+numRows = 100
+t1 = table(rand(`A`B`C, numRows) as sym, rand(arrVec, numRows) as val)
+rse.append!(t1)
+
+res = select * from result order by sym
+ex = select sym, moving(boolAggregator, val, curWindowSize, curWindowSize) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_aggregate_short_key<1024"
+/***********************************************************
+聚合函数 moving sum
+append 返回类型:
+[SHORT, INT, LONG, FLOAT, DOUBLE, DECIMAL32, DECIMAL64, DECIMAL128]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+decimalScale = 4
+
+class MyMovingSum {
+    windowSum :: ANY
+    window :: LONG
+    minPeriods :: LONG
+    sumBuffer :: ANY
+    typeConverter :: ANY
+
+    def MyMovingSum(window_, minPeriods_, bufferType_, initVal_, typeConverter_) {
+        // 假定 minPeriods_ <= window_
+        windowSum = initVal_
+        window = window_
+        minPeriods = minPeriods_
+        sumBuffer = array(bufferType_, 0)
+        typeConverter = typeConverter_
+    }
+    def append(value) {
+        // value是vector
+        if (sumBuffer.size() >= window) {
+            // 减去windowSize步之前的sum
+            windowSum -= sumBuffer[0]
+            sumBuffer = sumBuffer[1:]
+        }
+
+        // 加上当前这步的sum
+        curSum = sum(value)
+        sumBuffer.append!(curSum)
+        windowSum += curSum
+
+        if (sumBuffer.size() < minPeriods) {
+            return typeConverter(NULL)
+        }
+        return typeConverter(windowSum)
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+// moving window size
+curWindowSize = 3
+// decimal 小数点位数
+decimalScale = 4
+go
+testCases = [
+    // 整数类型的 sum 结果都是 long
+    [SHORT[], LONG, SHORT, "long(0)", short], 
+    [INT[], LONG, INT, "long(0)", int], 
+    [LONG[], LONG, LONG, "long(0)", long], 
+    // float 的初始值是 double(0)，因为 sum 对 float 输入会返回 double 结果
+    [FLOAT[], DOUBLE, FLOAT, "double(0)", float], 
+    [DOUBLE[], DOUBLE, DOUBLE, "double(0)", double],
+    // decimal 类型的 sum 结果会提升一个精度等级
+    [DECIMAL32(decimalScale)[], DECIMAL64(decimalScale), DECIMAL32(decimalScale), "decimal64(0, " + string(decimalScale) + ")", decimal32{,decimalScale}],
+    [DECIMAL64(decimalScale)[], DECIMAL128(decimalScale), DECIMAL64(decimalScale), "decimal128(0, " + string(decimalScale) + ")", decimal64{,decimalScale}],
+    [DECIMAL128(decimalScale)[], DECIMAL128(decimalScale), DECIMAL128(decimalScale), "decimal128(0, " + string(decimalScale) + ")", decimal128{,decimalScale}]
+]
+
+caseNum = 1
+for (testCase in testCases) {
+    inputType = testCase[0]
+    bufferType = testCase[1]
+    resType = testCase[2]
+    initVal = testCase[3]
+    typeConverter = testCase[4]
+
+    // print(string(typeConverter))
+    // print(initVal)
+
+    arrVec = array(inputType, 0)
+    numLengthGroups = 10
+    numArrPerLen = 15
+    // numLengthGroups 组随机长度
+    for (length in rand(1..15, numLengthGroups)) {
+        // 每个长度随机生成 numArrPerLen 个
+        grp = []
+        for (iter in 1..numArrPerLen) {
+            grp.append!(rand(100.0, length))
+        }
+        arrVec.append!(grp)
+    }
+
+    metrics = [
+        parseExpr("MyMovingSum(" + string(curWindowSize) + ", " + string(curWindowSize) + ", " + string(bufferType) +", " + initVal + ", " + string(typeConverter) + ").append(val)")
+    ]
+    inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+    result = table(1000:0, `sym`res, [SYMBOL, resType])
+    
+    try{
+        dropAggregator("reactiveDemo")	
+    }catch(ex){}
+
+    rse = createReactiveStateEngine(
+            name="reactiveDemo",
+            metrics =metrics,
+            dummyTable=inputTable,
+            outputTable=result,
+            keyColumn="sym"
+    )
+
+    numRows = 100
+    t1 = table(rand(`A`B`C, numRows) as sym, rand(arrVec, numRows) as val)
+    rse.append!(t1)
+    
+    res = select * from result order by sym
+    if(!like(string(typeConverter), "%decimal%")){
+    	ex = parseExpr("select sym, "+string(typeConverter)+"(moving(sum, val, curWindowSize, curWindowSize)) from t1 context by sym order by sym").eval()
+    }else{
+    //print(caseNum)
+    	ex = select sym,decimal128(moving(sum, val, curWindowSize, curWindowSize), 4) from t1 context by sym order by sym
+    }
+    assert caseNum, each(eqObj, res.values(), ex.values())
+    caseNum += 1
+}
+
+
+/***************key 个数大于等于 1024*****************/
+@testing:case="test_class_reactiveStateEngine_aggregate_char_key>1024"
+numRows = 100000
+symbols = "S" + string(1..10000)
+/***********************************************************
+聚合函数 moving
+append 返回类型:
+[CHAR]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+class MyMovingClass {
+    window :: LONG
+    minPeriods :: LONG
+    windowBuffer :: ANY
+
+    def MyMovingClass(window_, minPeriods_) {
+        // 假定 minPeriods_ <= window_
+        window = window_
+        minPeriods = minPeriods_
+        windowBuffer = array(ANY, 0)
+    }
+    def append(value) {
+        windowBuffer.append!(value)
+
+        if (windowBuffer.size() > window) {
+            windowBuffer = windowBuffer[1:]
+        }
+        
+        if (windowBuffer.size() < minPeriods) {
+            return char(NULL)
+        }
+
+        if (max(each(max, windowBuffer)) < 50) {
+            return 'f'
+        }
+
+        return 't'
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+defg charAggregator(window) {
+    if (max(window) < 50) {
+        return 'f'
+    }
+    return 't'
+}
+
+// moving window size
+curWindowSize = 3
+inputType = LONG[]
+resType = CHAR
+
+arrVec = array(inputType, 0)
+numLengthGroups = 10
+numArrPerLen = 15
+// numLengthGroups 组随机长度
+for (length in rand(1..15, numLengthGroups)) {
+    // 每个长度随机生成 numArrPerLen 个
+    grp = []
+    for (iter in 1..numArrPerLen) {
+        grp.append!(rand(100, length))
+    }
+    arrVec.append!(grp)
+}
+
+metrics = [
+    parseExpr("MyMovingClass(" + string(curWindowSize) + ", " + string(curWindowSize) + ").append(val)")
+]
+inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+result = table(1000:0, `sym`res, [SYMBOL, resType])
+
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym"
+)
+
+t1 = table(rand(symbols, numRows) as sym, rand(arrVec, numRows) as val)
+rse.append!(t1)
+
+res = select * from result order by sym
+ex = select sym, moving(charAggregator, val, curWindowSize, curWindowSize) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_aggregate_BOOL_key>1024"
+/***********************************************************
+聚合函数 moving
+append 返回类型:
+[BOOL]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+class MyMovingClass {
+    window :: LONG
+    minPeriods :: LONG
+    windowBuffer :: ANY
+
+    def MyMovingClass(window_, minPeriods_) {
+        // 假定 minPeriods_ <= window_
+        window = window_
+        minPeriods = minPeriods_
+        windowBuffer = array(ANY, 0)
+    }
+    def append(value) {
+        windowBuffer.append!(value)
+
+        if (windowBuffer.size() > window) {
+            windowBuffer = windowBuffer[1:]
+        }
+        
+        if (windowBuffer.size() < minPeriods) {
+            return bool(NULL)
+        }
+
+        if (max(each(max, windowBuffer)) < 50) {
+            return false
+        }
+
+        return true
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+defg boolAggregator(window) {
+    if (max(window) < 50) {
+        return false
+    }
+    return true
+}
+
+// moving window size
+curWindowSize = 3
+inputType = LONG[]
+resType = BOOL
+
+arrVec = array(inputType, 0)
+numLengthGroups = 10
+numArrPerLen = 15
+// numLengthGroups 组随机长度
+for (length in rand(1..15, numLengthGroups)) {
+    // 每个长度随机生成 numArrPerLen 个
+    grp = []
+    for (iter in 1..numArrPerLen) {
+        grp.append!(rand(100, length))
+    }
+    arrVec.append!(grp)
+}
+
+metrics = [
+    parseExpr("MyMovingClass(" + string(curWindowSize) + ", " + string(curWindowSize) + ").append(val)")
+]
+inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+result = table(1000:0, `sym`res, [SYMBOL, resType])
+
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym"
+)
+
+t1 = table(rand(symbols, numRows) as sym, rand(arrVec, numRows) as val)
+rse.append!(t1)
+
+res = select * from result order by sym
+ex = select sym, moving(boolAggregator, val, curWindowSize, curWindowSize) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveStateEngine_aggregate_short_key>1024"
+/***********************************************************
+聚合函数 moving sum
+append 返回类型:
+[SHORT, INT, LONG, FLOAT, DOUBLE, DECIMAL32, DECIMAL64, DECIMAL128]
+不考虑 array vector 有 NULL、array vector 为空的情况
+************************************************************/
+class MyMovingSum {
+    windowSum :: ANY
+    window :: LONG
+    minPeriods :: LONG
+    sumBuffer :: ANY
+    typeConverter :: ANY
+
+    def MyMovingSum(window_, minPeriods_, bufferType_, initVal_, typeConverter_) {
+        // 假定 minPeriods_ <= window_
+        windowSum = initVal_
+        window = window_
+        minPeriods = minPeriods_
+        sumBuffer = array(bufferType_, 0)
+        typeConverter = typeConverter_
+    }
+    def append(value) {
+        // value是vector
+        if (sumBuffer.size() >= window) {
+            // 减去windowSize步之前的sum
+            windowSum -= sumBuffer[0]
+            sumBuffer = sumBuffer[1:]
+        }
+
+        // 加上当前这步的sum
+        curSum = sum(value)
+        sumBuffer.append!(curSum)
+        windowSum += curSum
+
+        if (sumBuffer.size() < minPeriods) {
+            return typeConverter(NULL)
+        }
+        return typeConverter(windowSum)
+    }
+    def getReturnType() {
+        return ANY
+    }
+}
+
+// moving window size
+curWindowSize = 3
+// decimal 小数点位数
+decimalScale = 4
+go;
+
+testCases = [
+    // 整数类型的 sum 结果都是 long
+    [SHORT[], LONG, SHORT, "long(0)", short], 
+    [INT[], LONG, INT, "long(0)", int], 
+    [LONG[], LONG, LONG, "long(0)", long], 
+    // float 的初始值是 double(0)，因为 sum 对 float 输入会返回 double 结果
+    [FLOAT[], DOUBLE, FLOAT, "double(0)", float], 
+    [DOUBLE[], DOUBLE, DOUBLE, "double(0)", double],
+    // decimal 类型的 sum 结果会提升一个精度等级
+    [DECIMAL32(decimalScale)[], DECIMAL64(decimalScale), DECIMAL32(decimalScale), "decimal64(0, " + string(decimalScale) + ")", decimal32{,decimalScale}],
+    [DECIMAL64(decimalScale)[], DECIMAL128(decimalScale), DECIMAL64(decimalScale), "decimal128(0, " + string(decimalScale) + ")", decimal64{,decimalScale}],
+    [DECIMAL128(decimalScale)[], DECIMAL128(decimalScale), DECIMAL128(decimalScale), "decimal128(0, " + string(decimalScale) + ")", decimal128{,decimalScale}]
+]
+
+caseNum = 1
+for (testCase in testCases) {
+    inputType = testCase[0]
+    bufferType = testCase[1]
+    resType = testCase[2]
+    initVal = testCase[3]
+    typeConverter = testCase[4]
+
+    print(string(typeConverter))
+    // print(initVal)
+
+    arrVec = array(inputType, 0)
+    numLengthGroups = 10
+    numArrPerLen = 15
+    // numLengthGroups 组随机长度
+    for (length in rand(1..15, numLengthGroups)) {
+        // 每个长度随机生成 numArrPerLen 个
+        grp = []
+        for (iter in 1..numArrPerLen) {
+            grp.append!(rand(100.0, length))
+        }
+        arrVec.append!(grp)
+    }
+
+    metrics = [
+        parseExpr("MyMovingSum(" + string(curWindowSize) + ", " + string(curWindowSize) + ", " + string(bufferType) +", " + initVal + ", " + string(typeConverter) + ").append(val)")
+    ]
+    inputTable = table(1:0, `sym`val, [SYMBOL, inputType])
+    result = table(1000:0, `sym`res, [SYMBOL, resType])
+    
+    try{
+        dropAggregator("reactiveDemo")	
+    }catch(ex){}
+
+    rse = createReactiveStateEngine(
+            name="reactiveDemo",
+            metrics =metrics,
+            dummyTable=inputTable,
+            outputTable=result,
+            keyColumn="sym"
+    )
+
+    t1 = table(rand(symbols, numRows) as sym, rand(arrVec, numRows) as val)
+    rse.append!(t1)
+    
+    res = select * from result order by sym
+     if(!like(string(typeConverter), "%decimal%")){
+    	ex = parseExpr("select sym, "+string(typeConverter)+"(moving(sum, val, curWindowSize, curWindowSize)) from t1 context by sym order by sym").eval()
+    }else{
+    //print(caseNum)
+    	ex = select sym,decimal128(moving(sum, val, curWindowSize, curWindowSize), 4) from t1 context by sym order by sym
+    }
+    assert caseNum, each(eqObj, res.values(), ex.values())
+    caseNum += 1
+}
+
+@testing:case="test_class_reactiveState_return_char"
+/*****************序列函数 cumsum append 返回 char*******************/
+class MyCumSum {
+    last :: ANY
+    def MyCumSum() {
+        last = 'f'
+    }
+    def append(value) {
+        if (last == 't' && value < 50) {
+            last = 'f'
+        } else if (last == 'f' && value > 50) {
+            last = 't'
+        }
+      return last
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+def accumulateRule(last, this) {
+    if (last == 't' && this < 50) {
+        return 'f'
+    } else if (last == 'f' && this > 50) {
+        return 't'
+    } else {
+        return last
+    }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, CHAR])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, 'f') from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveState_return_bool"
+/*****************序列函数 cumsum append 返回 bool*******************/
+class MyCumSum {
+    last :: ANY
+    def MyCumSum() {
+        last = false
+    }
+    def append(value) {
+        if (last && value < 50) {
+            last = false
+        } else if (!last && value > 50) {
+            last = true
+        }
+      return last
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+def accumulateRule(last, this) {
+    if (last && this < 50) {
+        return false
+    } else if (!last && this > 50) {
+        return true
+    } else {
+        return last
+    }
+}
+
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, BOOL])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, accumulate(accumulateRule, val, false) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveState_return_int"
+// short, int 和 long 的 case 依赖这个定义
+class MyCumSum {
+    sum :: ANY
+    def MyCumSum() {
+      sum = 0
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return ANY
+    }
+}
+
+
+/*****************序列函数 cumsum append 返回 short*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, SHORT])
+result = table(1000:0, `sym`res, [SYMBOL, SHORT])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, short(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+
+
+/*****************序列函数 cumsum append 返回 int*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, INT])
+result = table(1000:0, `sym`res, [SYMBOL, INT])
+try{
+    dropAggregator("reactiveDemo")
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, int(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+
+
+/*****************序列函数 cumsum append 返回 long*******************/
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, LONG])
+result = table(1000:0, `sym`res, [SYMBOL, LONG])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+
+@testing:case="test_class_reactiveState_return_float"
+/*****************序列函数 cumsum append 返回 float*******************/
+class MyCumSum {
+    sum :: DOUBLE
+    def MyCumSum() {
+      sum = 0.0
+    }
+    def append(value) {
+      sum = sum + value
+      return float(sum)
+    }
+    def getReturnType() {
+      return FLOAT
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, float(rand(100.0, 100)) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, float(cumsum(val)) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveState_return_double"
+/*****************序列函数 cumsum append 返回 double*******************/
+class MyCumSum {
+    sum :: DOUBLE
+    def MyCumSum() {
+      sum = 0.0
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DOUBLE
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res, [SYMBOL, DOUBLE])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(100.0, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveState_return_decimal32"
+/*****************序列函数 cumsum append 返回 decimal32*******************/
+class MyCumSum {
+    sum :: DECIMAL32(6)
+    def MyCumSum() {
+      sum = decimal32(0.0, 6)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL32(6)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL32(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL32(6)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, rand(10.0, 100) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, decimal32(cumsum(val), 6) as res from t1 context by sym order by sym
+assert 1, (abs(res[`res]-ex[`res]) < 0.001).all()
+
+@testing:case="test_class_reactiveState_return_decimal64"
+/*****************序列函数 cumsum append 返回 decimal64*******************/
+class MyCumSum {
+    sum :: DECIMAL64(6)
+    def MyCumSum() {
+      sum = decimal64(0.0, 6)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL64(6)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL64(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL64(6)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, decimal64(rand(100.0, 100), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_reactiveState_return_decimal128"
+/*****************序列函数 cumsum append 返回 decimal128*******************/
+class MyCumSum {
+    sum :: DECIMAL128(6)
+    def MyCumSum() {
+      sum = decimal128(0.0, 6)
+    }
+    def append(value) {
+      sum = sum + value
+      return sum
+    }
+    def getReturnType() {
+      return DECIMAL128(6)
+    }
+}
+metrics = [<MyCumSum().append(val)>]
+inputTable = table(1:0, `sym`val, [SYMBOL, DECIMAL128(6)])
+result = table(1000:0, `sym`res, [SYMBOL, DECIMAL128(6)])
+try{
+    dropAggregator("reactiveDemo")	
+}catch(ex){}
+rse = createReactiveStateEngine(
+        name="reactiveDemo",
+        metrics =metrics,
+        dummyTable=inputTable,
+        outputTable=result,
+        keyColumn="sym")
+t1 = table(rand(`A`B`C, 100) as sym, decimal128(rand(100.0, 100), 6) as val)
+rse.append!(t1)
+res = select * from result order by sym
+ex = select sym, cumsum(val) from t1 context by sym order by sym
+assert 1, each(eqObj, res.values(), ex.values())
+
+@testing:case="test_class_clear_all"
+names = exec name from getStreamEngineStat().ReactiveStreamEngine
+each(dropAggregator, names)
+
+// https://dolphindb1.atlassian.net/browse/D20-18688
+@testing:case="test_class_reactiveState_append_return_any_vector"
+try {dropStreamEngine(`reactiveDemo)} catch(msg) {print(msg)}
+go
+class MyCumSum {
+	sum :: DOUBLE
+	def MyCumSum() {
+	  sum = 0.0
+	}
+	def append(value) {
+	  sum = sum + value
+	  return sum, sum
+	}
+}
+  
+inputTable = table(1:0, `sym`val, [SYMBOL, DOUBLE])
+result = table(1000:0, `sym`res`sum2, [SYMBOL, DOUBLE, DOUBLE])
+
+rse = createReactiveStateEngine(
+		name="reactiveDemo",
+		metrics = [<MyCumSum().append(val) as `res`sum2>],
+		dummyTable=inputTable,
+		outputTable=result,
+		keyColumn="sym")
+
+
+data = table(take(`IBM`MS, 10) as sym, 1..10 as val)
+
+rse.append!(data)
+sleep(1000)
+
+re1 = select * from result where sym = `IBM
+re2 = select * from result where sym = `MS
+
+ex1 = table(symbol(take(`IBM, 5)) as sym, double([1, 4, 9, 16, 25]) as res, double([1, 4, 9, 16, 25]) as sum2)
+ex2 = table(symbol(take(`MS, 5)) as sym, double([2, 6, 12, 20, 30]) as res, double([2, 6, 12, 20, 30]) as sum2)
+
+assert 1, each(eqObj, re1.values(), ex1.values())
+assert 2, each(eqObj, re2.values(), ex2.values())
+
+try {dropStreamEngine(`reactiveDemo)} catch(msg) {print(msg)}
+go
+
+//https://dolphindb1.atlassian.net/browse/D20-23905
+@testing:case="test_topic_class_reactiveState_with_variable"
+//close , r  = 1.1 1.12 1.11 1.05, 0.3 0.2 0.1 0.5
+def getFactor(close, r){
+	result = array(DOUBLE, 0)
+	prev = 1.1
+	//result.append!(prev)
+	for(i in 0:size(close)){
+		v = close[i] * r[i] + prev * (1-r[i]) 
+		prev = v 
+		result.append!(prev)
+	}
+	return result
+}
+class calc_f_1{
+    prev :: DOUBLE
+    def calc_f_1(c){
+        prev = c[0]
+    }
+    
+    def append(close, r){
+        v = close * r + prev * (1-r)  
+        prev = v
+        return v
+    }
+}
+c1 = 1.1 1.12 1.11 1.05
+share streamTable(1:0, `time`sym`close`r, [TIMESTAMP, SYMBOL, DOUBLE, DOUBLE]) as inputTable1
+share table(100:0, `sym`time`factor, [STRING, TIMESTAMP, DOUBLE]) as outputTable1
+
+engine = createReactiveStateEngine(name="rsTest1", metrics=<[time, calc_f_1(c1).append(close, r)]>, dummyTable=inputTable1, outputTable=outputTable1, keyColumn=["sym"], keepOrder=true)
+subscribeTable(tableName="inputTable1", actionName="test_iterate_1", offset=0, handler=getStreamEngine("rsTest1"), msgAsTable=true)
+
+insert into inputTable1 values(2022.01.05T09:00:00.000, "AAA", 1.1, 0.3)
+insert into inputTable1 values(2022.01.05T09:00:03.000, "BBB", 1.12, 0.2)
+insert into inputTable1 values(2022.01.05T09:00:06.000, "AAA", 1.11, 0.1)
+insert into inputTable1 values(2022.01.05T09:00:10.000, "BBB", 1.05, 0.5)
+sleep(1000)
+res = select * from outputTable1
+ext = table(["AAA", "BBB","AAA","BBB"] as sym, [2022.01.05T09:00:00.000, 2022.01.05T09:00:03.000,2022.01.05T09:00:06.000,2022.01.05T09:00:10.000] as time, [1.1, 1.104, 1.101, 1.077] as factor1)
+assert 1, each(eqObj, res.values(), ext.values())
+
+unsubscribeTable(tableName="inputTable1", actionName="test_iterate_1")
+dropAggregator("rsTest1")
+undef(`inputTable1, SHARED)
+undef(`outputTable1, SHARED)
+
+@testing:case="test_topic_class_reactiveState_with_variable_same_colName"
+def getFactor(close, r){
+	result = array(DOUBLE, 0)
+	prev = close[0]
+	result.append!(prev)
+	for(i in 1:size(close)){
+		v = close[i] * r[i] + prev * (1-r[i]) 
+		prev = v 
+		result.append!(prev)
+	}
+	return result
+}
+class calc_f_1{
+    prev :: DOUBLE
+    index :: LONG
+    def calc_f_1(){
+    	index = 0
+    }
+    def append(close, r){
+    	if (index == 0){
+    		v = close[0]	
+    		index += 1
+    	}else{
+	        v = close * r + prev * (1-r)  
+        }
+        prev = v
+         return v
+    }   
+}
+
+close = 1.1 1.12 1.11 1.05
+share streamTable(1:0, `time`sym`close`r, [TIMESTAMP, SYMBOL, DOUBLE, DOUBLE]) as inputTable1
+share table(100:0, `sym`time`factor, [STRING, TIMESTAMP, DOUBLE]) as outputTable1
+engine = createReactiveStateEngine(name="rsTest1", metrics=<[time, calc_f_1().append(close, r)]>, dummyTable=inputTable1, outputTable=outputTable1, keyColumn=["sym"], keepOrder=true)
+subscribeTable(tableName="inputTable1", actionName="test_iterate_1", offset=0, handler=getStreamEngine("rsTest1"), msgAsTable=true)
+
+insert into inputTable1 values(2022.01.05T09:00:00.000, "AAA", 1.1, 0.3)
+insert into inputTable1 values(2022.01.05T09:00:03.000, "BBB", 1.12, 0.2)
+insert into inputTable1 values(2022.01.05T09:00:06.000, "AAA", 1.11, 0.1)
+insert into inputTable1 values(2022.01.05T09:00:10.000, "BBB", 1.05, 0.5)
+sleep(1000)
+res = select * from outputTable1 order by factor
+tmp = table(["AAA", "BBB","AAA","BBB"] as sym, 1.1 1.12  1.11  1.05 as close, 0.3  0.2  0.1  0.5 as r)
+ext = select getFactor(close, r) as factor from tmp context by sym order by factor
+assert 1,each(eqObj, res.factor, ext.factor)
+unsubscribeTable(tableName="inputTable1", actionName="test_iterate_1")
+dropAggregator("rsTest1")
+undef(`inputTable1, SHARED)
+undef(`outputTable1, SHARED)
+
+@testing:case="test_topic_class_reactiveState_with_variable_bigData"
+//close , r  = 1.1 1.12 1.11 1.05, 0.3 0.2 0.1 0.5
+def getFactor(close, r){
+	result = array(DOUBLE, 0)
+	prev = 1
+	//result.append!(prev)
+	for(i in 0:size(close)){
+		v = close[i] * r[i] + prev * (1-r[i]) 
+		prev = v 
+		result.append!(prev)
+	}
+	return result
+}
+class calc_f_1{
+    prev :: DOUBLE
+    def calc_f_1(c){
+        prev = c
+    }
+    
+    def append(close, r){
+        v = close * r + prev * (1-r)  
+        prev = v
+        return v
+    }
+}
+c1 = 1
+share streamTable(1:0, `timev`sym`close`r, [TIMESTAMP, SYMBOL, DOUBLE, DOUBLE]) as inputTable1
+share table(100:0, `sym`timev`factor, [STRING, TIMESTAMP, DOUBLE]) as outputTable1
+
+engine = createReactiveStateEngine(name="rsTest1", metrics=<[timev, calc_f_1(c1).append(close, r)]>, dummyTable=inputTable1, outputTable=outputTable1, keyColumn=["sym"], keepOrder=true)
+subscribeTable(tableName="inputTable1", actionName="test_iterate_1", offset=0, handler=getStreamEngine("rsTest1"), msgAsTable=true)
+n = 100000
+tmp = table(concatDateTime(take(2022.01.05,n ) as time, rand(second(8000..12000), n )).sort() as time, rand(lpad(string(1..300), 5, "0"), n ) as sym, rand(100.0, n ) as close, rand(1.0, n ) as v)
+inputTable1.append!(tmp)
+sleep(1000)
+res = select * from outputTable1
+syms = exec distinct sym from inputTable1
+ext = table(1:0, `sym`timev`factor1,[SYMBOL, TIMESTAMP,DOUBLE])
+for(sy in syms){
+	tmp  = select timev, sym, close, r from inputTable1 where sym = sy
+	insert into ext values(tmp.sym, tmp.timev, getFactor(tmp.close, tmp.r))	
+}
+try{
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())	
+}catch(ex){}
+assert 1, each(eqObj, res.values(), ext.values())
+
+unsubscribeTable(tableName="inputTable1", actionName="test_iterate_1")
+dropAggregator("rsTest1")
+undef(`inputTable1, SHARED)
+undef(`outputTable1, SHARED)
+
+
+@testing:case="test_topic_class_reactiveState_with_variable_as_class_instanceOf", exception=1
+class F1{
+	statu :: DOUBLE
+	index :: INT	
+	def F1(close_){
+		statu = close_
+		index = 0
+	}
+}
+class calc_f_1{
+    prev :: DOUBLE
+    index :: INT
+    def calc_f_1(c){
+        prev = c.statu
+        index = c.index
+    }
+    def initStatu(close){
+    	if(index == 0){
+    		prev = close
+    	}
+    	index += 1
+    }
+    def append(close, r){
+	initStatu(close)
+	v = close * r + prev * (1-r)  
+	prev = v
+	return v
+    }
+}
+
+close = F1(0)
+share streamTable(1:0, `time`sym`close`r, [TIMESTAMP, SYMBOL, DOUBLE, DOUBLE]) as inputTable1
+share table(100:0, `sym`time`factor, [STRING, TIMESTAMP, DOUBLE]) as outputTable1
+engine = createReactiveStateEngine(name="rsTest1", metrics=<[time, calc_f_1(close).append(close, r)]>, dummyTable=inputTable1, outputTable=outputTable1, keyColumn=["sym"], keepOrder=true)
+
+@testing:case="test_topic_class_reactiveState_with_variable_as_class_instanceOf_2"
+def getFactor(close, r){
+	result = array(DOUBLE, 0)
+	prev = close[0]
+	result.append!(prev)
+	for(i in 1:size(close)){
+		v = close[i] * r[i] + prev * (1-r[i]) 
+		prev = v 
+		result.append!(prev)
+	}
+	return result
+}
+c1 = F1(0)
+share streamTable(1:0, `time`sym`close`r, [TIMESTAMP, SYMBOL, DOUBLE, DOUBLE]) as inputTable1
+share table(100:0, `sym`time`factor, [STRING, TIMESTAMP, DOUBLE]) as outputTable1
+engine = createReactiveStateEngine(name="rsTest1", metrics=<[time, calc_f_1(c1).append(close, r)]>, dummyTable=inputTable1, outputTable=outputTable1, keyColumn=["sym"], keepOrder=true)
+subscribeTable(tableName="inputTable1", actionName="test_iterate_1", offset=0, handler=getStreamEngine("rsTest1"), msgAsTable=true)
+n = 100000
+tmp = table(concatDateTime(take(2022.01.05,n ) as time, rand(second(8000..12000), n )).sort() as time, rand(lpad(string(1..300), 5, "0"), n ) as sym, rand(100.0, n ) as close, rand(1.0, n ) as v)
+inputTable1.append!(tmp)
+sleep(1000)
+res = select * from outputTable1
+syms = exec distinct sym from inputTable1
+ext = table(1:0, `sym`time`factor1,[SYMBOL, TIMESTAMP,DOUBLE])
+for(sy in syms){
+	tmp  = select time, sym, close, r from inputTable1 where sym = sy
+	insert into ext values(tmp.sym, tmp.time, getFactor(tmp.close, tmp.r))	
+}
+try{
+	res.sortBy!(res.colNames())
+	ext.sortBy!(ext.colNames())	
+}catch(ex){}
+assert 1, each(eqObj, res.values(), ext.values())
+
+unsubscribeTable(tableName="inputTable1", actionName="test_iterate_1")
+dropAggregator("rsTest1")
+undef(`inputTable1, SHARED)
+undef(`outputTable1, SHARED)
+
+// https://dolphindb1.atlassian.net/browse/D20-24934
+@testing:case="test_topic_class_StreamEngine_can_not_be_copied"
+clearSub()
+clearAgg()
+clearShare()
+go
+
+share streamTable(100:0,`timestamp`a1`local_timestamp,[TIMESTAMP,DOUBLE,TIMESTAMP]) as depth_resample_1s
+
+class monitor{
+    aggr_depth_1s :: ANY             
+    def monitor(){
+        depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+        aggr_depth_1s = createTimeSeriesAggregator(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="ffill");
+    }
+
+    def appendTse(data){
+        aggr_depth_1s.append!(data)
+    }
+}
+m = monitor()
+l = [m.aggr_depth_1s]
+
+timestampv = temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")
+symbolv = take(`A`B`C, 10)
+a1v = double(1..10)
+local_timestampv = 1970.01.01T00:00:00.000+0..9
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+
+m.appendTse(tmp)
+
+re = select * from depth_resample_1s
+t1 = table(temporalAdd(2012.01.01T00:00:00.000, 0..19, "s") as timestamp)
+expected = select timestamp+1000, ffill(a1) as a1, ffill(local_timestamp) as local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp) group by bar(timestamp, 1000) as timestamp)
+assert 1, each(eqObj, re.values(), expected.values())
+
+@testing:case="test_topic_class_clear"
+clearSub()
+clearAgg()
+clearShare()

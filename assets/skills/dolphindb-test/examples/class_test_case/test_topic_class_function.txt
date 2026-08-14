@@ -1,0 +1,1268 @@
+@testing:case="test_topic_class_init_is_aggregate_function"
+class F1{
+	id::ANY
+	name::ANY
+	defg F1(id_, name_){
+		id,name = id_, name_
+	}		
+}
+f = F1(12,"423")
+assert 1, f.id == 12
+assert 2, f.name == "423"
+assert 3, (typestr f.id) == "INT"
+assert 4, (typestr f.name) == "STRING"
+
+@testing:case="test_topic_class_contain_aggregate_function"
+class F1{
+	id :: ANY VECTOR
+	name :: ANY	
+	def F1(id_){
+		id = id_
+		name = "name1"	
+	}
+	def pre(mutable d, id_){
+		d[id_] = name
+	}
+	defg tt(mutable d){
+		each(pre{d,}, id)
+	}
+}
+f = F1(take(1..10, 100))
+d1 = dict(INT, STRING)
+f.tt(d1)
+assert 1, f.id == take(1..10, 100)
+assert 2, f.name == "name1"
+assert 3, d1.size() == 10
+assert 4, 1..10 in d1.keys()
+assert 5, d1.values() == take("name1", 10)
+
+@testing:case="test_topic_class_contain_aggregate_function_loop"
+class F1{
+	id :: ANY VECTOR
+	name :: ANY VECTOR
+	def F1(id_){
+		id = id_
+		name = "name"+string(1..size(id_))
+	}
+	def pre(mutable t1, id_,name){
+		insert into t1 values(id_,name)
+	}
+	defg tt(mutable t1){
+		cross(pre{t1,,}, id,name)
+	}
+}
+f = F1(take(1..10, 10))
+t1  = table(1:0, `id`name, [INT,STRING])
+f.tt(t1)
+assert 1, (exec count(*) from t1) == 100
+assert 2, each(eqObj,t1.values(), table(take(1..10, 100).sort() as id, take("name"+string(1..10),100) as name).values())
+assert 3, f.name == "name"+string(1..10)
+
+
+@testing:case="test_topic_class_init_with_member_function"
+class F1{
+	id :: ANY VECTOR
+	name :: ANY VECTOR
+	def pre(val,v1);
+	def F1(id_){
+		id,name = pre(id_,3),take(1..10,10) 
+	}
+	def pre(val,v1){
+		return mod(val, v1)
+	}
+}
+f = F1(take(1..10, 10))
+assert 1, f.id == mod(1..10, 3)
+assert 2, f.name == take(1..10,10) 
+
+@testing:case="test_topic_class_init_with_aggregate_member_function"
+class F1{
+	id :: ANY VECTOR
+	name :: ANY VECTOR
+	def pre(val,v1);
+	def F1(id_){
+		id,name = pre(id_,3),take(1..10,10) 
+	}
+	def pre(val,v1){
+		return [sum(val)\avg(val)]
+	}
+}
+f = F1(take(1..10, 10))
+assert 1, f.id == [10.0]
+assert 2, f.name == take(1..10,10) 
+
+@testing:case="test_topic_class_init_with_multi_return_member_function"
+class F1{
+	id :: DOUBLE
+	name :: DOUBLE
+	def pre(val,v1);
+	def F1(id_){
+		id,name = pre(id_,3)
+	}
+	def pre(val,v1){
+		return [sum(val)\avg(val),std(val)]
+	}
+}
+f = F1(take(1..10, 10))
+assert 1, f.id == 10.0
+assert 2, each(eqObj,f.name,std(take(1..10,10))) 
+
+@testing:case="test_topic_class_init_with_if_else"
+class F1{
+	id :: DOUBLE
+	name :: DOUBLE
+	def pre(val);
+	def F1(id_){
+		if(pre(id)[0] < 5){
+			id,name = pre(id_)
+		}else{
+			id = varp(id_) 	
+		}
+	}
+	def pre(val){
+		return [avg(val)\varp(val),std(val)]
+	}
+}
+t1 = rand(10.0, 10)
+f = F1(t1)
+assert 1, eqObj(f.id , iif(avg(t1)\varp(t1) < 5, avg(t1)\varp(t1), varp(t1)), 6)
+assert 2, each(eqObj,f.name,std(t1)) 
+
+@testing:case="test_topic_class_init_with_for"
+class F1{
+	id :: DOUBLE VECTOR
+	name :: DOUBLE
+	def pre(val);
+	def F1(id_){
+		id = array(DOUBLE)
+		for(i in 0:size(id_)){
+			if(i%3 == 0){
+				id.append!(id_[i]+0.11)	
+			}else{
+				id.append!(pre(id))		
+			}
+		}
+	}
+	def pre(val){
+		return avg(val)\varp(val)
+	}
+}
+t1 = rand(10.0, 10)
+
+def pre(val){
+	return avg(val)\varp(val)
+}
+id = array(DOUBLE)
+for(i in 0:size(t1)){
+	if(i%3 == 0){
+		id.append!(t1[i]+0.11)	
+	}else{
+		id.append!(pre(id))		
+	}
+}
+f = F1(t1)
+assert 1, each(eqObj,f.id , id)
+
+@testing:case="test_topic_class_init_with_throw", exception=1
+class F1{
+	id :: DOUBLE VECTOR
+	name :: DOUBLE
+	def pre(val);
+	def F1(id_){
+		id = array(DOUBLE)
+		for(i in 0:size(id_)){
+			if(i%3 == 0){
+				id.append!(id_[i]+0.11)	
+			}else{
+				id.append!(pre(id))		
+			}
+		}
+	}
+	def pre(val){
+		if(val.size() < 5){
+			throw "data is erro"	
+		}else{
+			return avg(val)\varp(val)
+		}
+	}
+}
+t1 = rand(10.0, 10)
+f1 = F1(t1)
+
+@testing:case="test_topic_class_init_with_try_catch"
+class F1{
+	id :: DOUBLE VECTOR
+	name :: DOUBLE
+	def pre(val);
+	def F1(id_){
+		id = array(DOUBLE)
+		for(i in 0:size(id_)){
+			if(i%3 == 0){
+				id.append!(id_[i]+0.11)	
+			}else{
+				id.append!(pre(id))		
+			}
+		}
+	}
+	def pre(val){
+		try{
+			if(val.size() < 5){
+				throw "data is erro"	
+			}else{
+				return avg(val)\varp(val)
+			}
+		}catch(ex){}
+	}
+}
+t1 = rand(10.0, 10)
+
+def pre(val){
+	try{
+		if(val.size() < 5){
+			throw "data is erro"	
+		}else{
+			return avg(val)\varp(val)
+		}
+	}catch(ex){}
+}
+id = array(DOUBLE)
+for(i in 0:size(t1)){
+	if(i%3 == 0){
+		id.append!(t1[i]+0.11)	
+	}else{
+		id.append!(pre(id))		
+	}
+}
+f = F1(t1)
+assert 1, each(eqObj,f.id , id)
+
+@testing:case="test_topic_class_higher_order_function_closure"
+class A {
+	var :: INT
+	def A(var_) { var = var_ }
+	def foo(fun) { fun() }
+}
+
+class B {
+	var :: INT
+	def B(var_) { var = var_}
+	def setVar(var_) {var = var_}
+	def foo(mutable a) {
+		func = def (mutable self) { 
+			self.setVar(2)
+		}
+		closure = func{self}
+		a.foo(closure)
+	}
+}
+
+a = A(0)
+b = B(1)
+b.foo(a)
+assert 1, a.var == 0
+assert 2, b.var == 2
+
+@testing:case="test_topic_class_higher_order_function_each_for_setter"
+class A {
+	v :: INT
+	def A(v_) { v = v_ }
+	def setA(v_) { v = v_ }
+}
+a = A(0)
+res = each(a.setA, 1..100)
+
+assert 1, a.v == 100
+assert 2, size(res) == 100
+assert 3, all(res == null)
+
+@testing:case="test_topic_class_higher_order_function_peach_for_setter"
+a = A(0)
+res = peach(a.setA, 1..100)
+
+assert 1, 0 < a.v and a.v <= 100
+assert 2, size(res) == 100
+assert 3, all(res == null)
+
+@testing:case="test_topic_class_higher_order_function_loop_for_setter"
+class A {
+	v :: INT
+	def A(v_) { v = v_ }
+	def setA(v_) { v = v_ }
+}
+a = A(0)
+res = loop(a.setA, 1..100)
+
+assert 1, a.v == 100
+assert 2, size(res) == 100
+assert 3, all(res == null)
+
+@testing:case="test_topic_class_higher_order_function_ploop_for_setter"
+class A {
+	v :: INT
+	def A(v_) { v = v_ }
+	def setA(v_) { v = v_ }
+}
+a = A(0)
+res = ploop(a.setA, 1..100)
+
+assert 1, 0 < a.v and a.v <= 100
+assert 2, size(res) == 100
+assert 3, all(res == null)
+
+@testing:case="test_topic_class_higher_order_function_accumulate"
+class A {
+	v :: INT
+	def A() { v = 0 }
+	def inc(acc, x) {
+		v = v + acc + x
+		return v
+	}
+}
+a = A()
+res = accumulate(a.inc, [1, 1, 1, 1], 0)
+assert 1, eqObj(res, [1, 3, 7, 15])
+
+@testing:case="test_topic_class_higher_order_function_loop"
+class A {
+	v :: INT
+	def A() { v = 0 }
+	def getAndClear() { v_ = v; v = 0; return v_ }
+	def inc(acc, x) {
+		v = v + acc + x
+		return v
+	}
+}
+a = A()
+
+assert 1, all(loop(a.inc, [2, 3], [4, 5]) == [6, 14])
+assert 2, a.getAndClear() == 14
+assert 3, all(loop(a.inc, 1..10,1..10) == (2, 6, 12, 20, 30, 42, 56, 72, 90, 110))
+assert 4, a.getAndClear() == 110
+
+@testing:case="test_topic_class_higher_order_function_loop_exception", exception=1
+loop(a.inc, 1..6$3:2,1..6$3:2)
+
+@testing:case="test_topic_class_higher_order_function_aggrTopN"
+class A {
+	v :: DOUBLE
+	def A() { v = 0 }
+	def getAndClear() { v_ = v; v = 0; return v_ }
+	defg inc(acc, x) {
+		v = std(v + acc)*051\varp(acc)
+		return v
+	}
+}
+a = A()
+t = rand(10.0, 100)
+timestamp = rand(2012.01.01+1..1000, 100)
+index = at(timestamp<timestamp.sort()[10])
+res = a.inc(t[index], 5)
+assert 1, each(eqObj,aggrTopN(a.inc{,5}, t, timestamp, 10), res)
+
+@testing:case="test_topic_class_higher_order_function_all"
+class A {
+	v :: ANY
+	def A(v_) { v = v_ }
+	def getAndClear() { v_ = v; v = 0; return v_ }
+	defg inc() {
+		return call(def(v):v.a<v.b, v)	
+	}
+}
+y=table(1 7 3 as a, 4 5 6 as b)
+a = A(y)
+res = a.inc()
+assert 1, each(eqObj,res, call(def(v):v.a<v.b, y))
+
+@testing:case="test_topic_class_higher_order_function_cross"
+class F1{
+	para1 :: ANY
+	def F1(para_=0){
+		para1 =para_
+	}	
+	def getVal(para_, para2=-1){
+		para3 = iif(para2==-1, para1, para2)
+		return avg(para_ * para3)+med(para_+para3)	
+	}
+}
+f = F1()
+def ff1(v1, v2){
+	return 	avg(v1 * v2)+med(v1+v2)	
+}
+assert 1, f.para1 == 0
+assert 2, each(eqObj, cross(f.getVal, 1..10, 1..10),cross(ff1, 1..10, 1..10))
+assert 3, each(eqObj,each(f.getVal, 1..10),each(ff1{,0}, 1..10))
+
+@testing:case="test_topic_class_higher_order_function_cross_2"
+class F1{
+	para1 :: ANY
+	def F1(para_=0){
+		para1 =para_
+	}	
+	def getVal(para_, para2=-1, v1=0){
+		para3 = iif(para2==-1, para1, para2)
+		return avg(para_ * para3)+med(para_+para3)+v1
+	}
+}
+f = F1(12)
+def ff1(v1, v2, v3){
+	return 	avg(v1 * v2)+med(v1+v2)+v3
+}
+assert 1, f.para1 == 12
+assert 2, each(eqObj, cross(f.getVal{,,11}, 1..10, 1..10),cross(ff1{,,11}, 1..10, 1..10)).all()
+
+@testing:case="test_topic_class_call_method_recursive"
+class Test2{
+  a :: INT
+  b :: DOUBLE
+  
+  def Test2(){
+    a = 10
+    b = 2.0
+  }
+  def func1(a) {
+  	if(a == 0) {
+  		return 0
+  	}
+  	if(a == 1){
+  		return 1
+  	}
+	return func1(a-1) + func1(a-2)
+  }
+
+  def func2(){
+  	return func1(a)
+  }
+
+  def printSelf(){
+  	print(a, b)
+  }
+}
+
+t2 = Test2()
+res1 = objCall(t2, "func2")
+res2 = objCall(t2, "func1", t2.a)
+assert 1, eq(res1, res2)
+res1 = unifiedObjCall(t2, "func2",())
+res2 = unifiedObjCall(t2, "func1", (t2.a))
+assert 2, eq(res1, res2)
+res1 = makeObjCall(<t2>, "func2").eval()
+res2 = makeObjCall(<t2>, "func1", t2.a).eval()
+assert 3, eq(res1, res2)
+res1 = makeUnifiedObjCall(<t2>, "func2", ()).eval()
+res2 = makeUnifiedObjCall(<t2>, "func1", (t2.a)).eval()
+assert 4, eq(res1, res2)
+assert 3, eq(t2.func2(), t2.func1(t2.a))
+
+@testing:case="test_topic_class_call_method_contains_other_class"
+class F1{
+	id::INT
+	value :: string
+	def F1(id_, value_){
+		id = id_
+		value = value_
+	}
+	def updateId(val){
+		id =  mod(id, val)	
+	}	
+	def updateName(val){
+		value = val	
+	}
+}
+
+class Foo{
+	value :: ANY
+	def Foo(key_,value_){
+		keytype = (typestr key_)
+		value = dict(keytype ,ANY)
+		value[key_]  = value_	
+	}
+	def append(key,value_){
+		value[key] = value_	
+	}
+	def updateId(mutable t, v1){
+		t.updateId(v1)
+	}
+	def updateVal(mutable t,val){
+		t.updateName(val)
+	}
+}
+
+t = Foo("no1", F1(1,"tt1"))
+assert 1, t.value["no1"].id ==1
+objCall(t, "updateId",t.value["no1"], 6)
+assert 2, t.value["no1"].id == 1
+t.append("no2", F1(103, "tt1032"))
+unifiedObjCall(t, "updateVal", (t.value["no2"], "newName1"))
+assert 3, t.value["no2"].value == "newName1"
+makeObjCall(<t>, "updateId", t.value["no2"], 3).eval()
+assert 4, t.value["no2"].id == 103%3
+makeUnifiedObjCall(<t>, "updateVal", (t.value["no1"], "newName1")).eval()
+assert 5, t.value["no1"].value == "newName1"
+
+
+f = F1(1,"tt1")
+t = Foo("no1", f)
+assert 6, t.value["no1"].id ==1
+objCall(f , "updateId", 6)
+assert 7, t.value["no1"].id == 1
+f2 = F1(103, "tt1032")
+t.append("no2", f2)
+unifiedObjCall(f2, "updateName",  "newName1")
+assert 8, t.value["no2"].value == "newName1"
+makeObjCall(<f2>, "updateId",  3).eval()
+assert 9, t.value["no2"].id == 103%3
+makeUnifiedObjCall(<f>, "updateName", "newName1").eval()
+assert 10, t.value["no1"].value == "newName1"
+
+@testing:case="test_topic_class_method_param_is_other_method"
+class Test4{
+  a :: INT
+  b :: STRING
+  def Test4(){
+  	a = 0
+  	b = "hello"
+  }	
+
+  def setB(str){
+  	b = str
+  }
+
+  def addA(num, callback, arg2){
+  	a = a + num
+  	callback(arg2)
+  }
+
+  def printSelf(){
+  	print(a, b)
+  }
+}
+
+t4 = Test4()
+exa = t4.a
+t4.addA(1, t4.setB, "hello, world!")
+exa = exa + 1
+assert 1, eq(t4.a, exa)
+assert 2, eq(t4.b, "hello, world!")
+
+objCall(t4, "addA", 1, t4.setB, "objCall")
+exa = exa + 1
+assert 3, eq(t4.a, exa)
+assert 4, eq(t4.b, "objCall")
+
+unifiedObjCall(t4, "addA", (2, t4.setB, "uObjCall"))
+exa = exa + 2
+assert 5, eq(t4.a, exa)
+assert 6, eq(t4.b, "uObjCall")
+
+makeObjCall(<t4>, "addA", 3, t4.setB, "mObjCall").eval()
+exa = exa + 3
+assert 7, eq(t4.a, exa)
+assert 8, eq(t4.b, "mObjCall")
+
+makeUnifiedObjCall(<t4>, "addA", (4, t4.setB, "mUObjCall")).eval()
+exa = exa + 4
+assert 9, eq(t4.a, exa)
+assert 10, eq(t4.b, "mUObjCall")
+
+@testing:case="test_topic_class_each_called"
+class Test5{
+  a :: INT
+  b :: STRING
+  def Test5(){
+  	a = 0
+  	b = "hello"
+  }	
+
+  def setB(str){
+  	b = str
+  }
+
+  def addA(num, callback, arg2){
+  	a = a + num
+  	callback(arg2)
+  }
+
+  def printSelf(){
+  	print(a, b)
+  }
+}
+
+t5 = Test5()
+t6 = Test5()
+each(unifiedObjCall, [t5, t6], ["addA","setB"],[(1, t5.setB, "hello"), ("haha")])
+assert 1, t5.a == 1
+assert 2, t5.b == "hello"
+assert 3, t6.b == "haha"
+assert 4, t6.a ==0
+
+@testing:case="test_D20_23439_isValid"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = isValid(event)
+		return v
+	}	
+}
+f1 = F1(3)
+f = testData(1)
+assert 1, f.updateData(f1) == true
+assert 2, f.val ==1 
+
+@testing:case="test_D20_23439_concat", exception=1
+class F1{
+	val:: STRING
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event1, event2){
+		v = concat(event1, event2)
+		return v
+	}	
+}
+f1 = F1("1")
+f2 = F1("2")
+f = testData(1)
+f.updateData(f1, f2)
+
+@testing:case="test_D20_23439_isOrderedDict"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = isOrderedDict(event)
+		return v
+	}	
+}
+f1 = F1(3)
+f = testData(1)
+assert 1, f.updateData(f1) == false
+assert 2, f.val ==1 
+
+@testing:case="test_D20_23439_isIndexedMatrix"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = isIndexedMatrix(event)
+		return v
+	}	
+}
+f1 = F1(3)
+f = testData(1)
+assert 1, f.updateData(f1) == false
+assert 2, f.val ==1 
+
+@testing:case="test_D20_23439_string"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = string(event)
+		return v
+	}	
+}
+f1 = F1(3)
+f = testData(1)
+//assert 1,like(f.updateData(f1), "%val: 3%" )  
+assert 2, f.val ==1 
+
+@testing:case="test_D20_23439_md5"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = md5(string(event))
+		return v
+	}	
+}
+f1 = F1(3)
+f = testData(1)
+assert 1,isValid(f.updateData(f1))
+assert 2, f.val ==1 
+
+@testing:case="test_D20_23439_isNull_isVoid_isNothing"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = isNull(event)
+		return v
+	}
+
+	def testIsVoid(event){
+		v =isVoid(event)
+		return v
+	}
+	def testIsNothing(event){
+		v =isNothing(event)
+		return v
+	}
+}
+a = array(ANY, 0, 10)
+for(i in 0:10){a.append!(F1(i))}
+f = testData(1)
+assert 1,f.updateData(a) == false
+assert 2, f.val ==1 
+assert 3,f.testIsVoid(a) == false
+assert 4,f.testIsNothing(a) == false
+
+@testing:case="test_D20_23439_type"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+}
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = typestr(event)
+		return v
+	}	
+	def typeData(event){
+		v = type(event)
+		return v	
+	}
+}
+a = array(ANY, 0, 10)
+f1 = F1(32)
+f = testData(1)
+assert 1,f.updateData(f1) == "OBJECT"
+assert 2, f.typeData(f1) == 40
+
+@testing:case="test_D20_23439_some_func"
+class F1{
+	val:: INT
+	def F1(v){
+		val = v	
+	}	
+	def setVal(v){
+		 val = v	
+	}
+}
+
+class testData{
+	val :: INT
+	def testData(v) {
+	    val = v
+	}
+	def updateData(event){
+		v = hasNull(event)
+		return v
+	}
+	def testSize(event){
+		v = size(event)
+		return v	
+	}	
+	def testCopy(event){
+		return copy(event)	
+	}
+	def testDeepCopy(event){
+		return deepCopy(event)	
+	}
+
+	def testEnlist(event){
+		return enlist(event)	
+	}
+
+	def testNext(event){
+		return next(event)	
+	}
+	def testPrev(event){
+		return prev(event)	
+	}
+
+	def testFirst(event){
+		return first(event)	
+	}
+
+	def testLast(event){
+		return last(event)	
+	}
+
+	def testShuffle(event){
+		return shuffle(event)	
+	}
+	def testSort(event){
+		return sort(event)	
+	}
+}
+a = array(ANY, 0, 10)
+for(i in 0:10){a.append!(F1(i))}
+f = testData(1)
+assert 1,f.updateData(a) == false
+f1 = F1(3)
+assert 2,f.testSize(f1) == 1
+copyf1 = f.testCopy(a)
+assert 3, constantDesc(a[0]).address  == constantDesc(copyf1[0]).address
+copyf2 = f.testDeepCopy(a)
+assert 4, constantDesc(a[0]).address  != constantDesc(copyf2[0]).address
+f3 = f.testEnlist(f1)
+assert 5, f3[0].val == 3
+assert 6, a[0].val == 0
+f4 = f.testNext(a)
+assert 7, f4[0].val  == 1
+f5 =  f.testPrev(a)
+assert 8, f5[0].isNull()
+f6 = f.testFirst(a)
+assert 9, f6.val == 0
+f7 = f.testLast(a)
+assert 10, f7.val == 9
+assert 12, f.testSort(a)[0].val == 0
+
+login("admin","123456")
+@testing:case="tes_topic_class_with_ddb_function_same_as_className", syntaxError = 1
+class msum{
+	add :: STRING
+	def msum(add_){
+		add = add_	
+	}
+	def calculate(para1, para2){
+		return iif(para1 > para2, add + string(para1), add + string(para2))	
+	}	
+}
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_sql",syntaxError = 1
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2,para3){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def where(){
+	        return  sub(1,3,3)
+	}
+}
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_attribute"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	def calculate(para1, para2){
+		return iif(para1 > para2, add + string(para1), add + string(para2))	
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.calculate(2, 3) == "para3"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	    def sub(para1, para2){
+	            return iif(para1 > para2, add + string(para1), add + string(para2))        
+	    }
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sub(2, 3) == "para3"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_para=0"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	    def sub(){
+	            return add
+	    }
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sub() == "para"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_para=1"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	    def sub(para1){
+	            return add + para1
+	    }
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sub("1") == "para1"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_para=ddbParam"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	    def msum(para1,para2,para3){
+	            return iif(para1 > para2, add + string(para1), add + string(para2))        
+	    }
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.msum(1,3,3) == "para3"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_para>ddbParam"
+class F1{
+	add :: STRING
+	def F1(add_){
+		add = add_	
+	}
+	    def sort(para1,para2,para3){
+	            return iif(para1 > para2, add + string(para1), add + string(para2))  + string(para3)
+	    }
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sort(1,3,3) == "para33"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_nested"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def sort(para1,para2,para3,para4){
+	        return  sub(para1, para2)+ string(para3)
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sort(1,3,3,3) == "para33"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_nested_2"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2,para3){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def sort(para1,para2,para3,para4){
+	        return  sub(para1, para2, para4)+ string(para3)
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.sort(1,3,3,3) == "para33"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_nested_3"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2,para3){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def createRuleEngine(para1, para2, para3, para4, para5,para6=NULL, para7=NULL, para8=NULL,para9=NULL, para10=NULL){
+	        return  sub(para1, para2, para4)+ string(para3)
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.createRuleEngine(1,3,3,3, 3) == "para33"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_functionName_without_parament"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2,para3){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def isNull(){
+	        return  sub(1,3,3)
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.isNull() == "para3"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_submitJob"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2,para3){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def submitJob(jobId, jobDesc, jobDef, args){
+	        return  sub(jobId, jobDesc, jobDef) +string(args)
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.submitJob(1,2,3,4) == "para24"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_array"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def array(jobId, jobDesc){
+	        return  sub(jobId, jobDesc) 
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.array(1,2) == "para2"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_take"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def take(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def til(para1){
+		return sub(para1, 3)	
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.take(1,2) == "para2"
+assert 3, f1.til(5) == "para5"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_at"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def each(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def at(para1, para2, pare3){
+		return sub(para1, pare3)	
+	}
+}
+f1 = F1("para")
+assert 1, f1.add == "para"
+assert 2, f1.each(1,2) == "para2"
+assert 3, f1.at(5, 1, 2) == "para5"
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_funcName_with_inhert"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def each(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def at(para1, para2, pare3){
+		return sub(para1, pare3)	
+	}
+}
+
+class F2:F1{
+	def F2(add_){
+		add = add_		
+	}
+	def at(para1, para2, para3){
+		return "F2"+ string(para1)+ string(para2)+ string(para3)
+	}	
+
+	def cumavg(para1, para2){
+		return para1+ para2	
+	}
+}
+
+f1 = F2("para")
+assert 1, f1.add == "para"
+assert 2, f1.each(1,2) == "para2"
+assert 3, f1.at(5, 1, 2) == "F2512"
+assert 4, f1.cumavg(1..10,1..10) == 1..10 + 1..10
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_funcName_with_inhert_2"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def each(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def at(para1, para2, para3){
+		return sub(para1, para3)	
+	}
+}
+
+class F2:F1{
+	def F2(add_){
+		add = add_		
+	}
+	def symbol(para1, para2, para3){
+		return at(para1, para2, para3)
+	}	
+
+	def tmavg(para1, para2, para3){
+		return para1+ para2 + para3
+	}
+}
+
+f1 = F2("para")
+assert 1, f1.add == "para"
+assert 2, f1.each(1,2) == "para2"
+assert 3, f1.symbol(5, 1, 2) == "para5"
+assert 4, f1.tmavg(1..10,1..10, 1..10) == 1..10 + 1..10+1..10
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_funcName_with_partial"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def each(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def at(para1, para2, para3=12){
+		return sub(para1, para3)	
+	}
+}
+
+class F2:F1{
+	def F2(add_){
+		add = add_		
+	}
+	def symbol(para1, para2=12, para3=12){
+		return at(para1, para2, para3)
+	}	
+
+	def mavgTopN(para1, para2, para3, para4,ascending=true,tiesMethod='oldest' ){
+		return para1+ para2 + para3
+	}
+}
+
+f1 = F2("para")
+assert 1, f1.add == "para"
+assert 2, f1.each(1,2) == "para2"
+assert 3, f1.symbol(5) == "para12"
+assert 4, f1.mavgTopN(1..10,1..10, 1..10, 4) == 1..10 + 1..10+1..10
+
+@testing:case="tes_topic_class_with_ddb_function_same_as_funcName_use_ddbFunction"
+class F1{
+	add :: STRING
+	def F1(add_){
+	add = add_	
+	}
+	def sub(para1, para2){
+		return 	iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def each(para1, para2){
+	        return  iif(para1 > para2, add + string(para1), add + string(para2)) 
+	}
+	def at(para1, para2, para3=12){
+		return sub(para1, para3)	
+	}
+}
+
+class F2:F1{
+	def F2(add_){
+		add = add_		
+	}
+	def symbol(para1, para2=12, para3=12){
+		return mavg(para1, para2)
+	}	
+
+	def mavgTopN(para1, para2, para3, para4,ascending=true,tiesMethod='oldest' ){
+		return para1+ para2 + para3
+	}
+}
+
+f1 = F2("para")
+assert 1, f1.add == "para"
+assert 2, f1.each(1,2) == "para2"
+assert 3, f1.symbol(1..100) == mavg(1..100, 12)
+assert 4, f1.mavgTopN(1..10,1..10, 1..10, 4) == 1..10 + 1..10+1..10
+

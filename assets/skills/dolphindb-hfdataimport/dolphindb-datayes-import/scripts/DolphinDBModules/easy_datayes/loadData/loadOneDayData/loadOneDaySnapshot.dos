@@ -1,0 +1,253 @@
+module easy_datayes::loadData::loadOneDayData::loadOneDaySnapshot
+
+/*
+ * @FunctionName: transformSnapshotSH
+ * @Brief: Transforms snapshot data for the Shanghai market into a standardized format with new field names (merged market format only).
+ * @Param: snapshotTB: The input data table containing the original snapshot data.
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag (kept for compatibility, but only merged format is supported).
+ * @Return: A table containing transformed snapshot data with 61 standardized fields.
+ */
+def transformSnapshotSH(snapshotTB, day){
+	tmpData = select * from snapshotTB
+
+	// Handle BidNumOrders and OfferNumOrders columns
+	if("NumOrdersB1" in snapshotTB.colNames()){
+		update tmpData set BidNumOrders=fixedLengthArrayVector(NumOrdersB1,NumOrdersB2,NumOrdersB3,NumOrdersB4,NumOrdersB5,NumOrdersB6,NumOrdersB7,NumOrdersB8,NumOrdersB9,NumOrdersB10),
+							OfferNumOrders=fixedLengthArrayVector(NumOrdersS1,NumOrdersS2,NumOrdersS3,NumOrdersS4,NumOrdersS5,NumOrdersS6,NumOrdersS7,NumOrdersS8,NumOrdersS9,NumOrdersS10)
+	}else{
+		update tmpData set BidNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size())),
+							OfferNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size()))
+	}
+
+	// Transform to standardized format with new field names
+	tmpData = select SecurityID + ".SH" as code,
+					'SH' as exchange,
+					day as trade_date,
+					UpdateTime as trade_time,
+					PreCloPrice as pre_close,
+					OpenPrice as open_price,
+					HighPrice as high_price,
+					LowPrice as low_price,
+					LastPrice as last_price,
+					WarUpperPri as price_up,
+					WarLowerPri as price_down,
+					LastPrice - PreCloPrice as dif_price1,
+					(LastPrice - prev(LastPrice)).nullFill(LastPrice - PreCloPrice) as dif_price2,
+					ClosePrice as close_price,
+					int(TradNumber) as total_num,
+					TradVolume as total_qty,
+					Turnover as total_amt,
+					double(NULL) as peratio1,
+					double(NULL) as peratio2,
+					isValid(AskPrice1) + isValid(AskPrice2) + isValid(AskPrice3) + isValid(AskPrice4) + isValid(AskPrice5) + isValid(AskPrice6) + isValid(AskPrice7) + isValid(AskPrice8) + isValid(AskPrice9) + isValid(AskPrice10) as sell_level_num,
+					TotalAskVol as total_sell_qty,
+					WAvgAskPri as wtavg_sell_price,
+					fixedLengthArrayVector(AskPrice1,AskPrice2,AskPrice3,AskPrice4,AskPrice5,AskPrice6,AskPrice7,AskPrice8,AskPrice9,AskPrice10) as sell_price,
+					fixedLengthArrayVector(AskVolume1,AskVolume2,AskVolume3,AskVolume4,AskVolume5,AskVolume6,AskVolume7,AskVolume8,AskVolume9,AskVolume10) as sell_qty,
+					OfferNumOrders as sell_num,
+					isValid(BidPrice1) + isValid(BidPrice2) + isValid(BidPrice3) + isValid(BidPrice4) + isValid(BidPrice5) + isValid(BidPrice6) + isValid(BidPrice7) + isValid(BidPrice8) + isValid(BidPrice9) + isValid(BidPrice10) as buy_level_num,
+					double(TotalBidVol) as total_buy_qty,
+					WAvgBidPri as wtavg_buy_price,
+					fixedLengthArrayVector(BidPrice1,BidPrice2,BidPrice3,BidPrice4,BidPrice5,BidPrice6,BidPrice7,BidPrice8,BidPrice9,BidPrice10) as buy_price,
+					fixedLengthArrayVector(BidVolume1,BidVolume2,BidVolume3,BidVolume4,BidVolume5,BidVolume6,BidVolume7,BidVolume8,BidVolume9,BidVolume10) as buy_qty,
+					BidNumOrders as buy_num,
+					InstruStatus as phase_code,
+					double(NULL) as nav,
+					IOPV as iopv,
+					double(NULL) as premium_rate,
+					int((int(TradNumber) - prev(int(TradNumber))).nullFill(int(TradNumber))) as trade_num,
+					(TradVolume - prev(TradVolume)).nullFill(TradVolume) as trade_qty,
+					(Turnover - prev(Turnover)).nullFill(Turnover) as trade_amt,
+					EtfBuyNumber as etf_buy_num,
+					EtfBuyVolume as etf_buy_qty,
+					EtfBuyMoney as etf_buy_amt,
+					EtfSellNumber as etf_sell_num,
+					EtfSellVolume as etf_sell_qty,
+					ETFSellMoney as etf_sell_amt,
+					YieldToMatu as ytm,
+					long(TotBidNum) as total_buy_num,
+					long(TotSellNum) as total_sell_num,
+					WiDBuyNum as withdraw_buy_num,
+					WiDBuyVol as withdraw_buy_qty,
+					WiDBuyMon as withdraw_buy_amt,
+					WiDSellNum as withdraw_sell_num,
+					WiDSellVol as withdraw_sell_qty,
+					WiDSellMon as withdraw_sell_amt,
+					double(MaxBidDur) as max_buy_duration,
+					double(MaxSellDur) as max_sell_duration,
+					BidNum as buy_order_num,
+					SellNum as sell_order_num,
+					long(NULL) as total_warrant_exec_vol,
+					double(NULL) as warrant_down_limit,
+					double(NULL) as warrant_up_limit,
+					now() as update_time
+				from tmpData context by SecurityID order by UpdateTime
+	return tmpData
+}
+
+/*
+ * @FunctionName: transformSnapshotSZ
+ * @Brief: Transforms snapshot data for the Shenzhen market into a standardized format with new field names (merged market format only).
+ * @Param: snapshotTB: The input data table containing the original snapshot data.
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag (kept for compatibility, but only merged format is supported).
+ * @Param: isDataDuplicated: A boolean flag indicating whether to remove duplicate entries from the data.
+ * @Return: A table containing transformed snapshot data with 61 standardized fields.
+ */
+def transformSnapshotSZMarketData(snapshotTB, day){
+	tmpData = select * from snapshotTB
+
+	// Handle BidNumOrders and OfferNumOrders columns
+	if("NumOrdersB1" in snapshotTB.colNames()){
+		update tmpData set BidNumOrders=fixedLengthArrayVector(NumOrdersB1,NumOrdersB2,NumOrdersB3,NumOrdersB4,NumOrdersB5,NumOrdersB6,NumOrdersB7,NumOrdersB8,NumOrdersB9,NumOrdersB10),
+							OfferNumOrders=fixedLengthArrayVector(NumOrdersS1,NumOrdersS2,NumOrdersS3,NumOrdersS4,NumOrdersS5,NumOrdersS6,NumOrdersS7,NumOrdersS8,NumOrdersS9,NumOrdersS10)
+	}else{
+		update tmpData set BidNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size())),
+							OfferNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size()))
+	}
+
+	// Transform to standardized format with new field names based on date
+	tmpData = select SecurityID + ".SZ" as code,
+						'SZ' as exchange,
+						day as trade_date,
+						DataTimeStamp as trade_time,
+						PreClosePx as pre_close,
+						OpenPx as open_price,
+						HighPx as high_price,
+						LowPx as low_price,
+						LastPx as last_price,
+						double(NULL) as price_up,
+						double(NULL) as price_down,
+						LastPx - PreClosePx as dif_price1,
+						(LastPx - prev(LastPx)).nullFill(LastPx - PreClosePx) as dif_price2,
+						double(NULL) as close_price,
+						int(NumTrades) as total_num,
+						TotalVolumeTrade as total_qty,
+						TotalValueTrade as total_amt,
+						PERatio1 as peratio1,
+						PERatio2 as peratio2,
+						isValid(AskPrice1) + isValid(AskPrice2) + isValid(AskPrice3) + isValid(AskPrice4) + isValid(AskPrice5) + isValid(AskPrice6) + isValid(AskPrice7) + isValid(AskPrice8) + isValid(AskPrice9) + isValid(AskPrice10) as sell_level_num,
+						TotalOfferQty as total_sell_qty,
+						WeightedAvgOfferPx as wtavg_sell_price,
+						fixedLengthArrayVector(AskPrice1,AskPrice2,AskPrice3,AskPrice4,AskPrice5,AskPrice6,AskPrice7,AskPrice8,AskPrice9,AskPrice10) as sell_price,
+						fixedLengthArrayVector(AskVolume1,AskVolume2,AskVolume3,AskVolume4,AskVolume5,AskVolume6,AskVolume7,AskVolume8,AskVolume9,AskVolume10) as sell_qty,
+						OfferNumOrders as sell_num,
+						isValid(BidPrice1) + isValid(BidPrice2) + isValid(BidPrice3) + isValid(BidPrice4) + isValid(BidPrice5) + isValid(BidPrice6) + isValid(BidPrice7) + isValid(BidPrice8) + isValid(BidPrice9) + isValid(BidPrice10) as buy_level_num,
+						double(TotalBidQty) as total_buy_qty,
+						WeightedAvgBidPx as wtavg_buy_price,
+						fixedLengthArrayVector(BidPrice1,BidPrice2,BidPrice3,BidPrice4,BidPrice5,BidPrice6,BidPrice7,BidPrice8,BidPrice9,BidPrice10) as buy_price,
+						fixedLengthArrayVector(BidVolume1,BidVolume2,BidVolume3,BidVolume4,BidVolume5,BidVolume6,BidVolume7,BidVolume8,BidVolume9,BidVolume10) as buy_qty,
+						BidNumOrders as buy_num,
+						EndOfDayMaker as phase_code,
+						double(NULL) as nav,
+						double(NULL) as iopv,
+						double(NULL) as premium_rate,
+						int((int(NumTrades) - prev(int(NumTrades))).nullFill(int(NumTrades))) as trade_num,
+						(TotalVolumeTrade - prev(TotalVolumeTrade)).nullFill(TotalVolumeTrade) as trade_qty,
+						(TotalValueTrade - prev(TotalValueTrade)).nullFill(TotalValueTrade) as trade_amt,
+						int(NULL) as etf_buy_num,
+						long(NULL) as etf_buy_qty,
+						double(NULL) as etf_buy_amt,
+						int(NULL) as etf_sell_num,
+						long(NULL) as etf_sell_qty,
+						double(NULL) as etf_sell_amt,
+						double(NULL) as ytm,
+						long(NULL) as total_buy_num,
+						long(NULL) as total_sell_num,
+						int(NULL) as withdraw_buy_num,
+						long(NULL) as withdraw_buy_qty,
+						double(NULL) as withdraw_buy_amt,
+						int(NULL) as withdraw_sell_num,
+						long(NULL) as withdraw_sell_qty,
+						double(NULL) as withdraw_sell_amt,
+						double(NULL) as max_buy_duration,
+						double(NULL) as max_sell_duration,
+						int(NULL) as buy_order_num,
+						int(NULL) as sell_order_num,
+						long(NULL) as total_warrant_exec_vol,
+						double(NULL) as warrant_down_limit,
+						double(NULL) as warrant_up_limit,
+						now() as update_time
+					from tmpData context by SecurityID order by DataTimeStamp
+	
+	return tmpData
+}
+
+def transformSnapshotSZmdl6280(snapshotTB, day){
+	tmpData = select * from snapshotTB
+
+	// Handle BidNumOrders and OfferNumOrders columns
+	if("NumOrdersB1" in snapshotTB.colNames()){
+		update tmpData set BidNumOrders=fixedLengthArrayVector(NumOrdersB1,NumOrdersB2,NumOrdersB3,NumOrdersB4,NumOrdersB5,NumOrdersB6,NumOrdersB7,NumOrdersB8,NumOrdersB9,NumOrdersB10),
+							OfferNumOrders=fixedLengthArrayVector(NumOrdersS1,NumOrdersS2,NumOrdersS3,NumOrdersS4,NumOrdersS5,NumOrdersS6,NumOrdersS7,NumOrdersS8,NumOrdersS9,NumOrdersS10)
+	}else{
+		update tmpData set BidNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size())),
+							OfferNumOrders=fixedLengthArrayVector(take(double(NULL),tmpData.size()))
+	}
+
+	// Transform to standardized format with new field names based on date
+	tmpData = select SecurityID + ".SZ" as code,
+						'SZ' as exchange,
+						day as trade_date,
+						UpdateTime as trade_time,
+						PreCloPrice as pre_close,
+						OpenPrice as open_price,
+						HighPrice as high_price,
+						LowPrice as low_price,
+						LastPrice as last_price,
+						HighLimitPrice as price_up,
+						LowLimitPrice as price_down,
+						DifPrice1 as dif_price1,
+						DifPrice2 as dif_price2,
+						double(NULL) as close_price,
+						int(TurnNum) as total_num,
+						Volume as total_qty,
+						Turnover as total_amt,
+						PE1 as peratio1,
+						PE2 as peratio2,
+						isValid(AskPrice1) + isValid(AskPrice2) + isValid(AskPrice3) + isValid(AskPrice4) + isValid(AskPrice5) + isValid(AskPrice6) + isValid(AskPrice7) + isValid(AskPrice8) + isValid(AskPrice9) + isValid(AskPrice10) as sell_level_num,
+						TotalOfferQty as total_sell_qty,
+						WeightedAvgOfferPx as wtavg_sell_price,
+						fixedLengthArrayVector(AskPrice1,AskPrice2,AskPrice3,AskPrice4,AskPrice5,AskPrice6,AskPrice7,AskPrice8,AskPrice9,AskPrice10) as sell_price,
+						fixedLengthArrayVector(AskVolume1,AskVolume2,AskVolume3,AskVolume4,AskVolume5,AskVolume6,AskVolume7,AskVolume8,AskVolume9,AskVolume10) as sell_qty,
+						OfferNumOrders as sell_num,
+						isValid(BidPrice1) + isValid(BidPrice2) + isValid(BidPrice3) + isValid(BidPrice4) + isValid(BidPrice5) + isValid(BidPrice6) + isValid(BidPrice7) + isValid(BidPrice8) + isValid(BidPrice9) + isValid(BidPrice10) as buy_level_num,
+						double(TotalBidQty) as total_buy_qty,
+						WeightedAvgBidPx as wtavg_buy_price,
+						fixedLengthArrayVector(BidPrice1,BidPrice2,BidPrice3,BidPrice4,BidPrice5,BidPrice6,BidPrice7,BidPrice8,BidPrice9,BidPrice10) as buy_price,
+						fixedLengthArrayVector(BidVolume1,BidVolume2,BidVolume3,BidVolume4,BidVolume5,BidVolume6,BidVolume7,BidVolume8,BidVolume9,BidVolume10) as buy_qty,
+						BidNumOrders as buy_num,
+						TradingPhaseCode as phase_code,
+						PreCloseIOPV as nav,
+						IOPV as iopv,
+						OptPremiumRatio as premium_rate,
+						int((int(TurnNum) - prev(int(TurnNum))).nullFill(int(TurnNum))) as trade_num,
+						(Volume - prev(Volume)).nullFill(Volume) as trade_qty,
+						(Turnover - prev(Turnover)).nullFill(Turnover) as trade_amt,
+						int(NULL) as etf_buy_num,
+						long(NULL) as etf_buy_qty,
+						double(NULL) as etf_buy_amt,
+						int(NULL) as etf_sell_num,
+						long(NULL) as etf_sell_qty,
+						double(NULL) as etf_sell_amt,
+						double(NULL) as ytm,
+						long(NULL) as total_buy_num,
+						long(NULL) as total_sell_num,
+						int(NULL) as withdraw_buy_num,
+						long(NULL) as withdraw_buy_qty,
+						double(NULL) as withdraw_buy_amt,
+						int(NULL) as withdraw_sell_num,
+						long(NULL) as withdraw_sell_qty,
+						double(NULL) as withdraw_sell_amt,
+						double(NULL) as max_buy_duration,
+						double(NULL) as max_sell_duration,
+						int(NULL) as buy_order_num,
+						int(NULL) as sell_order_num,
+						long(NULL) as total_warrant_exec_vol,
+						double(NULL) as warrant_down_limit,
+						double(NULL) as warrant_up_limit,
+						now() as update_time
+					from tmpData context by SecurityID order by UpdateTime
+	return tmpData
+}

@@ -1,0 +1,51 @@
+// ============================================================
+// IrYieldCurve — parseMktData 构建示例
+// 构建利率期限结构曲线（两种模式：日期-利率 / Nelson-Siegel）
+// ============================================================
+// 金融含义：
+//   IrYieldCurve 是 FICC 定价体系的基石——几乎所有品种都需要至少
+//   一条利率曲线进行折现。曲线上每个点代表该期限的"零息利率"，
+//   据此推导贴现因子 DF(t) = exp(-r(t) × t)。
+//   - 短端（<1Y）反映央行货币政策立场（如 FR007、SHIBOR）
+//   - 中端（1-5Y）反映市场对经济增长和通胀的预期
+//   - 长端（>5Y）包含期限溢价，反映对长期不确定性的补偿
+//   曲线形态：正常上行 / 平坦 / 倒挂，各有不同的经济含义。
+// ============================================================
+
+// ---- 模式 1: 日期-利率点阵（Bootstrap 后的结果）----
+mktDict = dict(STRING, ANY)
+mktDict["mktDataType"]         = "Curve"            // 曲线类市场数据
+mktDict["curveType"]           = "IrYieldCurve"     // 利率曲线
+mktDict["referenceDate"]       = 2026.03.20         // 曲线基准日
+mktDict["currency"]            = "CNY"
+mktDict["curveName"]           = "CNY_TREASURY_BOND" // 曲线名称（国债曲线）
+mktDict["dayCountConvention"]  = "Actual365"        // 日期计数惯例
+mktDict["compounding"]         = "Continuous"        // 连续复利
+mktDict["interpMethod"]        = "CubicSpline"       // 三次样条内插
+mktDict["extrapMethod"]        = "Flat"              // 外插：平坦延伸
+// 期限结构点阵：从 3M 到 10Y
+mktDict["dates"]   = [2026.06.20, 2027.03.20, 2028.03.20, 2029.03.20, 2031.03.20, 2036.03.20]
+mktDict["values"]  = [0.0148, 0.0155, 0.0165, 0.0172, 0.0185, 0.0210]
+
+curve = parseMktData(mktDict)
+
+// ---- 模式 2: Nelson-Siegel 参数化曲线 ----
+// 用 4 个参数描述整条曲线形态，无需逐点插值
+nsDict = dict(STRING, ANY)
+nsDict["mktDataType"]         = "Curve"
+nsDict["curveType"]           = "IrYieldCurve"
+nsDict["referenceDate"]       = 2026.03.20
+nsDict["currency"]            = "CNY"
+nsDict["curveName"]           = "CNY_TREASURY_BOND_NS"
+nsDict["dayCountConvention"]  = "Actual365"
+nsDict["compounding"]         = "Continuous"
+nsDict["curveModel"]          = "NS"               // Nelson-Siegel 模型
+
+nsParams = dict(STRING, ANY)
+nsParams["beta0"]  = 0.025    // 长端水平（远期利率收敛值）
+nsParams["beta1"]  = -0.010   // 短端偏移（负值 = 正常上行曲线）
+nsParams["beta2"]  = 0.005    // 曲度（中端凸起程度）
+nsParams["lambda"] = 1.5      // 衰减速度
+nsDict["curveParams"] = nsParams
+
+nsCurve = parseMktData(nsDict)

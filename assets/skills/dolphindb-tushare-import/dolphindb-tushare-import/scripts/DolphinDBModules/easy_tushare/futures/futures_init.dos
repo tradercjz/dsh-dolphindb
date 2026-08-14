@@ -1,0 +1,132 @@
+module easy_tushare::futures_init
+
+/* 
+*  @Brief: 期货数据导入函数模块
+*  @Author: DolphinDB
+*  @Last modification time: 2026.03.31
+*  @DolphinDB server version: 3.00.5 2026.02.06 LINUX x86_64
+*/
+
+use easy_tushare::futures_create_table
+
+/*
+*  @FunctionName: module_info
+*  @Brief: 模块信息,一个相同模块dir下的每个dos都需要有module_info函数,且是相同的
+*  @Param: None
+*  @Return: dict
+*  @SampleUsage: module_info()
+*/
+def module_info(){
+    res = dict(STRING,ANY)
+    res["moduleName"] = "easy_tushare"
+    res["moduleVersion"] = "1.0.0"
+    res["isFree"] = true
+    return res
+}
+
+/*
+*  @FunctionName: futures_init_tables
+*  @Brief: 初始化数据库表
+*  @Param: table_names
+*  @Return: None
+*  @SampleUsage: futures_init_tables(["fut_basic"])
+*/
+def futures_init_tables(table_names = []){
+    if (size(table_names) == 0){
+       ts_create_tables = exec name from defs() where name like "easy_tushare::futures_create_table%"
+        for(table in ts_create_tables){
+            // table = 'easy_tushare::futures_create_table::create_top_list'
+            funcByName(table)()
+        }
+    } else {
+        for (table_name in table_names){ 
+            funcByName("easy_tushare::futures_create_table::create_table_" + table_name)()
+        }   
+    }
+}
+
+use easy_tushare::futures_load_data
+
+/*
+*  @FunctionName: futures_get_all_table_names
+*  @Brief: 获取所有期货数据表名
+*  @Param: None
+*  @Return: list
+*  @SampleUsage: futures_get_all_table_names()
+*/
+def futures_get_all_table_names(){
+    ts_create_tables = exec name from defs() where name like "easy_tushare::futures_load_data::append_%"
+    return ts_create_tables.split("::")[2].substr(7)
+}
+
+/**
+*  @FunctionName: append_futures_mink
+*  @Brief: 期货分钟数据导入函数
+*  @Param: token, start_date, end_date
+*  @Return: None
+*  @SampleUsage: append_futures_mink(token,start_date,end_date)
+ */
+def append_futures_mink(token,start_date,end_date,table_names = []) {
+    if (size(table_names) == 0){
+        append_ft_1min_k(token, start_date, end_date)
+        append_ft_5min_k(token, start_date, end_date)
+        append_ft_15min_k(token, start_date, end_date)
+        append_ft_30min_k(token, start_date, end_date)
+        append_ft_60min_k(token, start_date, end_date)
+    } else {
+        for (table_name in table_names){
+            if (table_name == "ft_1min_k"){
+                append_ft_1min_k(token, start_date, end_date)
+            } else if (table_name == "ft_5min_k"){
+                append_ft_5min_k(token, start_date, end_date)
+            } else if (table_name == "ft_15min_k"){
+                append_ft_15min_k(token, start_date, end_date)
+            } else if (table_name == "ft_30min_k"){
+                append_ft_30min_k(token, start_date, end_date)
+            } else if (table_name == "ft_60min_k"){
+                append_ft_60min_k(token, start_date, end_date)  
+            }
+        }
+    }
+}
+
+/*
+*  @FunctionName: futures_history_data_load
+*  @Brief: 期货数据导入函数
+*  @Param: token, start_date, end_date
+*  @Return: None
+*  @SampleUsage: futures_history_data_load(token,start_date,end_date)
+*/
+def futures_history_data_load(token,start_date,end_date,table_names = []) {
+    earliest_date = dict(STRING,DATE)
+    earliest_date["fut_settle"] = 2011.12.31
+    earliest_date["fut_weekly_detail"] = 2010.03.01
+    earliest_date["ft_limit"] = 2005.01.01
+
+    mink_tb_names = []
+    // 本次需要导入的所有表名
+    all_table_names = []
+    if (size(table_names) == 0){
+        all_table_names = futures_get_all_table_names()        
+    } else {
+        all_table_names = table_names
+    }
+    for (table_name in all_table_names){ // table_name = "index_basic"
+            
+        if (table_name in ["ft_1min_k","ft_5min_k","ft_15min_k","ft_30min_k","ft_60min_k"]){
+            mink_tb_names.append!(table_name)
+        }  else {
+            final_start_date = earliest_date[table_name]
+            if (final_start_date == NULL){
+                final_start_date = start_date
+            }
+            submitJob("append_" + table_name, "append_" + table_name, funcByName("easy_tushare::futures_load_data::append_" + table_name), token, max(final_start_date, start_date), end_date)
+        }
+    }
+    // 分钟K数据
+    if (mink_tb_names.size() > 0){
+        mink_start_date = max(2009.01.01,start_date)
+        submitJob("append_futures_mink", "append_futures_mink", append_futures_mink, token, mink_start_date, end_date, mink_tb_names)
+    }
+}
+

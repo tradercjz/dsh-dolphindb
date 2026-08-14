@@ -1,0 +1,3307 @@
+#include "setup/settings.txt"
+login("admin","123456")
+try{loadPlugin(getHomeDir() + "/plugins/mqtt/PluginMQTTClient.txt")}catch(ex){print ex};
+go
+//host="127.0.0.1"
+
+@testing:case="mqtt_connect_args_lose",syntaxError = 1
+mqtt::connect(host)
+
+@testing:case="mqtt_connect_args_host_type_error1",exception = 1
+conn=mqtt::connect(123456,1883);
+
+@testing:case="mqtt_connect_args_host_type_error2",exception = 1
+conn=mqtt::connect(["127.0.0.1","127.0.0.2"],1883);
+
+@testing:case="mqtt_connect_args_host_type_error3",exception = 1
+conn=mqtt::connect(NULL,1883);
+
+@testing:case="mqtt_connect_args_host_type_error4",exception = 1
+conn=mqtt::connect(string(NULL),1883);
+
+@testing:case="mqtt_connect_args_host_error",exception = 1
+conn = mqtt::connect("192.168.0.2", 1883);
+
+@testing:case="mqtt_connect_args_host_error2",exception = 1
+conn = mqtt::connect("localmaster", 1883);
+
+@testing:case="mqtt_connect_args_port_error",exception = 1
+conn=mqtt::connect(host, 1884);
+
+@testing:case="mqtt_connect_args_port_type_error1",exception = 1
+conn=mqtt::connect(host,"1883");
+
+@testing:case="mqtt_connect_args_port_type_error2",exception = 1
+conn=mqtt::connect(host,[1883,1832]);
+
+@testing:case="mqtt_connect_args_port_type_error3",exception = 1
+conn=mqtt::connect(host,NULL);
+
+@testing:case="mqtt_connect_args_port_type_error4",exception = 1
+conn=mqtt::connect(host,int(NULL));
+
+@testing:case="mqtt_connect_args_QoS_type_error1",exception = 1
+conn=mqtt::connect(host,1883,"0");
+
+@testing:case="mqtt_connect_args_QoS_type_error2",exception = 1
+conn=mqtt::connect(host,1883,[0,1]);
+
+@testing:case="mqtt_connect_args_QoS_negative",exception = 1
+conn=mqtt::connect(host,1883,-1);
+
+@testing:case="mqtt_connect_args_QoS_1"
+conn=mqtt::connect(host,1883,1);
+mqtt::close(conn)
+
+@testing:case="mqtt_connect_args_QoS_2"
+conn=mqtt::connect(host,1883,2);
+mqtt::close(conn)
+
+// @testing:case="mqtt_connect_args_port_wrong",exception = 1
+// conn=mqtt::connect(host,1834,,,,"aa","bb");
+
+//DPLG-1083
+//@testing:case="mqtt_connect_args_QoS_type_error_int_NULL",exception = 1
+//conn=mqtt::connect(host,1883,int(NULL));
+
+@testing:case="mqtt_connect_args_formatter_type_error1",exception = 1
+conn=mqtt::connect(host,1883,0,1);
+
+@testing:case="mqtt_connect_args_formatter_type_error2"
+def ef(){
+	return 1
+}
+conn=mqtt::connect(host,1883,0,ef);
+mqtt::publish(conn,"dolphindb/csv","1")
+mqtt::close(conn)
+
+@testing:case="mqtt_connect_args_formatter_throw"
+def ef(){
+	throw "it is exception"
+}
+conn=mqtt::connect(host,1883,0,ef);
+mqtt::close(conn)
+
+//DPLG-1084
+//@testing:case="mqtt_connect_args_formatter_type_error3",exception = 1
+//conn=mqtt::connect(host,1883,0,int(NULL));
+
+@testing:case="mqtt_connect_args_batchSize_type_error1",exception = 1
+conn=mqtt::connect(host,1883,0,,100.3);
+
+@testing:case="mqtt_connect_args_batchSize_type_error2",exception = 1
+conn=mqtt::connect(host,1883,0,,"a");
+
+@testing:case="mqtt_connect_args_batchSize_type_error3",exception = 1
+conn=mqtt::connect(host,1883,0,,[100,0]);
+
+@testing:case="mqtt_connect_args_batchSize_0",exception = 1
+conn=mqtt::connect(host,1883,0,,0);
+
+//DPLG-1084
+//@testing:case="mqtt_connect_args_batchSize_type_error3",exception = 1
+//conn=mqtt::connect(host,1883,0,,int(NULL));
+//mqtt::publish(conn,"dolphindb/csv","1")
+
+@testing:case="mqtt_connect_args_username_type_error1",exception = 1
+conn=mqtt::connect(host,1883,0,,,1,"");
+
+@testing:case="mqtt_connect_args_username_type_error2",exception = 1
+conn=mqtt::connect(host,1883,0,,,`a`b,"");
+
+@testing:case="mqtt_connect_args_password_type_error1",exception = 1
+conn=mqtt::connect(host,1883,0,,,"",1);
+
+@testing:case="mqtt_connect_args_password_type_error2",exception = 1
+conn=mqtt::connect(host,1883,0,,,"",`a`b);
+
+@testing:case="mqtt_connect_args_sendbuffSize_negative", exception = 1
+conn=mqtt::connect(host, 1883, , , , , , -1)
+
+@testing:case="mqtt_connect_args_sendbuffSize_0", exception = 1
+conn=mqtt::connect(host, 1883, , , , , , 0)
+
+@testing:case="mqtt_connect_args_sendbuffSize_type_error_string", exception = 1
+conn=mqtt::connect(host, 1883, , , , , , "1024")
+
+@testing:case="mqtt_connect_args_sendbuffSize_type_error_double", exception = 1
+conn=mqtt::connect(host, 1883, , , , , , 1024.4)
+
+@testing:case="mqtt_connect_args_sendbuffSize_type_error_vector", exception = 1
+conn=mqtt::connect(host, 1883, , , , , , [1024, 2048])
+
+@testing:case="mqtt_publish_args_conn_type_error1",exception = 1
+mqtt::publish('',"ddd/csv",1)
+
+@testing:case="mqtt_publish_args_conn_type_error2",exception = 1
+mqtt::publish(``,"ddd/csv",1)
+
+@testing:case="mqtt_publish_args_prepare"
+conne = mqtt::connect(host,1883)
+
+@testing:case="mqtt_publish_args_less",syntaxError = 1
+mqtt::publish(conne)
+
+@testing:case="mqtt_publish_args_more",syntaxError = 1
+mqtt::publish(conne,"ddd/csv","a","b")
+
+@testing:case="mqtt_publish_args_conn_null",exception = 1
+mqtt::publish(NULL,"conn/null",1)
+
+@testing:case="mqtt_publish_args_topic_type_error1",exception = 1
+mqtt::publish(conne,1,1)
+
+@testing:case="mqtt_publish_args_topic_type_error2",exception = 1
+mqtt::publish(conne,["ddd/csv","ddd1/csv"],1)
+
+@testing:case="mqtt_publish_args_topic_type_string_NULL",exception = 1
+mqtt::publish(conne,string(NULL),"1")
+
+@testing:case="mqtt_publish_args_obj_type_error1",exception = 1
+mqtt::publish(conne,"ddd/csv",1)
+
+@testing:case="mqtt_publish_args_obj_type_error2",exception = 1
+mqtt::publish(conne,"ddd/csv",[1,2])
+
+@testing:case="mqtt_publish_args_conn_NULL",exception = 1
+mqtt::publish(NULL,"ddd/csv",[1,2])
+
+@testing:case="mqtt_publish_args_conn_type_error1",exception = 1
+mqtt::publish(1,"ddd/csv",[1,2])
+
+@testing:case="mqtt_publish_args_conn_type_error2",exception = 1
+mqtt::publish(``,"ddd/csv",[1,2])
+
+@testing:case="mqtt_publish_args_format_NULL_publish_table",exception = 1
+mqtt::publish(conne,"ddd/table",table(`a as a))
+
+@testing:case="mqtt_publish_args_format_NULL_publish_table",exception = 1
+mqtt::publish(conne,"ddd/table",[111,1])
+
+@testing:case="mqtt_publish_args_conn_close",exception = 1
+mqtt::close(conne) 
+mqtt::publish(conne,"ddd/csv",[1,2])
+
+@testing:case="mqtt_close_args_less",exception = 1
+mqtt::close()
+
+@testing:case="mqtt_close_args_conn_type_error1",exception = 1
+mqtt::close(1)
+
+@testing:case="mqtt_close_args_conn_type_error2",exception = 1
+mqtt::close(NULL)
+
+@testing:case="mqtt_close_args_conn_type_error3",exception = 1
+conne1 = mqtt::connect(host,1883)
+conne2 = mqtt::connect(host,1883)
+mqtt::close([conne1,conne2])
+
+@testing:case="mqtt_close_args_more",syntaxError = 1
+mqtt::close(conne1,conne2)
+
+@testing:case="mqtt_subscribe_args_less",syntaxError = 1
+mqtt::subscribe(host)
+
+@testing:case="mqtt_subscribe_host_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(1,1883,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_host_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe([host,host],1883,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_host_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(NULL,1883,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_host_string_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(string(NULL),1883,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_port_string",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,"1883","ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_port_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,[1883,1883],"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_port_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,NULL,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_port_int_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,int(NULL),"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_topic_string_NULL",exception = 1
+def f1(x){
+	print(x)
+}
+mqtt::subscribe(host,1883,string(NULL),p,f1,"","")
+
+@testing:case="mqtt_subscribe_topic_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,1,p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_topic_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,["ddd/csv","ddd/csv"],p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_topic_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,NULL,p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_parser_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",1,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_parser_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",NULL,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_parser_use_username"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"aaa","aaa")
+
+@testing:case="mqtt_subscribe_parser_username_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,1,"aaa")
+
+@testing:case="mqtt_subscribe_parser_username_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,["a","a"],"aaa")
+
+@testing:case="mqtt_subscribe_parser_password_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"a",1)
+
+@testing:case="mqtt_subscribe_parser_password_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"a",["a","a"])
+
+@testing:case="mqtt_subscribe_parser_unillegal_fun"
+def f1(){
+	print(1)
+}
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+subb = mqtt::subscribe(host,1883,"ddd/csv",f1,sensorInfoTable,"","")
+mqtt::unsubscribe(subb)
+
+@testing:case="mqtt_subscribe_handler_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,1,"","")
+
+@testing:case="mqtt_subscribe_handler_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,NULL,"","")
+
+@testing:case="mqtt_subscribe_handler_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,[sensorInfoTable,sensorInfoTable],"","")
+
+@testing:case="mqtt_subscribe_handler_username_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,1,"")
+
+@testing:case="mqtt_subscribe_handler_username_NULL"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,NULL,"")
+
+@testing:case="mqtt_subscribe_handler_username_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,``,"")
+
+@testing:case="mqtt_subscribe_handler_password_int",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"",1)
+
+@testing:case="mqtt_subscribe_handler_password_NULL"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"",NULL)
+
+@testing:case="mqtt_subscribe_handler_password_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"",``)
+
+@testing:case="mqtt_subscribe_args_recvbufSize_negative",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"args/error", p,sensorInfoTable, , , -1)
+
+@testing:case="mqtt_subscribe_args_recvbufSize_0",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"args/error", p,sensorInfoTable, , , 0)
+
+@testing:case="mqtt_subscribe_args_recvbufSize_type_error_string",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"args/error", p,sensorInfoTable, , , "1024")
+
+@testing:case="mqtt_subscribe_args_recvbufSize_type_error_double",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"args/error", p,sensorInfoTable, , , 1024.0)
+
+@testing:case="mqtt_subscribe_args_recvbufSize_type_error_vector",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"args/error", p,sensorInfoTable, , , [1024, 2048])
+
+@testing:case="mqtt_unsubscribe_args_less",exception = 1
+mqtt::unsubscribe()
+
+@testing:case="mqtt_unsubscribe_args_more",syntaxError = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+subId = mqtt::subscribe(host,1883,"unsubscribe_args_more/#",p,sensorInfoTable,"","")
+mqtt::unsubscribe(subId,subId)
+
+@testing:case="mqtt_unsubscribe_NULL",exception = 1
+mqtt::unsubscribe(NULL)
+
+@testing:case="mqtt_unsubscribe_int",exception = 1
+mqtt::unsubscribe(1)
+
+@testing:case="mqtt_unsubscribe_long",exception = 1
+mqtt::unsubscribe(1l)
+
+@testing:case="mqtt_unsubscribe_float",exception = 1
+mqtt::unsubscribe(3.14)
+
+@testing:case="mqtt_unsubscribe_string",exception = 1
+mqtt::unsubscribe("3.14")
+
+@testing:case="mqtt_unsubscribe_long_2"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+subId = mqtt::subscribe(host,1883,"mqtt_unsubscribe_unSubscribe/#",p,sensorInfoTable,"","")
+mqtt::unsubscribe(long(subId))
+
+@testing:case="mqtt_unsubscribe_unillegalId",exception = 1
+mqtt::unsubscribe("12")
+
+@testing:case="mqtt_unsubscribe_unSubscribe",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+subId = mqtt::subscribe(host,1883,"mqtt_unsubscribe_unSubscribe/#",p,sensorInfoTable,"","")
+mqtt::unsubscribe(subId)
+mqtt::unsubscribe(subId)
+
+@testing:case="mqtt_createCsvFormatter_format_int",exception = 1
+mqtt::createCsvFormatter(1)
+
+@testing:case="mqtt_createCsvFormatter_format_string(NULL)",exception = 1
+mqtt::createCsvFormatter(string(NULL))
+
+@testing:case="mqtt_createCsvFormatter_format_matrix",exception = 1
+mqtt::createCsvFormatter(matrix(INT,3,2, ,1))
+
+@testing:case="mqtt_createCsvFormatter_delimiter_int",exception = 1
+mqtt::createCsvFormatter(take("",13),1)
+
+@testing:case="mqtt_createCsvFormatter_delimiter_vector",exception = 1
+mqtt::createCsvFormatter(take("",13),['a','b'])
+
+@testing:case="mqtt_createCsvFormatter_delimiter_NULL",exception = 1
+mqtt::createCsvFormatter(take("",13),NULL)
+
+@testing:case="mqtt_createCsvFormatter_delimiter_char(NULL)"
+def createT(n) {
+    return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol)
+}
+t = createT(100)
+f = mqtt::createCsvFormatter(take("",18),char(NULL))
+s=f(t) 
+p = mqtt::createCsvParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],char(NULL))
+assert 1,each(eqObj,p(s).values(),t.values(),6) 
+
+@testing:case="mqtt_createCsvFormatter_rowDelimiter_int",exception = 1
+mqtt::createCsvFormatter(take("",13),',',1)
+
+@testing:case="mqtt_createCsvFormatter_rowDelimiter_vector",exception = 1
+mqtt::createCsvFormatter(take("",13),',',['a','b'])
+
+@testing:case="mqtt_createCsvFormatter_rowDelimiter_NULL",exception = 1
+mqtt::createCsvFormatter(take("",13),',',NULL)
+
+@testing:case="mqtt_createCsvFormatter_rowDelimiter_char(NULL)"
+def createT(n) {
+    return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol)
+}
+t = createT(100)
+f = mqtt::createCsvFormatter(take("",18),',',char(NULL))
+s=f(t) 
+p = mqtt::createCsvParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],',',char(NULL))
+assert 1,each(eqObj,p(s).values(),t.values(),6)
+
+@testing:case="mqtt_createCsvFormatter_delimiter_char(NULL)_rowDelimiter_char(NULL)"
+def createT(n) {
+    return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol)
+}
+t = createT(100)
+f = mqtt::createCsvFormatter(take("",18),char(NULL),char(NULL))
+s=f(t) 
+p = mqtt::createCsvParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],char(NULL),char(NULL))
+assert 1,size(p(s)) > 0
+
+@testing:case="mqtt_createJsonParser_schema_NULL",exception = 1
+p = mqtt::createJsonParser(NULL,`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+
+@testing:case="mqtt_createJsonParser_schema_int",exception = 1
+p = mqtt::createJsonParser(1,`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+
+@testing:case="mqtt_createJsonParser_schema_size_error",exception = 1
+p = mqtt::createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING],`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+
+@testing:case="mqtt_createJsonParser_schema_vector_error",exception = 1
+p = mqtt::createJsonParser([`BOOL,`CHAR,`SHORT,`INT,`LONG,`DATE,`MONTH,`TIME,`MINUTE,`SECOND,`DATETIME,`TIMESTAMP,`NANOTIME,`NANOTIMESTAMP,`FLOAT,`DOUBLE,`STRING,`SYMBOL],`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+
+@testing:case="mqtt_createJsonParser_colNames_NULL",exception = 1
+p = mqtt::createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],NULL)
+
+@testing:case="mqtt_createJsonParser_colNames_int",exception = 1
+p = mqtt::createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],1)
+
+@testing:case="mqtt_createJsonParser_colNames_size_error",exception = 1
+p = mqtt::createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string)
+
+@testing:case="mqtt_connect_multiple_time"
+connes = []
+for(i in 0..100){
+	connes.append!(mqtt::connect(host,1883))
+}
+for(i in 0..100){
+	mqtt::close(connes[i])
+}
+for(i in 0..100){
+	c = mqtt::connect(host,1883)
+	mqtt::close(c)
+}
+
+@testing:case="mqtt_prepare"
+def writeData(hardwareVector){
+	hardwareNumber = size(hardwareVector)
+	return table(take(hardwareVector,hardwareNumber) as hardwareId ,take(now(),
+		hardwareNumber) as ts,double(rand(20..41,hardwareNumber)) as temperature,
+		double(rand(50,hardwareNumber)) as humidity,double(rand(500..1000,
+		hardwareNumber)) as voltage)
+}
+
+def writeData2(hardwareVector){//hardwareVector=1..50
+	hardwareNumber = size(hardwareVector)
+	return table(rand((take(hardwareVector,hardwareNumber) join NULL),hardwareNumber) as hardwareId ,rand(take(now(),hardwareNumber) join NULL,hardwareNumber) as ts,double(rand(rand(20..41,hardwareNumber) join NULL,hardwareNumber)) as temperature,double(rand(rand(50,hardwareNumber) join NULL,hardwareNumber)) as humidity,double(rand(rand(500..1000,hardwareNumber) join NULL,hardwareNumber)) as voltage)
+}
+
+def publishTableData(server,topic,iterations,hardwareVector,interval,f){
+	conn=mqtt::connect(server,1883,0,f,100)
+	for(i in 0:iterations){
+		t=writeData(hardwareVector)
+		mqtt::publish(conn,topic,t)
+	}
+	sleep(interval)
+	mqtt::close(conn)
+}
+
+@testing:case="mqtt_use_same_conn"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+connSub = mqtt::subscribe(host,1883,"use_same_con/csv",p,sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..50)
+conn=mqtt::connect(host,1883,0,f,100)
+for(i in 0..100){
+	mqtt::publish(conn,"use_same_con/csv",t)
+}
+sleep(1000)
+assert 1, sensorInfoTable1.size()==5050
+mqtt::unsubscribe(connSub)
+
+@testing:case="mqtt_use_same_conn_multiple_thread"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+connSub = mqtt::subscribe(host,1883,"use_same_con/csv",p,sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..50)
+conn=mqtt::connect(host,1883,0,f,100)
+ids = []
+for(i in 0..100){
+	ids.append!(submitJob("conn_multiple_thread","conn_multiple_thread",mqtt::publish,conn,"use_same_con/csv",t))
+}
+for(i in 0..100){
+	getJobReturn(ids[i],true)
+}
+sleep(1000)
+assert 1, sensorInfoTable1.size()==5050
+mqtt::unsubscribe(connSub)
+
+@testing:case="mqtt_huge_array"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+//share table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE]) as tempSensorInfoTable1
+connSub = mqtt::subscribe(host,1883,"huge_array/csv",p,sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..100000)
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"huge_array/csv",t)
+sleep(1000)
+assert 1, sensorInfoTable1.size()==100000
+mqtt::unsubscribe(connSub)
+mqtt::close(conn)
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage)
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+connSub = mqtt::subscribe(host,1883,"huge_array/json",p,sensorInfoTable1)
+
+f = mqtt::createJsonFormatter()
+conn=mqtt::connect(host,1883,0,f,100)
+t = writeData(1..100000)
+mqtt::publish(conn,"huge_array/json",t)
+sleep(1000)
+assert 2, sensorInfoTable1.size()==100000
+mqtt::unsubscribe(connSub)
+mqtt::close(conn)
+
+@testing:case="mqtt_subscribe_clear"
+ids = exec subscriptionid from mqtt::getSubscriberStat()
+loop(mqtt::unsubscribe,ids)
+
+@testing:case="mqtt_subscribe_handler_table_csvParser"
+t = mqtt::getSubscriberStat()  
+for(row in t)
+{
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/csv",p,sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+publishTableData(host,"dolphindb/csv",10,1..50,100,f)
+assert 1, sensorInfoTable1.size()==500
+
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/csv"
+assert 2, re.size()==1
+
+mqtt::unsubscribe(conn1)
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/csv"
+assert 3, re.size()==0
+
+@testing:case="mqtt_subscribe_handler_table_csvParser_partial_application"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/csv",p{},sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+publishTableData(host,"dolphindb/csv",10,1..50,100,f{})
+assert 1, sensorInfoTable1.size()==500
+
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/csv"
+assert 2, re.size()==1
+
+mqtt::unsubscribe(conn1)
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/csv"
+assert 3, re.size()==0
+
+@testing:case="mqtt_subscribe_handler_table_jsonParser"
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable2 = table( 10000:0,`hardwareId`ts`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn = mqtt::subscribe(host,1883,"dolphindb/json",p,sensorInfoTable2)
+f=mqtt::createJsonFormatter()
+publishTableData(host,"dolphindb/json",10,100..149,100,f)
+assert 1, sensorInfoTable2.size()==500
+
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/json"
+assert 2, re.size()==1
+
+mqtt::unsubscribe(conn)
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/json"
+assert 3, re.size()==0
+
+@testing:case="mqtt_subscribe_handler_table_jsonParser_partial_application",exception=1
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn = mqtt::subscribe(host,1883,"dolphindb/json",p{},sensorInfoTable1)
+
+f=mqtt::createJsonFormatter()
+
+t = writeData(1..50)
+//conn=mqtt::connect(host,1883,0,f,100)
+conn=mqtt::connect(host,1883,0,f{},100)
+mqtt::publish(conn,"dolphindb/json",t)
+
+@testing:case="mqtt_publish_contain_NULL"
+t = writeData2(1..50)
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/csv",p{},sensorInfoTable1)
+MyFormat = take("", 5)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"dolphindb/csv",t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/json",p{},sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"dolphindb/json",t)
+sleep(1000)
+assert 2,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case = "mqtt_subscribe_handler_function_topic_use_wildcard" 
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		//print ex
+	}
+}
+
+t = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn01 = mqtt::subscribe(host,1883,"ddb/#",,f1{t})
+sleep(100)
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb/test_array",["hello world","welcome"])
+mqtt::publish(conn1,"ddb/test","testing")
+sleep(1000)
+message=["hello world","welcome","testing"]
+topic=["ddb/test_array","ddb/test_array","ddb/test"]
+assert 1,t.size()==3
+assert 2,eqObj(t[`topic],topic)==true
+assert 3,eqObj(t[`message],message)==true
+for(i in 1..100){
+	mqtt::publish(conn1,"ddb/test","testing"+i)
+	sleep(100)
+}
+assert 4,t.size()>3
+
+def f2(mutable t, topic,message) {//received string 
+	try {
+		val=split(message,",")
+		insert into t values(int(val[0]), timestamp(val[1]),now(), double(val[2]),double(val[3]),double(val[4])) 
+	}catch(ex) {
+		//print ex
+	}
+}
+sensorInfoTable = table(10000:0,`deviceID`send_time`recv_time`temperature`humidity`voltage ,[INT, TIMESTAMP,TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn02 = mqtt::subscribe(host,1883,"devStr/#",,f2{sensorInfoTable})
+
+def simulatePubString(server,topic,deviceIds,interval,count){
+	conn= mqtt::connect(server,1883,0, ,)
+	for(i in 0:count){
+		pubstr=string(deviceIds)+ "," + string(now())+"," + string(rand(100.0,1)[0] )+"," + string(rand(100.0,1)[0] )+"," + string(i)
+		mqtt::publish(conn,topic,pubstr)
+		sleep(interval)
+	}
+	mqtt::close(conn)
+}
+
+job1=submitJob("submit_pubstr1", "submit_pub_string", simulatePubString{host,"devStr/string",1, 50, 500})
+getJobReturn(job1, true)
+
+assert 5,sensorInfoTable.size()>0
+
+mqtt::unsubscribe(conn01)
+mqtt::unsubscribe(conn02)
+
+@testing:case="mqtt_unsubscribe_use_subscribe_result"
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		//print ex
+	}
+}
+
+t = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn01 = mqtt::subscribe(host,1883,"ddb/unsubscribe",,f1{t})
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb/unsubscribe",["hello world","welcome"])
+mqtt::publish(conn1,"ddb/unsubscribe","testing")
+sleep(1000)
+assert 1, t.size()==3
+re = select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe"
+assert 2, re.size()==1
+
+mqtt::unsubscribe(conn01)
+re = select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe"
+assert 3, re.size()==0
+
+@testing:case="mqtt_unsubscribe_use_connectionId"
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		//print ex
+	}
+}
+
+t = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn01 = mqtt::subscribe(host,1883,"ddb/unsubscribe",,f1{t})
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb/unsubscribe",["hello world","welcome"])
+mqtt::publish(conn1,"ddb/unsubscribe","testing")
+sleep(1000)
+assert 1, t.size()==3
+re = select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe"
+assert 2, re.size()==1
+
+mqtt::unsubscribe(re[`subscriptionId][0])
+re = select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe"
+assert 3, re.size()==0
+
+@testing:case="mqtt_subscribe_unsubscribe_multiple_times"
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		//print ex
+	}
+}
+
+def myPublish(host, n){
+	conn1=mqtt::connect(host,1883,0,,)
+	mqtt::publish(conn1,"ddb/unsubscribe",take("hello", n))
+	sleep(200)
+}
+
+t = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+for(i in 1..10){
+	print i
+	conn = mqtt::subscribe(host,1883,"ddb/unsubscribe",,f1{t})
+	sleep(100)
+	myPublish(host, 1)
+	sleep(100)
+	assert 1, t.size()==i
+	assert 2, (select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe").size()==1
+	assert 3, (exec receivedPackets from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe")[0]==1
+	mqtt::unsubscribe(conn)
+	assert 4, (select * from mqtt::getSubscriberStat() where topic = "ddb/unsubscribe").size()==0
+}
+
+@testing:case="mqtt_multiple_subscription"
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		writeLog("----------------", string(ex))
+	}
+}
+
+def myPublish(host, n){
+	conn1=mqtt::connect(host,1883,0,,)
+	mqtt::publish(conn1,"ddb/test1",take("hello", n))
+	sleep(200)
+}
+
+t1 = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+t2 = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+t3 = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn1 = mqtt::subscribe(host,1883,"ddb/test1",,f1{t1})
+conn2 = mqtt::subscribe(host,1883,"ddb/test1",,f1{t2})
+conn3 = mqtt::subscribe(host,1883,"ddb/test1",,f1{t3})
+myPublish(host, 1)
+sleep(1000)
+assert 1, t1.size()==1
+assert 2, t2.size()==1
+assert 3, t3.size()==1
+
+mqtt::unsubscribe(conn1)
+myPublish(host, 1)
+sleep(1000)
+assert 4, t1.size()==1
+assert 5, t2.size()==2
+assert 6, t3.size()==2
+
+mqtt::unsubscribe(conn2)
+myPublish(host, 1)
+sleep(1000)
+assert 7, t1.size()==1
+assert 8, t2.size()==2
+assert 9, t3.size()==3
+
+mqtt::unsubscribe(conn3)
+
+//@testing:case="mqtt_subscribe_handler_append_dfs_table"
+//login("admin", "123456")
+//dbName="dfs://test_mqtt"
+//if(existsDatabase(dbName)){
+//	dropDatabase(dbName)
+//}
+//db=database(dbName, VALUE, 1..10)
+//t = table(10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+//pt = db.createPartitionedTable(t, `pt, `deviceID)
+//
+//def f1(dbName, tableName, topic, message) {//received string 
+//	login("admin", "123456")
+//	try {
+//		val=split(message,",")
+//		loadTable(dbName, `pt).tableInsert(table(int(val[0]) as col1, timestamp(val[1]) as col2, double(val[2]) as col3,double(val[3]) as col4,double(val[4]) as col5))
+//	}catch(ex) {
+//		//print(ex)
+//	}
+//}
+//p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+//conn02 = mqtt::subscribe(host,1883,"ddb/test_dfs",p,f1{dbName, `pt})
+//
+//def simulatePubString(server,topic,deviceIds,interval,count){
+//	conn= mqtt::connect(server,1883,0, ,)
+//	for(i in 0:count){
+//		pubstr=string(deviceIds)+ "," + string(now())+"," + string(rand(100.0,1)[0] )+"," + string(rand(100.0,1)[0] )+"," + string(i)
+//		mqtt::publish(conn,topic,pubstr)
+//		sleep(interval)
+//	}
+//	mqtt::close(conn)
+//}
+//
+//job1=submitJob("submit_pubstr1", "submit_pub_string", simulatePubString{host,"ddb/test_dfs",1, 50, 100})
+//getJobReturn(job1, true)
+//
+//assert 1, (exec count(*) from loadTable(dbName, `pt))==100
+//
+//mqtt::unsubscribe(conn02)
+
+//*******************************formatter&parser************************************************//
+@testing:case = "Jsong_formatter_parser"
+use mqtt;
+p = createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],
+`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+def createT(n) {
+ return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.12.30, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol)
+}
+t = createT(100)
+f = mqtt::createJsonFormatter()
+p = createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL],
+`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol)
+s=f(t)
+x=p(s)
+assert 1,all(each(eqObj, t.values(), x.values(),3))==true
+p = createJsonParser([BOOL,CHAR],`bool`char)
+s=f(t)
+try{x1=p(s)}catch(ex){x1=NULL}
+assert isNull(x1) ==true
+
+@testing:case = "csv_formatter_parser"
+p = createCsvParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL])
+MyFormat = take("", 18)
+MyFormat[2] = "0.000"
+MyFormat[5] = "yyyy.MM.dd"
+f = createCsvFormatter(MyFormat)
+t = createT(100)
+s=f(t)
+x=p(s)
+assert 1,all(each(eqObj, t.values(), x.values(),3))==true
+
+@testing:case = "unsubscribe"
+t=mqtt::getSubscriberStat()
+for(sub in t[`subscriptionId]){
+	mqtt::unsubscribe(sub)
+}
+t=mqtt::getSubscriberStat()
+assert 1, t.size()==0
+
+@testing:case="connect_host_fail1", exception=1
+conn1=mqtt::connect(11,1883,0,,)
+@testing:case="connect_host_fail2", exception=1
+conn1=mqtt::connect(host,1883,-1,"fun",)
+@testing:case="connect_host_fail3", exception=1
+conn1=mqtt::connect(host,1883,-1,,-1)
+@testing:case="publish_topic_fail", exception=1
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,1,"testing")
+@testing:case="publish_message_fail", exception=1
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb",)
+@testing:case="publish_message_fail2", exception=1
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb",1)
+@testing:case="sub_fail", exception=1
+conn=mqtt::subscribe(host,1883,"",,t)
+@testing:case="sub_fail3", exception=1
+conn=mqtt::subscribe(host,1883,"topoc",,)
+@testing:case="sub_fail4", exception=1
+conn=mqtt::subscribe(host,1883,"dolphindb/#",,)
+@testing:case="createCsvParser_fail3", exception=1
+p = mqtt::createCsvParser([STRING,],1)
+@testing:case="createCsvParser_fail4", exception=1
+p = mqtt::createCsvParser([STRING,],',',1)
+@testing:case="createCsvParser_fail5", exception=1
+p = mqtt::createCsvParser([STRING,],[',',','])
+@testing:case="createCsvParser_fail6", exception=1
+p = mqtt::createCsvParser([STRING,],',',[',',','])
+@testing:case="createCsvFormatter_fail1", exception=1
+f = mqtt::createCsvFormatter()
+@testing:case="createCsvFormatter_fail2", exception=1
+f = mqtt::createCsvFormatter(take("",5),[','])
+@testing:case="createCsvFormatter_fail3", exception=1
+f = mqtt::createCsvFormatter(take("",5),',',[','])
+@testing:case="createJsonParser_fail1", exception=1
+p = mqtt::createJsonParser([BOOL],`bool`char`short)
+@testing:case="createJsonParser_fail2", exception=1
+p = mqtt::createJsonParser(,)
+@testing:case="createJsonParser_fail3", exception=1
+p = mqtt::createJsonParser()
+@testing:case="createJsonParser_fail3", exception=1
+p = mqtt::createJsonParser([BOOL],[1])
+
+@testing:case = "mqtt_subscribe_handler_fix_buffer_is_full_retry" 
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		//print ex
+	}
+}
+
+t = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn01 = mqtt::subscribe(host,1883,"ddb/#",,f1{t})
+conn1=mqtt::connect(host,1883,0,,)
+mqtt::publish(conn1,"ddb/test_array",["hello world","welcome"])
+mqtt::publish(conn1,"ddb/test","testing")
+sleep(1000)
+message=["hello world","welcome","testing"]
+topic=["ddb/test_array","ddb/test_array","ddb/test"]
+assert 1,t.size()==3
+assert 2,eqObj(t[`topic],topic)==true
+assert 3,eqObj(t[`message],message)==true
+for(i in 1..100){
+	mqtt::publish(conn1,"ddb/test","testing"+i)
+	//sleep(100)
+}
+sleep(5000)
+assert 4,t.size()>3
+
+def f2(mutable t, topic,message) {//received string 
+	try {
+		val=split(message,",")
+		insert into t values(int(val[0]), timestamp(val[1]),now(), double(val[2]),double(val[3]),double(val[4])) 
+	}catch(ex) {
+		//print ex
+	}
+}
+sensorInfoTable = table(10000:0,`deviceID`send_time`recv_time`temperature`humidity`voltage ,[INT, TIMESTAMP,TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn02 = mqtt::subscribe(host,1883,"devStr/#",,f2{sensorInfoTable})
+
+def simulatePubString(server,topic,deviceIds,interval,count){
+	conn= mqtt::connect(server,1883,0, ,)
+	for(i in 0:count){
+		pubstr=string(deviceIds)+ "," + string(now())+"," + string(rand(100.0,1)[0] )+"," + string(rand(100.0,1)[0] )+"," + string(i)
+		mqtt::publish(conn,topic,pubstr)
+		//sleep(interval)
+	}
+	mqtt::close(conn)
+}
+
+job1=submitJob("submit_pubstr1", "submit_pub_string", simulatePubString{host,"devStr/string",1, 50, 500})
+getJobReturn(job1, true)
+sleep(5000)
+assert 5,sensorInfoTable.size()>0
+
+mqtt::unsubscribe(conn01)
+mqtt::unsubscribe(conn02)
+
+@testing:case="mqtt_Json_parser_formatter_json",exception=1
+//dict
+p = mqtt::createJsonParser([BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, UUID, IPADDR, INT128], `cbool`cchar`cshort`cint`clong`cdate`cmonth`ctime`cminute`csecond`cdatetime`ctimestamp`cnanotime`cnanotimestamp`cfloat`cdouble`csymbol`cstring`cuuid`cipaddr`cint128)
+t = {"cbool": true, "cchar": 'A', "cshort": 2, "cint": 3, "clong": 4, "cdate": 2012.01.01, "cmonth": 2012.01M, "ctime": 12:00:00.000, "cminute": 12:00m, "csecond": 12:00:00, "cdatetime": 2012.01.01T00:00:00, "ctimestamp": 2012.01.01T00:00:00.000, "cnanotime": 12:00:00.000000000, "cnanotimestamp": 2012.01.01T12:00:00.000000000, "cfloat": 12.0, "cdouble": 13.0, "csymbol": "A3", "cstring": "B4", "cuuid": "5d212a78-cc48-e3b1-4235-b4d91473ee87", "cipaddr": "192.168.1.3", "cint128": "e1671797c52e15f763380b45e841ec32"}
+
+f = mqtt::createJsonFormatter()
+s=f(t)
+x=p(s)
+assert 1, x[`cbool]==[true]
+assert 2, x[`cchar]==['A']
+assert 3, x[`cshort]==2
+assert 4, x[`cint]==3
+assert 5, x[`clong]==4
+assert 6, x[`cdate]==2012.01.01
+assert 7, x[`cmonth]==2012.01M
+assert 8, x[`ctime]==12:00:00.000
+assert 9, x[`cminute]==12:00m
+assert 10, x[`csecond]==12:00:00
+assert 11, x[`cdatetime]==2012.01.01T00:00:00
+assert 12, x[`ctimestamp]==2012.01.01T00:00:00.000
+assert 13, x[`cnanotime]==12:00:00.000000000
+assert 14, x[`cnanotimestamp]==2012.01.01T12:00:00.000000000
+assert 15, eqObj(x[`cfloat], [12.0f])
+assert 16, eqObj(x[`cdouble], [13.0])
+assert 17, x[`csymbol]=="A3"
+assert 18, x[`cstring]=="B4"
+assert 19, x[`cuuid]==uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")
+assert 20, x[`cipaddr]==ipaddr("192.168.1.3")
+assert 21, x[`cint128]==int128("e1671797c52e15f763380b45e841ec32")
+
+@testing:case="mqtt_json_parser_table_empty_rows",exception=1
+p = mqtt::createJsonParser([INT, STRING, INT], `id`datetime`price)
+t = table(1:0, `id`datetime`price, [INT, STRING, INT])
+f = mqtt::createJsonFormatter()
+s=f(t)
+x=p(s)
+
+@testing:case="mqtt_json_parser_dict_value_vector",exception=1
+p = mqtt::createJsonParser([INT, STRING, INT], `id`datetime`price)
+t = dict(STRING, ANY)
+t[`id] = 1..10
+t[`datetime]=take("2012.01.01", 10)
+t[`price]=1..10
+f = mqtt::createJsonFormatter()
+s=f(t)
+x=p(s)
+
+@testing:case="mqtt_json_parser_table_huge_data"
+p = mqtt::createJsonParser([INT, STRING, SYMBOL, INT], `id`sym`str`price)
+n = 2000000
+t = table(rand(1..10, n) as id, "A"+string(1..n) as sym, rand("B"+string(1..1000), n) as str, rand(1..100, n) as price)
+f = mqtt::createJsonFormatter()
+s=f(t)
+x=p(s)
+assert 1, each(eqObj, t.values(), x.values())
+
+@testing:case="MQTT_ERROR_SEND_BUFFER_IS_FULL", exception = 1
+f = mqtt::createJsonFormatter()
+conn = mqtt::connect(host, 1883, , , , , , 4)
+for(loopNum in 1..2){
+	re = mqtt::publish(conn, "ddb/buffer_full", table(now() as timestamp, loopNum as id, loopNum as val, "A"+string(loopNum) as str))
+	//print(re)
+}
+mqtt::close(conn)
+
+//https://dolphindb1.atlassian.net/browse/DPLG-680
+@testing:case="mqtt_publish_with_wrong_connection", exception=1
+port = 1883
+f = mqtt::createJsonFormatter()
+conn = mqtt::connect(host, port, 0, f, 5)
+re = mqtt::publish(conn, "topic1", table(now() as timestamp, 1 as id, 1 as val, "A"+string(1) as str))
+	
+p = mqtt::createJsonParser([TIMESTAMP, INT, INT, STRING], `timestamp`id`val`str)
+subTable = streamTable(1000000:0,`timestamp`id`val`str ,[TIMESTAMP, INT, INT, STRING])
+conn = mqtt::subscribe(host, port,"topic1", p, subTable)
+re = mqtt::publish(conn, "topic1", table(now() as timestamp, 1 as id, 1 as val, "A"+string(1) as str))
+
+mqtt::getSubscriberStat()
+
+@testing:case="clear"
+mqtt::unsubscribe(conn)
+conn = NULL
+
+@testing:case="mqtt_close_with_wrong_connection", exception=1
+port = 1883
+f = mqtt::createJsonFormatter()
+conn = mqtt::connect(host, port, 0, f, 5)
+re = mqtt::publish(conn, "topic1", table(now() as timestamp, 1 as id, 1 as val, "A"+string(1) as str))
+	
+p = mqtt::createJsonParser([TIMESTAMP, INT, INT, STRING], `timestamp`id`val`str)
+subTable = streamTable(1000000:0,`timestamp`id`val`str ,[TIMESTAMP, INT, INT, STRING])
+conn = mqtt::subscribe(host, port,"topic1", p, subTable)
+mqtt::close(conn)
+
+@testing:case="clear"
+mqtt::unsubscribe(conn)
+conn = NULL
+
+@testing:case="mqtt_conn_close",exception=1
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable2 = table( 10000:0,`hardwareId`ts`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/json",p,sensorInfoTable2)
+
+f=mqtt::createJsonFormatter()
+server = host
+conn=mqtt::connect(server,1883,0,f,100)
+
+iterations = 10
+hardwareVector = 51..100 
+t = writeData(hardwareVector)
+topic = "dolphindb/json"
+interval = 100
+mqtt::close(conn)
+mqtt::publish(conn,topic,t)
+
+@testing:case="mqtt_conn_clear"
+mqtt::unsubscribe(conn1)
+
+@testing:case="mqtt_conn_NULL",exception=1
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable2 = table( 10000:0,`hardwareId`ts`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/json",p,sensorInfoTable2)
+
+conn=NULL
+
+hardwareVector = 51..100 
+t = writeData(hardwareVector)
+topic = "dolphindb/json"
+
+mqtt::publish(conn,topic,t)
+
+@testing:case="mqtt_conn_clear"
+mqtt::unsubscribe(conn1)
+
+@testing:case="mqtt_subscribe_multiple_thread"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+
+def msubscribe(host,topic,parser,handler){//topic = "dolphindb/csv";handler = sensorInfoTable1;parser =p
+	conns = []
+	for(i in 0..10){
+		conns.append!(mqtt::subscribe(host,1883,topic,parser,handler))
+	}
+	return conns;
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_subscribe","multiple_thread_subscribe",msubscribe{host,"dolphindb/csv",p,sensorInfoTable1})) 
+}
+for(i in 0..10){
+	getJobReturn(jobs[i],true)
+}
+
+@testing:case="mqtt_getSubscriberStat_multiple_thread"
+def mgetSubscriberStat(){
+	for(i in 0..10){
+		res = mqtt::getSubscriberStat()
+		assert 1,res.size() > 0
+	}
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_SubscriberStat","multiple_thread_SubscriberStat",mgetSubscriberStat)) 
+}
+for(i in 0..10){
+	getJobReturn(jobs[i],true)
+}
+
+@testing:case="mqtt_unsubscribe_multiple_thread"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/csv",p,sensorInfoTable1)
+def munsubscribe(handle){
+	for(i in 0..10){
+		mqtt::unsubscribe(handle) 
+	}
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_unsubscribe","multiple_thread_unsubscribe",munsubscribe{conn1})) 
+}
+for(i in 0..10){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(exception){
+		assert 1,exception[1] like "%Invalid connection object.%"
+	}
+}
+
+@testing:case="mqtt_subscribe_handler_table_csvParser_multiple_thread"
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/mt",p,sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+server = host
+conn=mqtt::connect(server,1883,0,f,100)
+
+def mulThread(conn,f){
+	iterations = 10
+	hardwareVector = 51..100 
+	topic = "dolphindb/mt"
+	interval = 100
+	for(i in 0:iterations){
+		t=writeData(hardwareVector)
+		mqtt::publish(conn,topic,t)
+	}
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_csvParser","multiple_thread_csvParser",mulThread,conn,f)) 
+}
+for(i in 0..10){
+	getJobReturn(jobs[i],true)
+}
+mqtt::close(conn)
+sleep(10000)
+assert 1,size(sensorInfoTable1) == 5500
+
+res = exec errorMsg from getRecentJobs() where jobId like "%multiple_thread_csvParser%"
+assert 2,each(isNull,res)
+
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/mt"
+assert 3, re.size()==1
+
+mqtt::unsubscribe(conn1)
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/mt"
+assert 4, re.size()==0
+
+@testing:case="mqtt_createCsvFormatter_multiple_thread"
+def createCsvFormatter_multiple_thread(){
+	MyFormat = take("", 5)
+	MyFormat[2] = "0.000"
+	for(i in 0..10){
+		f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+	}
+}
+jobIds = []
+for(i in 0..10){
+	jobIds.append!(submitJob("createCsvFormatter_multiple_thread","createCsvFormatter_multiple_thread",createCsvFormatter_multiple_thread))
+}
+for(i in 0..10){
+	getJobReturn(jobIds[i],true)
+}
+res = exec errorMsg from getRecentJobs() where jobId like "%createCsvFormatter_multiple_thread%"
+assert 1,each(isNull,res)
+
+@testing:case="mqtt_close_multiple_thread"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+def mclose(conn){
+	for(i in 0..10){
+		mqtt::close(conn)
+	}
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_close","multiple_thread_close",mclose,conn)) 
+}
+for(i in 0..10){
+	try{
+		getJobReturn(jobs[i],true)
+	}catch(exx){
+		
+	}
+}
+
+@testing:case="mqtt_subscribe_handler_table_jsonParser_multiple_thread"
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE],`hardwareId`ts`temperature`humidity`voltage )
+sensorInfoTable2 = table( 10000:0,`hardwareId`ts`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/json",p,sensorInfoTable2)
+
+f=mqtt::createJsonFormatter()
+server = host
+conn=mqtt::connect(server,1883,0,f,100)
+
+def mulThread(conn,f){
+	iterations = 10
+	hardwareVector = 51..100 
+	topic = "dolphindb/json"
+	interval = 100
+	for(i in 0:iterations){
+		t=writeData(hardwareVector)
+		mqtt::publish(conn,topic,t)
+	}
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_jsonParser","multiple_thread_jsonParser",mulThread,conn,f)) 
+}
+for(i in 0..10){
+	getJobReturn(jobs[i],true)
+}
+sleep(100)
+mqtt::close(conn)
+assert 1,size(sensorInfoTable1) == 50*11*10
+
+res = exec errorMsg from getRecentJobs() where jobId like "%multiple_thread_jsonParser%"
+assert 2,each(isNull,res)
+
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/json"
+assert 3, re.size()==1
+
+mqtt::unsubscribe(conn1)
+re = select * from mqtt::getSubscriberStat() where topic = "dolphindb/json"
+assert 4, re.size()==0
+
+@testing:case="mqtt_createJsonFormatter_multiple_thread"
+def createJsonFormatter_multiple_thread(){
+	for(i in 0..10){
+		f=mqtt::createJsonFormatter()
+	}
+}
+jobIds = []
+for(i in 0..10){
+	jobIds.append!(submitJob("createJsonFormatter_multiple_thread","createJsonFormatter_multiple_thread",createCsvFormatter_multiple_thread))
+}
+for(i in 0..10){
+	getJobReturn(jobIds[i],true)
+}
+res = exec errorMsg from getRecentJobs() where jobId like "%createJsonFormatter_multiple_thread%"
+assert 1,each(isNull,res)
+
+@testing:case="mqtt_connect_multiple_thread"
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+def mconn(server,f){
+	conns = []
+	for(i in 0..10){
+		conn=mqtt::connect(server,1883,0,f,100)
+		conns.append!(conn)
+	}
+	return conns
+}
+jobs = []
+for(i in 0..10){
+	jobs.append!(submitJob("multiple_thread_conn","multiple_thread_conn",mconn,host,f)) 
+}
+//for(i in 0..10){
+//	conns = getJobReturn(jobs[i],true)
+//	for(conn in conns){
+		//assert 1, mqtt::close(conn) == 1
+//	}
+//}
+
+@testing:case="mqtt_publish_all_dataType_table"
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"dolphindb/all_dateType_table_csv",t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+p = mqtt::createJsonParser(schema(t).colDefs[`typeInt],schema(t).colDefs[`name])
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_json",p,sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"dolphindb/all_dateType_table_json",t)
+sleep(1000)
+assert 2,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="mqtt_formatCsv_not_table",exception=1
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+f(1)
+
+@testing:case="mqtt_formatCsv_NULL",exception=1
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+f(NULL)
+
+@testing:case="mqtt_formatCsv_format_size_not_match",exception=1
+MyFormat = take("", 1)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+t = table(`a as a1,`b as b1)
+f(t)
+
+@testing:case="mqtt_formatCsv_format_size_0"
+MyFormat = take("", 0)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+t = table(`a as a1,`b as b1)
+assert 1, f(t) == "a,b;"
+
+@testing:case="mqtt_parseCsv_symbol_uuid_int128_ipaddr"
+MyFormat = take("", 4)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+t = table(symbol(`a`a) as a1,int128(`e1671797c52e15f763380b45e841ec32`e1671797c52e15f763380b45e841ec32) as b1,uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee87","5d212a78-cc48-e3b1-4235-b4d91473ee87"]) as c1,ipaddr(["192.168.1.13","192.168.1.13"]) as d1)
+fcsv = f(t)
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+res = p(fcsv)
+assert 1, each(eqObj,res.values(),t.values())
+
+@testing:case="mqtt_parserjson_key_error",exception =1 
+p = mqtt::createJsonParser(schema(t).colDefs[`typeInt],schema(t).colDefs[`name])
+ft = '[{"b": "a"}]'
+p(ft)
+
+@testing:case="mqtt_parserjson_symbol"
+f = mqtt::createJsonFormatter()
+t = table(symbol(`a`a) as a1) 
+p = mqtt::createJsonParser(schema(t).colDefs[`typeInt],schema(t).colDefs[`name])
+assert 1, each(eqObj,p(f(t)).values(),t.values()) 
+
+// https://dolphindb1.atlassian.net/browse/DPLG-1991
+@testing:case="mqtt_subscribe_without_password_bug",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+
+conn = mqtt::subscribe(host, 1883, "sensor/#", p, sensorInfoTable, "a")
+
+// https://dolphindb1.atlassian.net/browse/DPLG-970
+@testing:case="mqtt_send_huge_data_size_bug"
+//***************************publish a table****************************************//
+use mqtt
+MQTT_Server_host = host;
+MQTT_Server_port = 1883;
+MQTT_Server_topic = "MQTTtest4"
+
+f =  mqtt::createJsonFormatter()
+
+f_col_names = `daT`step`fre`taN`clN`uni`daty`rows
+f_col_types = [STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING]
+share(streamTable(10000:0, f_col_names,f_col_types), `inputTable)
+n = 59
+def writeData(n){
+    timeminutes = 2023.01.01T00:00:00.000 + (0..29)*120000
+    tmpT = table(1:0,objByName(`inputTable).schema().colDefs.name, objByName(`inputTable).schema().colDefs.typeString)
+    minutes = 2023.01.01T00:00:00.000
+    for(minutes in timeminutes){
+		daT, step,fre,taN,clN,uni,daty,val= take("DM",n),take(string(2000),n),take(string(120000),n),take("ta",n),take("cl"+string(1..n),n),take("un"+string(1..n),n),take(string(5),n),take("[[523.210000000000036,1672531202000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192],[502.990000000000009,1672531204000,192]]",n)
+        
+		tmpT.append!(table(daT,step,fre,taN,clN,uni,daty,val))
+	}	
+	return tmpT
+}
+
+ def publishTableData(msg,server,topic,n,interval,f){
+    conn=connect(server,1883,0,f,100, , , 40960000)
+    
+    t=msg
+    schema(t)
+    publish(conn,topic,t)
+    sleep(interval)
+    
+    close(conn)
+         
+}
+
+subscribeTable(tableName="inputTable", actionName="TestToMqtt1", offset=0, batchSize=100,throttle=1,handler=publishTableData{,MQTT_Server_host,MQTT_Server_topic,50,100,f}, msgAsTable=true, reconnect=true)
+
+//*******************************subscribe : handler is a table************************************************//
+p = createJsonParser([STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING],`daT`step`fre`taN`clN`uni`daty`rows)
+sensorInfoTable = streamTable( 10000:0,`daT`step`fre`taN`clN`uni`daty`rows ,[STRING,STRING,STRING,STRING,STRING,STRING,STRING,STRING])
+share sensorInfoTable as `outputTable
+conn = mqtt::subscribe(MQTT_Server_host,1883,MQTT_Server_topic,p,sensorInfoTable, , , 40960000)
+
+go;
+
+inputTable.append!(writeData(1))
+sleep(3000)
+assert 1, each(eqObj, inputTable.values(), outputTable.values())
+
+t = getStreamingStat().pubTables
+for(row in t){
+	tableName = row.tableName
+	actions = split(substr(row.actions, 0, strlen(row.actions)), ",")
+	for(action in actions){
+		unsubscribeTable(tableName=tableName, actionName=action)
+	}
+}
+try{dropStreamTable(`inputTable)}catch(ex){print(ex)}
+try{dropStreamTable(`outputTable)}catch(ex){print(ex)}
+
+//取消mqtt 订阅
+t = mqtt::getSubscriberStat()  
+for(row in t)
+{
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+/*
+undef(all)
+clearAllCache()
+*/
+
+// https://dolphindb1.atlassian.net/browse/DPLG-1223
+@testing:case="mqtt_createPublisher_args_less", syntaxError = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+
+mqtt::createPublisher(conn, "sensor/s001", colNames)
+
+@testing:case="mqtt_createPublisher_args_more", syntaxError = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, SYMBOL, INT]
+
+mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes, 1)
+
+@testing:case="mqtt_createPublisher_conn_int", exception = 1
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, SYMBOL, INT]
+
+mqtt::createPublisher(1, "sensor/s001", colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_conn_string", exception = 1
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, SYMBOL, INT]
+
+mqtt::createPublisher("conn", "sensor/s001", colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_conn_NULL", exception = 1
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, SYMBOL, INT]
+
+mqtt::createPublisher(NULL, "sensor/s001", colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_conn_closed", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+mqtt::close(conn)
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+res = table(1000:0, colNames, colTypes)
+p = createCsvParser([TIMESTAMP, STRING, INT], ',', ';' )
+subConn = mqtt::subscribe(host, 1883, "sensor/#", p, res)
+
+sleep(500)
+append!(publisher, table(timestamp(now()) as ts, `s001 as hardwareId, 100 as val))
+
+select * from res
+
+@testing:case="mqtt_createPublisher_topic_int", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, 1, colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_topic_string_vector", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, ["sensor/s001"], colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_topic_NULL", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, NULL, colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_colNames_int", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", 1, colTypes)
+
+@testing:case="mqtt_createPublisher_colNames_string", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", `col, colTypes)
+
+@testing:case="mqtt_createPublisher_colNames_length_unconsistent_with_colTypes", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_colTypes_int", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, 1)
+
+@testing:case="mqtt_createPublisher_colTypes_string", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, [`TIMESTAMP, `STRING, `INT])
+
+@testing:case="mqtt_createPublisher_colTypes_NULL", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, NULL)
+
+@testing:case="mqtt_createPublisher_colTypes_unconsistent_with_outputTable", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, DOUBLE]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+res = table(1000:0, colNames, [TIMESTAMP, STRING, INT])
+p = mqtt::createCsvParser([TIMESTAMP, STRING, INT], ',', ';' )
+subConn = mqtt::subscribe(host, 1883, "sensor/#", p, res)
+
+sleep(500)
+append!(publisher, table(timestamp(now()) as ts, `s001 as hardwareId, 100 as val))
+
+@testing:case="mqtt_createPublisher_colTypes_append_matrix", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+res = table(1000:0, colNames, colTypes)
+p = mqtt::createCsvParser([TIMESTAMP, STRING, INT], ',', ';' )
+subConn = mqtt::subscribe(host, 1883, "sensor/#", p, res)
+
+sleep(500)
+append!(publisher, 1..6$2:3)
+
+@testing:case="mqtt_createPublisher_colTypes_append_vector", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+res = table(1000:0, colNames, colTypes)
+p = mqtt::createCsvParser([TIMESTAMP, STRING, INT], ',', ';' )
+subConn = mqtt::subscribe(host, 1883, "sensor/#", p, res)
+
+sleep(500)
+append!(publisher, [timestamp(now()), `s001, 10])
+
+@testing:case="mqtt_createPublisher_prepare"
+def writeData(hardwareVector){
+	hardwareNumber = size(hardwareVector)
+	return table(take(hardwareVector,hardwareNumber) as hardwareId ,take(now(),
+		hardwareNumber) as ts,double(rand(20..41,hardwareNumber)) as temperature,
+		double(rand(50,hardwareNumber)) as humidity,double(rand(500..1000,
+		hardwareNumber)) as voltage)
+}
+
+def writeData2(hardwareVector){//hardwareVector=1..50
+	hardwareNumber = size(hardwareVector)
+	return table(rand((take(hardwareVector,hardwareNumber) join NULL),hardwareNumber) as hardwareId ,rand(take(now(),hardwareNumber) join NULL,hardwareNumber) as ts,double(rand(rand(20..41,hardwareNumber) join NULL,hardwareNumber)) as temperature,double(rand(rand(50,hardwareNumber) join NULL,hardwareNumber)) as humidity,double(rand(rand(500..1000,hardwareNumber) join NULL,hardwareNumber)) as voltage)
+}
+
+def publishTableData(server,topic,iterations,hardwareVector,interval,f){
+	conn=mqtt::connect(server,1883,0,f,100)
+	for(i in 0:iterations){
+		t=writeData(hardwareVector)
+		mqtt::publish(conn,topic,t)
+	}
+	sleep(interval)
+	mqtt::close(conn)
+}
+
+@testing:case="mqtt_createPublisher_use_same_conn"
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE]
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';')
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+connSub = mqtt::subscribe(host, 1883, "use_same_con/csv", p, sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..50)
+conn = mqtt::connect(host, 1883, 0, f, 100)
+
+for(i in 0..100){
+	publisher = mqtt::createPublisher(conn,"use_same_con/csv", colNames, colTypes)
+	publisher.append!(t)
+}
+
+sleep(1000)
+assert 1, sensorInfoTable1.size()==5050
+mqtt::unsubscribe(connSub)
+
+@testing:case="mqtt_createPublisher_use_same_conn_multiple_thread"
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+connSub = mqtt::subscribe(host,1883,"use_same_con/csv", p, sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..50)
+
+def myPublish(mutable publisher, t) {
+	publisher.append!(t)
+}
+
+conn = mqtt::connect(host, 1883, 0, f, 100)
+ids = []
+for(i in 0..100){
+	publisher = mqtt::createPublisher(conn, "use_same_con/csv", colNames, colTypes)
+	ids.append!(submitJob("conn_multiple_thread", "conn_multiple_thread", myPublish, publisher, t))
+}
+for(i in 0..100){
+	getJobReturn(ids[i],true)
+}
+sleep(1000)
+assert 1, sensorInfoTable1.size()==5050
+mqtt::unsubscribe(connSub)
+
+@testing:case="mqtt_createPublisher_huge_array"
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+connSub = mqtt::subscribe(host, 1883, "huge_array/csv", p, sensorInfoTable1)
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..100000)
+conn=mqtt::connect(host, 1883, 0, f, 100)
+publisher = mqtt::createPublisher(conn, "huge_array/csv", colNames, colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1, sensorInfoTable1.size()==100000
+mqtt::unsubscribe(connSub)
+mqtt::close(conn)
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], `hardwareId`ts`temperature`humidity`voltage)
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+connSub = mqtt::subscribe(host, 1883, "huge_array/json", p, sensorInfoTable1)
+
+f = mqtt::createJsonFormatter()
+conn=mqtt::connect(host,1883,0,f,100)
+t = writeData(1..100000)
+publisher = mqtt::createPublisher(conn, "huge_array/json", colNames, colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 2, sensorInfoTable1.size()==100000
+mqtt::unsubscribe(connSub)
+mqtt::close(conn)
+
+@testing:case="mqtt_createPublisher_contain_NULL"
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+t = writeData2(1..50)
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], ',', ';')
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+conn1 = mqtt::subscribe(host, 1883, "dolphindb/csv", p{}, sensorInfoTable1)
+MyFormat = take("", 5)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host, 1883, 0, f, 100)
+publisher = mqtt::createPublisher(conn, "dolphindb/csv", colNames, colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], `hardwareId`ts`temperature`humidity`voltage)
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+conn1 = mqtt::subscribe(host,1883, "dolphindb/json", p{}, sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host, 1883, 0, f, 100)
+publisher = mqtt::createPublisher(conn, "dolphindb/json", colNames, colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 2,each(eqObj, t.values(), sensorInfoTable1.values())
+
+@testing:case = "mqtt_createPublisher_topic_use_wildcard" 
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], ',', ';' )
+sensorInfoTable1 = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+connSub = mqtt::subscribe(host, 1883, "wildcard/#", p, sensorInfoTable1, "admin", "123456")
+
+MyFormat = take("", 5)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+
+t = writeData(1..10)
+conn=mqtt::connect(host, 1883, 0, f, 100, "admin", "123456")
+publisher = mqtt::createPublisher(conn, "wildcard/card", colNames, colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1, sensorInfoTable1.size()==10
+
+insert into publisher values(10000, now(), 2.0, 5.0, 5.6)
+sleep(1000)
+assert 2, sensorInfoTable1.size()==11
+
+share streamTable(1000:0, colNames, colTypes) as trades
+subscribeTable(tableName="trades", actionName="engine1", offset=0, handler=append!{publisher}, msgAsTable=true);
+
+insert into trades values(10001, now(), 2.0, 5.0, 5.6)
+insert into trades values(10002, now(), 2.0, 5.0, 5.6)
+insert into trades values(10003, now(), 2.0, 5.0, 5.6)
+
+sleep(1000)
+assert 3, sensorInfoTable1.size()==14
+
+try {unsubscribeTable(, `trades, `engine1)} catch(ex) {}
+try {undef(`trades, SHARED)} catch(ex) {}
+
+mqtt::unsubscribe(connSub)
+mqtt::close(conn)
+
+@testing:case="mqtt_createPublisher_all_dataType_table"
+colTypes = [INT, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, INT128, UUID, IPADDR]
+
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+publisher = mqtt::createPublisher(conn, "dolphindb/all_dateType_table_csv", schema(t).colDefs[`name], colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+p = mqtt::createJsonParser(schema(t).colDefs[`typeInt],schema(t).colDefs[`name])
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_json",p,sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host,1883,0,f,100)
+publisher = mqtt::createPublisher(conn, "dolphindb/all_dateType_table_json", schema(t).colDefs[`name], colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 2,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="mqtt_connect_args_password_unset",exception = 1
+conn=mqtt::connect(host,1883,0,,,"admin");
+
+@testing:case="mqtt_connect_args_password_NULL",exception = 1
+conn=mqtt::connect(host,1883,0,,,"admin", NULL);
+
+@testing:case="mqtt_connect_args_QoS_>2",exception = 1
+conn=mqtt::connect(host,1883,3);
+
+@testing:case="mqtt_subscribe_port_int_<_1",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,0,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_port_int_>_65535",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,65536,"ddd/csv",p,sensorInfoTable,"","")
+
+@testing:case="mqtt_subscribe_parser_password_empty",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"a")
+
+@testing:case="mqtt_subscribe_parser_password_NULL",exception = 1
+p = mqtt::createCsvParser([INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE], ',', ';' )
+sensorInfoTable = table( 10000:0,`deviceID`send_time`temperature`humidity`voltage ,[INT, TIMESTAMP, DOUBLE, DOUBLE,DOUBLE])
+mqtt::subscribe(host,1883,"ddd/csv",p,sensorInfoTable,"a", NULL)
+
+@testing:case="mqtt_publish_string_dict",exception = 1
+def f1(mutable t, topic,message) {//received string 
+	try {
+		insert into t values(message,topic,now()) 
+	}catch(ex) {
+		writeLog("----------------", string(ex))
+	}
+}
+
+def myPublish(host, n){
+	conn1=mqtt::connect(host,1883,0,,)
+	mqtt::publish(conn1,"ddb/test1", dict(["key"], ["value"]))
+	sleep(200)
+}
+
+t1 = table(10000:0,`message`topic`recv_time ,[STRING,SYMBOL, TIMESTAMP])
+conn1 = mqtt::subscribe(host,1883,"ddb/test1",,f1{t1})
+myPublish(host, 1)
+
+@testing:case="mqtt_createPublisher_conn_resource_not_mqtt_publish_connection", exception = 1
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+re = kmeans(table(norm(1.0, 1.0, 50) as x0, norm(1.0, 1.5, 50) as x1), 1).model
+mqtt::createPublisher(re, "dolphindb/all_dateType_table_json", colNames, colTypes)
+
+@testing:case="mqtt_createPublisher_colTypes_append_vector_size_1", exception = 1
+MyFormat = take("", 3)
+MyFormat[2] = "0.000"
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn = mqtt::connect(host, 1883, 0, f, 100)
+colNames = [`ts, `hardwareId, `val]
+colTypes = [TIMESTAMP, STRING, INT]
+
+publisher = mqtt::createPublisher(conn, "sensor/s001", colNames, colTypes)
+
+res = table(1000:0, colNames, colTypes)
+p = mqtt::createCsvParser([TIMESTAMP, STRING, INT], ',', ';' )
+subConn = mqtt::subscribe(host, 1883, "sensor/#", p, res)
+
+sleep(500)
+append!(publisher, [10])
+
+@testing:case = "mqtt_createJsonParser_key_error"  // error message in log
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+t = writeData2(1..50)
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, INT, DOUBLE, DOUBLE], `hardwareId`ts`error`humidity`voltage)
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+conn1 = mqtt::subscribe(host,1883, "dolphindb/json", p{}, sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host, 1883, 0, f, 100)
+publisher = mqtt::createPublisher(conn, "dolphindb/json", colNames, colTypes)
+publisher.append!(t)
+
+@testing:case = "mqtt_createJsonParser_type_unsupport", exception = 1
+def createT(n) {
+    return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol, take(datehour(now()), n) as vdatehour)
+}
+t = createT(100)
+f = mqtt::createJsonFormatter()
+p = mqtt::createJsonParser([BOOL,CHAR,SHORT,INT,LONG,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP,FLOAT,DOUBLE,STRING,SYMBOL,DATEHOUR],
+`bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string`symbol`vdatehour)
+s=f(t)
+x=p(s)
+
+@testing:case = "mqtt_createJsonParser_key_error", exception = 1
+colNames = `deviceID`send_time`temperature`humidity`voltage
+colTypes = [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE]
+t = table([1, 2] as deviceID, take(now(), 2) as send_time, rand(20.0, 2) as temperature, rand(20.0, 2) as humidity, rand(20.0, 2) as voltage, rand(20.0, 2) as col)
+
+p = mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], `hardwareId`ts`temperature`humidity`voltage)
+sensorInfoTable1 = table( 10000:0, `deviceID`send_time`temperature`humidity`voltage, [INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE])
+conn1 = mqtt::subscribe(host,1883, "dolphindb/json", p{}, sensorInfoTable1)
+f=mqtt::createJsonFormatter()
+conn=mqtt::connect(host, 1883, 0, f, 100)
+publisher = mqtt::createPublisher(conn, "dolphindb/json", colNames, colTypes)
+publisher.append!(t)
+
+@testing:case = "mqtt_createJsonParser_format_NULL", exception = 1
+mqtt::createJsonParser([INT, TIMESTAMP, DOUBLE, DOUBLE, DOUBLE], dict(["key"], ["value"]))
+
+// https://dolphindb1.atlassian.net/browse/DPLG-2503
+@testing:case = "mqtt_sync_pub"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt)
+
+def pub(msg, host, port){
+    conn = mqtt::connect(host, port)
+    mqtt::publish(conn,"dolphindb/topic1",msg)
+    print(msg)
+}
+pub("pub"+string(1..1000), host, port)
+
+sleep(1000)
+num = (exec receivedPackets from mqtt::getSubscriberStat())[0]
+
+assert 1, num == 1000
+
+@testing:case = "mqtt_subscribe_callback_exception"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+def handleFunc(mutable t, topic, message) {//received string 
+	insert into t values(message, topic, now())
+}
+
+t = table(10000:0,`message`topic`recv_time ,[INT, SYMBOL, TIMESTAMP])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host, port, "dolphindb/topic1", p{}, handleFunc{t})
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn, "dolphindb/topic1", "pub"+string(1..1000))
+
+sleep(1000)
+num = (exec receivedPackets from mqtt::getSubscriberStat())[0]
+
+assert 1, size(t) == 0
+
+@testing:case = "mqtt_subscribe_outputTable_exception"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [INT])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host, port, "dolphindb/topic1", p{}, opt)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn, "dolphindb/topic1", "pub"+string(1..3))
+
+sleep(1000)
+num = (exec receivedPackets from mqtt::getSubscriberStat())[0]
+
+assert 1, exec count(*) from opt == 0
+
+@testing:case="mqtt_createCsvFormatter_format_NULL", exception = 1
+def createT(n) {
+    return table(take([false, true], n) as bool, take('a'..'z', n) as char, take(short(-5..5), n) as short, take(-5..5, n) as int, take(-5..5, n) as long, take(2001.01.01..2010.01.01, n) as date, take(2001.01M..2010.01M, n) as month, take(time(now()), n) as time, take(minute(now()), n) as minute, take(second(now()), n) as second, take(datetime(now()), n) as datetime, take(now(), n) as timestamp, take(nanotime(now()), n) as nanotime, take(nanotimestamp(now()), n) as nanotimestamp, take(3.1415, n) as float, take(3.1415, n) as double, take(`AAPL`IBM, n) as string, take(`AAPL`IBM, n) as symbol)
+}
+t = createT(100)
+f = mqtt::createCsvFormatter(NULL,char(NULL))
+s = f(t)
+
+// https://dolphindb1.atlassian.net/browse/DPLG-2925
+@testing:case = "mqtt_check_username_password_without_username_password_subscribe", exception = 1
+// use port 1882
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port_p = 1882
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port_p,"dolphindb/topic1",p{},opt)
+
+@testing:case = "mqtt_check_username_password_without_username_password_connect", exception = 1
+// use port 1882
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port_p = 1882
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port_p,"dolphindb/topic1",p{},opt,"admin", "654321")
+
+conn = mqtt::connect(host, port_p)
+
+@testing:case = "mqtt_check_username_password_error_password_subscribe", exception = 1
+// use port 1882
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port_p = 1882
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port_p,"dolphindb/topic1",p{},opt, "admin", "error")
+
+@testing:case = "mqtt_check_username_password_error_password_connect", exception = 1
+// use port 1882
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port_p = 1882
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port_p,"dolphindb/topic1",p{},opt,"admin", "654321")
+
+conn = mqtt::connect(host, port_p, , , , "admin", "error")
+
+@testing:case = "mqtt_check_username_password"
+// use port 1882
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port_p = 1882
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port_p,"dolphindb/topic1",p{},opt,"admin", "654321")
+
+conn = mqtt::connect(host, port_p, , , , "admin", "654321")
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+
+// https://dolphindb1.atlassian.net/browse/DPLG-3019
+@testing:case="test_mqtt_subscribe_config_int", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , 1)
+
+@testing:case="test_mqtt_subscribe_config_key_int", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(INT, STRING)
+config[1] = "id_1"
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_subscribeID_int", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["subscribeID"] = 1
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_asyncFlag_string", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["asyncFlag"] = "true"
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_key_error"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["error"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_empty"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_asyncFlag_NULL"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["asyncFlag"] = NULL
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_subscribeID_empty"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["subscribeID"] = ""
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_subscribeID"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["subscribeID"] = "id_1"
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+/*
+@testing:case="test_mqtt_subscribe_config_diff_subscribe_same_subscribeID"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+opt1 = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["subscribeID"] = "id_1"
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+mqtt::subscribe(host,port,"dolphindb/topic2",p{},opt1, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+mqtt::publish(conn,"dolphindb/topic2","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+assert 2, (exec count(*) from opt1) == 1000
+mqtt::close(conn)
+*/
+
+@testing:case="test_mqtt_subscribe_config_asyncFlag_true"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_asyncFlag_false"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["asyncFlag"] = false
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_asyncFlag_true_subscribeID"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["asyncFlag"] = true
+config["subscribeID"] = "id_1"
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_sendBufSize_negative", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = -1
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_sendBufSize_too_small", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 20
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_sendBufSize_double", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 20480.6
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_sendBufSize_int_vector", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = [1, 2]
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+@testing:case="test_mqtt_subscribe_config_set_sendBufSize"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 20480
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_subscribe_config_set_sendBufSize_asyncFlag_subscribeID"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_connect_config_int", exception = 1
+port = 1883
+conn = mqtt::connect(host, port, , , , , , 1, 1)
+
+@testing:case="test_mqtt_connect_config_key_int", exception = 1
+port = 1883
+config = dict(INT, ANY)
+config[1] = 1
+conn = mqtt::connect(host, port, , , , , , 1, config)
+
+@testing:case="test_mqtt_connect_config_key_error"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["error"] = 20480
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_connect_config_empty"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_connect_config_recvBufSize_negative", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["recvBufSize"] = -1
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+@testing:case="test_mqtt_connect_config_recvBufSize_double", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["recvBufSize"] = 20480.5
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+@testing:case="test_mqtt_connect_config_recvBufSize_int_vector", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["recvBufSize"] = [3, 4]
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+@testing:case="test_mqtt_connect_config_recvBufSize_too_small", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["recvBufSize"] = 1
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+@testing:case="test_mqtt_connect_config_set_recvBufSize"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["recvBufSize"] = 102400
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_connect_config_clientID_int", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = 1
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+@testing:case="test_mqtt_connect_config_clientID_string_vector", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = ["hello", "world"]
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+
+/*
+@testing:case="test_mqtt_connect_config_clientID_same_id", exception = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+opt1 = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+mqtt::subscribe(host,port,"dolphindb/topic2",p{},opt1)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = "hello"
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+conn1 = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+mqtt::publish(conn1,"dolphindb/topic2","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+*/
+
+@testing:case="test_mqtt_connect_config_set_clientID"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = "hello"
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_mqtt_connect_config_set_clientID_recvBufSize"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = "hello"
+config_connect["recvBufSize"] = 1000000
+conn = mqtt::connect(host, port, , , , , , 40960, config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+// https://dolphindb1.atlassian.net/browse/DPLG-4419
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_empty", exception = 1
+mqtt::setLogLevel()
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_args_over", syntaxError = 1
+mqtt::setLogLevel(INFO, 2)
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_string", exception = 1
+mqtt::setLogLevel("INFO")
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_double", exception = 1
+mqtt::setLogLevel(1.2)
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_int_vector", exception = 1
+mqtt::setLogLevel([1, 2])
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_int_matrix", exception = 1
+mqtt::setLogLevel([1, 2]$1:2)
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_error_code", exception = 1
+mqtt::setLogLevel(DOUBLE)
+
+@testing:case="test_plugin_mqtt_setLogLevel_logLevel_NULL", exception = 1
+mqtt::setLogLevel(NULL)
+
+@testing:case="test_plugin_mqtt_getLogLevel_args_over", syntaxError = 1
+mqtt::getLogLevel(INFO)
+
+@testing:case="test_plugin_mqtt_setLogLevel_getLogLevel_multi_times"
+for(logLevel in take([DEBUG, INFO, WARNING, ERROR], 1000)){
+	mqtt::setLogLevel(logLevel)
+	ans = mqtt::getLogLevel()
+	if(logLevel==DEBUG){ex = "DEBUG"}
+	if(logLevel==INFO){ex = "INFO"}
+	if(logLevel==WARNING){ex = "WARNING"}
+	if(logLevel==ERROR){ex = "ERROR"}
+	assert 1, eqObj(ans, ex)
+}
+
+@testing:case="test_plugin_mqtt_setLogLevel_getLogLevel_multi_thread"
+def setJob() {
+	for (i in 0:1000) {
+		level = rand([DEBUG, INFO, WARNING, ERROR], 1)[0]
+		mqtt::setLogLevel(level)
+	}
+}
+
+def getJob() {
+	for (i in 0:1000) {
+		mqtt::getLogLevel()
+	}
+}
+
+jobIds = []
+for (i in 0:5) {
+	jobId = submitJob("setloglevel"+string(i), "", setJob)
+	jobIds.append!(jobId)
+	jobId = submitJob("getloglevel"+string(i), "", getJob)
+	jobIds.append!(jobId)
+}
+
+for (jobId in jobIds) {
+	getJobReturn(jobId, true)
+}
+
+errMsgSet = exec errorMsg from getRecentJobs() where jobId LIKE "setloglevel%"
+assert 1, isNull(errMsgSet)
+
+errMsgGet = exec errorMsg from getRecentJobs() where jobId LIKE "getloglevel%"
+assert 2, isNull(errMsgGet)
+
+@testing:case="test_plugin_mqtt_subscribe_syntax"
+re = syntax(mqtt::subscribe)
+
+assert 1, re == "subscribe(host, port, topic, parser, handler, [username], [password], [recvBufSize=20480], [config])"
+
+@testing:case="test_plugin_mqtt_subscribe_args_with_keyword"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(1000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},handler=opt)
+
+conn = mqtt::connect(host, port, , , , , , 40960)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_subscribe_args_with_keyword_all"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(1000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host=host,port=port,topic="dolphindb/topic1",parser=p{},handler=opt)
+
+conn = mqtt::connect(host, port, , , , , , 40960)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_subscribe_optional_args_with_keyword"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(1000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , recvBufSize=40960)
+
+conn = mqtt::connect(host, port, , , , , , 40960)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_subscribe_args_with_keyword_error", syntaxError = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(1000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host=host,port=port,topic="dolphindb/topic1",parse=p{},handler=opt)
+
+@testing:case="test_plugin_mqtt_unsubscribe_syntax"
+re = syntax(mqtt::unsubscribe)
+
+assert 1, re == "unsubscribe(subscription)"
+
+@testing:case="test_plugin_mqtt_connect_syntax"
+re = syntax(mqtt::connect)
+
+assert 1, re == "connect(host,port,[qos=0],[formatter],[batchSize=0],[username],[password],[sendbufSize=40960],[config])"
+
+@testing:case="test_plugin_mqtt_connect_args_with_keyword_all"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = "hello"
+config_connect["recvBufSize"] = 1000000
+conn = mqtt::connect(host=host, port=port, sendbufSize=40960, config=config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_connect_args_with_keyword_partial"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt)
+
+conn = mqtt::connect(host, port=port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_connect_args_with_keyword_optional"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(schema(opt).colDefs[`typeInt], ',', ';' )
+config = dict(STRING, ANY)
+config["sendBufSize"] = 204800
+config["subscribeID"] = "id_1"
+config["asyncFlag"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+config_connect = dict(STRING, ANY)
+config_connect["clientID"] = "hello"
+config_connect["recvBufSize"] = 1000000
+conn = mqtt::connect(host, port, sendbufSize=40960, config=config_connect)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(2000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_connect_args_with_keyword_error", syntaxError = 1
+conn = mqtt::connect(host, port, sendbuf=40960, config=config_connect)
+
+@testing:case="test_plugin_mqtt_close_syntax"
+re = syntax(mqtt::close)
+
+assert 1, re == "close(conn)"
+
+@testing:case="test_plugin_mqtt_publish_syntax"
+re = syntax(mqtt::publish)
+
+assert 1, re == "publish(conn,topic,obj)"
+
+@testing:case="test_plugin_mqtt_publish_args_with_keyword_all"
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn=conn,topic="dolphindb/all_dateType_table_csv",obj=t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="test_plugin_mqtt_publish_args_with_keyword_partial"
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+mqtt::publish(conn,"dolphindb/all_dateType_table_csv",obj=t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="test_plugin_mqtt_publish_args_with_keyword_error", syntaxError = 1
+mqtt::publish(conn,"dolphindb/all_dateType_table_csv",o=t)
+
+@testing:case="test_plugin_mqtt_createPublisher_syntax"
+re = syntax(mqtt::createPublisher)
+
+assert 1, re == "createPublisher(conn,topic,colNames,colTypes)"
+
+@testing:case="test_plugin_mqtt_createPublisher_args_with_keyword_all"
+colTypes = [INT, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, INT128, UUID, IPADDR]
+
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+publisher = mqtt::createPublisher(conn=conn, topic="dolphindb/all_dateType_table_csv", colNames=schema(t).colDefs[`name], colTypes=colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="test_plugin_mqtt_createPublisher_args_with_keyword_partial"
+colTypes = [INT, BOOL, CHAR, SHORT, INT, LONG, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, FLOAT, DOUBLE, SYMBOL, STRING, INT128, UUID, IPADDR]
+
+def get_all_type_table(){
+	a =take(rand(1..100 join take(int(NULL),10),10) ,10) ;id = 1..10;cboolv = rand(bool(rand(2,10)) join NULL,10);ccharv = char(rand(a,10));cshortv = short(rand(a,10));cintv = int(rand(a,10));clongv = long(rand(a,10));cdatev = date(rand(a,10));cmonthv = month(rand(a,10));ctimev = time(rand(a,10));cminutev = minute(rand(a,10));csecondv = second(rand(a,10));cdatetimev = datetime(rand(a,10));ctimestampv = timestamp(rand(a,10));cnanotimev = nanotime(rand(a,10));cnanotimestampv = nanotimestamp(rand(a,10));cfloatv = float(rand(a,10));cdoublev = double(rand(a,10));csymbolv = symbol(string(rand(a,10)));cstringv =  string(rand(a,10));cuuidv = take(uuid(["5d212a78-cc48-e3b1-4235-b4d91473ee85", "5d212a78-cc48-e3b1-4235-b4d91473ee86", NULL]),10);cint128v = take(int128(["e1671797c52e15f763380b45e841ec32", "e1671797c52e15f763380b45e841ec33", NULL]),10);cipaddrv = take(ipaddr(["192.168.1.13", "192.168.1.14", NULL]),10);testt = table(id as id,cboolv as cbool, ccharv as cchar, cshortv as cshort, cintv as cint, clongv as clong, cdatev as cdate, cmonthv as cmonth, ctimev as ctime, cminutev as cminute, csecondv as csecond, cdatetimev as cdatetime, ctimestampv as ctimestamp, cnanotimev as cnanotime, cnanotimestampv as cnanotimestamp,  cfloatv as cfloat, cdoublev as cdouble, csymbolv as csymbol, cstringv as cstring,cint128v as cint128,cuuidv as cuuid,cipaddrv as cipaddr)
+	return testt
+}
+t = get_all_type_table()
+
+p = mqtt::createCsvParser(schema(t).colDefs[`typeInt], ',', ';' )
+sensorInfoTable1 = table( 10000:0,schema(t).colDefs[`name] ,schema(t).colDefs[`typeString])
+conn1 = mqtt::subscribe(host,1883,"dolphindb/all_dateType_table_csv",p{},sensorInfoTable1)
+MyFormat = take("", 22)
+f = mqtt::createCsvFormatter(MyFormat, ',', ';')
+conn=mqtt::connect(host,1883,0,f,100)
+publisher = mqtt::createPublisher(conn, "dolphindb/all_dateType_table_csv", schema(t).colDefs[`name], colTypes=colTypes)
+publisher.append!(t)
+sleep(1000)
+assert 1,each(eqObj,t.values(),sensorInfoTable1.values())
+
+@testing:case="test_plugin_mqtt_createPublisher_args_with_keyword_error", syntaxError = 1
+mqtt::createPublisher(conn, "dolphindb/all_dateType_table_csv", schema(t).colDefs[`name], colType=colTypes)
+
+@testing:case="test_plugin_mqtt_createJsonParser_syntax"
+re = syntax(mqtt::createJsonParser)
+
+assert 1, re == "createJsonParser(colTypes, colNames)"
+
+@testing:case="test_plugin_mqtt_createJsonParser_args_with_keyword_all"
+f = mqtt::createJsonFormatter()
+t = table(symbol(`a`a) as a1) 
+p = mqtt::createJsonParser(colTypes=schema(t).colDefs[`typeInt],colNames=schema(t).colDefs[`name])
+assert 1, each(eqObj,p(f(t)).values(),t.values()) 
+
+@testing:case="test_plugin_mqtt_createJsonParser_args_with_keyword_partial"
+f = mqtt::createJsonFormatter()
+t = table(symbol(`a`a) as a1) 
+p = mqtt::createJsonParser(schema(t).colDefs[`typeInt],colNames=schema(t).colDefs[`name])
+assert 1, each(eqObj,p(f(t)).values(),t.values()) 
+
+@testing:case="test_plugin_mqtt_createJsonParser_args_with_keyword_error", syntaxError = 1
+mqtt::createJsonParser(schema(t).colDefs[`typeInt],colName=schema(t).colDefs[`name])
+
+@testing:case="test_plugin_mqtt_createJsonFormatter_syntax"
+re = syntax(mqtt::createJsonFormatter)
+
+assert 1, re == "createJsonFormatter()"
+
+@testing:case="test_plugin_mqtt_createCsvParser_syntax"
+re = syntax(mqtt::createCsvParser)
+
+assert 1, re == "createCsvParser(colTypes, [delimiter], [rowDelimiter])"
+
+@testing:case="test_plugin_mqtt_createCsvParser_args_with_keyword_all"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(colTypes=schema(opt).colDefs[`typeInt])
+config = dict(STRING, ANY)
+config["error"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_createCsvParser_args_with_keyword_optional"
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(colTypes=schema(opt).colDefs[`typeInt], delimiter=',', rowDelimiter=';')
+config = dict(STRING, ANY)
+config["error"] = true
+mqtt::subscribe(host,port,"dolphindb/topic1",p{},opt, , , , config)
+
+conn = mqtt::connect(host, port)
+mqtt::publish(conn,"dolphindb/topic1","pub"+string(1..1000))
+
+sleep(1000)
+
+assert 1, (exec count(*) from opt) == 1000
+mqtt::close(conn)
+
+@testing:case="test_plugin_mqtt_createCsvParser_args_with_keyword_error", syntaxError = 1
+t = mqtt::getSubscriberStat()  
+for(row in t){
+    mqtt::unsubscribe(row["subscriptionId"])   
+}
+sleep(2000)
+port = 1883
+
+opt = table(1000:0, [`msg], [STRING])
+p = mqtt::createCsvParser(colTypes=schema(opt).colDefs[`typeInt], delimit=',', rowDelimiter=';')
+
+@testing:case="test_plugin_mqtt_createCsvFormatter_syntax"
+re = syntax(mqtt::createCsvFormatter)
+
+assert 1, re == "createCsvFormatter([format], [delimiter], [rowDelimiter])"
+
+@testing:case="test_plugin_mqtt_createCsvFormatter_args_with_keyword_optional"
+MyFormat = take("", 0)
+f = mqtt::createCsvFormatter(MyFormat, ',', rowDelimiter=';')
+t = table(`a as a1,`b as b1)
+assert 1, f(t) == "a,b;"
+
+@testing:case="test_plugin_mqtt_createCsvFormatter_args_with_keyword_error", syntaxError = 1
+MyFormat = take("", 0)
+f = mqtt::createCsvFormatter(MyFormat, ',', rowDelimit=';')
+
+@testing:case="test_plugin_mqtt_getSubscriberStat_syntax"
+re = syntax(mqtt::getSubscriberStat)
+
+assert 1, re == "getSubscriberStat()"
+

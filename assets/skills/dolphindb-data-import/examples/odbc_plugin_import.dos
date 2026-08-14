@@ -1,0 +1,23 @@
+// Example: Import data via ODBC plugin
+
+// Step 1: Safe load plugin
+try { loadPlugin("odbc") } catch(ex) {
+    if (strpos(string(ex[1]), "already in use") == -1) {
+        installPlugin("odbc"); loadPlugin("odbc")
+    }
+}
+
+// Step 2: Connect using standard connection string
+connStr = "Driver={PostgreSQL};Server=host;Database=mydb;Uid=username;Pwd=password;"    // ▶ 替换为实际的连接字符串
+conn = odbc::connect(connStr)
+
+// Step 3: Query data
+tb = odbc::query(conn, "select * from candle_201801")
+
+// Step 4: Write to DolphinDB database
+db = database("dfs://odbc_import", VALUE, 2018.01.01..2018.01.31)
+pt = db.createPartitionedTable(tb, "candle", "tradingDay")
+pt.append!(tb)
+
+// Step 5: Close connection
+odbc::close(conn)

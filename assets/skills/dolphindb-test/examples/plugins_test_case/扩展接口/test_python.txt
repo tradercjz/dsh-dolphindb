@@ -1,0 +1,2119 @@
+#include  "setup/settings.txt"
+
+@testing:case="test_function_python_toPy_datehour"
+a=datehour("2012.06.13T13")
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 1,res == a
+a=take([datehour("2012.06.13T13"),NULL],10)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 2,res == a
+a=take(datehour("2012.06.13T13")+1..5,1000000)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 3,res == a
+a=datehour("2012.06.13T10"):datehour("2012.06.13T13")
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 4,res == a
+a=datehour("2012.06.13T10")+1..9000$30:300
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 5,res == a
+a=table(take(datehour("2012.06.13T13")+1..5 join NULL,100000) as t)
+p=py::toPy(a)
+res=py::fromPy(p)
+expected=table(take(nanotimestamp(datehour("2012.06.13T13")+1..5 join NULL),100000) as t)
+assert 6,each(eqObj,expected.values(),res.values())
+a=datehour()
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 7,res == a
+a=take(datehour(),10)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 8,res == a
+
+@testing:case="test_function_python_toPy_uuid"
+a = uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87")
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 1,res == a
+a = take([uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"),NULL],10)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 2,eqObj(res, string(take([uuid("5d212a78-cc48-e3b1-4235-b4d91473ee87"),uuid("")],10)))
+
+@testing:case="test_function_python_toPy_int128"
+a = int128("e1671797c52e15f763380b45e841ec32")
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 1,res == a
+a = take([int128("e1671797c52e15f763380b45e841ec32"),NULL],10)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 2,eqObj(res, string(take([ int128("e1671797c52e15f763380b45e841ec32"),int128("")],10)))
+
+@testing:case="test_function_python_toPy_ipaddr"
+a = ipaddr("192.168.1.13")
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 1,res == a
+a = take([ ipaddr("192.168.1.13"),NULL],10)
+p=py::toPy(a)
+res=py::fromPy(p)
+assert 2,eqObj(res, string(take([ ipaddr("192.168.1.13"),ipaddr("")],10)))
+
+@testing:case="test_function_python_toPy_obj_pair"
+o = 3:5; 
+p =py::toPy(o)
+res=py::fromPy(p)
+assert 1,res = =o
+//o = "QQQ":5; 
+//p =py::toPy(o)
+//res=py::fromPy(p)
+//assert 2,res == o
+//o = 's':'qq'; 
+//p =py::toPy(o)
+//res=py::fromPy(p)
+//assert 3,res == o
+
+@testing:case="test_function_python_toPy_obj_empty_dict", exception=1
+p =py::toPy(dict(int,double))
+res=py::fromPy(p)
+
+@testing:case="test_function_python_toPy_obj_empty_set", exception=1
+s=set(1 2)
+s.clear!()
+p =py::toPy(s)
+py::fromPy(p)
+
+@testing:case="test_function_python_parameter_not_perfect", exception=1
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+decomposition = py::importModule("sklearn.decomposition");
+PCA = py::getFunc(decomposition, "PCA");
+np = py::importModule("numpy");
+iris = load_iris();
+py_pca=PCA(2);
+fit_transform=py::getFunc(py_pca, "fit_transform");
+
+@testing:case="test_function_python_wrong_ModuleName", exception=1
+datasets = py::importModule("sklearn.datsets");
+
+@testing:case="test_function_python_wrong_FuncName", exception=1
+np = py::importModule("numpy"); 
+eye1 = py::getFunc(np, "eyee"); 
+
+@testing:case="test_function_python_toPy_obj_scalar"
+dataTypes=[bool, char, int, short, long, date, datetime, month, minute, timestamp, nanotimestamp, float, double]
+def f(dataType,obj){
+	p =py::toPy(dataType(obj))
+	res=py::fromPy(p)
+	return array(BOOL).append!(eq(res,dataType(obj)))
+}
+obj=1
+assert 1,loop(f{,obj},dataTypes)==true
+p =py::toPy(NULL)
+res=py::fromPy(p)
+assert 2,res.isNull()==true
+o= '%'
+p =py::toPy(o)
+res=py::fromPy(p)
+assert 3,res==int(o)
+p =py::toPy(bool())
+res=py::fromPy(p)
+assert 4,res==0
+p =py::toPy(time(1))
+res=py::fromPy(p)
+assert 5,res==timestamp(1)
+p =py::toPy(second(1))
+res=py::fromPy(p)
+assert 6,res==datetime(1)
+p =py::toPy(nanotime(1))
+res=py::fromPy(p)
+assert 7,res==nanotimestamp(1)
+
+@testing:case="test_function_python_toPy_obj_vector"
+def f(dataType,obj){
+	p =py::toPy(dataType(obj))
+	res=py::fromPy(p)
+	return array(BOOL).append!(eq(res,dataType(obj)))
+}
+dataTypes=[string,double,float,short,int,long]
+obj=NULL 0 1  -8
+assert 1,loop(f{,obj},dataTypes)==true
+//char
+o=['' ,' ', 'c' ,'1', '%' , NULL]
+p =py::toPy(o)
+res=py::fromPy(p)
+assert 3,res==string(o)
+//bool
+o=take(true NULL false,5000000)
+p =py::toPy(o)
+res=py::fromPy(p)
+assert 5,res==take(1 NULL 0,5000000)
+def f1(dataType,obj){
+	p =py::toPy(dataType(obj))
+	res=py::fromPy(p)
+	return array(BOOL).append!(eq(res,dataType(obj)))
+}
+dataTypes=[date, datetime, month, minute,timestamp, nanotimestamp,string,double,float,short,int,long]
+assert 7,loop(f1{,1..5000000},dataTypes).flatten()==true
+p =py::toPy(time(1..5000))
+res=py::fromPy(p)
+assert 8,res==timestamp(1..5000)
+p =py::toPy(second(1..5000))
+res=py::fromPy(p)
+assert 9,res==datetime(1..5000)
+p =py::toPy(nanotime(1..5000))
+res=py::fromPy(p)
+assert 10,res==nanotimestamp(1..5000)
+p =py::toPy(datetime(1..5000))
+res=py::fromPy(p)
+assert 11,res==datetime(1..5000)
+	
+@testing:case="test_function_python_toPy_obj_set"
+dataTypes=[string,double,float,short,int,long]
+def f(dataType,obj){
+	p =py::toPy(set(dataType(obj)))
+	res=py::fromPy(p)
+	return array(BOOL).append!(res==set(dataType(obj)))
+}
+obj=0 1 -1 NULL
+assert 1,loop(f{,obj},dataTypes)==true
+//Bigdata
+dataTypes=[string,double,float,short,int,long,date, datetime, month,timestamp, nanotimestamp]
+def f1(dataType,obj){
+	p =py::toPy(set(dataType(obj)))
+	res=py::fromPy(p)
+	return array(BOOL).append!(res==set(dataType(obj)))
+}
+obj=1..5000000
+assert 2,loop(f1{,obj},dataTypes)==true
+p =py::toPy(set(minute(1..5000)))
+res=py::fromPy(p)
+assert 3,res==set(minute(1..5000))
+p =py::toPy(set(time(1..5000)))
+res=py::fromPy(p)
+assert 8,res==set(timestamp(1..5000))
+p =py::toPy(set(second(1..5000)))
+res=py::fromPy(p)
+assert 9,res==set(datetime(1..5000))
+p =py::toPy(set(nanotime(1..5000)))
+res=py::fromPy(p)
+assert 10,res==set(nanotimestamp(1..5000))
+
+@testing:case="test_function_python_toPy_obj_dict"
+dataTypes=[string,double,float,short,int,long,char]
+def f1(dataType,y){
+	p =py::toPy(dict(1 2 3 4,dataType(y)))
+	res=py::fromPy(p)
+	return array(BOOL).append!(res[1]==dataType(0)).append!(res[2]==dataType(1)).append!(res[3]==dataType(-2)).append!(res[4]==dataType(NULL))
+}
+y=0 1 -2 NULL
+assert 1,loop(f1{,y},dataTypes).flatten()
+//bool
+p =py::toPy(dict(1 2 ,true NULL))
+res=py::fromPy(p)
+assert 2 ,res[1]==true 
+assert 3, res[2]==0
+//bigdata
+dataTypes=[string,double,float,short,int,long,char]
+def f2(dataType,y){
+	p =py::toPy(dict(1..5000000,dataType(y)))
+	res=py::fromPy(p)
+	result =array(BOOL)
+	for(i in 1..5000000){
+		result.append!(res[i]==dataType(i))
+	}	
+	return result
+}
+assert 4,loop(f2{,1..5000000},dataTypes).flatten()
+
+dataTypes=[date, datetime, month,minute,timestamp, nanotimestamp]
+def f3(dataType,y){
+	p =py::toPy(dict(1..5000,dataType(y)))
+	res=py::fromPy(p)
+	result =array(BOOL)
+	for(i in 1..5000){
+		result.append!(res[i]==dataType(i))
+	}	
+	return result
+}
+assert 5,loop(f3{,1..5000},dataTypes).flatten()
+
+y=1..5000
+p =py::toPy(dict(1..5000,second(y)))
+res=py::fromPy(p)
+for(i in 1..5000){
+	assert 6,res[i]==datetime(i)
+}	
+
+
+p =py::toPy(dict(1..5000,time(y)))
+res=py::fromPy(p)
+for(i in 1..5000){
+	assert 7,res[i]==timestamp(i)
+}	
+
+
+p =py::toPy(dict(1..5000,nanotime(y)))
+res=py::fromPy(p)
+for(i in 1..5000){
+	assert 8,res[i]==nanotimestamp(i)
+}	
+	
+@testing:case="test_function_python_toPy_obj_matrix"
+dataTypes=[double,float,short,int,long]
+def f1(dataType,y){
+	p =py::toPy(matrix(dataType(y)))
+	res=py::fromPy(p)
+	return array(BOOL).append!(res[0]==dataType(y))
+}
+y=0 1 -2 NULL
+assert 1,loop(f1{,y},dataTypes).flatten()
+dataTypes=[double,float,short,int,long]
+def f(dataType,y){
+	p =py::toPy(dataType(matrix(y)))
+	res=py::fromPy(p)
+	return array(BOOL).append!(res[0]==dataType(1)).append!(res[1]==dataType(2)).append!(res[2]==dataType(3))
+}
+y=([1],[2],[3])
+assert 2,loop(f{,y},dataTypes).flatten()
+//Bigdata
+matrix=take(1..1000,5000000)$1000:5000
+p =py::toPy(matrix)
+res=py::fromPy(p)
+for(i in 1..5000){
+	assert 3,res[i-1]==1..1000
+}
+
+@testing:case="test_function_python_toPy_obj_table"
+//one col
+t1 =table(double(0 1 2 2 NULL) as id);
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 1,each(eqObj, t1.values(), res.values());
+//one row
+t1 = table(1 as id,`q as v1,'a' as v2,1.2 as v3,1.02f as v4,4h as v5, 22l as v6,true as v7)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 2,each(eqObj, t1.values(), res.values());
+//bigData
+t1 = table(1..5000000 as id1, take(`q`w`e`r` ,5000000) as v11, take([0.0, 1 ,0.2, NULL],5000000) as v13,take([0.0f, 1f, 0.2f ,NULL],5000000) as v14)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 3,each(eqObj, t1.values(), res.values());
+
+t1 = table(take(date(1),5000000) as v18,take(nanotimestamp(1),5000000) as v21,take(datetime(1),5000000) as v23,take(timestamp(1),5000000) as v24)
+p = py::toPy(t1)
+res = py::fromPy(p)
+ex = select nanotimestamp(v18), v21, nanotimestamp(v23) as v23, nanotimestamp(v24) as v24 from t1
+assert 4, each(eqObj, ex.values(), res.values());
+
+t1 = table(take([true, NULL, false],5000000) as v17)
+tr = table(take([1, NULL, 0],5000000) as v17)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 5,each(eq, tr.values(), res.values());
+
+t1= table(take([0h ,-5h, 2.6h],5000000) as v15,take([0l, 112154l ,-85144l ,2.5l],5000000) as v16)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 6,each(eqObj, t1.values(), res.values());
+t1 = table(take(time([1,NULL]),5000000) as v18,take(second([1,NULL]),5000000) as v23,take(nanotime([1,NULL]),5000000) as v24)
+tr = table(take([1970.01.01T00:00:00.001000000,NULL],5000000) as v18,take([1970.01.01T00:00:01.000000000,NULL],5000000) as v23,take([1970.01.01T00:00:00.000000001,NULL],5000000) as v24)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 7,each(eqObj, tr.values(), res.values());
+t1 = table(take(month(2262.04M),50000000) as v18)
+tr= table(take(nanotimestamp(2262.04.01T00:00:00.000000000),50000000) as v18)
+p =py::toPy(t1)
+res=py::fromPy(p)
+assert 8,each(eq, tr.values(), res.values());
+
+@testing:case="test_function_python_getPath"
+sys = py::importModule("sys");
+path = py::getObj(sys, "path");
+dpath = py::fromPy(path);
+
+@testing:case="test_function_python_importModule_getFunc"
+np = py::importModule("numpy"); 
+eye1 = py::getFunc(np, "eye"); 
+re = eye1(3); 
+assert 1,re[0]==eye(3)[0]
+assert 2,re[1]==eye(3)[1]
+assert 3,re[2]==eye(3)[2]
+np = py::importModule("numpy.random"); 
+randint = py::getFunc(np, "randint");
+re = randint(0,1000,[2,3]);
+res = array(BOOL)
+assert 4 ,size(re)==6
+
+@testing:case="test_function_python_getObj_cmd_getInstanceFromObj"
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+sklearn = py::importModule("sklearn"); 
+py::cmd("from sklearn import linear_model"); 
+linearR = py::getObj(sklearn,"linear_model.LinearRegression")
+linearInst = py::getInstanceFromObj(linearR);
+linearInst.fit(iris['data'], iris['target']);
+assert 1,eqObj(linearInst.coef_,[-0.11190585, -0.04007949 , 0.22864503 , 0.60925205],4)
+assert 2,eqObj(linearInst.intercept_,0.186495247206249,4)
+
+sklearn = py::importModule("sklearn"); 
+py::cmd("from sklearn import naive_bayes "); 
+obj = py::getObj(sklearn,"naive_bayes.MultinomialNB")
+Inst = py::getInstanceFromObj(obj);
+x=iris['data']
+y= iris['target']
+Inst.fit(x,y)
+assert 3,eqObj(Inst.intercept_,[-1.09861229, -1.09861229 ,-1.09861229],4)
+assert 4,eqObj(Inst.coef_,matrix([-0.70991782,-0.88088275,-0.95779046],[-1.08674791,-1.63924027,-1.74946121],[-1.93114973,-1.21132886,-1.12831744],[-3.64880123,-2.36814464,-2.1302]),4)
+
+@testing:case="test_function_python_Algorithm"
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+//elasticNet
+datasets = py::importModule("sklearn.datasets");
+make_regression = py::getFunc(datasets, "make_regression");
+re = make_regression(10,10,10,1,0.0,,0.5,0.0,1,,1);
+linear_model = py::importModule("sklearn.linear_model");
+elastic = py::getInstance(linear_model, "ElasticNet");
+elastic.fit(re[0], re[1],0,1);
+assert 1,eqObj(elastic.coef_,[14.69675928,-13.28797625,16.19916113, 3.97110992, 9.64545431,26.30882258, 0.0,-23.81879472,24.92244796,28.50100447],4)
+assert 2, eqObj(elastic.intercept_,12.174187463345891,4)
+assert 3,elastic.n_iter_==9
+assert 4,elastic.predict(re[0]);
+
+//pca
+datasets = py::importModule("sklearn.datasets");
+decomposition = py::importModule("sklearn.decomposition");
+PCA = py::getInstance(decomposition, "PCA");
+py_pca=PCA.fit_transform(iris['data'].row(0:3));
+assert 5,eqObj(py_pca.row(0),[ 3.34781148e-01 ,-1.19918878e-02,  2.92691785e-17],4)
+
+//linearRegression
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+linear_model = py::importModule("sklearn.linear_model");
+Linear = py::getInstance(linear_model, "LinearRegression");
+Linear.fit(iris['data'], iris['target']);
+assert 10,eqObj(Linear.coef_,[-0.11190585, -0.04007949 , 0.22864503 , 0.60925205],4)
+assert 11,eqObj(Linear.intercept_,0.186495247206249,4)
+
+//decision tree
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+tree = py::importModule("sklearn.tree");
+decisionTree = py::getInstance(tree, "DecisionTreeClassifier");
+decisionTree.fit(iris['data'], iris['target']);
+assert 12,decisionTree.score(iris['data'], iris['target'])==1
+//decisionTree = py::getInstance(tree, "DecisionTreeClassifier");
+//model_selection = py::importModule("sklearn.model_selection");
+//cross_val_score = py::getFunc(model_selection, "cross_val_score");
+//cross_val_score(decisionTree, iris['data'], iris['tartget']);
+
+//svc
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+svm = py::importModule("sklearn.svm");
+svc = py::getInstance(svm, "SVC");
+svc.fit(iris['data'], iris['target']);
+assert 13 ,eqObj(svc.score(iris['data'], iris['target']),0.9733333333333334,6)
+
+//gaussianNB
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+naive_bays = py::importModule("sklearn.naive_bayes");
+gaussian = py::getInstance(naive_bays, "GaussianNB");
+gaussian.fit(iris['data'], iris['target']);
+assert 14 ,eqObj(gaussian.score(iris['data'], iris['target']),0.96,2)
+
+//knn
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+neighbors = py::importModule("sklearn.neighbors");
+myknn = py::getInstance(neighbors, "KNeighborsClassifier");
+myknn.fit(iris['data'], iris['target']);
+assert 15 ,eqObj(myknn.score(iris['data'], iris['target']),0.9666666666666667,6)
+
+//make_regression
+datasets = py::importModule("sklearn.datasets");
+make_regression = py::getFunc(datasets, "make_regression");
+re = make_regression(3000000, 1);
+assert 16 ,re[0].size()==3000000
+
+@testing:case="test_function_python_instance_include_Parameters"
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+//pca
+datasets = py::importModule("sklearn.datasets");
+decomposition = py::importModule("sklearn.decomposition");
+PCA = py::getInstance(decomposition, "PCA",2);
+PCA.fit(iris['data'],iris[`target]);
+assert 1,eqObj(PCA.score(iris['data'],iris[`target]),-2.6997965106756645,4)
+
+//logisticRegression
+linear_model = py::importModule("sklearn.linear_model");
+LogisticRegression = py::getInstance(linear_model, "LogisticRegression");
+LogisticRegression.fit(iris['data'], iris['target'])
+assert 2,eqObj(LogisticRegression.coef_.row(0),[-0.41878528,0.96703041,-2.5209973,-1.08417682],4)
+assert 3,eqObj(LogisticRegression.coef_.row(1), [ 0.53124457, -0.31475282 ,-0.20008433 ,-0.94861142],4)
+assert 4,eqObj(LogisticRegression.coef_.row(2), [-0.1124593,-0.65227759,2.72108162,2.03278825],4)
+assert 5,eqObj(LogisticRegression.intercept_, [9.84037025, 2.21700109 ,-12.05737134],3)
+assert 6,eqObj(LogisticRegression.score(iris['data'], iris['target']),0.9733333333333334,4)
+
+//KMeans
+sklearn = py::importModule("sklearn.cluster"); 
+KMeans = py::getInstance(sklearn,"KMeans",3,'k-means++',10,300,1e-4,'deprecated',0,1,true,'deprecated','auto')
+x=[[1, 2], [1, 4], [1, 0], [4, 2], [4, 4], [4, 0]]
+KMeans.fit(x)
+assert 7,KMeans.labels_==0 0 1 2 2 1
+assert 8,eqObj(KMeans.score(x),-8.5,1)
+
+//OLS
+y=[1.05402226 , 8.71266068 ,10.27607691, 21.23289708 ,25.62678457]
+x=[[1.0 , 0.0], [1.0,1.25], [1.0,2.5], [1.0,3.75], [1.0,5.0]]
+Module = py::importModule("statsmodels.regression.linear_model");
+OLS = py::getInstance(Module, "OLS",y,x) 
+model = OLS.fit()
+//model.predict(y)
+
+datasets = py::importModule("sklearn.datasets");
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+Module = py::importModule("statsmodels.regression.linear_model");
+OLS = py::getInstance(Module, "OLS",iris[`target],iris[`data]) 
+model = OLS.fit()
+
+//derivative
+/*
+Module = py::importModule("scipy.misc"); 
+Derivative = py::getFunc(Module,"derivative");
+def f(x){
+	return x**3+x**2
+}
+Derivative(f,1,1e-6)
+*/
+
+//load_boston
+Module = py::importModule("sklearn.datasets"); 
+load_boston = py::getFunc(Module,"load_boston")
+boston = load_boston()
+assert 10,shape(boston[`data])==506 13
+
+//train_test_split
+datasets = py::importModule("sklearn.datasets"); 
+load_iris = py::getFunc(datasets, "load_iris");
+iris = load_iris();
+Module = py::importModule("sklearn.model_selection"); 
+train_test_split = py::getFunc(Module,"train_test_split") 
+xtest,xtrain,ytest,ytrain = train_test_split(iris['data'], iris['target'])//result is random
+
+@testing:case="test_function_python_Multithreading"
+def linearRegression(){
+	for(i in 1..100){				
+		datasets = py::importModule("sklearn.datasets");
+		load_iris = py::getFunc(datasets, "load_iris");
+		linear_model = py::importModule("sklearn.linear_model");
+		Linear = py::getInstance(linear_model, "LinearRegression");
+		iris = load_iris();
+		Linear.fit(iris['data'], iris['target']);
+    		assert 1,eqObj(Linear.coef_,[-0.11190585, -0.04007949 , 0.22864503 , 0.60925205],4)
+		sleep(50)
+	}
+}
+submitJob("jobLinearRegression","job LinearRegression ", linearRegression);
+submitJob("jobLinearRegression1","job LinearRegression ", linearRegression);
+submitJob("jobLinearRegression2","job LinearRegression ", linearRegression);
+submitJob("jobLinearRegression3","job LinearRegression ", linearRegression);
+
+@testing:case="test_function_python_frompy_to_ddb_index_integer"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInteger", false)
+tem1 = func1()
+re1 =  py::fromPy(tem1, true)
+assert 1, re1[`index]==[`a, `b, `c]
+assert 2, re1[`c0]==3 7 3
+assert 3, re1[`c1]==6 1 2
+assert 4, re1[`c2]==6 9 9
+
+//1024
+func2 = py::getFunc(model, "testInteger1024", false)
+tem2 = func2()
+re2 = py::fromPy(tem2, true)
+assert 5, re2[`index]==[`a, `b, `c]
+assert 6, schema(re2).colDefs[`name]==`index join (`c + string(0..1023))
+for(i in 0..1023){
+	//print(i)
+	assert 7, re2[`c +string(i)]==[i, i, i]
+}
+
+//1048576
+func3 = py::getFunc(model, "testInteger1048576", false)
+tem3 = func3()
+re3 = py::fromPy(tem3, true)
+assert 7, re3[`index]==[`a, `b, `c]
+assert 8, schema(re3).colDefs[`name]==`index join (`c + string(0..1048575))
+for(i in 0..1048575){
+	//print(i)
+	assert 9, re3[`c +string(i)]==[i, i, i]
+}
+
+//3000000
+func4 = py::getFunc(model, "testIntegerBigdata", false)
+tem4 = func4()
+re4 = py::fromPy(tem4, true)
+assert 10, re4[`index]==[`a, `b, `c]
+assert 11, schema(re4).colDefs[`name]==`index join (`c + string(0..2999999))
+for(i in 0..2999999){
+	//print(i)
+	assert 12, re4[`c +string(i)]==[i, i, i]
+}
+
+//test index
+func5 = py::getFunc(model, "testIntegerIndex", false)
+tem5 = func5()
+re5 = py::fromPy(tem5, true)
+assert 13, re5[`index]==[1, 2, 3]
+assert 14, schema(re5).colDefs[`name]==`index join (`c + string(0..29999))
+for(i in 0..29999){
+	//print(i)
+	assert 15, re5[`c +string(i)]==[i, i, i]
+}
+
+@testing:case="test_function_python_frompy_to_ddb_index_Chinese"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testChinese", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true)
+assert 1, re1[`index]==[`0, `1, `2, `3, `4, `5]
+assert 2, re1['第一列']==3 6 6 4 5 6
+assert 3, re1['第二列']==7 1 0 6 7 5
+assert 4, re1['第三列']==3 2 9 4 5 6
+assert 5, schema(re1).colDefs[`name]==[`index, '第一列', '第二列', '第三列']
+
+@testing:case="test_function_python_frompy_to_ddb_index_testUnderscore"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testUnderscore", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true)
+assert 1, re1[`index]==[0, 1, 2, 3, 4, 5]
+assert 2, re1['c_first']==3 6 6 4 5 6
+assert 3, re1['c_second']==7 1 0 6 7 5
+assert 4, re1['c_third']==3 2 9 4 5 6
+assert 5, schema(re1).colDefs[`name]==[`index, 'c_first', 'c_second', 'c_third']
+
+@testing:case="test_function_python_frompy_to_ddb_index_testString"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testString", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true)
+assert 1, re1[`index]==[0, 1, 2, 3, 4, 5]
+assert 2, re1['string']==3 6 6 4 5 6
+assert 3, re1['str']==7 1 0 6 7 5
+assert 4, schema(re1).colDefs[`name]==[`index, 'string', 'str']
+
+@testing:case="test_function_python_frompy_to_ddb_index_testChar"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testChar", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true)
+assert 1, re1[`index]==[0, 1, 2, 3, 4, 5]
+assert 2, re1['c2']==3 6 6 4 5 6
+assert 3, re1['c3']==7 1 0 6 7 5
+assert 4, re1['c87']==7 1 0 6 7 5
+assert 5, schema(re1).colDefs[`name]==[`index, 'c2', 'c3', 'c87']
+
+/*
+@testing:case="test_function_python_frompy_to_ddb_index_testTimestamp"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testTimestamp", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true) // crash
+assert 1, re1[`index]==[0, 1, 2, 3, 4, 5]
+assert 2, re1['c2']==3 6 6 4 5 6
+assert 3, re1['c3']==7 1 0 6 7 5
+assert 4, re1['c87']==7 1 0 6 7 5
+assert 5, schema(re1).colDefs[`name]==[`index, 'c2', 'c3', 'c87']
+
+func2 = py::getFunc(model, "testTimestamp1024", false)
+tem2 = func2()
+re2 = py::fromPy(tem2, true)
+assert 6, re2[`index]==0..1023
+assert 7, re2['c2']==0..1023
+assert 8, re2['c3']==0..1023
+assert 9, re2['c87']==0..1023
+assert 10, schema(re2).colDefs[`name]==[`index, 'c2', 'c3', 'c87']
+
+func3 = py::getFunc(model, "testTimestamp1048576", false)
+tem3 = func3()
+re3 = py::fromPy(tem3, true)
+assert 11, re3[`index]==0..1048575
+assert 12, re3['c2']==0..1048575
+assert 13, re3['c3']==0..1048575
+assert 14, re3['c87']==0..1048575
+assert 15, schema(re3).colDefs[`name]==[`index, 'c2', 'c3', 'c87']
+
+func4 = py::getFunc(model, "testTimestamp3000000", false)
+tem4 = func4()
+re4 = py::fromPy(tem4, true)
+assert 16, re4[`index]==0..2999999
+assert 17, re4['c2']==0..2999999
+assert 18, re4['c3']==0..2999999
+assert 19, re4['c87']==0..2999999
+assert 20, schema(re4).colDefs[`name]==[`index, 'c2', 'c3', 'c87']
+*/
+
+@testing:case="test_function_python_frompy_to_ddb_index_testSpecialCharacters"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testSpecialCharacters", false)
+tem1 = func1()
+re1 = py::fromPy(tem1, true) 
+assert 1, re1[`index]==[0, 1, 2, 3, 4, 5]
+assert 2, re1['c123std_08']==3 6 6 4 5 6
+assert 3, re1['c__123']==7 1 0 6 7 5
+assert 4, re1['c_中文']==7 1 0 6 7 5
+assert 5, re1['中文____']==8 1 6 6 1 5
+assert 6, re1['c_______']==4 1 5 6 9 5
+assert 7, re1['co__2']==1 1 1 2 6 5
+assert 8, schema(re1).colDefs[`name]==[`index, `c123std_08, 'c__123', 'c_中文', '中文____', 'c_______', 'co__2']
+
+// improve cov
+@testing:case="test_function_python_cmd_command_ex1", exception=1
+np = py::cmd(1);
+
+@testing:case="test_function_python_importModule_moduleName_ex1", exception=1
+np = py::importModule(1);
+
+@testing:case="test_function_python_importModule_moduleName_ex2", exception=1
+np = py::importModule("2");
+
+@testing:case="test_function_python_getObj_module_ex1", exception=1
+np = py::importModule("numpy");
+random = py::getObj(1, "random"); 
+
+@testing:case="test_function_python_getObj_module_ex2", exception=1
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+random = py::getObj(np, "random"); 
+
+@testing:case="test_function_python_getObj_module_ex3", exception=1
+np = py::importModule("numpy");
+random = py::getObj("m", "random"); 
+
+@testing:case="test_function_python_getObj_module_ex4", exception=1
+random = py::getObj("numpy", "random"); 
+
+@testing:case="test_function_python_getObj_objName_ex1", exception=1
+np = py::importModule("numpy");
+random = py::getObj(np, 1); 
+
+@testing:case="test_function_python_getObj_objName_ex2", exception=1
+np = py::importModule("numpy");
+random = py::getObj(np, "2"); 
+
+@testing:case="test_function_python_getObj_module_ex", exception=1
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+eye = py::getObj(np, "eye"); 
+
+@testing:case="test_function_python_getFunc_module_ex1", exception=1
+eye = py::getFunc(1, "eye"); 
+
+@testing:case="test_function_python_getFunc_module_ex2", exception=1
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+eye = py::getFunc(np, "eye"); 
+
+@testing:case="test_function_python_getFunc_module_ex3", exception=1
+eye = py::getFunc(1+1, "eye"); 
+
+@testing:case="test_function_python_getFunc_module_ex4", exception=1
+eye = py::getFunc("2", "eye"); 
+
+@testing:case="test_function_python_getFunc_module_ex5", exception=1
+eye = py::getFunc("numpy", "eye"); 
+
+@testing:case="test_function_python_getFunc_funcName_ex1", exception=1
+np = py::importModule("numpy");
+eye = py::getFunc(np, 1); 
+
+@testing:case="test_function_python_getFunc_convert_ex", exception=1
+np = py::importModule("numpy");
+eye = py::getFunc(np, "eye", 0.2);
+
+@testing:case="test_function_python_getFunc_ex", exception=1
+np = py::importModule("numpy"); 
+random = py::getObj(np, "random")
+eye = py::getFunc(random, "eye");
+ 
+@testing:case="test_function_python_getFunc_convert_nothing"
+np = py::importModule("numpy"); 
+eye1 = py::getFunc(np, "eye",); 
+re = eye1(3); 
+assert 1,re[0]==eye(3)[0]
+assert 2,re[1]==eye(3)[1]
+assert 3,re[2]==eye(3)[2]
+
+@testing:case="test_function_python_fromPy_obj_ex1", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy(1);
+
+@testing:case="test_function_python_fromPy_obj_ex2", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy("1");
+
+@testing:case="test_function_python_fromPy_obj_ex3", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy([l]);
+
+@testing:case="test_function_python_fromPy_obj_ex4", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy(NULL);
+
+@testing:case="test_function_python_fromPy_obj_ex5", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+re = py::fromPy(np);
+
+@testing:case="test_function_python_fromPy_obj_ex6", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy("ST");
+
+@testing:case="test_function_python_fromPy_obj_ex7", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+re = py::fromPy(, false);
+
+@testing:case="test_function_python_fromPy_addIndex_ex1", exception = 1
+x = 1 2 3 4;
+re = py::fromPy(l, 2);
+
+@testing:case="test_function_python_fromPy_ex", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+re = py::fromPy(np,2);
+
+@testing:case="test_function_python_getInstance_module_string_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance("1","LinearRegression") 
+
+@testing:case="test_function_python_getInstance_module_int_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(1,"LinearRegression") 
+
+@testing:case="test_function_python_getInstance_module_nothing_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(,"LinearRegression") 
+
+@testing:case="test_function_python_getInstance_module_ex", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+linearInst = py::getInstance(np,"LinearRegression") 
+
+@testing:case="test_function_python_getInstance_objName_string_null_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(linear_model,"") 
+
+@testing:case="test_function_python_getInstance_objName_nothing_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(linear_model,) 
+
+@testing:case="test_function_python_getInstance_objName_int_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(linear_model,2) 
+
+@testing:case="test_function_python_getInstance_objName_string_vector_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(linear_model,["LinearRegression"]) 
+
+@testing:case="test_function_python_reloadModule_module_ex1", exception = 1
+model = py::reloadModule("1"); 
+
+@testing:case="test_function_python_reloadModule_module_ex2", exception = 1
+model = py::reloadModule(1); 
+
+@testing:case="test_function_python_reloadModule_module_ex3", exception = 1
+t = table(100:0, `x0`x1, [DOUBLE, DOUBLE])
+x0 = norm(1.0, 1.0, 50)
+x1 = norm(1.0, 1.5, 50)
+insert into t values (x0, x1)
+x0 = norm(2.0, 1.0, 50)
+x1 = norm(-1.0, 1.5, 50)
+insert into t values (x0, x1)
+x0 = norm(-1.0, 1.0, 50)
+x1 = norm(-3.0, 1.5, 50)
+insert into t values (x0, x1);
+
+modelM = kmeans(t, 3);
+typestr(modelM.model)
+model = py::reloadModule(modelM.model); 
+
+@testing:case="test_function_python_reloadModule_module_ex4", exception = 1
+model = py::reloadModule("ANJ"); 
+
+@testing:case="test_function_python_reloadModule_module_ex5", exception = 1
+x = 1 2 3 4;
+pyArray = py::toPy(x);
+np2 = py::reloadModule(pyArray); 
+
+@testing:case="test_function_python_reloadModule_module_ex6", exception = 1
+sklearn = py::importModule("sklearn");
+py::cmd("from sklearn import linear_model");
+linearR = py::getObj(sklearn,"linear_model.LinearRegression")
+linearInst = py::getInstanceFromObj(linearR);
+py::reloadModule(linearInst); 
+
+@testing:case="test_function_python_reloadModule_numpy"
+np = py::importModule("numpy"); 
+np2 = py::reloadModule(np); 
+eye1 = py::getFunc(np2, "eye",); 
+re = eye1(3); 
+assert 1,re[0]==eye(3)[0]
+assert 2,re[1]==eye(3)[1]
+assert 3,re[2]==eye(3)[2]
+
+// @testing:case="test_function_python_getInstanceFromObj_obj_null_ex1", exception = 1
+// sklearn = py::importModule("sklearn");
+// py::cmd("from sklearn import linear_model");
+// linearR = py::getObj(sklearn,"linear_model.LinearRegression")
+// linearInst = py::getInstanceFromObj(NULL);
+
+// @testing:case="test_function_python_getInstanceFromObj_obj_string_null_ex2", exception = 1
+// sklearn = py::importModule("sklearn");
+// py::cmd("from sklearn import linear_model");
+// linearR = py::getObj(sklearn,"linear_model.LinearRegression")
+// linearInst = py::getInstanceFromObj("");
+
+// @testing:case="test_function_python_getInstanceFromObj_obj_string_null_ex2", exception = 1
+// sklearn = py::importModule("sklearn");
+// py::cmd("from sklearn import linear_model");
+// linearR = py::getObj(sklearn,"linear_model.LinearRegression")
+// linearInst = py::getInstanceFromObj("");
+
+@testing:case="test_function_python_frompy_second_argument_null_case1"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInteger", false)
+tem1 = func1()
+re1 =  py::fromPy(tem1)
+assert 1, re1[`c0]==3 7 3
+assert 2, re1[`c1]==6 1 2
+assert 3, re1[`c2]==6 9 9
+
+@testing:case="test_function_python_frompy_second_argument_null_case2"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInteger", false)
+tem1 = func1()
+re1 =  py::fromPy(tem1,)
+assert 1, re1[`c0]==3 7 3
+assert 2, re1[`c1]==6 1 2
+assert 3, re1[`c2]==6 9 9
+
+@testing:case="test_function_python_frompy_ex", exception = 1
+model = py::importModule("test_index");
+re1 =  py::fromPy(model,)
+
+@testing:case="test_function_python_getInstance_python_module_ex", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+linearInst = py::getInstance(np,"LinearRegression") 
+
+@testing:case="test_function_python_getInstance_python_module_ex", exception = 1
+x = 1 2 3 4;
+l = py::toPy(x);
+t = table(1..10 as id)
+np = sqlDS(<select * from t>)
+pyArray = py::toPy(np);
+linearInst = py::getInstance(pyArray, "id") 
+
+@testing:case="test_function_python_convert_not_support_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+pyArray = py::toPy(linear_model);
+
+@testing:case="test_function_python_getInstanceFromObj_ex", exception = 1
+linear_model = py::importModule("sklearn.linear_model"); 
+linearInst = py::getInstance(linear_model,"LinearRegression") 
+linearInst = py::getInstanceFromObj(linearInst);
+
+@testing:case="test_function_python_getInstanceFromObj_ex", exception = 1
+np = py::importModule("numpy");
+random = py::getObj(np, "random");
+py::getObj(py::toPy(1..10), "random");
+
+@testing:case="test_function_python_getObj_python_obj_ex", exception = 1
+t = table(1..10 as id)
+WORK_DIR = getHomeDir()+"/work_dir"
+try{mkdir(WORK_DIR)}catch(ex){print ex}
+saveText(t, WORK_DIR+"/test.txt")
+fin = file(WORK_DIR+"/test.txt")
+py::getObj(fin, "random");
+
+@testing:case="test_function_python_getFunc_ex", exception = 1
+t = table(1..10 as id)
+WORK_DIR = getHomeDir()+"/work_dir"
+try{mkdir(WORK_DIR)}catch(ex){print ex}
+saveText(t, WORK_DIR+"/test.txt")
+fin = file(WORK_DIR+"/test.txt")
+py::getFunc(fin, "random");
+
+@testing:case="test_function_python_toPy_ex", exception = 1
+t = table(1..10 as id)
+WORK_DIR = getHomeDir()+"/work_dir"
+try{mkdir(WORK_DIR)}catch(ex){print ex}
+saveText(t, WORK_DIR+"/test.txt")
+fin = file(WORK_DIR+"/test.txt")
+py::toPy(fin);
+
+@testing:case="test_function_python_fromPy_ex", exception = 1
+t = table(1..10 as id)
+WORK_DIR = getHomeDir()+"/work_dir"
+try{mkdir(WORK_DIR)}catch(ex){print ex}
+saveText(t, WORK_DIR+"/test.txt")
+fin = file(WORK_DIR+"/test.txt")
+py::fromPy(fin);
+
+@testing:case="test_function_python_toPy_symbol"
+ex = symbol(string(["A", "A", "A"]))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, eqObj(res, ex)
+
+ex = symbol(string(["A", "A", "A"]) join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, eqObj(res, ex)
+
+ex = table(symbol(string(["A", "A", "A"]) join NULL) as symv)
+p = py::toPy(ex)
+re = py::fromPy(p)
+assert 3, eqObj(re.values(), ex.values())
+
+ex = take(symbol(string(["A", "A", "A"]) join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, eqObj(res, ex)
+
+ex = take(symbol(string(["A", "A", "A"]) join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, eqObj(res, ex)
+
+ex = table(take(symbol(string(["A", "A", "A"]) join NULL), 65540)as sym)
+p = py::toPy(ex)
+re = py::fromPy(p)
+assert 6, eqObj(re.values(), ex.values())
+
+ex = symbol(string(["A", "A", "A"]))[0]
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 7,eqObj(res, ex)
+
+@testing:case="test_function_python_toPy_blob"
+ex = blob("A")
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+@testing:case="test_function_python_toPy_bool"
+ex = true
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = 00b
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == 0
+
+ex = [true, false, bool()]
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = rand([true, false, bool()], 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = rand([true, false, bool()], 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = rand([true, false], 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+ex = false
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 7, res == ex
+
+data = [1, 2, 3, NULL]
+data[3] = 4
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 8, res == data
+
+data = [true, false, true, NULL]
+data[3] = true
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 9, res == data
+
+@testing:case="test_function_python_toPy_char"
+ex = char(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = char()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = char(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = rand(char(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = rand(char(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = rand(char(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+ex = []
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 7, res == ex
+
+data = [char(1), char(1), char(1), NULL]
+data[3] = char(4)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 8, res == data
+
+@testing:case="test_function_python_toPy_short"
+ex = short(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = short()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = short(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = rand(short(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = rand(short(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = rand(short(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [short(1), short(2), short(3), NULL]
+data[3] = short(4)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_int"
+ex = int(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = int()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = int(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = rand(int(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = rand(int(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = rand(int(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [int(1), int(2), int(3), NULL]
+data[3] = int(4)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_long"
+ex = long(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = long()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = long(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = take(long(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = take(long(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = take(long(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [long(1), long(2), long(3), NULL]
+data[3] = long(4)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_date"
+ex = date(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = date()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = date(2012.01.01+1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = take(date(2012.01.01+1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = take(date(2012.01.01+1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = take(date(2012.01.01+1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [date(2012.01.01), date(2012.01.01), date(2012.01.01), NULL]
+data[3] = date(2012.01.04)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_month"
+ex = month(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = month()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == month(-2147460009)
+
+ex = month(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = take(month(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = take(month(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = take(month(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [month(1), month(2), month(3), NULL]
+data[3] = month(4)
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+data = [2362.04M, 1969.01M]
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 8, res == data
+
+@testing:case="test_function_python_toPy_second"
+ex = second(datetime(1))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == datetime(1)
+
+ex = second()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == NULL
+
+ex = second(datetime(1..10 join NULL))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == datetime(1..10 join NULL)
+
+ex = second(take(datetime(1..10 join NULL), 1030))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == take(datetime(1..10 join NULL), 1030)
+
+ex = second(take(datetime(1..10 join NULL), 65540))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == take(datetime(1..10 join NULL), 65540)
+
+ex = second(take(datetime(1..10), 65540))
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == take(datetime(1..10), 65540)
+
+@testing:case="test_function_python_toPy_datetime"
+ex = datetime(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == datetime(1)
+
+ex = datetime()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == NULL
+
+ex = datetime(1..10 join NULL)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == datetime(1..10 join NULL)
+
+ex = take(datetime(1..10 join NULL), 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == take(datetime(1..10 join NULL), 1030)
+
+ex = take(datetime(1..10 join NULL), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == take(datetime(1..10 join NULL), 65540)
+
+ex = take(datetime(1..10), 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == take(datetime(1..10), 65540)
+
+@testing:case="test_function_python_toPy_timestamp"
+ex = timestamp(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = timestamp()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = 2012.01.01T12:23:56.125+1..10 join NULL
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = take(2012.01.01T12:23:56.125+1..10 join NULL, 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = take(2012.01.01T12:23:56.125+1..10 join NULL, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = take(2012.01.01T12:23:56.125+1..10, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [2012.01.01T12:23:56.125, 2012.01.01T12:23:56.125, 2012.01.01T12:23:56.125, NULL]
+data[3] = 2012.01.01T12:23:56.125
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_nanotimestamp"
+ex = nanotimestamp(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == ex
+
+ex = nanotimestamp()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == ex
+
+ex = 2012.01.01T12:23:56.125456788+1..10 join NULL
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == ex
+
+ex = take(2012.01.01T12:23:56.125456788+1..10 join NULL, 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == ex
+
+ex = take(2012.01.01T12:23:56.125456788+1..10 join NULL, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == ex
+
+ex = take(2012.01.01T12:23:56.125456788+1..10, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == ex
+
+data = [2012.01.01T12:23:56.125456788, 2012.01.01T12:23:56.125456788, 2012.01.01T12:23:56.125456788, NULL]
+data[3] = 2012.01.01T12:23:56.125456788
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == data
+
+@testing:case="test_function_python_toPy_nanotime"
+ex = nanotime(1)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 1, res == 1970.01.01T00:00:00.000000001
+
+ex = nanotime()
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 2, res == nanotimestamp()
+
+ex = 12:23:56.125456788+1..10 join NULL
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 3, res == 1970.01.01T12:23:56.125456788+1..10 join NULL
+
+ex = take(12:23:56.125456788+1..10 join NULL, 1030)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 4, res == take(1970.01.01T12:23:56.125456788+1..10 join NULL, 1030)
+
+ex = take(12:23:56.125456788+1..10 join NULL, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 5, res == take(1970.01.01T12:23:56.125456788+1..10 join NULL, 65540)
+
+ex = take(12:23:56.125456788+1..10, 65540)
+p = py::toPy(ex)
+res = py::fromPy(p)
+assert 6, res == take(1970.01.01T12:23:56.125456788+1..10, 65540)
+
+data = [12:23:56.125456788, 12:23:56.125456788, 12:23:56.125456788, NULL]
+data[3] = 12:23:56.125456788
+p = py::toPy(data)
+res = py::fromPy(p)
+assert 7, res == [1970.01.01T12:23:56.125456788,1970.01.01T12:23:56.125456788,1970.01.01T12:23:56.125456788,1970.01.01T12:23:56.125456788]
+
+@testing:case="test_function_python_toPy_null"
+p = py::toPy(NULL)
+res = py::fromPy(p)
+assert 1, res == NULL
+
+p = py::toPy([])
+res = py::fromPy(p)
+assert 2, res == []
+
+for(dtype in [int,char,bool,short,long,double,float,minute,time,second,timestamp,datetime,nanotime,nanotimestamp]){
+	m = dtype(take(00i, 3000000))
+	p = py::toPy(m)
+	res = py::fromPy(p)
+	if(dtype==time || dtype==nanotime){
+		assert 3, res == timestamp(take(00i, 3000000))
+	}else if(dtype==second){
+		assert 4, res == datetime(take(00i, 3000000))
+	}else{
+		assert 5, res == m
+	}
+}
+
+@testing:case="test_function_python_toPy_blob_ex", exception = 1
+ex = blob(string(["A", "A", "A"]))
+p = py::toPy(ex)
+
+@testing:case="test_function_python_fromPy"
+np = py::importModule("numpy");
+NAN = py::getObj(np, "nan");
+assert 1, py::fromPy(NAN) == NULL
+
+@testing:case="test_function_python_matrix_with_multi_type_ex1", exception = 1
+mat = matrix(table(["A", "B", "A"] as id, [1.2, 2.5, 4.9] as val))
+p = py::toPy(mat)
+res = py::fromPy(p)
+
+@testing:case="test_function_python_matrix_with_multi_type_ex2", exception = 1
+mat = matrix(SYMBOL,2,2, ,`T);
+p = py::toPy(mat)
+res = py::fromPy(p)
+
+@testing:case="test_function_python_matrix_numeric"
+mat = 1..10$2:5
+p = py::toPy(mat)
+res = py::fromPy(p)
+assert 1, res==1..10$2:5
+
+@testing:case="test_function_python_pair"
+p = py::toPy(1:10)
+res = py::fromPy(p)
+assert 1, res == [1, 10]
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_float64"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat64", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res["index"] == [0, 1]
+assert 2, res["c2"] == [3.2, 6.9]
+assert 3, res["c3"] == [7.5, 1.8]
+assert 4, res["c87"] == [7.5, 1.5]
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_float32"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat32", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res["index"] == [0, 1]
+assert 2, res["c2"] == float([3.2, 6.9])
+assert 3, res["c3"] == float([7.5, 1.8])
+assert 4, res["c87"] == float([7.5, 1.5])
+
+@testing:case="test_function_python_frompy_to_ddb_index_py_float"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testFloat", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res["index"] == [0, 1]
+assert 2, res["c2"] == [3.2, 6.9]
+assert 3, res["c3"] == [7.5, 1.8]
+assert 4, res["c87"] == [7.5, 9221120237041090600]
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_float32"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat32", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res["index"] == [0, 1]
+assert 2, res["c2"] == float([3.2, 6.9])
+assert 3, res["c3"] == float([7.50, 1.8])
+assert 4, res["c87"] == float([7.5, 1.5])
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_list"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat32ArrContainNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == float([3.2, , 7.5])
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat64ArrContainNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res == double([3.2, , 7.5])
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testFloatArr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == double([3.2, 2.60, 7.5])
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpFloat_", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 4, res == double([3.2, , 7.5])
+
+
+@testing:case="test_function_python_colName"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testColName", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res.colNames() == ["index","c_1","A","A_","b","c","c2","AFAGSaaa","AVGNKKAKK__aaa"]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testColName1", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res.colNames() == ["index","c"]
+
+func1 = py::getFunc(model, "testColName2", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res.colNames() == ["index","c_"]
+
+func1 = py::getFunc(model, "testColName3", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 4, res.colNames() == ["index","A_"]
+
+func1 = py::getFunc(model, "testColName4", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 5, res.colNames() == ["index","c_"]
+
+func1 = py::getFunc(model, "testColName5", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 6, res.colNames() == ["index","B"]
+
+func1 = py::getFunc(model, "testColName6", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 7, res.colNames() == ["index","c"]
+
+func1 = py::getFunc(model, "testColName7", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 8, res.colNames() == ["index","c0"]
+
+func1 = py::getFunc(model, "testColName8", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 9, res.colNames() == ["index","aa12304AAA","mHHAJA_123","zHHAJA_123", "Zjak12","c_2342"]
+
+@testing:case="test_function_python_tuple"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testTupleArr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == [1.0, 1, 2012.01.01T12:23:56]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testTupleInDataFrame", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res.index == [0,1,2,3]
+assert 3, res.c2 == [3.2, `6.900000095367432, "A",1]
+assert 4, res.c3 == [7.5, `1.799999952316284, "bJJA",2]
+assert 5, res.c87 == [7.5, 1.5, "HUA",3]
+
+@testing:case="test_function_python_errorInput", exception=1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testWrongInput", false)
+term1 = func1()
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_list_int"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInt32Arr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == 1 2 3
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInt64Arr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res == long(1 2 3)
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInt16Arr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == short(1 2 3)
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInt8Arr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 4, res == short(1 2 3)
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_list_int_ex", exception=1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testInt16ArrContainNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+
+@testing:case="test_function_python_frompy_to_ddb_index_numpy_list_bool"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testBoolArr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == 1 0 NULL
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpBoolArr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res == true false true
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpBool8Arr", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == true false true
+
+
+/* crash
+@testing:case="test_function_python_toPy_obj_decimal_dict"
+x = 1 3 2
+y = decimal32(1.23 3 3.14, 3)
+z = dict(x,y,true);
+py::toPy(z)
+*/
+
+@testing:case="test_function_python_toPy_obj_uuid_dict"
+x = 1 3 2
+y = rand(uuid(), 3)
+z = dict(x,y,true);
+p = py::toPy(z)
+re = py::fromPy(p)
+assert 1, eqObj(re.values(), string(z.values()))
+
+@testing:case="test_function_python_frompy_datetime"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpDateTime64", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == 2012.01.02T12:23:56
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpDateTime64us", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res == 2012.01.02T12:23:56.123456000
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testNpDateTime64ns", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == 2012.01.02T12:23:56.123456768
+
+@testing:case="test_function_python_frompy_matrix"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testMatrixEye", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == eye(4)
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testMatrixZero", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 2, res == take(0.0, 12)$3:4
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testMatrixEmpty", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == take(0.0, 12)$3:4
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testMatrixReshape", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 4, res == [1,4,2,5,3,6]$2:3
+
+@testing:case="test_function_python_frompy_dict_ex1", exception = 1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testEmptyDict", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+
+@testing:case="test_function_python_frompy_dict_ex2", exception = 1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDictAllNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+
+
+@testing:case="test_function_python_frompy_dict"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDict", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res.keys() == 0..4
+assert 2, res.values() == 1..5
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDictContainNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res.keys() == 0..4
+assert 4, res.values() == [1,2,,4,5]
+
+@testing:case="test_function_python_frompyToddb_datetime"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTimeNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == NULL
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_m_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+//assert 2, res == [00:00m,00:00m,20:00m,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_s_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 3, res == [2020.03.01T00:00:00,2020.03.08T00:00:00,2020.03.08T20:00:00,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_D_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 4, res == [2020.03.01,2020.03.08,2020.03.08,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_M_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 5, res == [2020.03M,2020.03M,2020.03M,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_h_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 6, res == datehour([2020.03.01,2020.03.08,2020.03.08T20:00:00,])
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_us_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 7, res == [1970.01.19T07:43:40.800000000, 1970.01.19T07:53:45.600000000, 1970.01.19T07:54:57.600000000,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_ms_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 8, res == [2020.03.01T00:00:00.000, 2020.03.08T00:00:00.000, 2020.03.08T20:00:00.000,]
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_ns_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 9, res == [2020.03.01T00:00:00.000000000, 2020.03.08T00:00:00.000000000, 2020.03.08T20:00:00.000000000,]
+
+/*crash
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testDateTime_Y_NullList", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 10, res == [2020.03.01T00:00:00.000000000, 2020.03.08T00:00:00.000000000, 2020.03.08T20:00:00.000000000,]
+
+*/
+
+@testing:case="test_function_python_frompyToddb_set", exception = 1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testEmptySet", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+
+@testing:case="test_function_python_frompyToddb_set"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testSet", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == set(1 2 3)
+
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testSetContainNull", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+//assert 2, res == set([00l, 1l, 2l])
+
+@testing:case="test_function_python_toPy_table_contain_null"
+t = table(100:0, `id`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv,[INT,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP])
+data = table(1..10 as id, date(take([2012.01.01, NULL, 2014.05.09, NULL], 10)) as datev, month(take([2012.01.01, NULL, 2014.05.09, NULL], 10)) as monthv, time(take([2012.01.01T12:56:56.123, NULL, 2012.01.01T12:56:56.123], 10)) as timev, minute(take([12:23:56.546, 13:23m, 14:56m,NULL], 10)) as minutev, second(take([12:23:56.546, 12:23:56.546, 12:23:56.546,NULL], 10)) as secondv, datetime(take([2012.01.01T12:56:56.123, NULL, 2012.01.01T12:56:56.123], 10)) as datetimev, timestamp(take([2012.01.01T12:56:56.123, NULL, 2012.01.01T12:56:56.123], 10)) as timestampv, nanotime(take([2012.01.01T12:56:56.123123123, NULL, 2012.01.01T12:56:56.123123123], 10)) as nanotimev,nanotimestamp(take([2012.01.01T12:56:56.123123123, NULL, 2012.01.01T12:56:56.123123123], 10)) as nanotimestampv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["datev"] == exec nanotimestamp(datev) from t
+assert 2, res["monthv"] == exec nanotimestamp(monthv) from t
+assert 3, res["timev"] == take([1970.01.01T12:56:56.123, NULL, 1970.01.01T12:56:56.123],10)
+assert 4, res["minutev"] == nanotimestamp(take([1970.01.01T12:23:00, 1970.01.01T13:23:00, 1970.01.01T14:56:00,NULL], 10))
+assert 5, res["secondv"] == nanotimestamp(take([1970.01.01T12:23:56, 1970.01.01T12:23:56, 1970.01.01T12:23:56,NULL], 10))
+assert 6, res["datetimev"] == nanotimestamp(take([2012.01.01T12:56:56, NULL, 2012.01.01T12:56:56], 10))
+assert 7, res["timestampv"] == nanotimestamp(take([2012.01.01T12:56:56.123, NULL, 2012.01.01T12:56:56.123], 10))
+assert 8, res["nanotimev"] == nanotimestamp(take([1970.01.01T12:56:56.123123123, NULL, 1970.01.01T12:56:56.123123123], 10))
+assert 9, res["nanotimestampv"] == nanotimestamp(take([2012.01.01T12:56:56.123123123, NULL, 2012.01.01T12:56:56.123123123], 10))
+
+@testing:case="test_function_python_toPy_table_not_contain_null"
+t = table(100:0, `id`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv,[INT,DATE,MONTH,TIME,MINUTE,SECOND,DATETIME,TIMESTAMP,NANOTIME,NANOTIMESTAMP])
+data = table(1..10 as id, date(take([2012.01.01, 2014.05.09], 10)) as datev, month(take([2012.01.01, 2014.05.09], 10)) as monthv, time(take([2012.01.01T12:56:56.123, 2012.01.01T12:56:56.123], 10)) as timev, minute(take([12:23:56.546, 13:23m, 14:56m], 10)) as minutev, second(take([12:23:56.546, 12:23:56.546, 12:23:56.546], 10)) as secondv, datetime(take([2012.01.01T12:56:56.123, 2012.01.01T12:56:56.123], 10)) as datetimev, timestamp(take([2012.01.01T12:56:56.123, 2012.01.01T12:56:56.123], 10)) as timestampv, nanotime(take([2012.01.01T12:56:56.123123123, 2012.01.01T12:56:56.123123123], 10)) as nanotimev,nanotimestamp(take([2012.01.01T12:56:56.123123123, 2012.01.01T12:56:56.123123123], 10)) as nanotimestampv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["datev"] == exec nanotimestamp(datev) from t
+assert 2, res["monthv"] == exec nanotimestamp(monthv) from t
+assert 3, res["timev"] == take([1970.01.01T12:56:56.123, 1970.01.01T12:56:56.123],10)
+assert 4, res["minutev"] == nanotimestamp(take([1970.01.01T12:23:00, 1970.01.01T13:23:00, 1970.01.01T14:56:00], 10))
+assert 5, res["secondv"] == nanotimestamp(take([1970.01.01T12:23:56, 1970.01.01T12:23:56, 1970.01.01T12:23:56], 10))
+assert 6, res["datetimev"] == nanotimestamp(take([2012.01.01T12:56:56, 2012.01.01T12:56:56], 10))
+assert 7, res["timestampv"] == nanotimestamp(take([2012.01.01T12:56:56.123, 2012.01.01T12:56:56.123], 10))
+assert 8, res["nanotimev"] == nanotimestamp(take([1970.01.01T12:56:56.123123123, 1970.01.01T12:56:56.123123123], 10))
+assert 9, res["nanotimestampv"] == nanotimestamp(take([2012.01.01T12:56:56.123123123, 2012.01.01T12:56:56.123123123], 10))
+
+@testing:case="test_function_python_toPy_table_month_before_1969_ex1", exception = 1
+t = table(100:0, `id`monthv,[INT,MONTH])
+data = table(1..10 as id, month(take([1967.01.01, 2014.05.09], 10)) as monthv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+
+@testing:case="test_function_python_toPy_table_month_before_1969_ex2", exception = 1
+t = table(100:0, `id`monthv,[INT,MONTH])
+data = table(1..10 as id, month(take([2014.05.09, NULL, 1967.01.01, 2014.05.09], 10)) as monthv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+
+@testing:case="test_function_python_toPy_table_month_after_2262_ex1", exception = 1
+t = table(100:0, `id`monthv,[INT,MONTH])
+data = table(1..10 as id, month(take([2263.01.01, 2014.05.09], 10)) as monthv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+
+
+@testing:case="test_function_python_toPy_table_month_after_2262_ex2", exception = 1
+t = table(100:0, `id`monthv,[INT,MONTH])
+data = table(1..10 as id, month(take([2014.05.09, NULL, 2263.01.01, 2014.05.09], 10)) as monthv)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+
+@testing:case="test_function_python_toPy_table_dateHour_contain_null"
+t = table(100:0, `id`dateHour,[INT,DATEHOUR])
+data = table(1..3 as id, datehour(take([1970.01.01T12:23:56, NULL, 2014.05.09T12:23:56], 3)) as datehour)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["dateHour"] == nanotimestamp(take([1970.01.01T12:00:00, NULL, 2014.05.09T12:00:00], 3))
+
+@testing:case="test_function_python_toPy_table_dateHour_not_contain_null"
+t = table(100:0, `id`dateHour,[INT,DATEHOUR])
+data = table(1..3 as id, datehour(take([1970.01.01T12:23:56, 2014.05.09T12:23:56], 3)) as datehour)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["dateHour"] == nanotimestamp(take([1970.01.01T12:00:00, 2014.05.09T12:00:00], 3))
+
+@testing:case="test_function_python_toPy_table_float_double_contain_null"
+t = table(100:0, `id`floatv`doublev,[INT,FLOAT,DOUBLE])
+data = table(1..3 as id, float([1.5, , 2.6]) as floatv, double([1.5, , 2.6]) as doublev)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["floatv"] == float([1.5, , 2.6])
+assert 2, res["doublev"] == double([1.5, , 2.6])
+
+@testing:case="test_function_python_toPy_table_float_double_not_contain_null"
+t = table(100:0, `id`floatv`doublev,[INT,FLOAT,DOUBLE])
+data = table(1..3 as id, float([1.5, 1.5,2.6]) as floatv, double([1.5, 1.5, 2.6]) as doublev)
+t.append!(data)
+p = py::toPy(t)
+res = py::fromPy(p)
+assert 1, res["floatv"] == float([1.5, 1.5, 2.6])
+assert 2, res["doublev"] == double([1.5, 1.5, 2.6])
+
+@testing:case="test_function_python_fromPy_all_null_vector", exception = 1
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testAllNullVector", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+
+@testing:case="test_function_python_fromPy_multi_type_vector"
+model = py::importModule("test_index");
+func1 = py::getFunc(model, "testMultiTypeVector", false)
+term1 = func1()
+res = py::fromPy(term1,true)
+assert 1, res == [[1.52, 2.36, 4.25], ["1.52", "2.36", "4.25"], [2012.05.01,2012.05.01,2012.06.01]]
+
+@testing:case="test_function_python_keyword_syntax"
+assert 1, syntax(py::cmd) == 'cmd(script)'
+assert 2, syntax(py::importModule) == 'importModule(moduleName)'
+assert 3, syntax(py::reloadModule) == 'reloadModule(module)'
+assert 4, syntax(py::getObj) == 'getObj(module, objName)'
+assert 5, syntax(py::getFunc) == 'getFunc(module, funcName, [convert=true])'
+assert 6, syntax(py::fromPy) == 'fromPy(obj, [includeIndex=false])'
+assert 7, syntax(py::toPy) == 'toPy(obj)'
+// not support keyword
+assert 8, syntax(py::getInstanceFromObj) == 'getInstanceFromObj(...) minParams = 1, maxParams = 32'
+assert 9, syntax(py::getInstance) == 'getInstance(...) minParams = 2, maxParams = 32'
+
+@testing:case="test_function_python_set_keyword"
+datasets = py::importModule(moduleName="sklearn.datasets");
+load_iris = py::getFunc(module=datasets, funcName="load_iris", convert=true);
+iris = load_iris();
+sklearn = py::importModule(moduleName="sklearn"); 
+py::cmd(script="from sklearn import linear_model"); 
+linearR = py::getObj(module=sklearn,objName="linear_model.LinearRegression")
+linearInst = py::getInstanceFromObj(linearR);
+linearInst.fit(iris['data'], iris['target']);
+assert 1,eqObj(linearInst.coef_,[-0.11190585, -0.04007949 , 0.22864503 , 0.60925205],4)
+assert 2,eqObj(linearInst.intercept_,0.186495247206249,4)
+
+np = py::importModule(moduleName="numpy"); 
+np2 = py::reloadModule(module=np); 
+eye1 = py::getFunc(np2, funcName="eye"); 
+re = eye1(3); 
+assert 4,re[0]==eye(3)[0]
+assert 5,re[1]==eye(3)[1]
+assert 6,re[2]==eye(3)[2]
+
+model = py::importModule(moduleName="test_index");
+func1 = py::getFunc(model, "testMultiTypeVector", convert=false)
+term1 = func1()
+res = py::fromPy(term1,includeIndex=true)
+assert 7, res == [[1.52, 2.36, 4.25], ["1.52", "2.36", "4.25"], [2012.05.01,2012.05.01,2012.06.01]]
+
+model = py::importModule(moduleName="test_index");
+func1 = py::getFunc(model, funcName="testSet", convert=false)
+term1 = func1()
+res = py::fromPy(obj=term1,includeIndex=true)
+assert 8, res == set(1 2 3)
+
+t = table(100:0, `id`floatv`doublev,[INT,FLOAT,DOUBLE])
+data = table(1..3 as id, float([1.5, 1.5,2.6]) as floatv, double([1.5, 1.5, 2.6]) as doublev)
+t.append!(data)
+p = py::toPy(obj=t)
+res = py::fromPy(p)
+assert 9, res["floatv"] == float([1.5, 1.5, 2.6])
+assert 10, res["doublev"] == double([1.5, 1.5, 2.6])
+
+//https://dolphindb1.atlassian.net/browse/DPLG-4238
+@testing:case="test_py_utf-8_bug_ex1"
+pd = py::importModule("pandas")
+np = py::importModule("numpy")
+o = py::importModule("os")
+
+new_default_folder = '/root/py插件'
+chdir = py::getFunc(o, "chdir")
+getcwd = py::getFunc(o, "getcwd")
+newdir = chdir(new_default_folder)
+try{g = getcwd()}catch(ex){print ex}
+
+//https://dolphindb1.atlassian.net/browse/DPLG-4238
+@testing:case="test_py_utf-8_bug_ex2", exception=1
+data = "中文"
+data = convertEncode(data, "utf-8", "gbk")
+obj1 = py::toPy(data)
+py::fromPy(obj1)
+
+@testing:case="test_py_setLogLevel_string_ex", exception=1
+py::setLogLevel("1")
+
+@testing:case="test_py_setLogLevel_int_ex", exception=1
+py::setLogLevel(10)
+
+@testing:case="test_py_setLogLevel_input_date_ex", exception=1
+py::setLogLevel(2012.01.01)
+
+@testing:case="test_py_setLogLevel_input_time_ex", exception=1
+py::setLogLevel(12:23:56)
+
+@testing:case="test_py_setLogLevel_input_uuid_ex", exception=1
+py::setLogLevel(uuid("1c90bdc2-40c8-d2e7-7bea-7faa30ba1bf7"))
+
+@testing:case="test_py_setLogLevel_input_ipaddr_ex", exception=1
+py::setLogLevel(ipaddr("6552:356e:b003:9eff:8df4:da0:786c:463e"))
+
+@testing:case="test_py_setLogLevel_input_int128_ex", exception=1
+py::setLogLevel(int128("5e496fbb630180f07ea046a3905be461"))
+
+@testing:case="test_py_setLogLevel_input_point_ex", exception=1
+py::setLogLevel(point(1,2))
+
+@testing:case="test_py_setLogLevel_input_complex_ex", exception=1
+py::setLogLevel(complex(1,2))
+
+@testing:case="test_py_setLogLevel"
+py::setLogLevel(INFO)
+assert 1, py::getLogLevel() == "INFO"
+py::setLogLevel(DEBUG)
+assert 2, py::getLogLevel() == "DEBUG"
+py::setLogLevel(WARNING)
+assert 3, py::getLogLevel() == "WARNING"
+py::setLogLevel(ERROR)
+assert 4, py::getLogLevel() == "ERROR"
+

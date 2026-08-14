@@ -1,0 +1,204 @@
+module easy_datayes::loadData::loadData
+
+use easy_datayes::utils
+use easy_datayes::setconfig
+
+def loadOneDayData(datafile, day, dbNames, tbNames, dtypes, exchange) {// datafile, exchange = csvFilesSH, "SH" 
+
+    // Get the status monitoring table for data import
+    // csvFiles = csvFilesSH
+    // Determine which loading functions and types to use based on the presence of a specific CSV file
+    load_func_info_map = set_transform_function()
+	datafiles = my_files(datafile, ".*")
+    for(ind in 0:size(dtypes)){	// ind = 1
+		dtype = dtypes[ind]
+		dbname = dbNames[ind]
+		tbname = tbNames[ind]
+		// 更新记录表示开始导入
+		update_task_status([day], [dtype], [exchange], ["progress"], [""])
+		// 检查对应的数据文件是否存在以及表结构是否满足模块设置
+        load_func_info_list = load_func_info_map[dtype][exchange]
+		iNum = size(load_func_info_list)
+		check_flag = array(BOOL, iNum, , true)
+		error_msg = array(STRING, 0)
+		for(i in 0:iNum){	// i = 0
+			targetfiles = load_func_info_list[i]["datafile"]
+			csv_schemas = load_func_info_list[i]["csv_schema"]
+			transform_funcs = load_func_info_list[i]["transform"]
+			jNum = size(targetfiles)
+			load_targetfiles = array(STRING, jNum, , "")
+			load_files = array(STRING, jNum, , "")
+			load_funcs = array(STRING, jNum, , "")
+			load_csv_schema = array(STRING, jNum, , "")
+			for(j in 0:size(targetfiles)){	// j = 0
+				targetfile = targetfiles[j]
+				csv_schema = csv_schemas[j]
+				transform_func = transform_funcs[j]
+				// 找 满足 targetfile 正则表达式的文件是否存在
+				dfile = datafiles[regexFind(datafiles, targetfile)>-1]
+				if(size(dfile)==0){
+					error_msg.append!(stringFormat("%W 交易所 %W 日期的 %W 文件不存在, 搜索路径 %W", exchange, string(day), targetfile, datafile))
+					check_flag[i] = false 
+					continue
+				}else{
+					csvind = -1
+					if(any(endsWith(dfile, "csv"))){
+						csvind = til(size(dfile))[endsWith(dfile, "csv")][0]
+					}else if(any(endsWith(dfile, "zip"))){
+						csvind = til(size(dfile))[endsWith(dfile, "zip")][0]
+					}
+					if(csvind!=-1){
+						load_files[j] = dfile[csvind]
+						load_targetfiles[j] = targetfile
+						load_funcs[j] = transform_func
+						load_csv_schema[j] = csv_schema
+					}else{
+						error_msg.append!(stringFormat("%W 交易所 %W 日期的 %W 文件不存在 csv/zip, 搜索路径 %W", exchange, string(day), targetfile, datafile))
+						check_flag[i] = false 
+						continue
+					}
+				}
+			}
+			if(check_flag[i]==true){
+				break
+			}
+		}
+		if(!any(check_flag)){
+			update_task_status([day], [dtype], [exchange], ["failed"], ["["+concat(error_msg, "],[")+"]"])
+			continue
+		}
+		// 确定存在文件后，开始导入
+		iNum = size(load_files)
+		for(i in 0:iNum){	// i = 0
+			load_file = load_files[i]
+			load_func = load_funcs[i]
+			load_csv = load_csv_schema[i]
+			load_targetfile = load_targetfiles[i]
+			// 处理 zip 文件
+			isNeedUnzip = false
+			if(endsWith(load_file, "zip")){
+				isNeedUnzip = true
+				unzip_filedir = set_unzip_filedir()
+				if(unzip_filedir==""){
+					unzip_filedir = datafile
+				}
+				unzip_outputdir = unzip_filedir+"/"+temporalFormat(day, "yyyyMMdd")+"_"+load_targetfile
+				try{
+					mkdir(unzip_outputdir)
+				}catch(ex){
+					if(!(ex[1] like "%already exists%")){
+						update_task_status([day], [dtype], [exchange], ["failed"], ["解压失败: "+ex[0]+":"+ex[1]])
+						break
+					}
+				}
+				try{
+					load_csv_file = zip::unzip(load_file, unzip_outputdir)[0]
+				}catch(ex){
+					update_task_status([day], [dtype], [exchange], ["failed"], ["解压失败: "+ex[0]+":"+ex[1]])
+					break
+				}
+			}else{
+				load_csv_file = load_file
+			}
+			// 检查表结构
+			module_name = concat(load_csv.split("::").removeTail!(1), "::")
+			dynamic_import_module(module_name)
+			if(syntax(funcByName(load_csv)).split("(")[1].strReplace(")","")==""){
+				schema_tb = funcByName(load_csv)()
+			}else{
+				schema_tb = funcByName(load_csv)(day)
+			}
+			schema_test = extractTextSchema(load_csv_file)
+			if(schema_tb.rows() != schema_test.rows()){
+				msg = stringFormat("[%W] 数据格式有误，列数不匹配", load_file)
+				update_task_status([day], [dtype], [exchange], ["failed"], [msg])
+				if(isNeedUnzip==true){
+					msg = stringFormat("删除解压文件夹 [%W]", unzip_outputdir)
+					write_log(msg)
+					try{rmdir(unzip_outputdir, true)}catch(ex){write_log(ex[0]+":"+ex[1])}
+				}
+				break
+			}
+			// 开始导入数据
+			try{
+				module_name = concat(load_func.split("::").removeTail!(1), "::")
+				dynamic_import_module(module_name)
+				load_function = funcByName(load_func)
+				ds = textChunkDS(filename=load_csv_file, chunkSize=512, schema=schema_tb)
+				appendFunc = def(dbname, tbname, load_function, day, t){
+					/*
+					dbname = "dfs://TL_Level2"
+					tbname = "snapshot"
+					load_function=transformSnapshotSH
+					day=2015.01.01
+					schema_tb = snapshotCsvSchemaSH(day)
+					load_csv_file="/home/appadmin/fln/DolphinDB_V3.00.3_JIT/server/uploads/data/20150101/SH/20150101_MarketData.csv"
+					t=loadText(load_csv_file, schema=schema_tb)
+					 */
+					pt = loadTable(dbname, tbname)
+					schema_tb = table(1:0, pt.schema().colDefs.name, pt.schema().colDefs.typeString)
+					tmpData = load_function(t, day)
+					schema_tb.tableInsert(tmpData.flip())
+					pt.append!(schema_tb)
+				}
+				mr(ds, appendFunc{dbname, tbname, load_function, day}, parallel=false)
+			}catch(ex){
+				update_task_status([day], [dtype], [exchange], ["failed"], ["导入失败: "+ex[0]+":"+ex[1]])
+				if(isNeedUnzip==true){
+					msg = stringFormat("删除解压文件夹 [%W]", unzip_outputdir)
+					write_log(msg)
+					try{rmdir(unzip_outputdir, true)}catch(ex){write_log(ex[0]+":"+ex[1])}
+				}
+				break
+			}
+			update_task_status([day], [dtype], [exchange], ["completed"], [""])
+		}
+    }
+}
+
+
+/*
+ * @FunctionName: loadDaysData
+ * @Brief: Loads daily trading data from specified files into the corresponding database tables.
+ *         Automatically detects and unzips compressed CSV files if no CSV files are found in the directory.
+ *         Temporary directories are created for unzipped files and cleaned up after loading (original zip files are preserved).
+ * @Param: fileList: A vector containing the paths of the files to load data from.
+ * @Param: dbNames: A vector of database names where the data will be loaded.
+ * @Param: tbNames: A vector of table names corresponding to the databases.
+ * @Param: dtypes: A vector representing the data types for the import process.
+ * @Param: market: The market type (ALL, SH, SZ) defining how the table is structured.
+ * @Param: isConcatTime: A boolean flag indicating whether to concatenate date andtime into a single timestamp column.
+ * @Param: isDataDuplicated: A boolean flag indicating whether to handle duplicate data entries.
+ * @Param: isNeedOrderQueue: A boolean flag indicating whether to include the order queue data in the import.
+ */
+def loadDaysData(fileList, dbNames, tbNames, dtypes){
+	// 统计当前要导入的任务
+	load_date = temporalParse(string(right(fileList, 8)), "yyyyMMdd")
+	job_list = cj(table(load_date), table(dtypes as data_type))
+	job_list = cj(job_list, table(set_exchange() as exchange))
+	update job_list set job_status="waiting", error_msg=""
+	update_task_status(load_date=job_list["load_date"], 
+						data_type=job_list["data_type"], 
+						exchange=job_list["exchange"], 
+						job_status=job_list["job_status"], 
+						error_msg=job_list["error_msg"])
+    // Iterate through each file in the fileList
+	for(file in fileList){	//file=fileList[6]
+		write_log(stringFormat("开始导入数据 [%W]", file))
+		// Get all absolute CSV file paths in the specified directory
+		day = temporalParse(string(right(file, 8)),"yyyyMMdd")
+		// === Original code (unchanged) ===
+		if(day < 2016.05.07 and day != NULL){                      // 2016.05.06 以前沪深的 csv 名字相同，所以需要再使用上层目录区分
+			csvFilesSZ = my_files(file, "SZ$")[0]
+			csvFilesSH = my_files(file, "SH$")[0]
+		}else{
+            csvFilesSZ, csvFilesSH = file, file
+        }
+		// csvFilesSZ = my_files(csvFilesSZ, "csv$")
+        // csvFilesSH = my_files(csvFilesSH, "csv$")
+
+		// Attempt to load data into the database
+		loadOneDayData(csvFilesSH, day, dbNames, tbNames, dtypes, "SH")
+		loadOneDayData(csvFilesSZ, day, dbNames, tbNames, dtypes, "SZ")
+	}
+}

@@ -1,0 +1,58 @@
+// ============================================================
+// 机器信息收集 + 推荐并行度（DolphinX 版）
+// 在 DolphinDB Web 平台直接执行本脚本即可
+// 末尾会以 RECOMMENDED_PARALLEL=<数值> 的形式打印推荐并行度
+// ============================================================
+
+//DDB最大可用内存
+maxMem = getConfig("maxMemSize")
+//DDB lic 限制内存
+licMem = license()["maxMemoryPerNode"]
+//最多可以执行的后台任务数
+maxBatch = getConfig("maxBatchJobWorker")
+//最多可以用的CPU核数
+maxCores = license()["maxCoresPerNode"]
+
+/*
+并行度parallel参数通用推荐逻辑
+
+一、核心约束计算
+1. 内存约束（并行度上限1）
+   最大可用内存 = min(maxMemSize, maxMemoryPerNode)
+   安全内存阈值 = 最大可用内存 / 2（最大占用不超过可用内存一半）
+   单并行任务内存 = 8GB（根据性能表：并行度=1时最大内存占用为8GB，固定取值）
+   并行度上限1 = 安全内存阈值 / 8GB
+
+2. 并发约束（并行度上限2）
+   并行度上限2 = min(maxBatchJobWorker, maxCoresPerNode)
+
+二、最终并行度计算
+最终并行度 = min(并行度上限1, 并行度上限2)
+含义：取内存允许的最大并行度、系统允许的最大并发度中较小值，
+      确保既满足内存安全要求，又符合系统并发硬限制。
+
+三、通用配置原则
+1. 单并行任务内存固定使用性能表基准值：8GB
+2. 内存安全优先级最高，避免OOM
+3. 不突破系统并发/CPU许可硬限制
+4. 最终并行度由两项约束中更严格的一方决定
+*/
+
+// ===== 计算推荐并行度（dos 内置实现，无需 Python） =====
+availableMem = min(int(maxMem), int(licMem))
+parallelByMem = int(availableMem / 2 / 8)
+parallelByConc = min(int(maxBatch), int(maxCores))
+recommendedParallel = min(parallelByMem, parallelByConc)
+if(recommendedParallel < 1) recommendedParallel = 1
+
+print("==== 机器配置 ====")
+print("maxMemSize=" + string(maxMem) + " GB")
+print("maxMemoryPerNode=" + string(licMem) + " GB")
+print("maxBatchJobWorker=" + string(maxBatch))
+print("maxCoresPerNode=" + string(maxCores))
+print("==== 并行度计算 ====")
+print("availableMem(GB)=" + string(availableMem))
+print("parallelByMem=" + string(parallelByMem))
+print("parallelByConc=" + string(parallelByConc))
+print("==== 推荐并行度 ====")
+print("RECOMMENDED_PARALLEL=" + string(recommendedParallel))

@@ -1,0 +1,95 @@
+// DolphinDB 权限与安全管理脚本
+// 包含用户、组、权限查询等安全相关函数
+
+// @description 安全总览：当前会话用户 + 所有用户 + 所有组 + 函数视图
+// @collect security-guide
+// @permission readonly
+def checkSecurityOverview() {
+    d = dict(STRING, ANY)
+
+    // 当前用户/会话
+    try {
+        sessionInfo = getCurrentSessionAndUser()
+        cur = dict(STRING, ANY)
+        cur["session_id"] = sessionInfo[0]
+        cur["user_id"] = sessionInfo[1]
+        d["current_user"] = cur
+    } catch(ex) { d["current_user"] = "error: " + concat(string(ex), ": ") }
+
+    // 全部用户
+    try {
+        users = getUserList()
+        d["users"] = dict(["list","total_count"], [users, users.size()])
+    } catch(ex) { d["users"] = "error: " + concat(string(ex), ": ") }
+
+    // 全部组
+    try {
+        groups = getGroupList()
+        d["groups"] = dict(["list","total_count"], [groups, groups.size()])
+    } catch(ex) { d["groups"] = "error: " + concat(string(ex), ": ") }
+
+    // 函数视图
+    try {
+        views = getFunctionViews()
+        d["function_views"] = dict(["list","total_count"], [views, views.size()])
+    } catch(ex) { d["function_views"] = "error: " + concat(string(ex), ": ") }
+
+    return d
+}
+
+// @description 用户视角的权限明细：用户权限 + 所属组（不传 userId 则查当前用户）
+// @params userId:str:optional
+// @collect security-guide
+// @permission readonly
+def checkUserAccess(userId="") {
+    d = dict(STRING, ANY)
+
+    targetUser = userId
+    if (strlen(targetUser) == 0) {
+        try { targetUser = getCurrentSessionAndUser()[1] } catch(ex) { targetUser = "" }
+    }
+    d["user_id"] = targetUser
+
+    // 权限明细
+    try {
+        if (strlen(userId) == 0) {
+            d["access"] = getUserAccess()
+        } else {
+            d["access"] = getUserAccess(userId)
+        }
+    } catch(ex) { d["access"] = "error: " + concat(string(ex), ": ") }
+
+    // 所属组
+    try {
+        if (strlen(targetUser) > 0) {
+            groups = getGroupsByUserId(targetUser)
+            d["groups"] = groups
+            d["group_count"] = groups.size()
+        }
+    } catch(ex) { d["groups"] = "error: " + concat(string(ex), ": ") }
+
+    return d
+}
+
+// @description 组视角的权限明细：组权限 + 组成员
+// @params groupId:str:required
+// @collect security-guide
+// @permission readonly
+def checkGroupAccess(groupId) {
+    if (strlen(groupId) == 0) { throw "groupId cannot be empty" }
+    d = dict(STRING, ANY)
+    d["group_id"] = groupId
+
+    // 组权限
+    try { d["access"] = getGroupAccess(groupId) }
+    catch(ex) { d["access"] = "error: " + concat(string(ex), ": ") }
+
+    // 组成员
+    try {
+        members = getUsersByGroupId(groupId)
+        d["members"] = members
+        d["member_count"] = members.size()
+    } catch(ex) { d["members"] = "error: " + concat(string(ex), ": ") }
+
+    return d
+}

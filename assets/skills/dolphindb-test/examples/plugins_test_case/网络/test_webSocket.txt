@@ -1,0 +1,638 @@
+
+#include "setup/settings.txt"
+login("admin","123456")
+try{loadPlugin(getHomeDir()+"/plugins/WebSocket/PluginWebSocket.txt")}catch(exception){print exception}
+go;
+
+@testing:case="WebSocket_demo"
+share table(100000:0, ["data"], [BLOB]) as table1
+def onOpen(ws){
+}
+def onMessage(ws, data, mutable table1){
+    table1.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+config = dict(STRING, ANY)
+config[`batchSize] = 1000
+config[`throttle] = 10000
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub219", config)
+WebSocket::getSubJobStat()
+sleep(1000)
+WebSocket::cancelSubJob("sub219");
+
+@testing:case="websocket_createSubJob_args_more",syntaxError=1
+WebSocket::createSubJob(url,onOpen,onMessage{table1=table1},onError,onClose,"tag",config,1)
+
+@testing:case="websocket_createSubJob_args_lack",syntaxError=1
+WebSocket::createSubJob(url,onOpen,onMessage{table1=table1},onError,onClose)
+
+@testing:case="websocket_createSubJob_url_type_exception",exception=1
+WebSocket::createSubJob(1, onOpen, onMessage{table1=table1}, onError, onClose, "sub21909", config)
+
+@testing:case="websocket_createSubJob_url_vector_exception",exception=1
+WebSocket::createSubJob([url], onOpen, onMessage{table1=table1}, onError, onClose, "sub21908", config)
+
+@testing:case="websocket_createSubJob_onOpen_type_exception",exception=1
+WebSocket::createSubJob(url, 1234, onMessage{table1=table1}, onError, onClose, "sub21907", config)
+
+@testing:case="websocket_createSubJob_onOpen_vector_exception",exception=1
+WebSocket::createSubJob(url, ([onOpen],onOpen), onMessage{table1=table1}, onError, onClose, "sub21906", config)
+
+@testing:case="websocket_createSubJob_onMessage_type_exception",exception=1
+WebSocket::createSubJob(url, onOpen, 1234, onError, onClose, "sub21905", config)
+
+@testing:case="websocket_createSubJob_onMessage_vector_exception",exception=1
+WebSocket::createSubJob(url, onOpen, ([onMessage{table1=table1}],onOpen), onError, onClose, "sub21904", config)
+
+@testing:case="websocket_createSubJob_onError_type_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, 1234, onClose, "sub21903", config)
+
+@testing:case="websocket_createSubJob_onError_vector_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, (onOpen,[onError]), onClose, "sub21902", config)
+
+@testing:case="websocket_createSubJob_onClose_type_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, 1234, "sub21901", config)
+
+@testing:case="websocket_createSubJob_onClose_vector_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, ([onClose],onOpen), "sub21900", config)
+
+@testing:case="websocket_createSubJob_tag_type_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, 12345, config)
+
+@testing:case="websocket_createSubJob_tag_vector_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, ["sub2159"], config)
+
+@testing:case="websocket_createSubJob_tag_type_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub2169", dict([1],[2]))
+
+@testing:case="websocket_createSubJob_tag_vector_exception",exception=1
+WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub2179", [config])
+
+@testing:case="websocket_createSubJob_repeat_tag",exception=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub2189", config)
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub2189", config)
+WebSocket::cancelSubJob("sub2189");
+
+@testing:case="webscoket_send_exception_1", exception=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub7649", config)
+WebSocket::send([ws,ws],blob("test"));
+
+@testing:case="webscoket_send_exception_1", exception=1
+WebSocket::cancelSubJob("sub7649");
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub7650", config)
+WebSocket::send(ws, blob(`test1`test2));
+sleep(1000)
+
+@testing:case="websocket_cancelSubJob_exception_1", exception=1
+WebSocket::cancelSubJob(123456);
+
+@testing:case="websocket_cancelSubJob_exception_2", exception=1
+WebSocket::cancelSubJob(`12`3456);
+
+@testing:case="websocket_getResponseHeader_exception_1",exception=1
+WebSocket::getResponseHeader(123,"123")
+
+@testing:case="websocket_getResponseHeader_exception_2",exception=1
+WebSocket::cancelSubJob("sub7650")
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub7651", config)
+WebSocket::getResponseHeader([ws,ws],"123")
+
+@testing:case="websocket_getResponseHeader_exception_3",exception=1
+WebSocket::getResponseHeader(ws,123)
+
+@testing:case="websocket_getResponseHeader_exception_4",exception=1
+WebSocket::getResponseHeader(ws,`123`456)
+
+@testing:case="websocket_createSubJob_wrongOnOpen"
+WebSocket::cancelSubJob("sub7651")
+share table(100000:0, ["data"], [BLOB]) as table1
+def wrongOnOpen(ws,a,b,c){
+}
+ws = WebSocket::createSubJob(url, wrongOnOpen, onMessage{table1=table1}, onError, onClose, "sub92219")
+sleep(1000)
+assert 1 , like((exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag = "sub92219"),"%The function [wrongOnOpen] expects 4 argument(s), but the actual number of arguments is: 1.%")
+WebSocket::cancelSubJob("sub92219")
+
+@testing:case="websocket_createSubJob_wrongOnMessage"
+share table(100000:0, ["data"], [BLOB]) as table1
+def wrongOnMessage(ws, data, table1){
+    table1.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+ws = WebSocket::createSubJob(url, onOpen, wrongOnMessage{table1=table1}, onError, onClose, "sub9220")
+sleep(1000)
+assert 1 , like((exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag = "sub9220"),"%Failed to call onMessage,with error: Read only object can't be applied to mutable function append!.%")
+WebSocket::cancelSubJob("sub9220")
+
+// @testing:case="websocket_createSubJob_wrongOnError"
+// def wrongOnError(ws, error,a,b,c){
+//     writeLog("failed to receive data: " + error.string())
+// }
+// ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, wrongOnError, onClose, "sub9221")
+// assert 1 , like((exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag = "sub9221"),"%Failed to call onMessage,with error: Read only object or object without ownership can't be applied to mutable function append!.")
+
+@testing:case="websocket_createSubJob_wrongOnClose"
+def wrongOnClose(ws, statusCode, msg, a, b, c){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, wrongOnClose, "sub9222")
+sleep(1000)
+WebSocket::cancelSubJob("sub9222")
+do{sleep(5000)}while((exec endTime from WebSocket::getSubJobStat() where tag == "sub9222").isNull())
+assert 1 , like((exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag = "sub9222"),"%Failed to call onClose,with error: The function [wrongOnClose] expects 6 argument(s), but the actual number of arguments is: 3.%")
+
+@testing:case="websocket_createSubJob_connect_fail",exception=1
+ws = WebSocket::createSubJob("ws://127.0.23.123:8848", onOpen, onMessage{table1=table1}, onError, onClose, "sub2090")
+
+@testing:case="websocket_createSubJob_function_not_compatible_onMessage"
+def wrongOnMessage(ws,data,q123){
+    writeLog(q123)
+}
+WebSocket::createSubJob(url, onOpen, wrongOnMessage, onError, onClose, "sub21966")
+sleep(2000)
+assert 1 , like((exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag ="sub21966"),"%The function [wrongOnMessage] expects 3 argument(s), but the actual number of arguments is: 2.%")
+sleep(1000)
+WebSocket::cancelSubJob("sub21966");
+
+@testing:case="websocket_createSubJob_illegal_url",exception=1
+WebSocket::createSubJob("localhost", onOpen, onMessage{table1=table1}, onError, onClose, "sub0219", config)
+
+@testing:case="websocket_createSubJob_repeat_create_and_cancel_same_tag"
+for (i in 1..10){
+    ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub219s", config)
+    do{
+        if (isNull(exec endTime from WebSocket::getSubJobStat() where tag == "sub219s")){
+            try{WebSocket::cancelSubJob("sub219s")}catch(Ex){}
+        }
+        sleep(5000)
+    }while(isNull(exec endTime from WebSocket::getSubJobStat() where tag == "sub219s"))
+}
+
+@testing:case="websocket_createSubJob_mulitiple_threads"
+wss = array(STRING)
+for (i in 1..20){
+    wss.append!(submitJob("websocket_test_createSubJob","websocket_test", WebSocket::createSubJob, url,onOpen,onMessage{table1=table1},onError,onClose,"tag_create_"+lpad(string(i),3,"0")))
+}
+// wait until jobs are done
+do{
+    sleep(1000)
+}while(!all(!isNull(exec endTime from getRecentJobs() where like(jobId,"websocket_test_createSubJob%"))))
+sleep(3000)
+def cancelSubJob_and_sleep(tag){
+    WebSocket::cancelSubJob(tag)
+    sleep(3000)
+}
+
+for (i in 1..20){
+    cancelSubJob_and_sleep("tag_create_"+lpad(string(i),3,"0"))
+}
+sleep(2000)
+//wait 
+assert 2, all(!isNull(exec endTime from WebSocket::getSubJobStat() where like(tag,"tag_create_%")))
+
+@testing:case="websocket_createSubJob_and_cancelSubJob_mulitiple_threads"
+wss = array(STRING)
+for (i in 1..30){
+    wss.append!(submitJob("websocket_test_createSubJob","websocket_test", WebSocket::createSubJob, url,onOpen,onMessage{table1=table1},onError,onClose,"tag_cancel_"+lpad(string(i),3,"0")))
+}
+// wait until jobs are done
+def cancelSubJob_and_sleep(tag){
+    WebSocket::cancelSubJob(tag)
+    sleep(3000)
+}
+do{
+    sleep(1000)
+}while(!all(!isNull(exec endTime from getRecentJobs() where like(jobId,"websocket_test_createSubJob%"))))
+for (i in 1..30){
+    submitJob("web_socket_test_cancelSubJob","websocket_test", cancelSubJob_and_sleep,"tag_cancel_"+lpad(string(i),3,"0"))
+}
+sleep(50000)
+//wait 
+assert 2, all(!isNull(exec endTime from WebSocket::getSubJobStat() where like(tag,"tag_cancel_%")))
+
+@testing:case="websocker_send_data_outside"
+// 在server.py里设置了复读
+// 只要发送成功就会收到回复
+sendTable = table(1:0,[`data],[BLOB])
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=sendTable}, onError, onClose, "sub619")
+sleep(1000)
+WebSocket::send(ws,blob("op1234"))
+sleep(1000)
+res = string(exec data from sendTable)
+assert 1, any(like(res,"%\"op1234\"%"))
+WebSocket::send(ws,blob('{"method": "UNSUBSCRIBE","params":["btcusdt@depth"],"id": 1}'))
+sleep(1000)
+res = string(exec data from sendTable)
+assert 2, any(like(res,'%\"{"method": "UNSUBSCRIBE","params":["btcusdt@depth"],"id": 1}\"%'))
+WebSocket::send(ws,blob('{"method": "LIST_SUBSCRIPTIONS","id": 3} '))
+sleep(1000)
+res = string(exec data from sendTable)
+assert 3, any(like(res,'%\"{"method": "LIST_SUBSCRIPTIONS","id": 3} \"%'))
+
+WebSocket::getSubJobStat()
+WebSocket::cancelSubJob("sub619")
+sleep(2000)
+
+@testing:case="websocker_send_data_type_exception",exception=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub220")
+WebSocket::send(ws,("1234"))
+WebSocket::cancelSubJob("sub220")
+sleep(2000)
+
+@testing:case="websocker_send_data_type_arg_more",syntaxError=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub221", config)
+WebSocket::send(ws,blob("1234"),"123")
+WebSocket::cancelSubJob("sub221")
+
+@testing:case="websocker_send_data_type_arg_lack",syntaxError=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub222", config)
+WebSocket::send(ws)
+WebSocket::cancelSubJob("sub222")
+
+@testing:case="websocker_send_closed_ws"
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub2208", config)
+sleep(1000)
+WebSocket::cancelSubJob("sub2208")
+sleep(1000)
+assert 1,!(WebSocket::send(ws,blob("1234")))
+
+@testing:case="websocket_send_ws_type_exception",exception = 1
+ws = 123
+(WebSocket::send(ws,blob("1234")))
+
+@testing:case="websocket_getSubJobStat_arg",syntaxError=1
+WebSocket::getSubJobStat(`sub222)
+
+@testing:case="websocket_cancelSubJob_not_exist",exception=1
+WebSocket::cancelSubJob("tag_not_exist_"+string(rand(1000.0,1)[0]))
+
+@testing:case="websocket_cancelSubJob_args_more",syntaxError = 1
+WebSocket::cancelSubJob(ws,`sub2222)
+
+@testing:case="websocket_cancelSubJob_args_lack",exception = 1
+WebSocket::cancelSubJob()
+
+@testing:case="websocket_cancelSubJob_repeat",exception=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub229", config)
+sleep(1000)
+WebSocket::cancelSubJob("sub229")
+WebSocket::cancelSubJob("sub229")
+
+@testing:case="websocket_getResponseHeader_args_lack",syntaxError=1
+WebSocket::getResponseHeader(ws)
+
+@testing:case="webSocket_getResponseHeader_closed_ws",exception = 1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub239", config)
+sleep(2000)
+WebSocket::cancelSubJob("sub239")
+sleep(2000)
+WebSocket::getResponseHeader(ws, "")
+
+@testing:case="webSocket_getResponseHeader"
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub279", config)
+sleep(2000)
+assert 1, like(WebSocket::getResponseHeader(ws, "server"),"Python%websockets%")
+WebSocket::cancelSubJob("sub279")
+sleep(2000)
+
+@testing:case="webSocket_createSubJob_enableTableShareAndPersistence_after_reconnect"
+def onOpen(ws){
+    // WebSocket::send(ws, blob('{"method": "SUBSCRIBE","params": ["btcusdt@aggTrade"], "id": 1}'))
+}
+
+def onMessage(ws, data,mutable table1){
+    table1.append!(table(data as col1))
+}
+
+def onError(ws, error){
+    print(error)
+    writeLog("failed to receive data: " + error.string())
+}
+
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+t1=streamTable(100000:0, ["data"], [BLOB])
+enableTableShareAndPersistence(table=t1, tableName=`longtime, cacheSize=1200000)
+// share streamTable(100000:0, ["data"], [BLOB]) as table1
+count1 = size(objByName(`longtime))
+assert 0, count1 == 0
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=objByName(`longtime)}, onError, onClose, "longtime" , config)
+sleep(5000)
+count2 = size(objByName(`longtime))
+assert 1, count2>count1
+WebSocket::cancelSubJob(`longtime)
+sleep(1000)
+count3 = size(objByName(`longtime))
+assert 2, count3==count2
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=objByName(`longtime)}, onError, onClose, "longtime" , config)
+sleep(5000)
+count4 = size(objByName(`longtime))
+assert 3, count4>count3
+
+WebSocket::cancelSubJob(`longtime)
+dropStreamTable(`longtime)
+
+@testing:case="WebSocket_concurrent"
+share table(100000:0, ["data"], [BLOB]) as table1
+share table(100000:0, ["data"], [BLOB]) as table2
+def onOpen(ws){
+}
+def onMessage(ws, data,mutable tb){
+    tb.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+
+ws1 = WebSocket::createSubJob(url, onOpen, onMessage{tb=table1}, onError, onClose, "sub101")
+ws2 = WebSocket::createSubJob(url, onOpen, onMessage{tb=table2}, onError, onClose, "sub102")
+// WebSocket::getSubJobStat()
+sleep(5000)
+assert 1, size(table1)>0
+assert 2, size(table2)>0
+WebSocket::send(ws1,blob("this is 1"))
+WebSocket::send(ws2,blob("this is 2"))
+sleep(2000)
+assert 3, any(like, (exec data from table1),"%this is 1%")
+assert 4, any(like, (exec data from table2),"%this is 2%")
+assert 5, !any(like, (exec data from table1),"%this is 2%")
+assert 6, !any(like, (exec data from table2),"%this is 1%")
+WebSocket::cancelSubJob("sub101");
+sleep(5500)
+tmp = size(table2)
+assert 7, size(table1)<tmp
+WebSocket::cancelSubJob("sub102");
+sleep(5500)
+assert 8, size(table2)<tmp+1
+each(WebSocket::cancelSubJob, (exec tag from WebSocket::getSubJobStat() where isNull(endTime)))
+sleep(1000)
+
+@testing:case="WebSocket_local_reconnect"
+share table(100000:0, ["data"], [BLOB]) as table1
+def onOpen(ws){
+}
+def onMessage(ws, data, mutable table1){
+    table1.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+config = dict(STRING, ANY)
+// config[`reconnectCount] = 10
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "re1", config)
+WebSocket::getSubJobStat()
+sleep(60000)
+WebSocket::cancelSubJob("re1");
+
+@testing:case="WebSocket_local_reconnect_refused"
+share table(100000:0, ["data"], [BLOB]) as table1
+def onOpen(ws){
+}
+def onMessage(ws, data, mutable table1){
+    writeLog(data)
+    table1.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg,tag){
+    WebSocket::cancelSubJob(tag)
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+config = dict(STRING, ANY)
+config[`reconnectCount] = 2
+ws = WebSocket::createSubJob(url+"/forbidden", onOpen, onMessage{table1=table1}, onError, onClose{tag="re2"}, "re2", config)
+WebSocket::getSubJobStat()
+sleep(1000)
+
+/////////////////
+@testing:case="binance"
+def parseAggTrades(rawDatas){
+    total = table(1000:0,`type`eventTime`code`id`price`quantity`firstId`lastId`tradeTime`marketMaker`currentTime,[SYMBOL,TIMESTAMP,SYMBOL,LONG,DOUBLE,DOUBLE,LONG,LONG,TIMESTAMP,BOOL,TIMESTAMP])
+    for (rawData in rawDatas){
+        rawDataDict = parseExpr(string(rawData[`msg])).eval()
+        if (rawDataDict[`e]!=NULL){
+            type=symbol([rawDataDict["e"]])
+            eventTime=timestamp(long([rawDataDict["E"]]))
+            code=symbol([rawDataDict["s"]])
+            id=long([rawDataDict["a"]])
+            price=double([rawDataDict["p"]])
+            quantity=double([rawDataDict["q"]])
+            firstId=long([rawDataDict["f"]])
+            lastId=long([rawDataDict["l"]])
+            tradeTime=timestamp(long([rawDataDict["T"]]))
+            marketMaker=bool([rawDataDict["m"]])
+            currentTime=[now()-28800000]
+            res=table(type, eventTime, code, id, price, quantity, firstId, lastId, tradeTime, marketMaker, currentTime)
+            total.append!(res)
+        }
+    }
+    return total
+}
+
+colNames =`type`eventTime`code`id`price`quantity`firstId`lastId`tradeTime`marketMaker`currentTime
+colTypes = [SYMBOL,TIMESTAMP,SYMBOL,INT,DOUBLE,DOUBLE,LONG,LONG,TIMESTAMP,BOOL,TIMESTAMP]
+share keyedStreamTable(`eventTime`code`id,100000:0,colNames,colTypes) as kst1
+def onOpen(ws){
+    WebSocket::send(ws, blob('{"method": "SUBSCRIBE","params": ["btcusdt@aggTrade"], "id": 1}'))
+}
+def onMessage(ws, data ,mutable st){
+    res = parseAggTrades(data)
+    st.append!(res)
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+
+config = dict(STRING, ANY)
+config[`proxy]=proxy
+
+
+def tag_gen(tag_str){
+    new_tag_str=tag_str
+    do{
+        if (in(new_tag_str,(exec tag from WebSocket::getSubJobStat()))){
+            new_tag_str = new_tag_str+"_"+string(rand('a'..'z',1)[0])
+        }
+    }while(in(new_tag_str,(exec tag from WebSocket::getSubJobStat())))
+    return new_tag_str
+}
+tag1= tag_gen("sub_out")
+ws = WebSocket::createSubJob(url2, onOpen, onMessage{st=kst1}, onError, onClose, tag1 , config)
+sleep(5000)
+s1 = size(kst1)
+assert 1, s1>0
+assert 2, isNull(exec lastOnFunErrMsg from WebSocket::getSubJobStat() where tag = tag1)
+assert 3, isNull(exec lastNetErrMsg from WebSocket::getSubJobStat() where tag = tag1)
+assert 4, (exec failedOnFuncCount from WebSocket::getSubJobStat() where tag = tag1) == 0
+ret = WebSocket::cancelSubJob(tag1)
+assert 5, ret
+s2 = size(kst1)
+sleep(5000)
+s3 = size(kst1)
+assert 6, s2 == s3
+
+@testing:case="test_timeout"
+config = dict(STRING, ANY)
+// 删除代理之后尝试连接币安
+tag1= tag_gen("sub_timeout")
+def csj_job(url,onOpen,onMessage,onError,onClose,tag,config,kst){
+    ws = WebSocket::createSubJob(url, onOpen, onMessage{,,kst1}, onError, onClose, tag , config)
+    return ws
+}
+job = submitJob("tag1","timeout",csj_job,url2,onOpen,onMessage,onError,onClose,tag1,config,kst1)
+res = getJobStatus(job)
+do{res = getJobStatus(job);sleep(10)}while(isNull(res[`startTime]))
+assert 1,res[`endTime][0]==NULL
+sleep(5000)
+res = getJobStatus(job)
+assert 2, abs((res[`endTime][0]-res[`startTime][0]) / 5000.0 - 1) < 0.05
+assert 3, like(res[`errorMsg][0],"%Failed to connect: Timer Expired")
+
+@testing:case="cancelSubJob_clear"
+for (tag in (exec tag from WebSocket::getSubJobStat())){
+    try{
+        WebSocket::cancelSubJob(tag);
+    }catch(Ex){}
+}
+undef(`kst1,SHARED)
+sleep(2000)
+
+/**********************************syntax****************************/
+@testing:case="syntax_createSubJob"
+assert 1,syntax(WebSocket::createSubJob)=="createSubJob(url, onOpen, onMessage, onError, onClose, tag, [config])"
+
+@testing:case="syntax_send"
+assert 1,syntax(WebSocket::send)=="send(ws, data)"
+
+@testing:case="syntax_getSubJobStat"
+assert 1,syntax(WebSocket::getSubJobStat)=="getSubJobStat()"
+
+@testing:case="syntax_cancelSubJob"
+assert 1,syntax(WebSocket::cancelSubJob)=="cancelSubJob(tag)"
+
+@testing:case="syntax_getResponseHeader"
+assert 1,syntax(WebSocket::getResponseHeader)=="getResponseHeader(ws, key)"
+
+/**********************************Loglevel****************************/
+
+@testing:case="test_setLoglevel_error",exception=1
+WebSocket::setLogLevel(4)
+
+@testing:case="test_setLoglevel_syntaxError1",exception=1
+WebSocket::setLogLevel()
+
+@testing:case="test_setLoglevel_syntaxError2",syntaxError=1
+WebSocket::setLogLevel(DEBUG,DEBUG)
+
+@testing:case="test_getLogLevel_syntaxError",syntaxError=1
+WebSocket::getLogLevel(4)
+
+@testing:case="test_websocket_setLogLevel"
+//setLogLevel(WARNING)
+WebSocket::setLogLevel(DEBUG) 
+assert 1 ,WebSocket::getLogLevel()==DEBUG
+WebSocket::setLogLevel(INFO)
+assert 2 ,WebSocket::getLogLevel()==INFO
+WebSocket::setLogLevel(WARNING)
+assert 3 ,WebSocket::getLogLevel()==WARNING
+WebSocket::setLogLevel(ERROR)
+assert 4 ,WebSocket::getLogLevel()==ERROR
+
+/**********************************keywords***************************/
+@testing:case="test_websocket_createSubJob_keywords_all"
+share table(100000:0, ["data"], [BLOB]) as table1
+def onOpen(ws){
+}
+def onMessage(ws, data, mutable table1){
+    table1.append!(table(data as col1))
+}
+def onError(ws, error){
+    writeLog("failed to receive data: " + error.string())
+}
+def onClose(ws, statusCode, msg){
+    writeLog("connection is close, statusCode: " + statusCode + ", " + string(msg))
+}
+config = dict(STRING, ANY)
+config[`batchSize] = 1000
+config[`throttle] = 10000
+ws = WebSocket::createSubJob(url=url, onOpen=onOpen, onMessage=onMessage{table1=table1}, onError=onError, onClose=onClose, tag="sub219",config = config)
+WebSocket::getSubJobStat()
+sleep(1000)
+WebSocket::cancelSubJob("sub219");
+
+@testing:case="test_websocket_createSubJob_keywords_part"
+share table(100000:0, ["data"], [BLOB]) as table1
+ws = WebSocket::createSubJob(url, onOpen, onMessage=onMessage{table1=table1}, onError=onError, onClose=onClose, tag="sub219",config = config)
+WebSocket::getSubJobStat()
+sleep(1000)
+WebSocket::cancelSubJob("sub219");
+
+@testing:case="test_websocket_createSubJob_keywords_error1",syntaxError=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage1=onMessage{table1=table1}, onError1=onError, onClose1=onClose, tag1="sub219",config = config)
+
+@testing:case="test_websocket_createSubJob_keywords_error2",syntaxError=1
+ws = WebSocket::createSubJob(url, onOpen, onMessage=onMessage{table1=table1}, onError=onError, onClose=onClose, tag="sub219", config),config = config)
+
+@testing:case="test_websocket_send_keywords_all"
+sendTable = table(1:0,[`data],[BLOB])
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=sendTable}, onError, onClose, "sub619")
+sleep(1000)
+WebSocket::send(ws=ws,data=blob("op1234"))
+sleep(1000)
+res = string(exec data from sendTable)
+assert 1, any(like(res,"%\"op1234\"%"))
+WebSocket::cancelSubJob("sub619");
+
+@testing:case="test_websocket_send_keywords_part"
+sendTable = table(1:0,[`data],[BLOB])
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=sendTable}, onError, onClose, "sub619")
+sleep(1000)
+WebSocket::send(ws,data=blob("op1234"))
+sleep(1000)
+res = string(exec data from sendTable)
+assert 1, any(like(res,"%\"op1234\"%"))
+
+@testing:case="test_websocket_send_keywords_error",syntaxError=1
+WebSocket::send(ws,data2=blob("op1234"))
+
+@testing:case="test_websocket_cancelSubJob_keywords"
+WebSocket::cancelSubJob(tag="sub619");
+assert 1,!isNull(exec endTime from WebSocket::getSubJobStat() where tag=="sub619")
+
+@testing:case="webSocket_getResponseHeader_keywords_all"
+share table(100000:0, ["data"], [BLOB]) as table1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub279", config)
+sleep(2000)
+assert 1, like(WebSocket::getResponseHeader(ws=ws, key="server"),"Python%websockets%")
+WebSocket::cancelSubJob("sub279")
+
+@testing:case="webSocket_getResponseHeader_keywords_part"
+share table(100000:0, ["data"], [BLOB]) as table1
+ws = WebSocket::createSubJob(url, onOpen, onMessage{table1=table1}, onError, onClose, "sub279", config)
+sleep(2000)
+assert 1, like(WebSocket::getResponseHeader(ws, key="server"),"Python%websockets%")
+WebSocket::cancelSubJob("sub279")
+
+@testing:case="webSocket_getResponseHeader_keywords_error",syntaxError=1
+WebSocket::getResponseHeader(ws, keys="server")

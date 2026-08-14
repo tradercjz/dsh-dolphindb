@@ -1,0 +1,17 @@
+// ============================================================
+// CmFutVolatilitySurface — 说明文件
+// 此类型没有独立的 parseMktData 构建，需通过 Builder 生成
+// ============================================================
+// 金融含义：
+//   CmFutVolatilitySurface 的波动率不是直接输入的——它需要从
+//   期权市场价格通过 cmFutVolatilitySurfaceBuilder 反推。
+//   Builder 使用 Black-76（欧式）或 BAW（美式）模型，
+//   从 optionPrices 反算每个 (strike, maturity) 点的隐含波动率，
+//   再通过 SVI/SABR 插值生成平滑曲面。
+//
+//   构建方式参见同级 builders/cm_fut_vol_surface_builder.md
+//   构建后的结果等价于一个 VolatilitySurface 对象。
+//
+//   如果已有波动率报价（非期权价格），可直接用 VolatilitySurface：
+//   参见 ../vol_surface/demo.dos
+// ============================================================

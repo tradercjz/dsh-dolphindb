@@ -1,0 +1,73 @@
+// ============================================================
+// bondPricer — 完整定价示例
+// 固定利率债券 NPV（净现值）计算 + Greeks（久期/凸性/关键期限久期）
+// ============================================================
+// 定价方法：
+//   债券定价 = 将未来所有现金流（票息+本金）用贴现曲线折现求和 = NPV（净现值）。
+//   bondPricer 无论有无 setting，返回的均为 NPV，不拆分净价/应计利息。
+//   cleanPrice / dirtyPrice / YTM 互算使用 bondInstrumentCalculator
+//      （见 bond_instrument_calculator.dos / bond_instrument_calculator.md）
+//   setting 可选：calcDiscountCurveDelta（DV01/久期）、
+//   calcDiscountCurveGamma（凸性）、calcDiscountCurveKeyRateDuration。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/01_bond/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]        = "Cash"
+instDict["assetType"]          = "Bond"
+instDict["bondType"]           = "FixedRateBond"
+instDict["instrumentId"]       = "240025.IB"
+instDict["start"]              = 2024.10.24
+instDict["maturity"]           = 2031.10.24
+instDict["coupon"]             = 0.0200
+instDict["frequency"]          = "Semiannual"
+instDict["dayCountConvention"] = "ActualActualISDA"
+inst = parseInstrument(instDict)
+
+// --- Step 2: 构造贴现曲线（见 market_data/ir_yield_curve/demo.dos）---
+mktDict = dict(STRING, ANY)
+mktDict["mktDataType"]         = "Curve"
+mktDict["curveType"]           = "IrYieldCurve"
+mktDict["referenceDate"]       = 2026.03.20
+mktDict["currency"]            = "CNY"
+mktDict["curveName"]           = "CNY_TREASURY_BOND"
+mktDict["dayCountConvention"]  = "Actual365"
+mktDict["compounding"]         = "Continuous"
+mktDict["interpMethod"]        = "CubicSpline"
+mktDict["extrapMethod"]        = "Flat"
+mktDict["dates"]   = [2026.06.20, 2027.03.20, 2028.03.20, 2029.03.20, 2031.03.20, 2036.03.20]
+mktDict["values"]  = [0.0148, 0.0155, 0.0165, 0.0172, 0.0185, 0.0210]
+curve = parseMktData(mktDict)
+
+// --- Step 3: 定价（无 setting → 返回 NPV 标量）---
+pricingDate = 2026.03.20
+npv = bondPricer(inst, pricingDate, curve)
+// npv = 净现值（现金流折现之和）
+// cleanPrice / dirtyPrice / YTM 互算见 bondInstrumentCalculator.md。
+
+// --- Step 4: 带 Greeks 定价（有 setting → 返回 dict）---
+setting = dict(STRING, ANY)
+setting["calcDiscountCurveDelta"] = true      // DV01：利率上移 1bp 的 NPV 变化
+result = bondPricer(inst, pricingDate, curve, , setting)
+// result["npv"]                 — 净现值
+// result["discountCurveDelta"]  — 修正久期（利率敏感度）
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [无 setting 结果]
+//   npv = 101.39                    — 净现值（现金流折现之和）
+//
+// [带 setting 结果] calcDiscountCurveDelta = true
+//   npv                = 101.39     — 净现值
+//   discountCurveDelta = -535.75    — ∂NPV/∂r（利率上移 1 单位的 NPV 变化）
+//
+// [金融解释]
+//   票面利率 2.00% 高于当前 5Y 曲线利率 ~1.85% → 溢价（npv > 100）。
+//   npv = 101.39 是小幅溢价，与接近票面利率的低利率环境一致。
+//   discountCurveDelta = -535.75 ≈ -Duration × NPV ≈ -5.3 × 101.39 ≈ -537，
+//   说明利率上升 1bp 时，每 100 面值的价格下降约 0.054 元，方向与量级合理。
+//
+// [范围] bondPricer 只返回 NPV，不拆分净价/应计利息/YTM。
+//        cleanPrice / dirtyPrice / YTM 互算见 bondInstrumentCalculator.md。
+// ============================================================

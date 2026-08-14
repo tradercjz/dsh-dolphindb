@@ -1,0 +1,30 @@
+// ============================================================
+// EqEuropeanOption — parseInstrument 构建示例
+// 构建一只权益欧式期权（50ETF Call）
+// ============================================================
+// 金融含义：
+//   权益欧式期权使用 BSM (Black-Scholes-Merton) 模型定价，
+//   需要考虑连续股息率(DividendCurve)的影响。
+//   定价需要四类市场数据：贴现曲线、股息率曲线、波动率曲面、现货价格。
+//   与 FX 期权不同，权益期权用 VolatilitySurface（而非 FxVolatilitySurface）。
+// ============================================================
+
+instDict = dict(STRING, ANY)
+
+// --- 产品分类 ---
+instDict["productType"]        = "Option"              // 期权类
+instDict["optionType"]         = "EuropeanOption"       // 欧式
+instDict["assetType"]          = "EqEuropeanOption"     // 权益欧式期权
+
+// --- 期权要素 ---
+instDict["instrumentId"]       = "50ETF_C_3200"        // 自定义标识
+instDict["notionalCurrency"]   = "CNY"
+instDict["notionalAmount"]     = 10000.0               // 名义本金（合约乘数）
+instDict["maturity"]           = 2026.03.18            // 到期日
+instDict["strike"]             = 3.2                   // 执行价 3.20 元
+instDict["payoffType"]         = "Call"                // 看涨
+instDict["dayCountConvention"] = "Actual365"
+instDict["underlying"]         = "50ETF"               // 标的资产
+
+// --- 构建 ---
+instrument = parseInstrument(instDict)

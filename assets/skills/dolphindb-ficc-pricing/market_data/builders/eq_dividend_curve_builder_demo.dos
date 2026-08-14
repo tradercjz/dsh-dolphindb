@@ -1,0 +1,86 @@
+// eqDividendCurveBuilder demo
+// 演示两种方法：CallPutParity（以 510050.SH 上证50ETF 为例）和 FuturesPrice（以 000300.SH 沪深300 为例）
+
+// ════════════════════════════════════════════════════════════
+// 方法一：CallPutParity — 510050.SH 上证50ETF
+// ════════════════════════════════════════════════════════════
+referenceDate = 2026.02.13
+spot = 3.114
+
+termDates = [2026.02.25, 2026.03.25, 2026.06.24, 2026.09.23]
+
+// 看涨价格矩阵（行=执行价，列=期限）
+callPrices = matrix(
+    [0.2640, 0.2140, 0.1640, 0.1140, 0.0327, 0.0042, 0.0016, 0.0008, 0.0003, 0.0002],
+    [0.2723, 0.2289, 0.1810, 0.1424, 0.0721, 0.0323, 0.0138, 0.0075, 0.0050, 0.0039],
+    [0.3150, 0.2770, 0.2391, 0.2073, 0.1519, 0.1061, 0.0731, 0.0519, 0.0379, 0.0280],
+    [0.3521, 0.3170, 0.2850, 0.2555, 0.2030, 0.1577, 0.1243, 0.0986, 0.0790, 0.0642]
+)
+
+// 看跌价格矩阵
+putPrices = matrix(
+    [0.0004, 0.0008, 0.0021, 0.0044, 0.0215, 0.0928, 0.1889, 0.2884, 0.3895, 0.4903],
+    [0.0090, 0.0124, 0.0170, 0.0260, 0.0590, 0.1225, 0.1993, 0.2928, 0.3918, 0.4903],
+    [0.0352, 0.0463, 0.0571, 0.0746, 0.1188, 0.1733, 0.2401, 0.3204, 0.4049, 0.4938],
+    [0.0601, 0.0739, 0.0903, 0.1091, 0.1548, 0.2113, 0.2795, 0.3471, 0.4307, 0.5120]
+)
+
+// 执行价矩阵（各期限相同）
+strikes = matrix(
+    [2.85, 2.90, 2.95, 3.00, 3.10, 3.20, 3.30, 3.40, 3.50, 3.60],
+    [2.85, 2.90, 2.95, 3.00, 3.10, 3.20, 3.30, 3.40, 3.50, 3.60],
+    [2.85, 2.90, 2.95, 3.00, 3.10, 3.20, 3.30, 3.40, 3.50, 3.60],
+    [2.85, 2.90, 2.95, 3.00, 3.10, 3.20, 3.30, 3.40, 3.50, 3.60]
+)
+
+// 贴现曲线（中国银行间市场）
+dcDict1 = {
+    "mktDataType": "Curve",
+    "curveType":   "IrYieldCurve",
+    "curveName":   "CNY_FR_007",
+    "referenceDate": referenceDate,
+    "currency":    "CNY",
+    "dayCountConvention": "Actual365",
+    "compounding": "Continuous",
+    "interpMethod": "Linear",
+    "extrapMethod": "Flat",
+    "dates":  [2026.02.14, 2026.02.20, 2026.02.27, 2026.03.06, 2026.03.16,
+               2026.04.14, 2026.05.15, 2026.08.14, 2026.11.13, 2027.02.13,
+               2027.08.13, 2028.02.13, 2029.02.13],
+    "values": [1.5577, 1.5247, 1.5181, 1.5181, 1.5195, 1.5216, 1.5167,
+               1.4964, 1.4758, 1.4732, 1.4859, 1.4985, 1.5306] \ 100
+}
+discountCurve1 = parseMktData(dcDict1)
+
+// 构建股息曲线（CallPutParity）
+dividendCurve1 = eqDividendCurveBuilder(
+    referenceDate, termDates, "CallPutParity",
+    , callPrices, putPrices, strikes,   // futPrices 位置留空
+    spot, discountCurve1, "Actual365", "510050.SH"
+)
+print("510050.SH DividendCurve:")
+print(dividendCurve1)
+
+
+// ════════════════════════════════════════════════════════════
+// 方法二：FuturesPrice — 000300.SH 沪深300 股指期货
+// ════════════════════════════════════════════════════════════
+refDate2 = 2026.02.13
+spot2    = 4660.41
+
+termDates2 = [2026.02.24, 2026.03.20, 2026.06.22, 2026.09.18]  // IF到期日
+futPrices2 = [4650.6, 4639.6, 4601.2, 4540.4]
+
+dcDict2 = dcDict1
+dcDict2["curveName"] = "CNY_FR_007_HS300"
+dcDict2["referenceDate"] = refDate2
+discountCurve2 = parseMktData(dcDict2)
+
+dividendCurve2 = eqDividendCurveBuilder(
+    refDate2, termDates2, "FuturesPrice",
+    futPrices2,            // futPrices
+    , , ,                  // callPrices / putPrices / strikes 留空
+    spot2, discountCurve2, "Actual365", "HS300"
+)
+print("HS300 DividendCurve:")
+print(dividendCurve2)

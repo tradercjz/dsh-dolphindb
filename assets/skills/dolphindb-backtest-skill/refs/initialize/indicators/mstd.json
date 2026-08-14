@@ -1,0 +1,24 @@
+{
+    "name": "mstd",
+    "desc": "在给定长度（以元素个数或时间长度衡量）的滑动窗口内计算 X 的样本标准差。， 返回和X相同长度的向量",
+    "syntax": "mstd(X, window)",
+    "parameters": {
+        "X": {
+            "type": "VECTOR",
+            "desc": "需要计算的数值型序列"
+        },
+        "window": {
+            "type": "INT",
+            "desc": "窗口长度"
+        }
+    },
+    "results": {
+        "result": {
+            "type": "VECTOR",
+            "desc": "按照window计算的样本标准差。"
+        }
+    },
+    "example": [
+        "mstd(close, 5)"
+    ]
+}

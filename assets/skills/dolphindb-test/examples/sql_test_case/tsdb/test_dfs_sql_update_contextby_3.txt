@@ -1,0 +1,1304 @@
+#include "checkChunk.txt"
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_value"
+n = 10000
+m = 20
+valBool = [BOOL, rand([true, false], n), NULL, NULL]
+valChar = [CHAR, rand(char(48..57 join 65..90 join 97..122), n), ['0', 'A', 'z'], NULL]
+valShort = [SHORT, rand(short(-m/4..m/4), n), short([0, m/2, m+1]), NULL]
+valInt = [INT, rand(int(-m/4..m/4), n), [0, m/2, m+1], NULL]
+valLong = [LONG, rand(long(-m/4..m/4), n), NULL, NULL]
+valDate = [DATE, 2013.06.13 + rand(int(m/2), n), [2013.06.13, 2013.06.13+m/4, 2013.06.13+m/2+1], date]
+valMonth = [MONTH, 2012.06M + rand(int(m/2), n), [2013.06M, 2013.06M+m/4, 2013.06M+m/2+1], month]
+valTime = [TIME, 13:30:10.008 + rand(int(m/2), n), [13:30:10.008, 13:30:10.008+m/4, 13:30:10.008+m/2+1], time]
+valMinute = [MINUTE, 13:30m + rand(int(m/2), n), [13:30m, 13:30m+m/4, 13:30m+m/2+1], minute]
+valSecond = [SECOND, 13:30:10 + rand(int(m/2), n), [13:30:10, 13:30:10+m/4, 13:30:10+m/2+1], second]
+valDatetime = [DATETIME, 2012.06.13T13:30:10 + rand(int(m/2), n), [2012.06.13T13:30:10, 2012.06.13T13:30:10+m/4, 2012.06.13T13:30:10+m/2+1], datetime]
+valTimestamp = [TIMESTAMP, 2012.06.13T13:30:10.008 + rand(int(m/2), n), NULL, NULL]
+valNanotime = [NANOTIME, 13:30:10.008007006 + rand(int(m/2), n), NULL, NULL]
+valNanotimestamp = [NANOTIME, 2012.06.13T13:30:10.008007006 + rand(int(m/2), n), NULL, NULL]
+valFloat = [FLOAT, rand(float(-m/4..m/4), n), NULL, NULL]
+valDouble = [DOUBLE, rand(double(-m/4..m/4), n), NULL, NULL]
+valSymbol = [SYMBOL, symbol(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), symbol(`A1`A10000`中文1001), NULL]
+valString = [STRING, string(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n)), NULL, NULL]
+valUuid = [UUID, rand(uuid(), n), NULL, NULL]
+valDatehour = [DATEHOUR, datehour(2012.06.13T13:30:10) + rand(int(m/2), n), [datehour(2012.06.13T13:30:10), datehour(2012.06.13T13:30:10)+m/4, datehour(2012.06.13T13:30:10)+m/2+1], NULL]
+valIpaddr = [IPADDR, ipaddr(rand(["192.168.100.6", "192.168.100.7", "192.168.100.8"], n)), NULL, NULL]
+valInt128 = [INT128, rand(int128(["e2ac59cc3a1da8280c5d3d1a68a6c93e","59218e5e3fe46e9aaee2dae13c09b3b8","7fca86d0ae45ff37a5a91300010c8bf2"]), n), NULL, NULL]
+valBlob = [BLOB, blob(string(rand(("A"+string(1..10000)).append!("中文"+string(1..1000)), n))), NULL, NULL]
+valComplex = [COMPLEX, complex(rand(m/2, n), rand(m/2, n)), NULL, NULL]
+valPoint = [POINT, point(rand(int(m/2), n), rand(int(m/2), n)), NULL, NULL]
+valDecimal32 = [DECIMAL32(2), decimal32(rand(float(-m/4..m/4), n), 2), NULL, NULL]
+valDecimal64 = [DECIMAL64(2), decimal64(rand(float(-m/4..m/4), n), 2), NULL, NULL]
+valDecimal128 = [DECIMAL128(2), decimal128(rand(float(-m/4..m/4), n), 2), NULL, NULL]
+val = rand(m/2, n)
+
+pcols = [valDate, valMonth, valTime, valMinute, valSecond, valDatetime]
+colListAll = [valBool, valChar, valShort, valInt, valLong, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valFloat, valDouble, valSymbol, valString, valUuid, valDatehour, valIpaddr, valInt128, valBlob, valComplex, valPoint, valDecimal32, valDecimal64, valDecimal128]
+
+def createDB(partitionType, partitionScheme) {
+	if (existsDatabase("dfs://test")) {
+	    dropDatabase("dfs://test")
+	}
+	db = database("dfs://test", partitionType, partitionScheme, , "TSDB")
+
+	return db
+}
+
+def createPTable(n, db, tName, pcol, pcolStr, col, colStr) {
+	id = rand(n/2, n)
+	t = table(id as id, pcol as pcol, col[0][1] as col0, col[1][1] as col1, col[2][1] as col2, col[3][1] as col3, col[4][1] as col4, col[5][1] as col5, col[6][1] as col6, col[7][1] as col7, col[8][1] as col8, col[9][1] as col9, col[10][1] as col10, col[11][1] as col11, col[12][1] as col12, col[13][1] as col13, col[14][1] as col14, col[15][1] as col15, col[16][1] as col16, col[17][1] as col17, col[18][1] as col18, col[19][1] as col19, col[20][1] as col20, col[21][1] as col21, col[22][1] as col22, col[23][1] as col23, col[24][1] as col24, col[25][1] as col25, col[26][1] as col26, col[27][1] as col27, col[3][1] as scol0, col[5][1] as scol1)
+	// multi sortcolumn
+	pt = db.createPartitionedTable(t, tName, `pcol, , `id`scol0`scol1, sortKeyMappingFunction=[hashBucket{,5}, def (x){return x+1}])
+	loadTable("dfs://test", tName).append!(t)
+	pnodeRunAllNodes(flushTSDBCache)
+	
+	pt = loadTable("dfs://test", tName)
+
+	return pt
+}
+
+pcolsToDate = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDate) {
+	print(p[0], "to date")
+	db = createDB(VALUE, distinct(valDate[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by date(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by date(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 1, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by date(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by date(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 2, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, date(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, date(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 3, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by date(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by date(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 4, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMonth = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMonth) {
+	print(p[0], "to month")
+	db = createDB(VALUE, distinct(valMonth[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+	
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by month(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by month(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 5, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+	
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 6, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, month(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, month(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 7, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by month(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by month(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 8, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToTime = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToTime) {
+	print(p[0], "to time")
+	db = createDB(VALUE, distinct(valTime[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+	
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 9, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+	
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 10, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, time(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, time(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 11, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by time(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by time(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 12, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMinute = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMinute) {
+	print(p[0], "to minute")
+	db = createDB(VALUE, distinct(valMinute[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by minute(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by minute(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 13, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 14, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, minute(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, minute(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 15, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by minute(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by minute(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 16, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToSecond = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToSecond) {
+	print(p[0], "to second")
+	db = createDB(VALUE, distinct(valSecond[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 17, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 18, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, second(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, second(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 19, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by second(pcol) csort col18 
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by second(pcol) csort col18 
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 20, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToDatetime = [valDate, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDatetime) {
+	print(p[0], "to datetime")
+	db = createDB(VALUE, distinct(valDatetime[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 21, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 22, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, datetime(pcol) csort id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, datetime(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 23, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by datetime(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by datetime(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 24, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToDatehour = [valDate, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDatehour) {
+	print(p[0], "to datetime")
+	db = createDB(VALUE, distinct(valDatehour[1]))
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datehour(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datehour(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 25, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datehour(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datehour(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 26, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 27, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by datehour(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by datehour(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	re.sortBy!(re.colNames())
+	ex.sortBy!(ex.colNames())
+	assert 28, each(eqObj, re.values(), ex.values())
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_range"
+colListAll = [valBool, valChar, valShort, valInt, valLong, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valFloat, valDouble, valSymbol, valString, valUuid, valDatehour, valIpaddr, valInt128, valBlob, valComplex, valPoint, valDecimal32, valDecimal64, valDecimal128]
+
+pcolsToDate = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDate) {
+	print(p[0], "to date")
+	db = createDB(RANGE, valDate[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by date(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by date(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 1, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by date(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by date(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 2, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, date(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, date(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 3, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by date(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by date(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 4, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMonth = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMonth) {
+	print(p[0], "to month")
+	db = createDB(RANGE, valMonth[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by month(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by month(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 5, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 6, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, month(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, month(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 7, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by month(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by month(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 8, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToTime = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToTime) {
+	print(p[0], "to time")
+	db = createDB(RANGE, valTime[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 9, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 10, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, time(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, time(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 11, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by time(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by time(pcol)
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 12, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMinute = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMinute) {
+	print(p[0], "to minute")
+	db = createDB(RANGE, valMinute[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by minute(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by minute(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 13, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 14, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, minute(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, minute(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 15, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by minute(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by minute(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 16, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToSecond = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToSecond) {
+	print(p[0], "to second")
+	db = createDB(RANGE, valSecond[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 17, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 18, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, second(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, second(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 19, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by second(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by second(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 20, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToDatetime = [valDate, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDatetime) {
+	print(p[0], "to datetime")
+	db = createDB(RANGE, valDatetime[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 21, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 22, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, datetime(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, datetime(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 23, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by datetime(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by datetime(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 24, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToDatehour = [valDate, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDatehour) {
+	print(p[0], "to datetime")
+	db = createDB(RANGE, valDatehour[2])
+
+	pt = createPTable(n, db, `pt, p[1], `pcol, colListAll, `col)
+	pt1 = createPTable(n, db, `pt1, p[1], `pcol, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datehour(pcol)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datehour(pcol)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 25, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datehour(pcol), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datehour(pcol), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 26, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 27, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by datehour(pcol)csort  id,pcol,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 28, each(eqObj, re.values(), ex.values())
+}
+
+@testing:case="test_dfs_sql_update_special_func_context_by_time_conversion_func_partitionType_compo_hash_range"
+def createDBCompoJob(partitionType, partitionScheme) {
+	if (existsDatabase("dfs://test")) {
+	    dropDatabase("dfs://test")
+	}
+
+	if (typestr(partitionType)!="INT") {
+		db1 = database(, partitionType[0], partitionScheme[0])
+		db2 = database(, partitionType[1], partitionScheme[1])
+
+		db = database("dfs://test", COMPO, [db1, db2], , "TSDB")
+
+		return db
+	} else {
+		db = database("dfs://test", partitionType, partitionScheme, , "TSDB")
+	
+		return db
+	}
+}
+
+def createPTableCompoJob(n, db, tName, partitionType, pcol, pcolStr, col, colStr) {
+	if (typestr(partitionType)!="INT") {
+		id = rand(n/2, n)
+		t = table(id as id, pcol[0] as pcol0, pcol[1] as pcol1, col[0][1] as col0, col[1][1] as col1, col[2][1] as col2, col[3][1] as col3, col[4][1] as col4, col[5][1] as col5, col[6][1] as col6, col[7][1] as col7, col[8][1] as col8, col[9][1] as col9, col[10][1] as col10, col[11][1] as col11, col[12][1] as col12, col[13][1] as col13, col[14][1] as col14, col[15][1] as col15, col[16][1] as col16, col[17][1] as col17, col[18][1] as col18, col[19][1] as col19, col[20][1] as col20, col[21][1] as col21, col[22][1] as col22, col[23][1] as col23, col[24][1] as col24, col[25][1] as col25, col[26][1] as col26, col[27][1] as col27, col[3][1] as scol0, col[5][1] as scol1)
+		// multi sortColumn, keepDuplicates=FIRST
+		pt = db.createPartitionedTable(t, tName, pcolStr, , `id`scol0`scol1, keepDuplicates=FIRST)
+		loadTable(db, tName).append!(t)
+		pnodeRunAllNodes(flushTSDBCache)
+		
+		pt = loadTable(db, tName)
+	
+		return pt
+	} else {
+		id = rand(n/2, n)
+		t = table(id as id, pcol as pcol, col[0][1] as col0, col[1][1] as col1, col[2][1] as col2, col[3][1] as col3, col[4][1] as col4, col[5][1] as col5, col[6][1] as col6, col[7][1] as col7, col[8][1] as col8, col[9][1] as col9, col[10][1] as col10, col[11][1] as col11, col[12][1] as col12, col[13][1] as col13, col[14][1] as col14, col[15][1] as col15, col[16][1] as col16, col[17][1] as col17, col[18][1] as col18, col[19][1] as col19, col[20][1] as col20, col[21][1] as col21, col[22][1] as col22, col[23][1] as col23, col[24][1] as col24, col[25][1] as col25, col[26][1] as col26, col[27][1] as col27)
+		pt = db.createPartitionedTable(t, tName, pcolStr, , `id)
+		loadTable(db, tName).append!(t)
+		pnodeRunAllNodes(flushTSDBCache)
+		
+		pt = loadTable(db, tName)
+	
+		return pt
+	}
+}
+colListAll = [valBool, valChar, valShort, valInt, valLong, valDate, valMonth, valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valFloat, valDouble, valSymbol, valString, valUuid, valDatehour, valIpaddr, valInt128, valBlob, valComplex, valPoint, valDecimal32, valDecimal64, valDecimal128]
+
+pcolsToDate = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDate) {
+	print(p[0], "date")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valDate[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, date(pcol1)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, date(pcol1)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 1, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by pcol0, date(pcol1), col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by pcol0, date(pcol1), col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 2, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 3, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 4, each(eqObj, re.values(), ex.values())
+
+	tmp = select * from pt
+
+	update pt set col0 = min(col0), col1 = avg(col1), col2 = beta(col2, col3), col3 = sum(col3), col4 = percentile(col4, 0.2), col5 = max(col5), col6 = first(col6), col7 = last(col7), col8 = firstNot(col8), col9 = min(col9), col10 = max(col10), col11 = firstNot(col11), col12 = firstNot(col12), col13 = max(col13), col14 = std(col14), col15 = first(col15), col16 = max(col16), col17 = first(col17), col18 = last(col18), col19 = first(col19), col24 = first(col24), col25 = std(col25), col26 = corr(col26, col27), col27 = max(col27) from ej(pt, tmp1, "id") where id > n/4 context by pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = min(col0), col1 = avg(col1), col2 = beta(col2, col3), col3 = sum(col3), col4 = percentile(col4, 0.2), col5 = max(col5), col6 = first(col6), col7 = last(col7), col8 = firstNot(col8), col9 = min(col9), col10 = max(col10), col11 = firstNot(col11), col12 = firstNot(col12), col13 = max(col13), col14 = std(col14), col15 = first(col15), col16 = max(col16), col17 = first(col17), col18 = last(col18), col19 = first(col19), col24 = first(col24), col25 = std(col25), col26 = corr(col26, col27), col27 = max(col27) from ej(tmp, tmp1, "id") where id > n/4 context by pcol0, date(pcol1)csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 5, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMonth = [valDate, valMonth, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMonth) {
+	print(p[0], "to month")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valMonth[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, month(pcol1)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, month(pcol1)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 5, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol1), pcol0, col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by month(pcol1), pcol0, col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 6, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, month(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, month(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 7, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by month(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by month(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 8, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToTime = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToTime) {
+	print(p[0], "to time")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valTime[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol1), pcol0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by time(pcol1), pcol0
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 9, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol1), pcol0, col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by time(pcol1), pcol0, col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 10, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, pcol0, time(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, pcol0, time(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 11, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by time(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by time(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 12, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToMinute = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToMinute) {
+	print(p[0], "to minute")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valMinute[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, minute(pcol1)
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by pcol0, minute(pcol1)
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 13, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol1), pcol0, col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by minute(pcol1), pcol0, col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 14, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, minute(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, minute(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 15, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by minute(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by minute(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 16, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToSecond = [valTime, valMinute, valSecond, valDatetime, valTimestamp, valNanotime, valNanotimestamp, valDatehour]
+
+for (p in pcolsToSecond) {
+	print(p[0], "to second")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valSecond[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol1), pcol0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by second(pcol1), pcol0
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 17, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol1), pcol0, col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by second(pcol1), pcol0, col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 18, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, second(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, second(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 19, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by pcol0, second(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by pcol0, second(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 20, each(eqObj, re.values(), ex.values())
+}
+
+pcolsToDatetime = [valDate, valDatetime, valTimestamp, valNanotimestamp, valDatehour]
+
+for (p in pcolsToDatetime) {
+	print(p[0], "to datetime")
+	db = createDBCompoJob([HASH, RANGE], [[valInt[0], 3], valDatetime[2]])
+
+	pt = createPTableCompoJob(n, db, `pt, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+	pt1 = createPTableCompoJob(n, db, `pt1, [HASH, RANGE], [valInt[1], p[1]], `pcol0`pcol1, colListAll, `col)
+
+	tmp = select * from pt
+	tmp1 = select * from pt1
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol1), pcol0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) context by datetime(pcol1), pcol0
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 21, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol1), pcol0, col0
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) where id > n/4 context by datetime(pcol1), pcol0, col0
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 22, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") context by col0, datetime(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") context by col0, datetime(pcol1), pcol0 csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 23, each(eqObj, re.values(), ex.values())
+	
+	tmp = select * from pt
+
+	update pt set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(pt, tmp1, "id") where id > n/4 context by pcol0, datetime(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	update tmp set col0 = prev(col0), col1 = sort(col1), col2 = cumavg(col2), col3 = cummax(col3), col4 = mfirst(col4, 3), col5 = mlast(col5, 5), col6 = next(col6), col7 = next(col7), col8 = prev(col8), col9 = sort(col9), col10 = cummax(col10), col11 = cummax(col11), col12 = mfirst(col12, 12), col13 = mlast(col13, 13), col14 = sort(col14), col15 = next(col15), col16 = prev(col16), col17 = sort(col17), col18 = sort(col18), col19 = cummax(col19), col20 = mfirst(col20, 20), col21 = mlast(col21, 21), col22 = next(col22), col23 = next(col23), col24 = prev(col24), col25 = sort(col25), col26 = cumavg(col26), col27 = cummax(col27) from ej(tmp, tmp1, "id") where id > n/4 context by pcol0, datetime(pcol1) csort  id,col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,scol0,scol1
+	
+	re = select * from pt
+	ex = select * from tmp
+	if (size(ex) > 0) {
+		re.sortBy!(re.colNames())
+		ex.sortBy!(ex.colNames())
+	}
+	assert 24, each(eqObj, re.values(), ex.values())
+}

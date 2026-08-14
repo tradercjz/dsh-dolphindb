@@ -1,0 +1,76 @@
+module easy_datayes::loadData::loadOneDayData::loadOneDayEntrust
+
+/*
+ * @FunctionName: transformEntrustSH
+ * @Brief: Transforms the entrust data for the Shanghai market into a standardized format with new field names (merged market format only).
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag (kept for compatibility, but only merged format is supported).
+ * @Param: t: The input data table containing the original entrust data.
+ * @Return: A table containing transformed entrust data with standardized field names (channel_no, appl_seq, code, order_price, order_qty, side, trade_date, trade_time, order_type, order_no, exchange, trade_qty, update_time).
+ */
+def transformEntrustSH(t, day){
+	// Transform Shanghai market entrust data to standardized format with new field names
+	tmpData = select OrderChannel as channel_no,
+					BizIndex as appl_seq,
+					SecurityID + ".SH" as code,
+					OrderPrice as order_price,
+					Balance as order_qty,
+					OrderBSFlag as side,
+					day as trade_date,
+					OrderTime as trade_time,
+					OrderType as order_type,
+					OrderNO as order_no,
+					"SH" as exchange,
+					OrderIndex as rec_id,
+					double(NULL) as trade_qty,
+					now() as update_time
+				from t
+	return tmpData
+}
+
+/*
+ * @FunctionName: transformEntrustSZ
+ * @Brief: Transforms the entrust data for the Shenzhen market into a standardized format with new field names (merged market format only).
+ * @Param: day: The specific trading day for which the data is being processed.
+ * @Param: merge: A boolean flag (kept for compatibility, but only merged format is supported).
+ * @Param: t: The input data table containing the original entrust data.
+ * @Return: A table containing transformed entrust data with standardized field names (channel_no, appl_seq, code, order_price, order_qty, side, trade_date, trade_time, order_type, order_no, exchange, trade_qty, update_time).
+ */
+def transformEntrustSZOrder(t, day){
+	tmpData = select SetNo as channel_no,
+						RecNo as appl_seq,
+						SecurityID + ".SZ" as code,
+						Price as order_price,
+						OrderQty as order_qty,
+						FunctionCode as side,
+						day as trade_date,
+						OrderEntryTime as trade_time,
+						OrderKind as order_type,
+						int(NULL) as order_no,
+						"SZ" as exchange,
+						long(NULL) as rec_id,
+						double(NULL) as trade_qty,
+						now() as update_time
+					from t
+	return tmpData
+}
+
+def transformEntrustSZmdl6330(t, day){
+	// Transform Shenzhen market entrust data to standardized format with new field names
+	tmpData = select ChannelNo as channel_no,
+						ApplSeqNum as appl_seq,
+						SecurityID + ".SZ" as code,
+						Price as order_price,
+						OrderQty as order_qty,
+						string(char(Side)) as side,
+						day as trade_date,
+						TransactTime as trade_time,
+						string(char(OrdType)) as order_type,
+						int(NULL) as order_no,
+						"SZ" as exchange,
+						long(NULL) as rec_id,
+						double(NULL) as trade_qty,
+						now() as update_time
+					from t
+	return tmpData
+}

@@ -1,0 +1,25 @@
+{
+  "signature": "def finalize(mutable context){}",
+  "purpose": "策略结束之前回调一次该函数。通常用于做收尾处理、输出最终提示，或执行轻量的结束阶段逻辑。",
+  "allowed_actions": [
+    "读取策略运行过程中保存在 context 中的状态",
+    "执行轻量的收尾逻辑",
+    "输出结束提示，例如 print(\"done\")",
+    "做一次性的结束阶段处理"
+  ],
+  "forbidden": [
+    "不要在 finalize 中编写依赖实时行情逐条触发的交易决策逻辑",
+    "不要把 onBar、onSnapshot、onTick 等事件回调的主体交易逻辑写进 finalize",
+    "不要访问未在文档或通用提示词中声明的数据字段"
+  ],
+  "parameters": {
+    "context": {
+      "type": "DICT",
+      "meaning": "用于读取策略在运行过程中保存的自定义变量",
+      "usage": "使用方式作为 DolphinDB 字典使用，取值方式 context[\"xxxx\"]，如果字典中没有这个 key，取值不会报错只会返回 NULL"
+    }
+  },
+  "notes": [
+    "通常 finalize 不需要复杂逻辑，默认可仅输出 print(\"done\")。"
+  ]
+}

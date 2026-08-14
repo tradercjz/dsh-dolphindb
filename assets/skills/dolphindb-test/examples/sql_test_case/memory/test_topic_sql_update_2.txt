@@ -1,0 +1,2025 @@
+
+@testing:case="sql_update_with_limit_ex1", syntaxError = 1
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val)
+update t1 limit -2
+
+@testing:case="sql_update_with_limit_ex2", syntaxError = 1
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val)
+update t1 set id = 1 limit 2
+
+@testing:case="sql_update_with_top_ex1", syntaxError = 1
+t1=table(1..3 as id, 4..6 as val)
+t2=table(2 4 as id, 9 10 as val)
+update top 1 t1
+
+@testing:case="sql_update_with_other_keywords_prepare"
+def createDataTable(n){
+	data = table(n:0, `boolv`charv`shortv`intv`longv`doublev`floatv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`symbolv`stringv`uuidv`datehourv`ippaddrv`int128v`blobv`complexv`pointv`decimal32v`decimal64v, [BOOL, CHAR, SHORT, INT, LONG, DOUBLE, FLOAT, DATE, MONTH, TIME, MINUTE, SECOND, DATETIME, TIMESTAMP, NANOTIME, NANOTIMESTAMP, SYMBOL, STRING, UUID, DATEHOUR, IPADDR, INT128, BLOB, complex, POINT, DECIMAL32(3), DECIMAL64(4)])
+	boolv = bool(rand([true, false, NULL], n))
+	charv = char(rand(rand(-100..100, 10) join take(char(), 4), n))
+	shortv = short(rand(rand(-100..100, 10) join take(short(), 4), n))
+	intv = int(rand(rand(-100..100, 10) join take(int(), 4), n))
+	longv = long(rand(rand(-100..100, 10) join take(long(), 4), n))
+	intv = int(rand(rand(-100..100, 10) join take(int(), 4), n))
+	doublev = double(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n))
+	floatv = float(rand(rand(-100..100, 10)*0.23 join take(float(), 4), n))
+	datev = date(rand(rand(-100..100, 10) join take(date(), 4), n))
+	monthv = month(rand(1967.12M+rand(-100..100, 10) join take(month(), 4), n))
+	timev = time(rand(rand(0..100, 10) join take(time(), 4), n))
+	minutev = minute(rand(12:13m+rand(-100..100, 10) join take(minute(), 4), n))
+	secondv = second(rand(12:13:12+rand(-100..100, 10) join take(second(), 4), n))
+	datetimev = datetime(rand(1969.12.23+rand(-100..100, 10) join take(datetime(), 4), n))
+	timestampv = timestamp(rand(1970.01.01T00:00:00.023+rand(-100..100, 10) join take(timestamp(), 4), n))
+	nanotimev = nanotime(rand(12:23:45.452623154+rand(-100..100, 10) join take(nanotime(), 4), n))
+	nanotimestampv = nanotimestamp(rand(rand(-100..100, 10) join take(nanotimestamp(), 4), n))
+	symbolv = rand(("syms"+string(rand(100, 10))) join take(string(), 4), n)
+	stringv = rand(("stringv"+string(rand(100, 10))) join take(string(), 4), n)
+	uuidv = rand(rand(uuid(), 10) join take(uuid(), 4), n)
+	datehourv = datehour(rand(datehour(1969.12.31T12:45:12)+rand(-100..100, 10) join take(datehour(), 4), n))
+	ippaddrv = rand(rand(ipaddr(), 10) join take(ipaddr(), 4), n)
+	int128v = rand(rand(int128(), 10) join take(int128(), 4), n)
+	blobv = blob(string(rand(("blob"+string(rand(100, 10))) join take("", 4), n)))
+	complexv = rand(complex(rand(100, 10), rand(100, 10)) join NULL, n)
+	pointv = rand(point(rand(100, 10), rand(100, 10)) join NULL, n)
+	decimal32v = decimal32(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 3)
+	decimal64v = decimal64(rand(rand(-100..100, 10)*0.23 join take(double(), 4), n), 3)
+	t = table(boolv, charv, intv, shortv, longv, floatv, doublev, datev, monthv, timev, minutev, secondv, datetimev, timestampv, nanotimev, nanotimestampv, symbolv, stringv, uuidv, datehourv, ippaddrv, int128v, blobv, complexv, pointv, decimal32v, decimal64v)
+	data.append!(t)
+	return data 
+}
+dtypeList = `bool`char`short`int`long`date`month`time`minute`second`datetime`timestamp`nanotime`nanotimestamp`float`double`string
+colNameList = `boolv`charv`shortv`intv`longv`datev`monthv`timev`minutev`secondv`datetimev`timestampv`nanotimev`nanotimestampv`doublev`floatv`stringv
+
+singleParaAggre = [first, last, count, mode, size, firstNot, lastNot, ifirstNot, ilastNot, prod, kurtosis, skew, std, stdp, var, varp, sem, mad, med, max, min, imax, imin, sum, sum2, sum3, sum4, avg, mean, nunique]
+multiParaAggre = [beta, corr, covar, wsum, contextCount, contextSum, contextSum2, tanimoto, euclidean, mutualInfo, atImax, atImin, covarp]
+
+@testing:case="sql_update_with_set_all_types"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 
+res = exec intv from updateTableInMemory 
+assert 1, res == take(1, n)
+
+update updateTableInMemory set intv = NULL 
+res = exec intv from updateTableInMemory 
+assert 2, res == take(00i, n)
+
+update updateTableInMemory set charv = char(10) 
+res = exec charv from updateTableInMemory
+assert 3, res == take(char(10) , n)
+
+update updateTableInMemory set charv = char() 
+res = exec charv from updateTableInMemory
+assert 4, res == take(char(), n)
+
+update updateTableInMemory set shortv = short(10)
+res = exec shortv from updateTableInMemory 
+assert 5, res == take(short(10), n)
+
+update updateTableInMemory set shortv = short()
+res = exec shortv from updateTableInMemory
+assert 6, res == take(short(), n)
+
+update updateTableInMemory set longv = long(10)
+res = exec longv from updateTableInMemory
+assert 7, res == take(long(10), n)
+
+update updateTableInMemory set longv = long()
+res = exec longv from updateTableInMemory
+assert 8, res == take(long(), n)
+
+update updateTableInMemory set datev = date(10)
+res = exec datev from updateTableInMemory
+assert 9, res == take(date(10), n)
+
+update updateTableInMemory set datev = date()
+res = exec datev from updateTableInMemory
+assert 10, res == take(date(), n)
+
+update updateTableInMemory set monthv = month(10)
+res = exec monthv from updateTableInMemory 
+assert 11, res == take(month(10), n)
+
+update updateTableInMemory set monthv = month()
+res = exec monthv from updateTableInMemory 
+assert 12, res == take(month(), n)
+
+update updateTableInMemory set timev = time(10)
+res = exec timev from updateTableInMemory 
+assert 13, res == take(time(10), n)
+
+update updateTableInMemory set timev = time()
+res = exec timev from updateTableInMemory
+assert 14, res == take(time(), n)
+
+update updateTableInMemory set minutev = minute(10)
+res = exec minutev from updateTableInMemory 
+assert 15, res == take(minute(10), n)
+
+update updateTableInMemory set minutev = minute()
+res = exec minutev from updateTableInMemory
+assert 16, res == take(minute(), n)
+
+update updateTableInMemory set secondv = second(10)
+res = exec secondv from updateTableInMemory 
+assert 17, res == take(second(10), n)
+
+update updateTableInMemory set secondv = second()
+res = exec secondv from updateTableInMemory 
+assert 18, res == take(second(), n)
+
+update updateTableInMemory set datetimev = datetime(10)
+res = exec datetimev from updateTableInMemory 
+assert 19, res == take(datetime(10), n)
+
+update updateTableInMemory set datetimev = datetime()
+res = exec datetimev from updateTableInMemory 
+assert 20, res == take(datetime(), n)
+
+update updateTableInMemory set timestampv = timestamp(10)
+res = exec timestampv from updateTableInMemory
+assert 21, res == take(timestamp(10), n)
+
+update updateTableInMemory set timestampv = timestamp()
+res = exec timestampv from updateTableInMemory
+assert 22, res == take(timestamp(), n)
+
+update updateTableInMemory set nanotimev = nanotime(10)
+res = exec nanotimev from updateTableInMemory 
+assert 23, res == take(nanotime(10), n)
+
+update updateTableInMemory set nanotimev = nanotime()
+res = exec nanotimev from updateTableInMemory 
+assert 24, res == take(nanotime(), n)
+
+update updateTableInMemory set nanotimestampv = nanotimestamp(10)
+res = exec nanotimestampv from updateTableInMemory 
+assert 25, res == take(nanotimestamp(10), n)
+
+update updateTableInMemory set nanotimestampv = nanotimestamp()
+res = exec nanotimestampv from updateTableInMemory 
+assert 26, res == take(nanotimestamp(), n)
+
+update updateTableInMemory set floatv = 7.82
+res = exec floatv from updateTableInMemory 
+assert 27, res == take(7.82f, n)
+
+update updateTableInMemory set floatv = float()
+res = exec floatv from updateTableInMemory 
+assert 28, res == take(float(), n)
+
+update updateTableInMemory set doublev = 7.82
+res = exec doublev from updateTableInMemory 
+assert 29, res == take(7.82, n)
+
+update updateTableInMemory set doublev = double()
+res = exec double() from updateTableInMemory 
+assert 30, res == take(double(), n)
+
+update updateTableInMemory set symbolv = "syms78"
+res = exec symbolv from updateTableInMemory 
+assert 31, res == take("syms78", n)
+
+update updateTableInMemory set symbolv = ""
+res = exec symbolv from updateTableInMemory
+assert 32, res == take("", n)
+
+update updateTableInMemory set stringv = "stringv49"
+res = exec stringv from updateTableInMemory
+assert 33, res == take("stringv49", n)
+
+update updateTableInMemory set stringv = ""
+res = exec stringv from updateTableInMemory 
+assert 34, res == take("", n)
+
+update updateTableInMemory set uuidv = uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec uuidv from updateTableInMemory 
+assert 35, res == take(uuid("7d07a82f-6177-2473-994f-0169236563e8"), n)
+
+update updateTableInMemory set uuidv = uuid()
+res = exec uuidv from updateTableInMemory 
+assert 36, res == take(uuid(), n)
+
+update updateTableInMemory set datehourv = datehour(1970.01.04T13:12:23)
+res = exec datehourv from updateTableInMemory 
+assert 37, res == take(datehour(1970.01.04T13:12:23), n)
+
+update updateTableInMemory set datehourv = datehour()
+res = exec datehourv from updateTableInMemory 
+assert 38, res == take(datehour(), n)
+
+update updateTableInMemory set ippaddrv = ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec ippaddrv from updateTableInMemory
+assert 39, res == take(ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7"), n)
+
+update updateTableInMemory set ippaddrv = ipaddr("")
+res = exec ippaddrv from updateTableInMemory 
+assert 40, res == take(ipaddr(""), n)
+
+update updateTableInMemory set int128v = int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec int128v from updateTableInMemory 
+assert 41, res == take(int128("e4fe50728241a2950cea2e9203ef8acb"), n)
+
+update updateTableInMemory set int128v = int128()
+res = exec int128v from updateTableInMemory 
+assert 42, res == take(int128(), n)
+
+update updateTableInMemory set blobv = blob("blob45")
+res = exec blobv from updateTableInMemory
+assert 43, res == take(blob("blob45"), n)
+
+update updateTableInMemory set blobv = blob("")
+res = exec blobv from updateTableInMemory
+assert 44, res == take(blob(""), n)
+
+update updateTableInMemory set complexv = complex(71, 47)
+res = exec complexv from updateTableInMemory 
+assert 45, res == take(complex(71, 47), n)
+
+update updateTableInMemory set complexv = complex(71, 47)
+res = exec complexv from updateTableInMemory 
+assert 46, res == take(complex(71, 47), n)
+
+update updateTableInMemory set pointv = point(71, 47)
+res = exec pointv from updateTableInMemory 
+assert 47, res == take(point(71, 47), n)
+
+update updateTableInMemory set pointv = point(00i, 00i)
+res = exec pointv from updateTableInMemory 
+assert 48, res == take(point(00i, 00i), n)
+
+update updateTableInMemory set decimal32v = decimal32(13.800, 3)
+res = exec decimal32v from updateTableInMemory 
+assert 49, res == take(decimal32(13.800, 3), n)
+
+update updateTableInMemory set decimal32v = decimal32(00i, 3)
+res = exec decimal32v from updateTableInMemory 
+assert 50, res == take(decimal32(00i, 3), n)
+
+update updateTableInMemory set decimal64v = decimal64(13.800, 3)
+res = exec decimal64v from updateTableInMemory 
+assert 51, res == take(decimal64(13.800, 3), n)
+
+update updateTableInMemory set decimal64v = decimal64(00i, 3)
+res = exec decimal64v from updateTableInMemory 
+assert 52, res == take(decimal64(00i, 3), n)
+
+
+@testing:case="sql_update_with_set_all_aggregation_func"
+for (funcName in singleParaAggre){
+	print("test dtype: "+ funcName +"  begin")
+	n = 1000
+	updateTableInMemory = createDataTable(n)
+	
+	t1 = updateTableInMemory.copy()
+	update updateTableInMemory set intv = funcByName(string(funcName))(intv)
+	res = exec intv from updateTableInMemory 
+	data = exec funcByName(string(funcName))(intv) from t1
+	assert 1, eqObj(res, take(int(data), n))
+}
+
+for (funcName in multiParaAggre){
+	print("test dtype: "+ funcName +"  begin")
+	n = 1000
+	updateTableInMemory = createDataTable(n)
+	
+	t1 = updateTableInMemory.copy()
+	update updateTableInMemory set intv = funcByName(string(funcName))(intv, longv)
+	res = exec intv from updateTableInMemory 
+	data = exec funcByName(string(funcName))(intv, longv) from t1
+	assert 2, eqObj(res, take(int(data), n))
+}
+
+print("test dtype: "+ `percentile +"  begin")
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = percentile(intv, 20, 'linear')
+res = exec intv from updateTableInMemory 
+data = exec percentile(intv, 20, 'linear') from t1
+assert 3, eqObj(res, take(int(data), n))
+
+print("test dtype: "+ `quantile +"  begin")
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = quantile(intv, 0.20, 'linear')
+res = exec intv from updateTableInMemory 
+data = exec quantile(intv, 0.20, 'linear') from t1
+assert 4, eqObj(res, take(int(data), n))
+
+print("test dtype: "+ `quantile +"  begin")
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = percentileRank(intv, 0.20, 'rank')
+res = exec intv from updateTableInMemory 
+data = exec percentileRank(intv, 0.20, 'rank') from t1
+assert 5, eqObj(res, take(int(data), n))
+
+@testing:case="sql_update_with_where_eq"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv == true
+go
+res = exec intv from updateTableInMemory where boolv == true
+num = exec count(*) from t1 where boolv == true
+assert 1, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where boolv == true
+res = exec intv from updateTableInMemory where boolv == true
+num = exec count(*) from t1 where boolv == true
+assert 2, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where charv == char()
+res = exec intv from updateTableInMemory where charv == char()
+num = exec count(*) from t1 where charv == char()
+assert 3, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where charv == char()
+res = exec intv from updateTableInMemory where charv == char()
+num = exec count(*) from t1 where charv == char()
+assert 4, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where shortv == short(10)
+res = exec intv from updateTableInMemory where shortv == short(10)
+num = exec count(*) from t1 where shortv == short(10)
+assert 5, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where shortv == short()
+res = exec intv from updateTableInMemory where shortv == short()
+num = exec count(*) from t1 where shortv == short()
+assert 6, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where longv == long(10)
+res = exec intv from updateTableInMemory where longv == long(10)
+num = exec count(*) from t1 where longv == long(10)
+assert 7, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where longv == long()
+res = exec intv from updateTableInMemory where longv == long()
+num = exec count(*) from t1 where longv == long()
+assert 8, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datev == date(10)
+res = exec intv from updateTableInMemory where datev == date(10)
+num = exec count(*) from t1 where datev == date(10)
+assert 9, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datev == date()
+res = exec intv from updateTableInMemory where datev == date()
+num = exec count(*) from t1 where datev == date()
+assert 10, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where monthv == month(10)
+res = exec intv from updateTableInMemory where monthv == month(10)
+num = exec count(*) from t1 where monthv == month(10)
+assert 11, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where monthv == month()
+res = exec intv from updateTableInMemory where monthv == month()
+num = exec count(*) from t1 where monthv == month()
+assert 12, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timev == time(10)
+res = exec intv from updateTableInMemory where timev == time(10)
+num = exec count(*) from t1 where timev == time(10)
+assert 13, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timev == time()
+res = exec intv from updateTableInMemory where timev == time()
+num = exec count(*) from t1 where timev == time()
+assert 14, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where minutev == minute(10)
+res = exec intv from updateTableInMemory where minutev == minute(10)
+num = exec count(*) from t1 where minutev == minute(10)
+assert 15, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where minutev == minute()
+res = exec intv from updateTableInMemory where minutev == minute()
+num = exec count(*) from t1 where minutev == minute()
+assert 16, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where secondv == second(10)
+res = exec intv from updateTableInMemory where secondv == second(10)
+num = exec count(*) from t1 where secondv == second(10)
+assert 17, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where secondv == second()
+res = exec intv from updateTableInMemory where secondv == second()
+num = exec count(*) from t1 where secondv == second()
+assert 18, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datetimev == datetime(10)
+res = exec intv from updateTableInMemory where datetimev == datetime(10)
+num = exec count(*) from t1 where datetimev == datetime(10)
+assert 19, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datetimev == datetime()
+res = exec intv from updateTableInMemory where datetimev == datetime()
+num = exec count(*) from t1 where datetimev == datetime()
+assert 20, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timestampv == timestamp(10)
+res = exec intv from updateTableInMemory where timestampv == timestamp(10)
+num = exec count(*) from t1 where timestampv == timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timestampv == timestamp()
+res = exec intv from updateTableInMemory where timestampv == timestamp()
+num = exec count(*) from t1 where timestampv == timestamp()
+assert 22, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimev == nanotime(10)
+res = exec intv from updateTableInMemory where nanotimev == nanotime(10)
+num = exec count(*) from t1 where nanotimev == nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimev == nanotime()
+res = exec intv from updateTableInMemory where nanotimev == nanotime()
+num = exec count(*) from t1 where nanotimev == nanotime()
+assert 24, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimestampv == nanotimestamp(10)
+res = exec intv from updateTableInMemory where nanotimestampv == nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv == nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimestampv == nanotimestamp()
+res = exec intv from updateTableInMemory where nanotimestampv == nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv == nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where floatv == 7.82
+res = exec intv from updateTableInMemory where floatv == 7.82
+num = exec count(*) from t1 where floatv == 7.82
+assert 27, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where floatv == float()
+res = exec intv from updateTableInMemory where floatv == float()
+num = exec count(*) from t1 where floatv == float()
+assert 28, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where doublev == 7.82
+res = exec intv from updateTableInMemory where doublev == 7.82
+num = exec count(*) from t1 where doublev == 7.82
+assert 29, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where doublev == double()
+res = exec intv from updateTableInMemory where doublev == double()
+num = exec count(*) from t1 where doublev == double()
+assert 30, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where symbolv == "syms78"
+res = exec intv from updateTableInMemory where symbolv == "syms78"
+num = exec count(*) from t1 where symbolv == "syms78"
+assert 31, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where symbolv == ""
+res = exec intv from updateTableInMemory where symbolv == ""
+num = exec count(*) from t1 where symbolv == ""
+assert 32, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where stringv == "stringv49"
+res = exec intv from updateTableInMemory where stringv == "stringv49"
+num = exec count(*) from t1 where stringv == "stringv49"
+assert 33, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where stringv == ""
+res = exec intv from updateTableInMemory where stringv == ""
+num = exec count(*) from t1 where stringv == ""
+assert 34, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where uuidv == uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTableInMemory where uuidv == uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv == uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where uuidv == uuid()
+res = exec intv from updateTableInMemory where uuidv == uuid()
+num = exec count(*) from t1 where uuidv == uuid()
+assert 36, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datehourv == datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv == datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv == datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datehourv == datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv == datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv == datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv == ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where int128v == int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTableInMemory where int128v == int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v == int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where int128v == int128()
+res = exec intv from updateTableInMemory where int128v == int128()
+num = exec count(*) from t1 where int128v == int128()
+assert 42, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where blobv == blob("blob45")
+res = exec intv from updateTableInMemory where blobv == blob("blob45")
+num = exec count(*) from t1 where blobv == blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where blobv == blob("blob45")
+res = exec intv from updateTableInMemory where blobv == blob("blob45")
+num = exec count(*) from t1 where blobv == blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where complexv == complex(71, 47)
+res = exec intv from updateTableInMemory where complexv == complex(71, 47)
+num = exec count(*) from t1 where complexv == complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where complexv == complex(71, 47)
+res = exec intv from updateTableInMemory where complexv == complex(71, 47)
+num = exec count(*) from t1 where complexv == complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where pointv == point(71, 47)
+res = exec intv from updateTableInMemory where pointv == point(71, 47)
+num = exec count(*) from t1 where pointv == point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where pointv == point(71, 47)
+res = exec intv from updateTableInMemory where pointv == point(71, 47)
+num = exec count(*) from t1 where pointv == point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal32v == decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v == decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v == decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal32v == decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v == decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v == decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal64v == decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v == decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v == decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal64v == decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v == decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v == decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+@testing:case="sql_update_with_where_ne"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv != true
+res = exec intv from updateTableInMemory where boolv != true
+num = exec count(*) from t1 where boolv != true
+assert 1, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where boolv != true
+res = exec intv from updateTableInMemory where boolv != true
+num = exec count(*) from t1 where boolv != true
+assert 2, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where charv != char()
+res = exec intv from updateTableInMemory where charv != char()
+num = exec count(*) from t1 where charv != char()
+assert 3, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where charv != char()
+res = exec intv from updateTableInMemory where charv != char()
+num = exec count(*) from t1 where charv != char()
+assert 4, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where shortv != short(10)
+res = exec intv from updateTableInMemory where shortv != short(10)
+num = exec count(*) from t1 where shortv != short(10)
+assert 5, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where shortv != short()
+res = exec intv from updateTableInMemory where shortv != short()
+num = exec count(*) from t1 where shortv != short()
+assert 6, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where longv != long(10)
+res = exec intv from updateTableInMemory where longv != long(10)
+num = exec count(*) from t1 where longv != long(10)
+assert 7, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where longv != long()
+res = exec intv from updateTableInMemory where longv != long()
+num = exec count(*) from t1 where longv != long()
+assert 8, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datev != date(10)
+res = exec intv from updateTableInMemory where datev != date(10)
+num = exec count(*) from t1 where datev != date(10)
+assert 9, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datev != date()
+res = exec intv from updateTableInMemory where datev != date()
+num = exec count(*) from t1 where datev != date()
+assert 10, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where monthv != month(10)
+res = exec intv from updateTableInMemory where monthv != month(10)
+num = exec count(*) from t1 where monthv != month(10)
+assert 11, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where monthv != month()
+res = exec intv from updateTableInMemory where monthv != month()
+num = exec count(*) from t1 where monthv != month()
+assert 12, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timev != time(10)
+res = exec intv from updateTableInMemory where timev != time(10)
+num = exec count(*) from t1 where timev != time(10)
+assert 13, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timev != time()
+res = exec intv from updateTableInMemory where timev != time()
+num = exec count(*) from t1 where timev != time()
+assert 14, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where minutev != minute(10)
+res = exec intv from updateTableInMemory where minutev != minute(10)
+num = exec count(*) from t1 where minutev != minute(10)
+assert 15, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where minutev != minute()
+res = exec intv from updateTableInMemory where minutev != minute()
+num = exec count(*) from t1 where minutev != minute()
+assert 16, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where secondv != second(10)
+res = exec intv from updateTableInMemory where secondv != second(10)
+num = exec count(*) from t1 where secondv != second(10)
+assert 17, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where secondv != second()
+res = exec intv from updateTableInMemory where secondv != second()
+num = exec count(*) from t1 where secondv != second()
+assert 18, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datetimev != datetime(10)
+res = exec intv from updateTableInMemory where datetimev != datetime(10)
+num = exec count(*) from t1 where datetimev != datetime(10)
+assert 19, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datetimev != datetime()
+res = exec intv from updateTableInMemory where datetimev != datetime()
+num = exec count(*) from t1 where datetimev != datetime()
+assert 20, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timestampv != timestamp(10)
+res = exec intv from updateTableInMemory where timestampv != timestamp(10)
+num = exec count(*) from t1 where timestampv != timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timestampv != timestamp()
+res = exec intv from updateTableInMemory where timestampv != timestamp()
+num = exec count(*) from t1 where timestampv != timestamp()
+assert 22, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimev != nanotime(10)
+res = exec intv from updateTableInMemory where nanotimev != nanotime(10)
+num = exec count(*) from t1 where nanotimev != nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimev != nanotime()
+res = exec intv from updateTableInMemory where nanotimev != nanotime()
+num = exec count(*) from t1 where nanotimev != nanotime()
+assert 24, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimestampv != nanotimestamp(10)
+res = exec intv from updateTableInMemory where nanotimestampv != nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv != nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimestampv != nanotimestamp()
+res = exec intv from updateTableInMemory where nanotimestampv != nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv != nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where floatv != 7.82
+res = exec intv from updateTableInMemory where floatv != 7.82
+num = exec count(*) from t1 where floatv != 7.82
+assert 27, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where floatv != float()
+res = exec intv from updateTableInMemory where floatv != float()
+num = exec count(*) from t1 where floatv != float()
+assert 28, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where doublev != 7.82
+res = exec intv from updateTableInMemory where doublev != 7.82
+num = exec count(*) from t1 where doublev != 7.82
+assert 29, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where doublev != double()
+res = exec intv from updateTableInMemory where doublev != double()
+num = exec count(*) from t1 where doublev != double()
+assert 30, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where symbolv != "syms78"
+res = exec intv from updateTableInMemory where symbolv != "syms78"
+num = exec count(*) from t1 where symbolv != "syms78"
+assert 31, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where symbolv != ""
+res = exec intv from updateTableInMemory where symbolv != ""
+num = exec count(*) from t1 where symbolv != ""
+assert 32, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where stringv != "stringv49"
+res = exec intv from updateTableInMemory where stringv != "stringv49"
+num = exec count(*) from t1 where stringv != "stringv49"
+assert 33, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where stringv != ""
+res = exec intv from updateTableInMemory where stringv != ""
+num = exec count(*) from t1 where stringv != ""
+assert 34, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where uuidv != uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTableInMemory where uuidv != uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv != uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where uuidv != uuid()
+res = exec intv from updateTableInMemory where uuidv != uuid()
+num = exec count(*) from t1 where uuidv != uuid()
+assert 36, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datehourv != datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv != datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv != datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datehourv != datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv != datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv != datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv != ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where int128v != int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTableInMemory where int128v != int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v != int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where int128v != int128()
+res = exec intv from updateTableInMemory where int128v != int128()
+num = exec count(*) from t1 where int128v != int128()
+assert 42, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where blobv != blob("blob45")
+res = exec intv from updateTableInMemory where blobv != blob("blob45")
+num = exec count(*) from t1 where blobv != blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where blobv != blob("blob45")
+res = exec intv from updateTableInMemory where blobv != blob("blob45")
+num = exec count(*) from t1 where blobv != blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where complexv != complex(71, 47)
+res = exec intv from updateTableInMemory where complexv != complex(71, 47)
+num = exec count(*) from t1 where complexv != complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where complexv != complex(71, 47)
+res = exec intv from updateTableInMemory where complexv != complex(71, 47)
+num = exec count(*) from t1 where complexv != complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where pointv != point(71, 47)
+res = exec intv from updateTableInMemory where pointv != point(71, 47)
+num = exec count(*) from t1 where pointv != point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where pointv != point(71, 47)
+res = exec intv from updateTableInMemory where pointv != point(71, 47)
+num = exec count(*) from t1 where pointv != point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal32v != decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v != decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v != decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal32v != decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v != decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v != decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal64v != decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v != decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v != decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal64v != decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v != decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v != decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+@testing:case="sql_update_with_where_gt"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv gt true
+go
+res = exec intv from updateTableInMemory where boolv gt true
+num = exec count(*) from t1 where boolv gt true
+assert 1, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where boolv gt true
+res = exec intv from updateTableInMemory where boolv gt true
+num = exec count(*) from t1 where boolv gt true
+assert 2, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where charv gt char()
+res = exec intv from updateTableInMemory where charv gt char()
+num = exec count(*) from t1 where charv gt char()
+assert 3, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where charv gt char()
+res = exec intv from updateTableInMemory where charv gt char()
+num = exec count(*) from t1 where charv gt char()
+assert 4, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where shortv gt short(10)
+res = exec intv from updateTableInMemory where shortv gt short(10)
+num = exec count(*) from t1 where shortv gt short(10)
+assert 5, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where shortv gt short()
+res = exec intv from updateTableInMemory where shortv gt short()
+num = exec count(*) from t1 where shortv gt short()
+assert 6, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where longv gt long(10)
+res = exec intv from updateTableInMemory where longv gt long(10)
+num = exec count(*) from t1 where longv gt long(10)
+assert 7, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where longv gt long()
+res = exec intv from updateTableInMemory where longv gt long()
+num = exec count(*) from t1 where longv gt long()
+assert 8, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datev gt date(10)
+res = exec intv from updateTableInMemory where datev gt date(10)
+num = exec count(*) from t1 where datev gt date(10)
+assert 9, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datev gt date()
+res = exec intv from updateTableInMemory where datev gt date()
+num = exec count(*) from t1 where datev gt date()
+assert 10, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where monthv gt month(10)
+res = exec intv from updateTableInMemory where monthv gt month(10)
+num = exec count(*) from t1 where monthv gt month(10)
+assert 11, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where monthv gt month()
+res = exec intv from updateTableInMemory where monthv gt month()
+num = exec count(*) from t1 where monthv gt month()
+assert 12, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timev gt time(10)
+res = exec intv from updateTableInMemory where timev gt time(10)
+num = exec count(*) from t1 where timev gt time(10)
+assert 13, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timev gt time()
+res = exec intv from updateTableInMemory where timev gt time()
+num = exec count(*) from t1 where timev gt time()
+assert 14, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where minutev gt minute(10)
+res = exec intv from updateTableInMemory where minutev gt minute(10)
+num = exec count(*) from t1 where minutev gt minute(10)
+assert 15, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where minutev gt minute()
+res = exec intv from updateTableInMemory where minutev gt minute()
+num = exec count(*) from t1 where minutev gt minute()
+assert 16, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where secondv gt second(10)
+res = exec intv from updateTableInMemory where secondv gt second(10)
+num = exec count(*) from t1 where secondv gt second(10)
+assert 17, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where secondv gt second()
+res = exec intv from updateTableInMemory where secondv gt second()
+num = exec count(*) from t1 where secondv gt second()
+assert 18, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datetimev gt datetime(10)
+res = exec intv from updateTableInMemory where datetimev gt datetime(10)
+num = exec count(*) from t1 where datetimev gt datetime(10)
+assert 19, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datetimev gt datetime()
+res = exec intv from updateTableInMemory where datetimev gt datetime()
+num = exec count(*) from t1 where datetimev gt datetime()
+assert 20, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timestampv gt timestamp(10)
+res = exec intv from updateTableInMemory where timestampv gt timestamp(10)
+num = exec count(*) from t1 where timestampv gt timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timestampv gt timestamp()
+res = exec intv from updateTableInMemory where timestampv gt timestamp()
+num = exec count(*) from t1 where timestampv gt timestamp()
+assert 22, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimev gt nanotime(10)
+res = exec intv from updateTableInMemory where nanotimev gt nanotime(10)
+num = exec count(*) from t1 where nanotimev gt nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimev gt nanotime()
+res = exec intv from updateTableInMemory where nanotimev gt nanotime()
+num = exec count(*) from t1 where nanotimev gt nanotime()
+assert 24, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimestampv gt nanotimestamp(10)
+res = exec intv from updateTableInMemory where nanotimestampv gt nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv gt nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimestampv gt nanotimestamp()
+res = exec intv from updateTableInMemory where nanotimestampv gt nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv gt nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where floatv gt 7.82
+res = exec intv from updateTableInMemory where floatv gt 7.82
+num = exec count(*) from t1 where floatv gt 7.82
+assert 27, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where floatv gt float()
+res = exec intv from updateTableInMemory where floatv gt float()
+num = exec count(*) from t1 where floatv gt float()
+assert 28, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where doublev gt 7.82
+res = exec intv from updateTableInMemory where doublev gt 7.82
+num = exec count(*) from t1 where doublev gt 7.82
+assert 29, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where doublev gt double()
+res = exec intv from updateTableInMemory where doublev gt double()
+num = exec count(*) from t1 where doublev gt double()
+assert 30, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where symbolv gt "syms78"
+res = exec intv from updateTableInMemory where symbolv gt "syms78"
+num = exec count(*) from t1 where symbolv gt "syms78"
+assert 31, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where symbolv gt ""
+res = exec intv from updateTableInMemory where symbolv gt ""
+num = exec count(*) from t1 where symbolv gt ""
+assert 32, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where stringv gt "stringv49"
+res = exec intv from updateTableInMemory where stringv gt "stringv49"
+num = exec count(*) from t1 where stringv gt "stringv49"
+assert 33, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where stringv gt ""
+res = exec intv from updateTableInMemory where stringv gt ""
+num = exec count(*) from t1 where stringv gt ""
+assert 34, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where uuidv gt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTableInMemory where uuidv gt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv gt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where uuidv gt uuid()
+res = exec intv from updateTableInMemory where uuidv gt uuid()
+num = exec count(*) from t1 where uuidv gt uuid()
+assert 36, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datehourv gt datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv gt datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv gt datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datehourv gt datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv gt datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv gt datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv gt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where int128v gt int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTableInMemory where int128v gt int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v gt int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where int128v gt int128()
+res = exec intv from updateTableInMemory where int128v gt int128()
+num = exec count(*) from t1 where int128v gt int128()
+assert 42, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where blobv gt blob("blob45")
+res = exec intv from updateTableInMemory where blobv gt blob("blob45")
+num = exec count(*) from t1 where blobv gt blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where blobv gt blob("blob45")
+res = exec intv from updateTableInMemory where blobv gt blob("blob45")
+num = exec count(*) from t1 where blobv gt blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where complexv gt complex(71, 47)
+res = exec intv from updateTableInMemory where complexv gt complex(71, 47)
+num = exec count(*) from t1 where complexv gt complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where complexv gt complex(71, 47)
+res = exec intv from updateTableInMemory where complexv gt complex(71, 47)
+num = exec count(*) from t1 where complexv gt complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where pointv gt point(71, 47)
+res = exec intv from updateTableInMemory where pointv gt point(71, 47)
+num = exec count(*) from t1 where pointv gt point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where pointv gt point(71, 47)
+res = exec intv from updateTableInMemory where pointv gt point(71, 47)
+num = exec count(*) from t1 where pointv gt point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal32v gt decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v gt decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v gt decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal32v gt decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v gt decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v gt decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal64v gt decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v gt decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v gt decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal64v gt decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v gt decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v gt decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+
+@testing:case="sql_update_with_where_ge"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv ge true
+go
+res = exec intv from updateTableInMemory where boolv ge true
+num = exec count(*) from t1 where boolv ge true
+assert 1, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where boolv ge true
+res = exec intv from updateTableInMemory where boolv ge true
+num = exec count(*) from t1 where boolv ge true
+assert 2, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where charv ge char()
+res = exec intv from updateTableInMemory where charv ge char()
+num = exec count(*) from t1 where charv ge char()
+assert 3, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where charv ge char()
+res = exec intv from updateTableInMemory where charv ge char()
+num = exec count(*) from t1 where charv ge char()
+assert 4, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where shortv ge short(10)
+res = exec intv from updateTableInMemory where shortv ge short(10)
+num = exec count(*) from t1 where shortv ge short(10)
+assert 5, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where shortv ge short()
+res = exec intv from updateTableInMemory where shortv ge short()
+num = exec count(*) from t1 where shortv ge short()
+assert 6, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where longv ge long(10)
+res = exec intv from updateTableInMemory where longv ge long(10)
+num = exec count(*) from t1 where longv ge long(10)
+assert 7, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where longv ge long()
+res = exec intv from updateTableInMemory where longv ge long()
+num = exec count(*) from t1 where longv ge long()
+assert 8, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datev ge date(10)
+res = exec intv from updateTableInMemory where datev ge date(10)
+num = exec count(*) from t1 where datev ge date(10)
+assert 9, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datev ge date()
+res = exec intv from updateTableInMemory where datev ge date()
+num = exec count(*) from t1 where datev ge date()
+assert 10, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where monthv ge month(10)
+res = exec intv from updateTableInMemory where monthv ge month(10)
+num = exec count(*) from t1 where monthv ge month(10)
+assert 11, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where monthv ge month()
+res = exec intv from updateTableInMemory where monthv ge month()
+num = exec count(*) from t1 where monthv ge month()
+assert 12, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timev ge time(10)
+res = exec intv from updateTableInMemory where timev ge time(10)
+num = exec count(*) from t1 where timev ge time(10)
+assert 13, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timev ge time()
+res = exec intv from updateTableInMemory where timev ge time()
+num = exec count(*) from t1 where timev ge time()
+assert 14, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where minutev ge minute(10)
+res = exec intv from updateTableInMemory where minutev ge minute(10)
+num = exec count(*) from t1 where minutev ge minute(10)
+assert 15, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where minutev ge minute()
+res = exec intv from updateTableInMemory where minutev ge minute()
+num = exec count(*) from t1 where minutev ge minute()
+assert 16, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where secondv ge second(10)
+res = exec intv from updateTableInMemory where secondv ge second(10)
+num = exec count(*) from t1 where secondv ge second(10)
+assert 17, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where secondv ge second()
+res = exec intv from updateTableInMemory where secondv ge second()
+num = exec count(*) from t1 where secondv ge second()
+assert 18, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datetimev ge datetime(10)
+res = exec intv from updateTableInMemory where datetimev ge datetime(10)
+num = exec count(*) from t1 where datetimev ge datetime(10)
+assert 19, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datetimev ge datetime()
+res = exec intv from updateTableInMemory where datetimev ge datetime()
+num = exec count(*) from t1 where datetimev ge datetime()
+assert 20, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timestampv ge timestamp(10)
+res = exec intv from updateTableInMemory where timestampv ge timestamp(10)
+num = exec count(*) from t1 where timestampv ge timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timestampv ge timestamp()
+res = exec intv from updateTableInMemory where timestampv ge timestamp()
+num = exec count(*) from t1 where timestampv ge timestamp()
+assert 22, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimev ge nanotime(10)
+res = exec intv from updateTableInMemory where nanotimev ge nanotime(10)
+num = exec count(*) from t1 where nanotimev ge nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimev ge nanotime()
+res = exec intv from updateTableInMemory where nanotimev ge nanotime()
+num = exec count(*) from t1 where nanotimev ge nanotime()
+assert 24, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimestampv ge nanotimestamp(10)
+res = exec intv from updateTableInMemory where nanotimestampv ge nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv ge nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimestampv ge nanotimestamp()
+res = exec intv from updateTableInMemory where nanotimestampv ge nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv ge nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where floatv ge 7.82
+res = exec intv from updateTableInMemory where floatv ge 7.82
+num = exec count(*) from t1 where floatv ge 7.82
+assert 27, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where floatv ge float()
+res = exec intv from updateTableInMemory where floatv ge float()
+num = exec count(*) from t1 where floatv ge float()
+assert 28, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where doublev ge 7.82
+res = exec intv from updateTableInMemory where doublev ge 7.82
+num = exec count(*) from t1 where doublev ge 7.82
+assert 29, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where doublev ge double()
+res = exec intv from updateTableInMemory where doublev ge double()
+num = exec count(*) from t1 where doublev ge double()
+assert 30, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where symbolv ge "syms78"
+res = exec intv from updateTableInMemory where symbolv ge "syms78"
+num = exec count(*) from t1 where symbolv ge "syms78"
+assert 31, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where symbolv ge ""
+res = exec intv from updateTableInMemory where symbolv ge ""
+num = exec count(*) from t1 where symbolv ge ""
+assert 32, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where stringv ge "stringv49"
+res = exec intv from updateTableInMemory where stringv ge "stringv49"
+num = exec count(*) from t1 where stringv ge "stringv49"
+assert 33, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where stringv ge ""
+res = exec intv from updateTableInMemory where stringv ge ""
+num = exec count(*) from t1 where stringv ge ""
+assert 34, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where uuidv ge uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTableInMemory where uuidv ge uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv ge uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where uuidv ge uuid()
+res = exec intv from updateTableInMemory where uuidv ge uuid()
+num = exec count(*) from t1 where uuidv ge uuid()
+assert 36, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datehourv ge datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv ge datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv ge datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datehourv ge datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv ge datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv ge datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv ge ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where int128v ge int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTableInMemory where int128v ge int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v ge int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where int128v ge int128()
+res = exec intv from updateTableInMemory where int128v ge int128()
+num = exec count(*) from t1 where int128v ge int128()
+assert 42, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where blobv ge blob("blob45")
+res = exec intv from updateTableInMemory where blobv ge blob("blob45")
+num = exec count(*) from t1 where blobv ge blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where blobv ge blob("blob45")
+res = exec intv from updateTableInMemory where blobv ge blob("blob45")
+num = exec count(*) from t1 where blobv ge blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where complexv ge complex(71, 47)
+res = exec intv from updateTableInMemory where complexv ge complex(71, 47)
+num = exec count(*) from t1 where complexv ge complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where complexv ge complex(71, 47)
+res = exec intv from updateTableInMemory where complexv ge complex(71, 47)
+num = exec count(*) from t1 where complexv ge complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where pointv ge point(71, 47)
+res = exec intv from updateTableInMemory where pointv ge point(71, 47)
+num = exec count(*) from t1 where pointv ge point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where pointv ge point(71, 47)
+res = exec intv from updateTableInMemory where pointv ge point(71, 47)
+num = exec count(*) from t1 where pointv ge point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal32v ge decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v ge decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v ge decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal32v ge decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v ge decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v ge decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal64v ge decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v ge decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v ge decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal64v ge decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v ge decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v ge decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+
+@testing:case="sql_update_with_where_le"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv le true
+go
+res = exec intv from updateTableInMemory where boolv le true
+num = exec count(*) from t1 where boolv le true
+assert 1, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where boolv le true
+res = exec intv from updateTableInMemory where boolv le true
+num = exec count(*) from t1 where boolv le true
+assert 2, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where charv le char()
+res = exec intv from updateTableInMemory where charv le char()
+num = exec count(*) from t1 where charv le char()
+assert 3, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where charv le char()
+res = exec intv from updateTableInMemory where charv le char()
+num = exec count(*) from t1 where charv le char()
+assert 4, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where shortv le short(10)
+res = exec intv from updateTableInMemory where shortv le short(10)
+num = exec count(*) from t1 where shortv le short(10)
+assert 5, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where shortv le short()
+res = exec intv from updateTableInMemory where shortv le short()
+num = exec count(*) from t1 where shortv le short()
+assert 6, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where longv le long(10)
+res = exec intv from updateTableInMemory where longv le long(10)
+num = exec count(*) from t1 where longv le long(10)
+assert 7, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where longv le long()
+res = exec intv from updateTableInMemory where longv le long()
+num = exec count(*) from t1 where longv le long()
+assert 8, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datev le date(10)
+res = exec intv from updateTableInMemory where datev le date(10)
+num = exec count(*) from t1 where datev le date(10)
+assert 9, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datev le date()
+res = exec intv from updateTableInMemory where datev le date()
+num = exec count(*) from t1 where datev le date()
+assert 10, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where monthv le month(10)
+res = exec intv from updateTableInMemory where monthv le month(10)
+num = exec count(*) from t1 where monthv le month(10)
+assert 11, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where monthv le month()
+res = exec intv from updateTableInMemory where monthv le month()
+num = exec count(*) from t1 where monthv le month()
+assert 12, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timev le time(10)
+res = exec intv from updateTableInMemory where timev le time(10)
+num = exec count(*) from t1 where timev le time(10)
+assert 13, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timev le time()
+res = exec intv from updateTableInMemory where timev le time()
+num = exec count(*) from t1 where timev le time()
+assert 14, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where minutev le minute(10)
+res = exec intv from updateTableInMemory where minutev le minute(10)
+num = exec count(*) from t1 where minutev le minute(10)
+assert 15, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where minutev le minute()
+res = exec intv from updateTableInMemory where minutev le minute()
+num = exec count(*) from t1 where minutev le minute()
+assert 16, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where secondv le second(10)
+res = exec intv from updateTableInMemory where secondv le second(10)
+num = exec count(*) from t1 where secondv le second(10)
+assert 17, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where secondv le second()
+res = exec intv from updateTableInMemory where secondv le second()
+num = exec count(*) from t1 where secondv le second()
+assert 18, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datetimev le datetime(10)
+res = exec intv from updateTableInMemory where datetimev le datetime(10)
+num = exec count(*) from t1 where datetimev le datetime(10)
+assert 19, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datetimev le datetime()
+res = exec intv from updateTableInMemory where datetimev le datetime()
+num = exec count(*) from t1 where datetimev le datetime()
+assert 20, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where timestampv le timestamp(10)
+res = exec intv from updateTableInMemory where timestampv le timestamp(10)
+num = exec count(*) from t1 where timestampv le timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where timestampv le timestamp()
+res = exec intv from updateTableInMemory where timestampv le timestamp()
+num = exec count(*) from t1 where timestampv le timestamp()
+assert 22, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimev le nanotime(10)
+res = exec intv from updateTableInMemory where nanotimev le nanotime(10)
+num = exec count(*) from t1 where nanotimev le nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimev le nanotime()
+res = exec intv from updateTableInMemory where nanotimev le nanotime()
+num = exec count(*) from t1 where nanotimev le nanotime()
+assert 24, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where nanotimestampv le nanotimestamp(10)
+res = exec intv from updateTableInMemory where nanotimestampv le nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv le nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where nanotimestampv le nanotimestamp()
+res = exec intv from updateTableInMemory where nanotimestampv le nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv le nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where floatv le 7.82
+res = exec intv from updateTableInMemory where floatv le 7.82
+num = exec count(*) from t1 where floatv le 7.82
+assert 27, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where floatv le float()
+res = exec intv from updateTableInMemory where floatv le float()
+num = exec count(*) from t1 where floatv le float()
+assert 28, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where doublev le 7.82
+res = exec intv from updateTableInMemory where doublev le 7.82
+num = exec count(*) from t1 where doublev le 7.82
+assert 29, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where doublev le double()
+res = exec intv from updateTableInMemory where doublev le double()
+num = exec count(*) from t1 where doublev le double()
+assert 30, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where symbolv le "syms78"
+res = exec intv from updateTableInMemory where symbolv le "syms78"
+num = exec count(*) from t1 where symbolv le "syms78"
+assert 31, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where symbolv le ""
+res = exec intv from updateTableInMemory where symbolv le ""
+num = exec count(*) from t1 where symbolv le ""
+assert 32, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where stringv le "stringv49"
+res = exec intv from updateTableInMemory where stringv le "stringv49"
+num = exec count(*) from t1 where stringv le "stringv49"
+assert 33, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where stringv le ""
+res = exec intv from updateTableInMemory where stringv le ""
+num = exec count(*) from t1 where stringv le ""
+assert 34, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where uuidv le uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTableInMemory where uuidv le uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv le uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where uuidv le uuid()
+res = exec intv from updateTableInMemory where uuidv le uuid()
+num = exec count(*) from t1 where uuidv le uuid()
+assert 36, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where datehourv le datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv le datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv le datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where datehourv le datehour(1970.01.04T13:12:23)
+res = exec intv from updateTableInMemory where datehourv le datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv le datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTableInMemory where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv le ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where int128v le int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTableInMemory where int128v le int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v le int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where int128v le int128()
+res = exec intv from updateTableInMemory where int128v le int128()
+num = exec count(*) from t1 where int128v le int128()
+assert 42, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where blobv le blob("blob45")
+res = exec intv from updateTableInMemory where blobv le blob("blob45")
+num = exec count(*) from t1 where blobv le blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where blobv le blob("blob45")
+res = exec intv from updateTableInMemory where blobv le blob("blob45")
+num = exec count(*) from t1 where blobv le blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where complexv le complex(71, 47)
+res = exec intv from updateTableInMemory where complexv le complex(71, 47)
+num = exec count(*) from t1 where complexv le complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where complexv le complex(71, 47)
+res = exec intv from updateTableInMemory where complexv le complex(71, 47)
+num = exec count(*) from t1 where complexv le complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where pointv le point(71, 47)
+res = exec intv from updateTableInMemory where pointv le point(71, 47)
+num = exec count(*) from t1 where pointv le point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where pointv le point(71, 47)
+res = exec intv from updateTableInMemory where pointv le point(71, 47)
+num = exec count(*) from t1 where pointv le point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal32v le decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v le decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v le decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal32v le decimal32(13.800, 3)
+res = exec intv from updateTableInMemory where decimal32v le decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v le decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTableInMemory set intv = 1 where decimal64v le decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v le decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v le decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTableInMemory set intv = NULL where decimal64v le decimal64(13.800, 3)
+res = exec intv from updateTableInMemory where decimal64v le decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v le decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+
+@testing:case="sql_update_with_where_lt"
+n = 1000
+updateTabltInMemory = createDataTable(n)
+t1 = updateTabltInMemory.copy()
+update updateTabltInMemory set intv = 1 where boolv lt true
+go
+res = exec intv from updateTabltInMemory where boolv lt true
+num = exec count(*) from t1 where boolv lt true
+assert 1, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where boolv lt true
+res = exec intv from updateTabltInMemory where boolv lt true
+num = exec count(*) from t1 where boolv lt true
+assert 2, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where charv lt char()
+res = exec intv from updateTabltInMemory where charv lt char()
+num = exec count(*) from t1 where charv lt char()
+assert 3, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where charv lt char()
+res = exec intv from updateTabltInMemory where charv lt char()
+num = exec count(*) from t1 where charv lt char()
+assert 4, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where shortv lt short(10)
+res = exec intv from updateTabltInMemory where shortv lt short(10)
+num = exec count(*) from t1 where shortv lt short(10)
+assert 5, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where shortv lt short()
+res = exec intv from updateTabltInMemory where shortv lt short()
+num = exec count(*) from t1 where shortv lt short()
+assert 6, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where longv lt long(10)
+res = exec intv from updateTabltInMemory where longv lt long(10)
+num = exec count(*) from t1 where longv lt long(10)
+assert 7, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where longv lt long()
+res = exec intv from updateTabltInMemory where longv lt long()
+num = exec count(*) from t1 where longv lt long()
+assert 8, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where datev lt date(10)
+res = exec intv from updateTabltInMemory where datev lt date(10)
+num = exec count(*) from t1 where datev lt date(10)
+assert 9, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where datev lt date()
+res = exec intv from updateTabltInMemory where datev lt date()
+num = exec count(*) from t1 where datev lt date()
+assert 10, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where monthv lt month(10)
+res = exec intv from updateTabltInMemory where monthv lt month(10)
+num = exec count(*) from t1 where monthv lt month(10)
+assert 11, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where monthv lt month()
+res = exec intv from updateTabltInMemory where monthv lt month()
+num = exec count(*) from t1 where monthv lt month()
+assert 12, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where timev lt time(10)
+res = exec intv from updateTabltInMemory where timev lt time(10)
+num = exec count(*) from t1 where timev lt time(10)
+assert 13, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where timev lt time()
+res = exec intv from updateTabltInMemory where timev lt time()
+num = exec count(*) from t1 where timev lt time()
+assert 14, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where minutev lt minute(10)
+res = exec intv from updateTabltInMemory where minutev lt minute(10)
+num = exec count(*) from t1 where minutev lt minute(10)
+assert 15, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where minutev lt minute()
+res = exec intv from updateTabltInMemory where minutev lt minute()
+num = exec count(*) from t1 where minutev lt minute()
+assert 16, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where secondv lt second(10)
+res = exec intv from updateTabltInMemory where secondv lt second(10)
+num = exec count(*) from t1 where secondv lt second(10)
+assert 17, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where secondv lt second()
+res = exec intv from updateTabltInMemory where secondv lt second()
+num = exec count(*) from t1 where secondv lt second()
+assert 18, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where datetimev lt datetime(10)
+res = exec intv from updateTabltInMemory where datetimev lt datetime(10)
+num = exec count(*) from t1 where datetimev lt datetime(10)
+assert 19, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where datetimev lt datetime()
+res = exec intv from updateTabltInMemory where datetimev lt datetime()
+num = exec count(*) from t1 where datetimev lt datetime()
+assert 20, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where timestampv lt timestamp(10)
+res = exec intv from updateTabltInMemory where timestampv lt timestamp(10)
+num = exec count(*) from t1 where timestampv lt timestamp(10)
+assert 21, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where timestampv lt timestamp()
+res = exec intv from updateTabltInMemory where timestampv lt timestamp()
+num = exec count(*) from t1 where timestampv lt timestamp()
+assert 22, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where nanotimev lt nanotime(10)
+res = exec intv from updateTabltInMemory where nanotimev lt nanotime(10)
+num = exec count(*) from t1 where nanotimev lt nanotime(10)
+assert 23, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where nanotimev lt nanotime()
+res = exec intv from updateTabltInMemory where nanotimev lt nanotime()
+num = exec count(*) from t1 where nanotimev lt nanotime()
+assert 24, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where nanotimestampv lt nanotimestamp(10)
+res = exec intv from updateTabltInMemory where nanotimestampv lt nanotimestamp(10)
+num = exec count(*) from t1 where nanotimestampv lt nanotimestamp(10)
+assert 25, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where nanotimestampv lt nanotimestamp()
+res = exec intv from updateTabltInMemory where nanotimestampv lt nanotimestamp()
+num = exec count(*) from t1 where nanotimestampv lt nanotimestamp()
+assert 26, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where floatv lt 7.82
+res = exec intv from updateTabltInMemory where floatv lt 7.82
+num = exec count(*) from t1 where floatv lt 7.82
+assert 27, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where floatv lt float()
+res = exec intv from updateTabltInMemory where floatv lt float()
+num = exec count(*) from t1 where floatv lt float()
+assert 28, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where doublev lt 7.82
+res = exec intv from updateTabltInMemory where doublev lt 7.82
+num = exec count(*) from t1 where doublev lt 7.82
+assert 29, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where doublev lt double()
+res = exec intv from updateTabltInMemory where doublev lt double()
+num = exec count(*) from t1 where doublev lt double()
+assert 30, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where symbolv lt "syms78"
+res = exec intv from updateTabltInMemory where symbolv lt "syms78"
+num = exec count(*) from t1 where symbolv lt "syms78"
+assert 31, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where symbolv lt ""
+res = exec intv from updateTabltInMemory where symbolv lt ""
+num = exec count(*) from t1 where symbolv lt ""
+assert 32, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where stringv lt "stringv49"
+res = exec intv from updateTabltInMemory where stringv lt "stringv49"
+num = exec count(*) from t1 where stringv lt "stringv49"
+assert 33, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where stringv lt ""
+res = exec intv from updateTabltInMemory where stringv lt ""
+num = exec count(*) from t1 where stringv lt ""
+assert 34, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where uuidv lt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+res = exec intv from updateTabltInMemory where uuidv lt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+num = exec count(*) from t1 where uuidv lt uuid("7d07a82f-6177-2473-994f-0169236563e8")
+assert 35, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where uuidv lt uuid()
+res = exec intv from updateTabltInMemory where uuidv lt uuid()
+num = exec count(*) from t1 where uuidv lt uuid()
+assert 36, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where datehourv lt datehour(1970.01.04T13:12:23)
+res = exec intv from updateTabltInMemory where datehourv lt datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv lt datehour(1970.01.04T13:12:23)
+assert 37, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where datehourv lt datehour(1970.01.04T13:12:23)
+res = exec intv from updateTabltInMemory where datehourv lt datehour(1970.01.04T13:12:23)
+num = exec count(*) from t1 where datehourv lt datehour(1970.01.04T13:12:23)
+assert 38, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTabltInMemory where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 39, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+res = exec intv from updateTabltInMemory where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+num = exec count(*) from t1 where ippaddrv lt ipaddr("d264:c9e4:9a3c:f872:d903:768:b64d:13b7")
+assert 40, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where int128v lt int128("e4fe50728241a2950cea2e9203ef8acb")
+res = exec intv from updateTabltInMemory where int128v lt int128("e4fe50728241a2950cea2e9203ef8acb")
+num = exec count(*) from t1 where int128v lt int128("e4fe50728241a2950cea2e9203ef8acb")
+assert 41, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where int128v lt int128()
+res = exec intv from updateTabltInMemory where int128v lt int128()
+num = exec count(*) from t1 where int128v lt int128()
+assert 42, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where blobv lt blob("blob45")
+res = exec intv from updateTabltInMemory where blobv lt blob("blob45")
+num = exec count(*) from t1 where blobv lt blob("blob45")
+assert 43, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where blobv lt blob("blob45")
+res = exec intv from updateTabltInMemory where blobv lt blob("blob45")
+num = exec count(*) from t1 where blobv lt blob("blob45")
+assert 44, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where complexv lt complex(71, 47)
+res = exec intv from updateTabltInMemory where complexv lt complex(71, 47)
+num = exec count(*) from t1 where complexv lt complex(71, 47)
+assert 45, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where complexv lt complex(71, 47)
+res = exec intv from updateTabltInMemory where complexv lt complex(71, 47)
+num = exec count(*) from t1 where complexv lt complex(71, 47)
+assert 46, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where pointv lt point(71, 47)
+res = exec intv from updateTabltInMemory where pointv lt point(71, 47)
+num = exec count(*) from t1 where pointv lt point(71, 47)
+assert 47, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where pointv lt point(71, 47)
+res = exec intv from updateTabltInMemory where pointv lt point(71, 47)
+num = exec count(*) from t1 where pointv lt point(71, 47)
+assert 48, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where decimal32v lt decimal32(13.800, 3)
+res = exec intv from updateTabltInMemory where decimal32v lt decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v lt decimal32(13.800, 3)
+assert 49, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where decimal32v lt decimal32(13.800, 3)
+res = exec intv from updateTabltInMemory where decimal32v lt decimal32(13.800, 3)
+num = exec count(*) from t1 where decimal32v lt decimal32(13.800, 3)
+assert 50, res == take(00i, num)
+
+update updateTabltInMemory set intv = 1 where decimal64v lt decimal64(13.800, 3)
+res = exec intv from updateTabltInMemory where decimal64v lt decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v lt decimal64(13.800, 3)
+assert 51, res == take(1, num)
+
+update updateTabltInMemory set intv = NULL where decimal64v lt decimal64(13.800, 3)
+res = exec intv from updateTabltInMemory where decimal64v lt decimal64(13.800, 3)
+num = exec count(*) from t1 where decimal64v lt decimal64(13.800, 3)
+assert 52, res == take(00i, num)
+
+@testing:case="sql_update_with_where_and"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv == true and shortv == NULL and longv > 1 and datev > 1970.01.01
+res = exec intv from updateTableInMemory where boolv == true and shortv == NULL and longv > 1 and datev > 1970.01.01
+num = exec count(*) from t1 where boolv == true and shortv == NULL and longv > 1 and datev > 1970.01.01
+assert 1, res == take(1, num)
+
+@testing:case="sql_update_with_where_or"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv == true or shortv == NULL or longv > 1 or datev > 1970.01.01
+res = exec intv from updateTableInMemory where boolv == true or shortv == NULL or longv > 1 or datev > 1970.01.01
+num = exec count(*) from t1 where boolv == true or shortv == NULL or longv > 1 or datev > 1970.01.01
+assert 1, res == take(1, num)
+
+@testing:case="sql_update_with_where_and_or"
+n = 1000
+updateTableInMemory = createDataTable(n)
+t1 = updateTableInMemory.copy()
+update updateTableInMemory set intv = 1 where boolv == true and shortv == NULL or longv > 1 and datev > 1970.01.01
+res = exec intv from updateTableInMemory where boolv == true and shortv == NULL or longv > 1 and datev > 1970.01.01
+num = exec count(*) from t1 where boolv == true and shortv == NULL or longv > 1 and datev > 1970.01.01
+assert 1, res == take(1, num)
+
+@testing:case="sql_update_with_where_sql"
+n = 1000
+updateTableInMemory1 = createDataTable(n)
+updateTableInMemory2 = createDataTable(n)
+t1 = updateTableInMemory1.copy()
+t2 = updateTableInMemory2.copy()
+update updateTableInMemory1 set intv = 1 where symbolv in (exec symbolv from updateTableInMemory2)
+res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+assert 1, res == take(1, num)
+
+@testing:case="sql_update_with_where_sql_set_contain_aggregate_func"
+for (funcName in singleParaAggre){
+	print("test dtype: "+ funcName +"  begin")
+	n = 1000
+	updateTableInMemory1 = createDataTable(n)
+	updateTableInMemory2 = createDataTable(n)
+	t1 = updateTableInMemory1.copy()
+	t2 = updateTableInMemory2.copy()
+	
+	update updateTableInMemory1 set intv = funcByName(string(funcName))(intv) where symbolv in (exec symbolv from updateTableInMemory2)
+	res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+	num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+	data = exec funcByName(string(funcName))(intv) from t1 where symbolv in (exec symbolv from t2)
+	assert 1, eqObj(res, take(int(data), num))
+}
+
+for (funcName in multiParaAggre){
+	print("test dtype: "+ funcName +"  begin")
+	n = 1000
+	updateTableInMemory1 = createDataTable(n)
+	updateTableInMemory2 = createDataTable(n)
+	t1 = updateTableInMemory1.copy()
+	t2 = updateTableInMemory2.copy()
+	update updateTableInMemory1 set intv = funcByName(string(funcName))(intv, longv) where symbolv in (exec symbolv from updateTableInMemory2)
+	res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+	data = exec funcByName(string(funcName))(intv, longv) from t1 where symbolv in (exec symbolv from t2)
+	num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+	assert 2, eqObj(res, take(int(data), num))
+}
+
+print("test dtype: "+ `percentile +"  begin")
+n = 1000
+updateTableInMemory1 = createDataTable(n)
+updateTableInMemory2 = createDataTable(n)
+t1 = updateTableInMemory1.copy()
+t2 = updateTableInMemory2.copy()
+update updateTableInMemory1 set intv = percentile(intv, 20, 'linear') where symbolv in (exec symbolv from updateTableInMemory2)
+res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+data = exec percentile(intv, 20, 'linear') from t1 where symbolv in (exec symbolv from t2)
+num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+assert 3, eqObj(res, take(int(data), num))
+
+print("test dtype: "+ `quantile +"  begin")
+n = 1000
+updateTableInMemory1 = createDataTable(n)
+updateTableInMemory2 = createDataTable(n)
+t1 = updateTableInMemory1.copy()
+t2 = updateTableInMemory2.copy()
+update updateTableInMemory1 set intv = quantile(intv, 0.20, 'linear') where symbolv in (exec symbolv from updateTableInMemory2)
+res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+data = exec quantile(intv, 0.20, 'linear') from t1 where symbolv in (exec symbolv from t2)
+num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+assert 4, eqObj(res, take(int(data), num))
+
+print("test dtype: "+ `quantile +"  begin")
+n = 1000
+updateTableInMemory1 = createDataTable(n)
+updateTableInMemory2 = createDataTable(n)
+t1 = updateTableInMemory1.copy()
+t2 = updateTableInMemory2.copy()
+update updateTableInMemory1 set intv = percentileRank(intv, 0.20, 'rank') where symbolv in (exec symbolv from updateTableInMemory2)
+res = exec intv from updateTableInMemory1 where symbolv in (exec symbolv from updateTableInMemory2)
+data = exec percentileRank(intv, 0.20, 'rank') from t1 where symbolv in (exec symbolv from t2)
+num = exec count(*) from t1 where symbolv in (exec symbolv from t2) 
+assert 5, eqObj(res, take(int(data), num))
+
+//https://dolphindb1.atlassian.net/browse/D20-18549
+@testing:case="sql_update_change_column"
+tmp = table(take(1..10,1000) as id, take(["A", "B", "C"],1000) as sym, 1..1000 as price, 2001..3000 as qty)
+update tmp set price=qty,qty=price
+res=select * from tmp
+assert 1,res.price==2001..3000
+assert 2,res.qty==1..1000

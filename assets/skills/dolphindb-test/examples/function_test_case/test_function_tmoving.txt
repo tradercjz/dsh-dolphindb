@@ -1,0 +1,2698 @@
+syntax(tmoving)
+//tmoving(func, T, funcArgs, window, [excludedPeriod])
+@testing:case="test_tmoving_func_NULL", exception=1
+tmoving(NULL, 1..10, 1..10, 2)
+
+@testing:case="test_tmoving_func_number", exception=1
+tmoving(10, 1..10, 1..10, 2)
+
+@testing:case="test_tmoving_func_string", exception=1
+tmoving("a", 1..10, 1..10, 2)
+
+@testing:case="test_tmoving_T_NULL", exception=1
+tmoving(sum, NULL, 1..10, 2)
+
+@testing:case="test_tmoving_T_scalar", exception=1
+tmoving(sum, 1, 1..10, 2)
+
+@testing:case="test_tmoving_T_not_same_length_as_x", exception=1
+tmoving(sum, 1..2, 1..10, 2)
+
+@testing:case="test_tmoving_T_not_order", exception=1
+tmoving(sum, 10..1, 1..10, 2)
+
+@testing:case="test_tmoving_T_include_null", exception=1
+tmoving(sum, take(date(),5).join(2020.01.01+1..5), 1..10, 2)
+
+@testing:case="test_tmoving_T_string_vector", exception=1
+tmoving(sum, take("a",10), 1..10, 2)
+
+@testing:case="test_tmoving_x_NULL", exception=1
+tmoving(sum, 1..10, NULL, 2)
+
+@testing:case="test_tmoving_window_NULL", exception=1
+tmoving(sum, 1..10, 1..10, NULL)
+
+@testing:case="test_tmoving_window_string", exception=1
+tmoving(sum, 1..10, 1..10, "a")
+
+@testing:case="test_tmoving_window_not_positive", exception=1
+tmoving(sum, 1..10, 1..10, 0)
+
+@testing:case="test_tmoving_window_not_integer", exception=1
+tmoving(sum, 1..10, 1..10, 0.1)
+
+@testing:case="test_tmoving_window_vector", exception=1
+tmoving(sum, 1..10, 1..10, 1..10)
+
+@testing:case="test_tmoving_custom_function",exception=1
+def mySum(x){
+	return sum(x)
+}
+T = 1..100
+x = 1..100
+window = 10
+re= tmoving(mySum, T, x, window)
+
+@testing:case="test_tmoving_func_sum_T_number"
+dtypes = [int,long,short]
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..100)
+			x = dd(1..100)
+			window = ddd(2)
+			re= tmoving(sum, T, x, window)
+			ex = tmoving(sum, T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(sum, T, x, window)
+			ex = tmoving(sum, T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(sum, T, x, window)
+			ex = tmoving(sum, T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),100)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(sum, T, x, window)
+			ex = tmoving(sum, T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_sum_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 3,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 4,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 3,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(sum, T, x, window)
+		ex = tmoving(sum, T,x,window)
+		assert 4,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_sum_x_bigarray"
+dtypes = [int,long,short,double,float]
+for(d in dtypes){
+	x = bigarray(d,0,10000000).append!(rand(take(1..1000 join take(d(),100),10000),300000))
+	T = 2020.01.01+rand(1000,x.size()).sort!()
+	re = tmoving(sum, T, x, 100)
+	ex = tmoving(sum, T,x,100)
+	assert 1,eqObj(re,ex)
+}
+
+@testing:case="test_tmoving_func_sum_x_subarray"
+dtypes = [int,long,short,double,float]
+for(d in dtypes){
+	tem = bigarray(d,0,10000000).append!(rand(take(1..1000 join take(d(),100),10000),300000))
+	x = subarray(tem,1:100)
+	T = 2020.01.01+rand(1000,x.size()).sort!()
+	re = tmoving(sum, T, x, 100)
+	ex = tmoving(sum, T,x,100)
+	assert 1,eqObj(re,ex)
+}
+
+@testing:case="test_tmoving_func_sum_T_bigarray"
+dtypes = [int,long,short,double,float]
+for(d in dtypes){
+	x = bigarray(d,0,10000000).append!(rand(take(1..1000 join take(d(),100),10000),30000))
+	T = bigarray(date,0,10000000).append!(2020.01.01+rand(1000,x.size()).sort!())
+	re = tmoving(sum, T, x, 100)
+	ex = tmoving(sum, T,x,100)
+	assert 1,eqObj(re,ex)
+}
+
+@testing:case="test_tmoving_func_sum_T_subarray"
+dtypes = [int,long,short,double,float]
+for(d in dtypes){
+	tem = bigarray(d,0,10000000).append!(rand(take(1..1000 join take(d(),100),10000),300000))
+	x = subarray(tem,1:100)
+	tem1 = 2020.01.01+rand(1000,tem.size())
+	T = subarray(tem1,1:100).sort()
+	re = tmoving(sum, T, x, 100)
+	ex = tmoving(sum, T,x,100)
+	assert 1,eqObj(re,ex)
+}
+
+
+@testing:case="test_tmoving_func_first_T_number"
+n = 2000
+dtypes = [int,long,short]
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..100)
+			x = dd(1..100)
+			window = ddd(2)
+			re= tmoving(first, T, x, window)
+			ex = tmfirst(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(first, T, x, window)
+			ex = tmfirst(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(first, T, x, window)
+			ex = tmfirst(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),100)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(first, T, x, window)
+			ex = tmfirst(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_first_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 3,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 4,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 3,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(first, T, x, window)
+		ex = tmfirst(T,x,window)
+		assert 4,eqObj(re,ex)
+	}
+}
+
+
+@testing:case="test_tmoving_func_last_T_number"
+dtypes = [int,long,short]
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..100)
+			x = dd(1..100)
+			window = ddd(2)
+			re= tmoving(last, T, x, window)
+			ex = tmlast(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(last, T, x, window)
+			ex = tmlast(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(last, T, x, window)
+			ex = tmlast(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),100)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(last, T, x, window)
+			ex = tmlast(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_last_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(last, T, x, window)
+		ex = tmlast(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_avg_T_number"
+dtypes = [int,long,short]
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..100)
+			x = dd(1..100)
+			window = ddd(2)
+			re= tmoving(avg, T, x, window)
+			ex = tmavg(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(avg, T, x, window)
+			ex = tmavg(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(avg, T, x, window)
+			ex = tmavg(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),100)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(avg, T, x, window)
+			ex = tmavg(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_avg_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(avg, T, x, window)
+		ex = tmavg(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+
+@testing:case="test_tmoving_func_count_T_number"
+dtypes = [int,long,short]
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..100)
+			x = dd(1..100)
+			window = ddd(2)
+			re= tmoving(count, T, x, window)
+			ex = tmcount(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(count, T, x, window)
+			ex = tmcount(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(count, T, x, window)
+			ex = tmcount(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),100)
+			T = d(rand(1..100,100).sort())
+			re= tmoving(count, T, x, window)
+			ex = tmcount(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_count_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..100
+		x = 1..100
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,100).sort()
+		re= tmoving(count, T, x, window)
+		ex = tmcount(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_var_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(var, T, x, window)
+			ex = tmvar(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(var, T, x, window)
+			ex = tmvar(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(var, T, x, window)
+			ex = tmvar(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(var, T, x, window)
+			ex = tmvar(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_var_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(var, T, x, window)
+		ex = tmvar(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_varp_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(varp, T, x, window)
+			ex = tmvarp(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(varp, T, x, window)
+			ex = tmvarp(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(varp, T, x, window)
+			ex = tmvarp(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(varp, T, x, window)
+			ex = tmvarp(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_varp_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(varp, T, x, window)
+		ex = tmvarp(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_std_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(std, T, x, window)
+			ex = tmstd(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(std, T, x, window)
+			ex = tmstd(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(std, T, x, window)
+			ex = tmstd(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(std, T, x, window)
+			ex = tmstd(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_std_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(std, T, x, window)
+		ex = tmstd(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_stdp_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(stdp, T, x, window)
+			ex = tmstdp(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(stdp, T, x, window)
+			ex = tmstdp(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(stdp, T, x, window)
+			ex = tmstdp(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(stdp, T, x, window)
+			ex = tmstdp(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_stdp_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(stdp, T, x, window)
+		ex = tmstdp(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_prod_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(rand(3,n))
+			window = ddd(2)
+			re= tmoving(prod, T, x, window)
+			ex = tmprod(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(prod, T, x, window)
+			ex = tmprod(T,x,window)
+			assert 2,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(prod, T, x, window)
+			ex = tmprod(T,x,window)
+			assert 3,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(prod, T, x, window)
+			ex = tmprod(T,x,window )
+			assert 4,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(prod, T, x, window)
+			ex = tmprod(T,x,window)
+			assert 5,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_prod_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = rand(1.0,n)
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = rand(1.0,5000)
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x =  rand(1.0,n)
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(prod, T, x, window)
+		ex = tmprod(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+
+@testing:case="test_tmoving_func_skew_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(skew, T, x, window)
+			ex = tmskew(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(skew, T, x, window)
+			ex = tmskew(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(skew, T, x, window)
+			ex = tmskew(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(skew, T, x, window)
+			ex = tmskew(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_skew_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 4,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 5,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 6,eqObj(re,ex)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 7,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(skew, T, x, window)
+		ex = tmskew(T,x,window)
+		assert 8,eqObj(re,ex)
+	}
+}
+
+@testing:case="test_tmoving_func_kurtosis_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(kurtosis, T, x, window)
+			ex = tmkurtosis(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(kurtosis, T, x, window)
+			ex = tmkurtosis(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(kurtosis, T, x, window)
+			ex = tmkurtosis(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(kurtosis, T, x, window)
+			ex = tmkurtosis(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_kurtosis_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(kurtosis, T, x, window)
+		ex = tmkurtosis(T,x,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_min_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(min, T, x, window)
+			ex = tmmin(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(min, T, x, window)
+			ex = tmmin(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(min, T, x, window)
+			ex = tmmin(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(min, T, x, window)
+			ex = tmmin(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_min_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(min, T, x, window)
+		ex = tmmin(T,x,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_max_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(max, T, x, window)
+			ex = tmmax(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(max, T, x, window)
+			ex = tmmax(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(max, T, x, window)
+			ex = tmmax(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(max, T, x, window)
+			ex = tmmax(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_max_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(max, T, x, window)
+		ex = tmmax(T,x,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_med_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			re= tmoving(med, T, x, window)
+			ex = tmmed(T,x,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(med, T, x, window)
+			ex = tmmed(T,x,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(med, T, x, window)
+			ex = tmmed(T,x,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(med, T, x, window)
+			ex = tmmed(T,x,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_med_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(med, T, x, window)
+		ex = tmmed(T,x,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+
+@testing:case="test_tmoving_func_percentile_T_number"
+dtypes = [int,long,short]
+syntax(tmpercentile)
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			window = ddd(2)
+			percent = 3
+			re= tmoving(percentile{,percent}, T, x, window)
+			ex = tmpercentile(T,x,percent,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(percentile{,percent}, T, x, window)
+			ex = tmpercentile(T,x,percent,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(percentile{,percent}, T, x, window)
+			ex = tmpercentile(T,x,percent,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(percentile{,percent}, T, x, window)
+			ex = tmpercentile(T,x,percent,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_percentile_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(percentile{,percent}, T, x, window)
+		ex = tmpercentile(T,x,percent,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_covar_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(covar, T, [x,y], window)
+			ex = tmcovar(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(covar, T, [x,y], window)
+			ex = tmcovar(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(covar, T, [x,y], window)
+			ex = tmcovar(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(covar, T, [x,y], window)
+			ex = tmcovar(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_covar_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covar, T, [x,y], window)
+		ex = tmcovar(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_beta_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(beta, T, [x,y], window)
+			ex = tmbeta(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(beta, T, [x,y], window)
+			ex = tmbeta(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(beta, T, [x,y], window)
+			ex = tmbeta(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(beta, T, [x,y], window)
+			ex = tmbeta(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_beta_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(beta, T, [x,y], window)
+		ex = tmbeta(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_corr_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(corr, T, [x,y], window)
+			ex = tmcorr(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(corr, T, [x,y], window)
+			ex = tmcorr(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(corr, T, [x,y], window)
+			ex = tmcorr(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(corr, T, [x,y], window)
+			ex = tmcorr(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_corr_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(corr, T, [x,y], window)
+		ex = tmcorr(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+
+@testing:case="test_tmoving_func_wavg_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(wavg, T, [x,y], window)
+			ex = tmwavg(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(wavg, T, [x,y], window)
+			ex = tmwavg(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(5000)
+			re= tmoving(wavg, T, [x,y], window)
+			ex = tmwavg(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(wavg, T, [x,y], window)
+			ex = tmwavg(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_wavg_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wavg, T, [x,y], window)
+		ex = tmwavg(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+@testing:case="test_tmoving_func_wsum_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(wsum, T, [x,y], window)
+			ex = tmwsum(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(wsum, T, [x,y], window)
+			ex = tmwsum(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(5000)
+			re= tmoving(wsum, T, [x,y], window)
+			ex = tmwsum(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(wsum, T, [x,y], window)
+			ex = tmwsum(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_wsum_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = d(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(d in dtypes){	
+	for(window in windows){
+		T = d(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = d(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(wsum, T, [x,y], window)
+		ex = tmwsum(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}
+
+
+@testing:case = "test_duration_prepare"
+def delete_market_holiday(holiday_name){
+	try{deleteMarketHoliday(holiday_name)}catch(ex){print ex}
+	marketHolidayDir = getConfig("marketHolidayDir")
+	try{
+		rm(marketHolidayDir+ "/" + holiday_name + ".csv")
+	}catch(ex){
+		print(ex)
+	}
+}
+
+def create_AAAA(holiday){
+    holiday_path = getConfig('marketHolidayDir')
+    if(holiday_path == 'marketHoliday'){
+        holiday_path = getHomeDir() + '/marketHoliday'
+    }
+
+    holiday_file_path = holiday_path + '/' +'AAAA.csv' 
+    delete_market_holiday("AAAA")
+    addMarketHoliday('AAAA',holiday)
+}
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+
+@testing:case = "test_tmoving_market_duration_ERROR_usage1",syntaxError = 1 
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, AAAA)
+
+@testing:case = "test_tmoving_market_duration_ERROR_usage2",exception = 1
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, 0AAAA)
+
+@testing:case = "test_tmoving_market_duration_ERROR_usage3",exception = 1
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, -1AAAA)
+
+@testing:case = "test_tmoving_market_duration_ERROR_usage4",syntaxError = 1
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, 1.1AAAA)
+
+@testing:case = "test_tmoving_market_duration_T_unsupport_date_type_month",exception = 1
+T = 2020.12M 2021.12M 2022.12M
+X = double(0..2)
+re = tmoving(sum, T,X, 1AAAA)
+
+@testing:case = "test_tmoving_market_duration_T_unsupport_date_type_time",exception = 1
+T = 13:30:10.008 13:30:10.009 13:30:10.010
+X = double(0..2)
+re = tmoving(sum, T,X, 1AAAA)
+
+@testing:case = "test_tmoving_market_duration_T_unsupport_date_type_minute",exception = 1
+T = 13:30m 13:31m 13:32m
+X = double(0..2)
+re = tmoving(sum, T,X, 1AAAA)
+
+@testing:case = "test_tmoving_market_duration_T_unsupport_date_type_second",exception = 1
+T = 13:30:01 13:31:01 13:32:01
+X = double(0..2)
+re = tmoving(sum, T,X, 1AAAA)
+
+@testing:case = "test_tmoving_market_duration_T_unsupport_date_type_nanotime",exception = 1
+T = 13:30:10.008007006 13:30:10.008007007 13:30:10.008007008
+X = double(0..2)
+re = tmoving(sum, T,X, 1AAAA)
+
+@testing:case = "test_tmoving_market_duration_sample"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 18.0, 21.0, 24.0, 34.0])
+
+@testing:case = "test_tmoving_market_duration_T_uncontinue"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.05 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..8)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 9.0, 9.0, 15.0, 18.0, 8.0])
+
+@testing:case = "test_tmoving_market_duration_T_duplicated"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.02 2021.01.03 2021.01.04 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07
+X = double(0..11)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0, 55.0, 45.0])
+
+@testing:case = "test_tmoving_market_duration_T_duplicated_and_uncontinue"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_T_covered_by_holiday"
+holiday = 2021.01.01..2021.01.08
+create_AAAA(holiday)
+T = 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.08
+X = double(0..8)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0])
+
+@testing:case = "test_tmoving_market_duration_T_single_value"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = [2021.01.01]
+X = [1]
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[1])
+
+@testing:case = "test_tmoving_market_duration_T_size_over_1024"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = take(2021.01.01,200) join take(2021.01.03,200) join take(2021.01.05,200) join take(2021.01.06,200) join take(2021.01.07,200) join take(2021.01.10,200)
+X = take(1,1200)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,1..800 join 401..600 join 201..400)
+
+//type support:DATE, DATEHOUR, DATETIME, TIMESTAMP or NANOTIMESTAMP
+@testing:case = "test_tmoving_market_duration_T_type_date"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31..2021.01.10
+X = double(0..10)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 18.0, 21.0, 24.0, 34.0])
+
+@testing:case = "test_tmoving_market_duration_T_type_timestamp"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = [timestamp(2020.12.31 13:30:10),
+	timestamp(2021.01.01 13:30:10),
+	timestamp(2021.01.01 13:30:10),
+	timestamp(2021.01.01 15:30:10),
+	timestamp(2021.01.05 13:30:10),
+	timestamp(2021.01.06 13:30:10),
+	timestamp(2021.01.06 14:30:10),
+	timestamp(2021.01.06 16:30:10),
+	timestamp(2021.01.07 13:30:10),
+	timestamp(2021.01.10 13:30:10),
+	timestamp(2021.01.11 13:30:10),
+	timestamp(2021.01.12 13:30:10),
+	timestamp(2021.01.20 13:30:10)]
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 30.0, 40.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_T_type_nanotimestamp"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = [nanotimestamp(2020.12.31 13:30:10),
+	nanotimestamp(2021.01.01 13:30:10),
+	nanotimestamp(2021.01.01 13:30:10),
+	nanotimestamp(2021.01.01 15:30:10),
+	nanotimestamp(2021.01.05 13:30:10),
+	nanotimestamp(2021.01.06 13:30:10),
+	nanotimestamp(2021.01.06 14:30:10),
+	nanotimestamp(2021.01.06 16:30:10),
+	nanotimestamp(2021.01.07 13:30:10),
+	nanotimestamp(2021.01.10 13:30:10),
+	nanotimestamp(2021.01.11 13:30:10),
+	nanotimestamp(2021.01.12 13:30:10),
+	nanotimestamp(2021.01.20 13:30:10)]
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 30.0, 40.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_T_type_nanotimestamp"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = [datetime(2020.12.31 13:30:10),
+	datetime(2021.01.01 13:30:10),
+	datetime(2021.01.01 13:30:10),
+	datetime(2021.01.01 15:30:10),
+	datetime(2021.01.05 13:30:10),
+	datetime(2021.01.06 13:30:10),
+	datetime(2021.01.06 14:30:10),
+	datetime(2021.01.06 16:30:10),
+	datetime(2021.01.07 13:30:10),
+	datetime(2021.01.10 13:30:10),
+	datetime(2021.01.11 13:30:10),
+	datetime(2021.01.12 13:30:10),
+	datetime(2021.01.20 13:30:10)]
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 30.0, 40.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_T_type_datehour"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = [datehour(2020.12.31 13:30:10),
+	datehour(2021.01.01 13:30:10),
+	datehour(2021.01.01 13:30:10),
+	datehour(2021.01.01 15:30:10),
+	datehour(2021.01.05 13:30:10),
+	datehour(2021.01.06 13:30:10),
+	datehour(2021.01.06 14:30:10),
+	datehour(2021.01.06 16:30:10),
+	datehour(2021.01.07 13:30:10),
+	datehour(2021.01.10 13:30:10),
+	datehour(2021.01.11 13:30:10),
+	datehour(2021.01.12 13:30:10),
+	datehour(2021.01.20 13:30:10)]
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 30.0, 40.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_holiday_null"
+holiday = array(DATE)
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+re = tmoving(sum, T,X, 3AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 9.0, 15.0, 22.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_window_size_1"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+re = tmoving(sum, T,X, 1AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 4.0, 5.0, 11.0, 18.0, 8.0, 9.0, 19.0, 11.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_window_size_equal_T"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+re = tmoving(sum, T,X, 13AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0, 55.0, 66.0, 78.0])
+
+@testing:case = "test_tmoving_market_duration_window_size_over_T"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+re = tmoving(sum, T,X, 15AAAA)
+assert 1,each(eqObj,re,[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 36.0, 45.0, 55.0, 66.0, 78.0])
+
+@testing:case = "test_tmoving_market_duration_select"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+t = table(T as date,X as value)
+re = select tmoving(sum,date,value, 3AAAA) from t 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_select_context_by"
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+sym = take('a',13) join take('b',13)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+T = T join T 
+X = double(0..12) join double(0..12)
+t = table(T as date,X as value,sym as sym)
+re = select tmoving(sum,date,value, 3AAAA) from t context by sym 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0] join
+								[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_select_group_by",exception =1 
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+sym = take('a',13) join take('b',13)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+T = T join T 
+X = double(0..12) join double(0..12)
+t = table(T as date,X as value,sym as sym)
+re = select tmoving(sum,date,value, 3AAAA) from t group by sym 
+
+@testing:case = "test_tmoving_market_duration_select_partition_table"
+dbName = "dfs://test_tmoving_market_duration"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db = database(dbName,RANGE,2020.12.31..2021.03.01)
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+t = table(T as date,X as value)
+pt = db.createPartitionedTable(t,`pt,`date).append!(t)
+re = select tmoving(sum,date,value, 3AAAA) from pt 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_select_partition_table_context_by"
+dbName = "dfs://test_tmoving_market_duration"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db = database(dbName,RANGE,2020.12.31..2021.03.01)
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+sym = take('a',13) join take('b',13)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+T = T join T 
+X = double(0..12) join double(0..12)
+t = table(T as date,X as value,sym as sym)
+pt = db.createPartitionedTable(t,`pt,`date).append!(t)
+re = select tmoving(sum,date,value, 3AAAA) from pt context by sym 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0] join
+								[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_select_dt"
+dbName = "dfs://test_tmoving_market_duration"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db = database(dbName,RANGE,2020.12.31..2021.03.01)
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+X = double(0..12)
+t = table(T as date,X as value)
+dt = db.createTable(t,`dt).append!(t)
+re = select tmoving(sum,date,value, 3AAAA) from dt 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_market_duration_select_dt_context_by"
+dbName = "dfs://test_tmoving_market_duration"
+if(existsDatabase(dbName)){dropDatabase(dbName)}
+db = database(dbName,RANGE,2020.12.31..2021.03.01)
+holiday = [2021.01.01, 2021.01.02, 2021.01.10, 2021.02.10]
+create_AAAA(holiday)
+sym = take('a',13) join take('b',13)
+T = 2020.12.31 2021.01.01 2021.01.01 2021.01.01 2021.01.05 2021.01.06 2021.01.06 2021.01.06 2021.01.07 2021.01.10 2021.01.11 2021.01.12 2021.01.20
+T = T join T 
+X = double(0..12) join double(0..12)
+t = table(T as date,X as value,sym as sym)
+dt = db.createPartitionedTable(t,`dt,`date).append!(t)
+re = select tmoving(sum,date,value, 3AAAA) from dt context by sym 
+assert 1,each(eqObj,re.col(0),[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0] join
+								[0.0, 1.0, 3.0, 6.0, 10.0, 15.0, 21.0, 28.0, 30.0, 17.0, 27.0, 30.0, 12.0])
+
+@testing:case = "test_tmoving_excludedPeriod_NULL", exception = 1 
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=NULL)
+
+@testing:case = "test_tmoving_excludedPeriod_scale", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=01:01:01)
+
+@testing:case = "test_tmoving_excludedPeriod_vector", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=[01:01:01,05:01:01])
+
+@testing:case = "test_tmoving_excludedPeriod_dict", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod={1:01:01:01,2:05:01:01})
+
+@testing:case = "test_tmoving_excludedPeriod_tunlp", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=(01:01:01,05:01:01))
+
+@testing:case = "test_tmoving_excludedPeriod_matrix", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=[01:01:01,05:01:01]$2:1)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_int", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=1:1)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_double", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod=1.5:1.0)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_string", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod="01:01:01":"01:05:01")
+
+@testing:case = "test_tmoving_excludedPeriod_pair_date", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= 2021.01.01:2021.01.10)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_month", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= 2021.01M:2021.02M)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_datetime", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= 2012.06.13T13:30:10:2012.06.13T13:30:20)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_timestamp", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= timestamp(2012.06.13T13:30:10):timestamp(2012.06.13T13:30:20))
+
+@testing:case = "test_tmoving_excludedPeriod_pair_nanotimestamp", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= nanotimestamp(2012.06.13T13:30:10):nanotimestamp(2012.06.13T13:30:20))
+
+@testing:case = "test_tmoving_excludedPeriod_pair_datehour", exception = 1
+startTime = time([01:00:00,02:00:00,03:00:00,06:00:00,07:00:00,08:00:00])
+val = 1..6
+tmoving(avg,startTime,val,3s, excludedPeriod= datehour(2012.06.13T13:30:10):datehour(2012.06.13T13:30:20))
+
+@testing:case = "test_tmoving_excludedPeriod_pair_left_over_right", exception = 1
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((13:00:01):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_left_same_as_right", exception = 1
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((13:00:01):(13:00:01))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_right_null", exception = 1
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((13:00:01):NULL)
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_pair_left_null", exception = 1
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=(NULL:(13:00:01))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_T_in_excludedPeriod", exception = 1
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((10:00:00):(15:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_int", exception = 1
+time = 1..6
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_date", exception = 1
+time = 2021.01.01..2021.01.06
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_month", exception = 1
+time = 2021.01M..2021.06M
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_minute", exception = 1
+time = 12:20m..12:26m
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_second", exception = 1
+time = 12:20:01..12:20:06
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_T_datetime", exception = 1
+time = 2012.06.13T13:30:10..2012.06.13T13:30:16
+val = 1..6
+excludedPeriod=((04:00:00):(11:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+
+@testing:case = "test_tmoving_excludedPeriod_prepare"
+def change_time(time,excludedPeriod){
+	cast_excludedPeriod = excludedPeriod$NANOTIME
+	period_size = cast_excludedPeriod[1] - cast_excludedPeriod[0]
+	
+	origin_type = type(time[0])
+	if(origin_type in [12,14]){
+		cast_time = time$NANOTIMESTAMP
+		time_minus = cast_time[nanotime(cast_time)<=cast_excludedPeriod[0]]
+		time_over = cast_time[nanotime(cast_time)>=cast_excludedPeriod[1]]
+	}else{
+		cast_time = time$NANOTIME
+		time_minus = cast_time[cast_time<=cast_excludedPeriod[0]]
+		time_over = cast_time[cast_time>=cast_excludedPeriod[1]]
+	}
+	return ((time_minus join (time_over-period_size))$origin_type).sort()
+}
+
+@testing:case = "test_tmoving_T_in_excludedPeriod_right"
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((03:00:00):(12:00:00))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_excludedPeriod_demo"
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((03:00:01):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_dataType_and_excludedPeriod_dataType"
+time = [2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]
+
+val = 1..6
+excludedPeriod=((03:00:01):(11:59:59))
+
+T_dataTypes = ["timestamp","nanotimestamp","time","nanotime"]
+excludedPeriod_dataTypes = ["time","nanotime","minute","second"]
+for(test_T_dataTypes in T_dataTypes){
+	for(test_excludedPeriod_dataTypes in excludedPeriod_dataTypes){
+		print(test_T_dataTypes)
+		print(test_excludedPeriod_dataTypes)
+		test_time = funcByName(test_T_dataTypes)(time)
+		test_excludedPeriod = funcByName(test_excludedPeriod_dataTypes)(excludedPeriod)
+		re = tmoving(sum,test_time,val,6H, test_excludedPeriod)
+		ex = tmoving(sum,change_time(test_time,test_excludedPeriod),val,6H)
+		assert 1,each(eqObj,re,ex)		
+	}
+}
+
+@testing:case = "test_tmoving_T_same_as_excludedPeriod_left"
+time = time([01:00:00,02:00:00,03:00:00,12:00:00,13:00:00,17:00:00])
+val = 1..6
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_over_days_excludedPeriod"
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) join 
+	timestamp([2021.01.02T01:00:00,2021.01.02T02:00:00,2021.01.02T03:00:00,
+		2021.01.02T12:00:00,2021.01.02T13:00:00,2021.01.02T17:00:00]) join
+	timestamp([2021.01.03T01:00:00,2021.01.03T02:00:00,2021.01.03T03:00:00,
+		2021.01.03T12:00:00,2021.01.03T13:00:00,2021.01.03T17:00:00])
+val = 1..18
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_excludedPeriod_window_int"
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..6
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,21600000, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,21600000)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_excludedPeriod_window_s"
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..6
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,216000s, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,216000s)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_excludedPeriod_func_double_parameter"
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..6
+val2 = 1..6
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(wsum,time,[val,val2],6H, excludedPeriod)
+ex = tmoving(wsum,change_time(time,excludedPeriod),[val,val2],6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_excludedPeriod_defg"
+defg func0(a,b){
+	return sum(a)+ avg(b)
+}
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..6
+val2 = 1..6
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(func0,time,[val,val2],6H, excludedPeriod)
+ex = tmoving(func0,change_time(time,excludedPeriod),[val,val2],6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_T_has_null_excludedPeriod"
+time = timestamp([2021.01.01T01:00:00,2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1 2 3 NULL 4 5
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_excludedPeriod_T_over_1024"
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+excludedPeriod=((03:00:00):(11:59:59))
+re = tmoving(sum,time,val,6H, excludedPeriod)
+ex = tmoving(sum,change_time(time,excludedPeriod),val,6H)
+assert 1,each(eqObj,re,ex) 
+
+@testing:case = "test_tmoving_excludedPeriod_select_table"
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from t 
+ex = select tmoving(sum,change_time(time,excludedPeriod),val,6H) from t
+assert 1,each(eqObj,re.values(),ex.values()) 
+
+@testing:case = "test_tmoving_excludedPeriod_select_table_group_by", exception =1 
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from t group by syms
+
+@testing:case = "test_tmoving_excludedPeriod_select_table_context_by"
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from t context by syms
+ex = select tmoving(sum,change_time(time,excludedPeriod),val,6H) from t context by syms
+assert 1,each(eqObj,re.values(),ex.values()) 
+
+@testing:case = "test_tmoving_excludedPeriod_select_partition_table"
+dbName = "dfs://test_tmoving_excludedPeriod_1"
+if(existsDatabase(dbName))dropDB(dbName)
+db = database(dbName,VALUE,1..3000)
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+pt = db.createPartitionedTable(t,"pt",`val).append!(t)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from pt 
+ex = select tmoving(sum,change_time(time,excludedPeriod),val,6H) from t
+assert 1,each(eqObj,re.values(),ex.values()) 
+
+@testing:case = "test_tmoving_excludedPeriod_select_partition_table_group_by", exception =1 
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from pt group by syms
+
+@testing:case = "test_tmoving_excludedPeriod_select_table_context_by"
+time = 2021.01.01T01:00:00.001..2021.01.01T01:00:02.001 join timestamp([2021.01.01T02:00:00,2021.01.01T03:00:00,
+	2021.01.01T12:00:00,2021.01.01T13:00:00,2021.01.01T17:00:00]) 
+val = 1..2006
+syms = take(`a`b`c`d`e, 2006)
+t = table(time, val, syms)
+excludedPeriod=((03:00:00):(11:59:59))
+re = select tmoving(sum,time,val,6H, excludedPeriod) from pt context by syms
+ex = select tmoving(sum,change_time(time,excludedPeriod),val,6H) from pt context by syms
+assert 1,each(eqObj,re.values(),ex.values()) 
+
+@testing:case = "test_tmoving_clear"
+try{undef all}catch(ex){}
+
+@testing:case="test_tmoving_func_covarp_T_number"
+dtypes = [int,long,short]
+n = 2000
+for(d in dtypes){
+	for(dd in dtypes){
+		for(ddd in dtypes){
+			T = d(1..n)
+			x = dd(1..n)
+			y = rand(-100..100,n)
+			window = ddd(2)
+			re= tmoving(covarp, T, [x,y], window)
+			ex = tmcovarp(T,x,y,window)
+			assert 1,eqObj(re,ex)
+			T = d(rand(1..5000,n).sort())
+			re= tmoving(covarp, T, [x,y], window)
+			ex = tmcovarp(T,x,y,window)
+			assert 2,eqObj(re,ex)
+			window = ddd(1000)
+			re= tmoving(covarp, T, [x,y], window)
+			ex = tmcovarp(T,x,y,window )
+			assert 3,eqObj(re,ex)
+			x = take(dd(),n)
+			T = d(rand(1..100,n).sort())
+			re= tmoving(covarp, T, [x,y], window)
+			ex = tmcovarp(T,x,y,window)
+			assert 4,eqObj(re,ex)
+		}
+	}
+}
+
+@testing:case="test_tmoving_func_covarp_T_time"
+dtypes = [date,month,time,minute,second,datetime,datehour,timestamp,nanotime,nanotimestamp]
+windows = [3,3m,3d,3w,3H,3s,3ms,3us,3ns]
+n = 1025
+for(ddtype in dtypes){	
+	for(window in windows){
+		T = ddtype(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 1,eqObj(re,ex)
+		T = ddtype(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 2,eqObj(re,ex)
+		T = ddtype(1960.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 3,eqObj(re,ex)			
+	}
+}
+
+dtypes = [date,month,datetime,datehour,timestamp,nanotimestamp]
+windows = [3y,3M]
+for(ddtype in dtypes){	
+	for(window in windows){
+		T = ddtype(2020.01.01T00:00:00.000000000)+1..5000
+		x = 1..5000
+		y = rand(-100..100,5000)
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 4,eqObj(re,ex,4)
+		T = ddtype(2020.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 5,eqObj(re,ex,4)
+		T = ddtype(1960.01.01T00:00:00.000000000)+rand(100,5000).sort()
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 6,eqObj(re,ex,4)		
+	}
+}
+
+windows = [300,300m,300d,300w,300H,300s,3ms,3us,3ns]
+for(ddtype in dtypes){	
+	for(window in windows){
+		T = ddtype(2020.01.01T00:00:00.000000000)+1..n
+		x = 1..n
+		y = rand(-100..100,n)
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 7,eqObj(re,ex,4)
+		T = ddtype(2020.01.01T00:00:00.000000000)+rand(100,n).sort()
+		re= tmoving(covarp, T, [x,y], window)
+		ex = tmcovarp(T,x,y,window)
+		assert 8,eqObj(re,ex,4)
+	}
+}

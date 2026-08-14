@@ -1,0 +1,80 @@
+// fxVolatilitySurfaceBuilder demo — USDCNY 外汇波动率曲面构建
+// referenceDate: 2025.08.18   spot: 7.1627
+// 数据来源：示意行情数据，仅用于演示结构
+
+refDate   = 2025.08.18
+ccyPair   = "USDCNY"
+quoteTerms = ['1w', '1M', '3M', '6M', '1y', '2y', '3y']
+quoteNames = ["ATM", "D25_RR", "D25_BF", "D10_RR", "D10_BF"]
+
+// quotes 矩阵：行 = 期限，列 = quoteNames 顺序
+// ATM    D25_RR  D25_BF  D10_RR  D10_BF
+rawQuotes = [
+    0.0208, -0.0045, 0.0020, -0.0060, 0.0038,   // 1w
+    0.0242, -0.0030, 0.0022, -0.0048, 0.0055,    // 1M
+    0.0305, -0.0025, 0.0024, -0.0040, 0.0058,    // 3M
+    0.0358, -0.0005, 0.0028,  0.0000, 0.0070,    // 6M
+    0.0395,  0.0010, 0.0028,  0.0030, 0.0076,    // 1y
+    0.0405,  0.0040, 0.0031,  0.0070, 0.0079,    // 2y
+    0.0418,  0.0053, 0.0034,  0.0080, 0.0084     // 3y
+]
+quotes = reshape(rawQuotes, size(quoteNames) : size(quoteTerms)).transpose()
+
+spot = 7.1627
+
+// 曲线日期（对应 quoteTerms 到期日，示意）
+curveDates = [2025.08.27, 2025.09.22, 2025.11.20, 2026.02.24,
+              2026.08.20, 2027.08.20, 2028.08.21]
+
+// 本币 CNY 贴现曲线（连续复利，Actual365）
+domCurveDict = {
+    "mktDataType": "Curve",
+    "curveType":   "IrYieldCurve",
+    "curveName":   "CNY_RF",
+    "referenceDate": refDate,
+    "currency":    "CNY",
+    "dayCountConvention": "Actual365",
+    "compounding": "Continuous",
+    "interpMethod": "Linear",
+    "extrapMethod": "Flat",
+    "frequency":   "Annual",
+    "dates":  curveDates,
+    "values": [1.54, 1.57, 1.57, 1.59, 1.60, 1.58, 1.61] \ 100
+}
+
+// 外币 USD 贴现曲线
+forCurveDict = {
+    "mktDataType": "Curve",
+    "curveType":   "IrYieldCurve",
+    "curveName":   "USD_RF",
+    "referenceDate": refDate,
+    "currency":    "USD",
+    "dayCountConvention": "Actual365",
+    "compounding": "Continuous",
+    "interpMethod": "Linear",
+    "extrapMethod": "Flat",
+    "frequency":   "Annual",
+    "dates":  curveDates,
+    "values": [4.38, 4.22, 4.16, 4.04, 3.97, 3.63, 3.50] \ 100
+}
+
+domCurve = parseMktData(domCurveDict)
+forCurve = parseMktData(forCurveDict)
+
+// ── 构建波动率曲面 ──────────────────────────────────────
+surf = fxVolatilitySurfaceBuilder(
+    refDate, ccyPair,
+    quoteNames, quoteTerms, quotes,
+    spot,
+    domCurve, forCurve,
+    "SVI",            // model
+    "FXVOL_USDCNY"    // surfaceName
+)
+
+print(surf)
+
+// 可视化波动率曲面（可选）
+// dts = (1..20) * (1.0 / 12)          // 1M - 20M
+// ks  = (680..760) * 0.01             // 行权价范围
+// m   = optionVolPredict(surf, dts, ks)
+// plot(m, title=["FX Vol Surface USDCNY", "K", "T", "vol"], chartType=SURFACE)

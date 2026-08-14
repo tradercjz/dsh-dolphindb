@@ -1,0 +1,1476 @@
+
+#include "checkStreaming.txt"
+
+@testing:case="test_aggregate_function_in_timeSeriesAgg_windowSize_not_equal_to_size"
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades
+insert into trades values(2018.10.08T01:01:11.785,`A,NULL,0)
+insert into trades values(2018.10.08T01:01:21.785,`A,NULL,-5)
+insert into trades values(2018.10.08T01:01:31.785,`A,NULL,7)
+insert into trades values(2018.10.08T01:01:41.785,`A,NULL,0)
+insert into trades values(2018.10.08T01:02:11.785,`A,10,0)
+insert into trades values(2018.10.08T01:02:21.785,`A,7,-5)
+insert into trades values(2018.10.08T01:02:31.785,`A,-2,7)
+insert into trades values(2018.10.08T01:02:41.785,`A,0,0)
+insert into trades values(2018.10.08T01:04:11.785,`A,0,0)
+insert into trades values(2018.10.08T01:04:21.785,`A,0,-5)
+insert into trades values(2018.10.08T01:04:31.785,`A,NULL,7)
+insert into trades values(2018.10.08T01:04:41.785,`A,NULL,0)
+insert into trades values(2018.10.08T01:05:11.785,`A,0,0)
+
+//now
+output1=streamTable(1:0,`time`sym`now_time,[TIMESTAMP,SYMBOL,TIMESTAMP])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[now()]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A`A`A
+assert 3,output1[`now_time]>output1[`time]
+
+dropAggregator("agg1")
+agg1=NULL
+
+//today
+output1=streamTable(1:0,`time`sym`date,[TIMESTAMP,SYMBOL,DATE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[today()]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A`A`A
+assert 3,output1[`date]>date(output1[`time])
+
+dropAggregator("agg1")
+agg1=NULL
+
+//atImax
+output1=streamTable(1:0,`time`sym`atImax_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[atImax(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 1,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 2,output1[`sym]==`A`A`A`A`A`A`A
+assert 3,eqObj(output1[`atImax_qty],double(NULL NULL 0 0 0 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//atImin
+output1=streamTable(1:0,`time`sym`atImin_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[atImin(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 4,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 5,output1[`sym]==`A`A`A`A`A`A`A
+assert 6,eqObj(output1[`atImin_qty],double(NULL NULL -5 7 7 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//avg
+output1=streamTable(1:0,`time`sym`avg_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[avg(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 7,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 8,output1[`sym]==`A`A`A`A`A`A`A
+assert 9,eqObj(output1[`avg_qty],[NULL,NULL,8.5,3.75,-1,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//beta
+output1=streamTable(1:0,`time`sym`beta_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[beta(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 10,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 11,output1[`sym]==`A`A`A`A`A`A`A
+assert 12,eqObj(output1[`beta_qty],[NULL,NULL,0.6,-0.773973,-0.285714,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//contextCount
+output1=streamTable(1:0,`time`sym`contextCount_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[contextCount(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 13,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 14,output1[`sym]==`A`A`A`A`A`A`A
+assert 15,eqObj(output1[`contextCount_qty],double(0 0 2 4 2 2 2),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//contextSum
+output1=streamTable(1:0,`time`sym`contextSum_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[contextSum(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 16,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 17,output1[`sym]==`A`A`A`A`A`A`A
+assert 18,eqObj(output1[`contextSum_qty],double(NULL NULL 17 15 -2 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//contextSum2
+output1=streamTable(1:0,`time`sym`contextSum2_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[contextSum2(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 19,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 20,output1[`sym]==`A`A`A`A`A`A`A
+assert 21,eqObj(output1[`contextSum2_qty],double(NULL NULL 149 153 4 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//corr
+output1=streamTable(1:0,`time`sym`corr_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[corr(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 22,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 23,output1[`sym]==`A`A`A`A`A`A`A
+assert 24,eqObj(output1[`corr_qty],[NULL,NULL,1,-0.672298,-1,NULL,NULL],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//count
+output1=streamTable(1:0,`time`sym`count_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[count(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 25,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 26,output1[`sym]==`A`A`A`A`A`A`A
+assert 27,eqObj(output1[`count_qty],double(0 0 2 4 2 2 2),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//covar
+output1=streamTable(1:0,`time`sym`covar_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[covar(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 28,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 29,output1[`sym]==`A`A`A`A`A`A`A
+assert 30,eqObj(output1[`covar_qty],[NULL,NULL,7.5,-18.833333,-7,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//covarp
+output1=streamTable(1:0,`time`sym`covarp_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[covarp(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 31,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 32,output1[`sym]==`A`A`A`A`A`A`A
+assert 33,eqObj(output1[`covarp_qty],[NULL,NULL,covarp(10 7, 0 -5),covarp(10 7 -2 0, 0 -5 7 0),-3.5,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//derivative
+//output1=streamTable(1:0,`time`sym`derivative_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+//agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[derivative(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+//agg1.append!(select * from trades)
+//assert 31,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+//assert 32,output1[`sym]==`A`A`A`A`A`A`A
+//assert 33,eqObj(output1[`derivative_qty],[NULL,NULL,NULL,NULL,-0.285714,0,NULL],6)
+
+//dropAggregator("agg1")
+//agg1=NULL
+
+//difference
+output1=streamTable(1:0,`time`sym`difference_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[difference(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 34,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 35,output1[`sym]==`A`A`A`A`A`A`A
+assert 36,eqObj(output1[`difference_qty],double(NULL NULL NULL -10 2 0 NULL),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//first
+output1=streamTable(1:0,`time`sym`first_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[first(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 37,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 38,output1[`sym]==`A`A`A`A`A`A`A
+assert 39,eqObj(output1[`first_qty],double(NULL NULL NULL 10 -2 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//imax
+output1=streamTable(1:0,`time`sym`imax_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[imax(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 40,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 41,output1[`sym]==`A`A`A`A`A`A`A
+assert 42,eqObj(output1[`imax_qty],double(-1 -1 2 0 1 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//last
+output1=streamTable(1:0,`time`sym`last_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[last(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 43,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 44,output1[`sym]==`A`A`A`A`A`A`A
+assert 45,eqObj(output1[`last_qty],double(NULL NULL 7 0 0 0 NULL),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//lastNot
+output1=streamTable(1:0,`time`sym`lastNot_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[lastNot(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 46,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 47,output1[`sym]==`A`A`A`A`A`A`A
+assert 48,eqObj(output1[`lastNot_qty],double(NULL NULL 7 0 0 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//max
+output1=streamTable(1:0,`time`sym`max_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[max(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 49,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 50,output1[`sym]==`A`A`A`A`A`A`A
+assert 51,eqObj(output1[`max_qty],double(NULL NULL 10 10 0 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//mean
+output1=streamTable(1:0,`time`sym`mean_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[mean(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 52,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 53,output1[`sym]==`A`A`A`A`A`A`A
+assert 54,eqObj(output1[`mean_qty],[NULL,NULL,8.5,3.75,-1,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//med
+output1=streamTable(1:0,`time`sym`med_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[med(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 55,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 56,output1[`sym]==`A`A`A`A`A`A`A
+assert 57,eqObj(output1[`med_qty],[NULL,NULL,8.5,3.5,-1,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//min
+output1=streamTable(1:0,`time`sym`min_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[min(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 58,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 59,output1[`sym]==`A`A`A`A`A`A`A
+assert 60,eqObj(output1[`min_qty],double(NULL NULL 7 -2 -2 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//mode
+try{undef(`trades2)}catch(ex){}
+go
+share streamTable(1000:0, `time`sym`qty`price, [TIMESTAMP, SYMBOL, INT, INT]) as trades2
+insert into trades2 values(2018.10.08T01:01:11.785,`A,NULL,0)
+insert into trades2 values(2018.10.08T01:01:21.785,`A,NULL,-5)
+insert into trades2 values(2018.10.08T01:01:31.785,`A,NULL,7)
+insert into trades2 values(2018.10.08T01:01:41.785,`A,NULL,0)
+insert into trades2 values(2018.10.08T01:02:11.785,`A,0,0)
+insert into trades2 values(2018.10.08T01:02:21.785,`A,7,-5)
+insert into trades2 values(2018.10.08T01:02:31.785,`A,-2,7)
+insert into trades2 values(2018.10.08T01:02:41.785,`A,0,0)
+insert into trades2 values(2018.10.08T01:04:11.785,`A,0,0)
+insert into trades2 values(2018.10.08T01:04:21.785,`A,0,-5)
+insert into trades2 values(2018.10.08T01:04:31.785,`A,NULL,7)
+insert into trades2 values(2018.10.08T01:04:41.785,`A,NULL,0)
+insert into trades2 values(2018.10.08T01:05:11.785,`A,0,0)
+output1=streamTable(1:0,`time`sym`mode_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[mode(qty)]>, trades2, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades2)
+assert 61,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 62,output1[`sym]==`A`A`A`A`A`A`A
+assert 63, eqObj(output1[`mode_qty][0:2], take(double(), 2)) && eqObj(output1[`mode_qty][3:6], [0.0,0,0])
+
+dropAggregator("agg1")
+agg1=NULL
+undef("trades2", SHARED)
+
+//percentile
+output1=streamTable(1:0,`time`sym`percentile_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[percentile(qty,25)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 64,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 65,output1[`sym]==`A`A`A`A`A`A`A
+assert 66,eqObj(output1[`percentile_qty],[NULL,NULL,7.75,-0.5,-1.5,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//size
+output1=streamTable(1:0,`time`sym`size_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[size(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 67,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 68,output1[`sym]==`A`A`A`A`A`A`A
+assert 69,eqObj(output1[`size_qty],double(2 4 4 4 2 2 4),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//std
+output1=streamTable(1:0,`time`sym`std_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[std(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 70,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 71,output1[`sym]==`A`A`A`A`A`A`A
+assert 72,eqObj(output1[`std_qty],[NULL,NULL,2.12132,5.678908,1.414214,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//sum
+output1=streamTable(1:0,`time`sym`sum_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[sum(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 73,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 74,output1[`sym]==`A`A`A`A`A`A`A
+assert 75,eqObj(output1[`sum_qty],double(NULL NULL 17 15 -2 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//sum2
+output1=streamTable(1:0,`time`sym`sum2_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[sum2(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 76,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 77,output1[`sym]==`A`A`A`A`A`A`A
+assert 78,eqObj(output1[`sum2_qty],double(NULL NULL 149 153 4 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//var
+output1=streamTable(1:0,`time`sym`var_qty,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[var(qty)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 79,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 80,output1[`sym]==`A`A`A`A`A`A`A
+assert 81,eqObj(output1[`var_qty],[NULL,NULL,4.5,32.25,2,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//wavg
+output1=streamTable(1:0,`time`sym`wavg_price,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[wavg(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 82,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 83,output1[`sym]==`A`A`A`A`A`A`A
+assert 84,eqObj(output1[`wavg_price],[NULL,NULL,7,-24.5,-2,0,0],6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+//wsum
+output1=streamTable(1:0,`time`sym`wsum_price,[TIMESTAMP,SYMBOL,DOUBLE])
+agg1=createDailyTimeSeriesEngine("agg1",60000, 30000, <[wsum(qty,price)]>, trades, output1, `time, false,`sym, 50,,false)
+agg1.append!(select * from trades)
+assert 85,output1[`time]==[2018.10.08T01:01:30.000,2018.10.08T01:02:00.000,2018.10.08T01:02:30.000,2018.10.08T01:03:00.000,2018.10.08T01:03:30.000,2018.10.08T01:04:30.000,2018.10.08T01:05:00.000]
+assert 86,output1[`sym]==`A`A`A`A`A`A`A
+assert 87,eqObj(output1[`wsum_price],double(NULL NULL -35 -49 -14 0 0),6)
+
+dropAggregator("agg1")
+agg1=NULL
+
+undef(`trades,SHARED)
+
+
+@testing:case="function_test_createDailyTimeSeriesEngine_inTable_key&outTable_second_Datetype_diff",exception=1
+Datetime=take(2020.06.02T10:00:58.000,500).append!(take(2020.06.02T10:00:59.000,500)).append!(take(2020.06.02T10:01:00.000,500)).append!(take(2020.06.02T10:01:01.000,500))
+Symbol=10001..12000
+Price=1..2000+0.02
+tradesData = table(Datetime,Symbol,Price)
+x=tradesData.schema().colDefs
+share streamTable(100:0, x.name, x.typeString) as Trade
+share streamTable(100:0, `datetime`symbol`open,[TIMESTAMP,SYMBOL,DOUBLE]) as OHLC
+dropAggregator("aggr_ohlc") 
+tsAggrOHLC = createDailyTimeSeriesEngine(name="aggr_ohlc", windowSize=300000, step=60000, metrics=<[first(Price)]>, dummyTable=objByName("Trade"), outputTable=objByName("OHLC"), timeColumn=`Datetime, keyColumn=`Symbol)
+
+@testing:case="clear_shared_variable"
+undef(`Trade, SHARED)
+undef(`OHLC, SHARED)
+
+//new argument: roundTime
+@testing:case="test_function_createDailyTimeSeriesEngine_roundTime_string",exception=1
+time=temporalAdd(14:03:02, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`id`last_qty, [SECOND, STRING, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300, step=300, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, keyColumn=`id,roundTime="true")
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_roundTime_false"
+time=temporalAdd(14:03:02, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`last_qty, [SECOND, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300, step=300, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, roundTime=false)
+tsAgg.append!(trade)
+
+assert 1, output[`time]==[14:08:00, 14:13:00, 14:18:00]
+assert 2, output[`last_qty]==[5, 10, 15]
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_roundTime_true"
+time=temporalAdd(14:03:02, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`last_qty, [SECOND, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300, step=300, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, roundTime=true)
+tsAgg.append!(trade)
+
+assert 1, output[`time]==[14:05:00, 14:10:00, 14:15:00, 14:20:00]
+assert 2, output[`last_qty]==[2, 7, 12, 17]
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_roundTime_true_useWindowStartTime_true"
+time=temporalAdd(14:03:02, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`last_qty, [SECOND, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300, step=300, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, useWindowStartTime=true, roundTime=true)
+tsAgg.append!(trade)
+
+assert 1, output[`time]==[14:00:00, 14:05:00, 14:10:00, 14:15:00]
+assert 2, output[`last_qty]==[2, 7, 12, 17]
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_roundTime_true_specify_keyColumn"
+time=loop(take{, 3}, temporalAdd(14:03:02, 0..19, "m")).flatten()
+id=take(`AA`BB`CC, 60)
+qty=loop(take{, 3}, 1..20).flatten()
+trade=table(time, id, qty)
+output=table(100:0, `time`id`last_qty, [SECOND, STRING, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300, step=300, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, keyColumn=`id, roundTime=true)
+tsAgg.append!(trade)
+output=select *  from output order by id
+assert 1, output[`time]==[14:05:00, 14:10:00, 14:15:00, 14:20:00, 14:05:00, 14:10:00, 14:15:00, 14:20:00, 14:05:00, 14:10:00, 14:15:00, 14:20:00]
+assert 2, output[`id]==take(`AA, 4) join take(`BB, 4) join take(`CC, 4)
+assert 3, output[`last_qty]==take(2 7 12 17, 12)
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_time_roundTime_true"
+time=temporalAdd(14:03:02.008, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`last_qty, [TIME, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300*1000, step=300*1000, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, roundTime=true)
+tsAgg.append!(trade)
+
+assert 1, output[`time]==[14:05:00.000, 14:10:00.000, 14:15:00.000, 14:20:00.000]
+assert 2, output[`last_qty]==[2, 7, 12, 17]
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_time_roundTime_false"
+time=temporalAdd(14:03:02.008, 0..19, "m")
+id=take("AA", 20)
+qty=1..20
+trade=table(time, id, qty)
+output=table(100:0, `time`last_qty, [TIME, INT])
+tsAgg=createDailyTimeSeriesEngine(name="tsAgg", windowSize=300*1000, step=300*1000, metrics=<[last(qty)]>, dummyTable=trade, outputTable=output, useSystemTime=false, timeColumn=`time, roundTime=false)
+tsAgg.append!(trade)
+
+assert 1, output[`time]==[14:08:00.000, 14:13:00.000, 14:18:00.000]
+assert 2, output[`last_qty]==[5, 10, 15]
+
+undef(`tsAgg)
+dropAggregator(`tsAgg)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_matrics_with_table_error"
+share streamTable(1000:0, `time`sym`volume, [TIMESTAMP, SYMBOL, INT]) as trades
+output1 = table(10000:0, `time`sym`sumVolume, [TIMESTAMP, SYMBOL, INT])
+defg f1(volume){
+	t=table(volume)
+	return sum(volume)
+}
+agg1 = createDailyTimeSeriesEngine("agg1",60000, 60000, <[f1(volume)]>, trades, output1, `time, false,`sym, 50,,false)
+insert into trades values(2018.10.08T01:01:01.785,`A,10)
+insert into trades values(2018.10.08T01:01:02.125,`B,26)
+insert into trades values(2018.10.08T01:01:10.263,`B,14)
+insert into trades values(2018.10.08T01:01:12.457,`A,28)
+insert into trades values(2018.10.08T01:02:10.789,`A,15)
+insert into trades values(2018.10.08T01:02:12.005,`B,9)
+insert into trades values(2018.10.08T01:02:30.021,`A,10)
+insert into trades values(2018.10.08T01:04:02.236,`A,29)
+insert into trades values(2018.10.08T01:04:04.412,`B,32)
+insert into trades values(2018.10.08T01:04:05.152,`B,23)
+agg1.append!(trades)
+
+assert 1,output1[`sumVolume] == [38, 40, 25, 9]
+
+undef(`trades)
+dropAggregator(`agg1)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_matrics_with_sql_error", exception=1
+share streamTable(1000:0, `time`sym`volume, [TIMESTAMP, SYMBOL, INT]) as trades
+output1 = table(10000:0, `time`sym`sumVolume, [TIMESTAMP, SYMBOL, INT])
+defg f1(volume){
+	t=table(1..2 as col1)
+	insert into t values(volume,1..2)
+	return sum(volume)
+}
+agg1 = createDailyTimeSeriesEngine("agg1",60000, 60000, <[f1(volume)]>, trades, output1, `time, false,`sym, 50,,false)
+insert into trades values(2018.10.08T01:01:01.785,`A,10)
+insert into trades values(2018.10.08T01:01:02.125,`B,26)
+insert into trades values(2018.10.08T01:01:10.263,`B,14)
+insert into trades values(2018.10.08T01:01:12.457,`A,28)
+insert into trades values(2018.10.08T01:02:10.789,`A,15)
+insert into trades values(2018.10.08T01:02:12.005,`B,9)
+insert into trades values(2018.10.08T01:02:30.021,`A,10)
+insert into trades values(2018.10.08T01:04:02.236,`A,29)
+insert into trades values(2018.10.08T01:04:04.412,`B,32)
+insert into trades values(2018.10.08T01:04:05.152,`B,23)
+agg1.append!(trades)
+select * from output1
+
+assert 1,output1[`sumVolume] == take(int(),4)
+
+undef(`trades)
+dropAggregator(`agg1)
+
+
+@testing:case="test_function_createDailyTimeSeriesEngine_ timeColumn_same_as_metric_columns"
+share streamTable(1000:0, `timestamp`symbol`open`high`low`close`volume, [TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE]) as intraday_bar_1m
+t6=keyedTable(`timestamp`symbol,100:0,`timestamp`symbol`open`high`low`close`volume`updated_at,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE,DOUBLE,DOUBLE,TIMESTAMP])
+share(t6,`intraday_bar_1h)
+go
+tsAggr4=createDailyTimeSeriesEngine(name="tsAggr4",windowSize=2000,step=2000,updateTime=1000,metrics=<[first(open),max(high),min(low),last(close),sum(volume),last(timestamp)]>,dummyTable=intraday_bar_1m,outputTable=intraday_bar_1h,timeColumn=`timestamp,keyColumn=`symbol,useWindowStartTime=true,garbageSize=120)
+for(i in 0..3600){
+	insert into intraday_bar_1m values(2018.10.08T01:01:01.785+i,`A,rand(10,1),rand(10,1),rand(10,1),rand(10,1),rand(10,1))
+}
+tsAggr4.append!(intraday_bar_1m)
+res = exec count(*) from  intraday_bar_1h
+assert 1,eqObj(res,3)
+
+undef(`intraday_bar_1m, SHARED)
+undef(`intraday_bar_1h, SHARED)
+dropAggregator(`tsAggr4)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_return_multi_index"
+defg myfunc(v){
+	return [sum(v),max(v)]
+}
+share streamTable(1000:0, `time`volume, [DATETIME, INT]) as trades
+outputTable = table(10000:0, `time`sumVolume`maxVolume, [DATETIME, INT, INT])
+tradesAggregator = createDailyTimeSeriesEngine(name = "streamAggr1", windowSize = 300, step = 300,metrics =  <[myfunc(volume) as `sumv`maxv]>, dummyTable = trades, outputTable = outputTable, timeColumn = `time)
+topic1 = subscribeTable(, "trades", "append_tradesAggregator", 0, append!{tradesAggregator}, true)    
+def writeData(t, n){
+    timev = 2018.10.08T01:01:03+ datetime(1..n)
+    volumev = take(1..1000, n)
+    insert into t values(timev, volumev)
+}
+writeData(trades, 600)
+sleep (200)
+checkStreamingSubWorkers(topic1, trades.size())
+re = select * from outputTable
+t = table(2018.10.08T01:05:00 2018.10.08T01:10:00 as time,27966 115950 as  sumVolume,236 536 as maxVolume)
+assert 1,eqObj(t.values(),re.values())
+
+unsubscribeTable(,"trades","append_tradesAggregator")
+dropAggregator(`streamAggr1)
+undef(`trades,SHARED)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_single_and_multi_index"
+defg myfunc(v,v1){
+	return [max(v),max(v*v1)]
+}
+share streamTable(1000:0, `time`volume`price, [DATETIME, INT,DOUBLE]) as trades
+outputTable = table(10000:0, `time`sumVolume`maxVolume`maxDollarVolume, [DATETIME, INT, INT,DOUBLE])
+tradesAggregator = createDailyTimeSeriesEngine(name = "streamAggr1", windowSize = 300, step = 300,metrics =  <[sum(volume),myfunc(volume,price) as `maxv`maxvv1]>, dummyTable = trades, outputTable = outputTable, timeColumn = `time)
+topic1 = subscribeTable(, "trades", "append_tradesAggregator", 0, append!{tradesAggregator}, true)   
+def writeData(t, n){
+    timev = 2018.10.08T01:01:03+ datetime(1..n)
+    volumev = take(1..1000, n)
+    pricev = take(102.1 33.4 73.6 223.4,n)
+    insert into t values(timev, volumev,pricev)
+}
+writeData(trades, 600)
+sleep(1000)
+checkStreamingSubWorkers(topic1, trades.size())
+re = select * from outputTable
+t = table(2018.10.08T01:05:00 2018.10.08T01:10:00 as time,27966 115950 as  sumVolume,236 536 as maxVolume,52722.4 119742.4 as maxDollarVolume)
+assert 1,eqObj(t.values(),re.values())
+
+unsubscribeTable(,"trades","append_tradesAggregator")
+dropAggregator(`streamAggr1)
+undef(`trades,SHARED)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_multiple_windowsSize_not_same_as_metrics"
+share streamTable(1000:0, `time`volume, [DATETIME, INT]) as trades
+outputTable = table(10000:0, `time`sumVolume`avg, [DATETIME, INT,DOUBLE])
+tradesAggregator = createDailyTimeSeriesEngine(name = "streamAggr1", windowSize = 3, step = 3,metrics =  (<[sum(volume)]>,  <[avg(volume)]>), dummyTable = trades, outputTable = outputTable, timeColumn = `time,roundTime =true)
+dropAggregator("streamAggr1")
+
+@testing:case="test_function_createDailyTimeSeriesEngine_multiple_windowsSize"
+share streamTable(1000:0, `time`volume, [DATETIME, INT]) as trades
+outputTable = table(10000:0, `time`sumVolume`avg, [DATETIME, INT,DOUBLE])
+tradesAggregator = createDailyTimeSeriesEngine(name = "streamAggr", windowSize = [3, 6], step = 3,metrics =  (<[sum(volume)]>,  <[avg(volume)]>), dummyTable = trades, outputTable = outputTable, timeColumn = `time,roundTime =true)
+  
+def writeData(t, n){
+    timev = 2018.10.12T10:01:00+ datetime(1..n)
+    volumev = take(1..1000, n)
+    insert into t values(timev, volumev)
+}
+writeData(tradesAggregator, 10000)
+
+outputTable1 = table(10000:0, `time`sumVolume, [DATETIME, INT])
+tradesAggregator1 = createDailyTimeSeriesEngine(name = "streamAggr1", windowSize = 3, step = 3,metrics =  (<[sum(volume)]>), dummyTable = trades, outputTable = outputTable1, timeColumn = `time,roundTime =true)
+writeData(tradesAggregator1, 10000)
+
+outputTable2 = table(10000:0, `time`avg, [DATETIME, DOUBLE])
+tradesAggregator2 = createDailyTimeSeriesEngine(name = "streamAggr2", windowSize = 6, step = 3,metrics =  (<[avg(volume)]>), dummyTable = trades, outputTable = outputTable2, timeColumn = `time,roundTime =true)
+writeData(tradesAggregator2, 10000)
+re1 = select time,sumVolume from outputTable
+re2 = select time,avg from outputTable
+assert 1,eqObj(re1.values(),outputTable1.values())
+assert 2,eqObj(re2.values(),outputTable2.values())
+
+dropAggregator(`streamAggr)
+dropAggregator(`streamAggr1)
+dropAggregator(`streamAggr2)
+undef(`trades,SHARED)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_multiple_windowsSize_and_multiple_index"
+defg myfunc(v,v1){
+	return [max(v),max(v*v1)]
+}
+share streamTable(1000:0, `time`volume`price, [TIMESTAMP, INT,DOUBLE]) as trades
+outputTable = table(10000:0, `time`sumVolume`maxVolume`maxDollarVolume`meanV, [TIMESTAMP, INT, INT,DOUBLE,DOUBLE])
+tradesAggregator = createDailyTimeSeriesEngine(name = "streamAggr", windowSize = [300,600,900], step = 30,metrics = (<[sum(volume)]>,<[myfunc(volume,price) as `maxv`maxvv1]>,<[mean(volume)]>), dummyTable = trades, outputTable = outputTable, timeColumn = `time)
+topic1 = subscribeTable(, "trades", "append_tradesAggregator", 0, append!{tradesAggregator}, true)   
+
+outputTable1 = table(10000:0, `time`sumVolume, [TIMESTAMP, INT])
+tradesAggregator1 = createDailyTimeSeriesEngine(name = "streamAggr1", windowSize = [300], step = 30,metrics = (<[sum(volume)]>), dummyTable = trades, outputTable = outputTable1, timeColumn = `time)
+topic2 = subscribeTable(, "trades", "append_tradesAggregator1", 0, append!{tradesAggregator1}, true)  
+
+outputTable2 = table(10000:0, `time`maxVolume`maxDollarVolume, [TIMESTAMP, INT,DOUBLE])
+tradesAggregator2 = createDailyTimeSeriesEngine(name = "streamAggr2", windowSize = [600], step = 30,metrics = (<[myfunc(volume,price) as `maxv`maxvv1]>), dummyTable = trades, outputTable = outputTable2, timeColumn = `time)
+topic3 = subscribeTable(, "trades", "append_tradesAggregator2", 0, append!{tradesAggregator2}, true)   
+
+outputTable3 = table(10000:0, `time`meanV, [TIMESTAMP, DOUBLE])
+tradesAggregator3 = createDailyTimeSeriesEngine(name = "streamAggr3", windowSize = [900], step = 30,metrics = (<[mean(volume)]>), dummyTable = trades, outputTable = outputTable3, timeColumn = `time)
+topic4 = subscribeTable(, "trades", "append_tradesAggregator3", 0, append!{tradesAggregator3}, true)  
+
+def writeData(t, n){
+    timev = 2018.10.08T01:01:03.000+ (1..n)
+    volumev = take(1..1000, n)
+    pricev = take(102.1 33.4 73.6 223.4,n)
+    insert into t values(timev, volumev,pricev)
+}
+writeData(trades, 10000)
+sleep(1000)
+
+for(topicName in [topic1, topic2, topic3, topic4]){
+	checkStreamingSubWorkers(topicName, trades.size())
+}
+
+re1 = select time,sumVolume from outputTable
+re2 = select time,maxVolume,maxDollarVolume from outputTable
+re3 = select time,meanV from outputTable
+assert 1,eqObj(re1.values(),outputTable1.values())
+assert 2,eqObj(re2.values(),outputTable2.values())
+assert 3,eqObj(re3.values(),outputTable3.values())
+
+unsubscribeTable(,"trades","append_tradesAggregator")
+unsubscribeTable(,"trades","append_tradesAggregator1")
+unsubscribeTable(,"trades","append_tradesAggregator2")
+unsubscribeTable(,"trades","append_tradesAggregator3")
+dropAggregator(`streamAggr)
+dropAggregator(`streamAggr1)
+dropAggregator(`streamAggr2)
+dropAggregator(`streamAggr3)
+undef(`trades,SHARED)
+
+@testing:case="test_function_createDailyTimeSeriesEngine_crypto_bug"
+pub = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+enableTableShareAndPersistence(pub,`depth_stream,true,true,500000,240);
+
+depth_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+enableTableShareAndPersistence(depth_1s,`depth_resample_1s,true,true,500000,240);
+go
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol,garbageSize=100);
+topic1 = subscribeTable(tableName="depth_stream",actionName="act_depth_1s",offset=-1,handler=tableInsert{aggr_depth_1s},msgAsTable=true,hash=3,batchSize=1024,throttle=1);
+
+symNum=10
+batch=(2012.01.01T12:59:00.000..2012.01.01T13:05:00.000).size()
+col0=take(timestamp(2012.01.01T12:59:00.000..2012.01.01T13:05:00.000), symNum*batch)
+col1=loop(take{, batch}, "A"+string(1..symNum)).flatten()
+col2=loop(take{, batch}, 1..symNum).flatten()
+col3=1999.01.01T00:00:00.000+0..((symNum*batch)-1)
+tmp=table(col0, col1, col2, col3)
+
+depth_stream.append!(tmp)
+sleep(5000)
+checkStreamingSubWorkers(topic1, depth_stream.size())
+
+re = select * from  depth_resample_1s order by symbol, timestamp
+expected = select last(a1) as a1, last(local_timestamp) as local_timestamp from depth_stream group by timestamp(datetime(timestamp)) as timestamp, symbol order by symbol, timestamp
+delete from expected where timestamp=2012.01.01T12:59:00.000
+assert 1, eqObj(re[`timestamp], expected[`timestamp])
+assert 2, eqObj(re[`symbol], expected[`symbol])
+
+unsubscribeTable(tableName="depth_stream",actionName="act_depth_1s")
+dropAggregator("tsAggr5")
+clearTablePersistence(depth_stream)
+clearTablePersistence(depth_resample_1s)
+undef(`depth_stream, SHARED)
+undef(`depth_resample_1s, SHARED)
+
+
+//support fill
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_invalid_string",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill="false");
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_size_shorter_than_metrics",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`max_a1`sum_a1,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),max(a1),sum(a1)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=["null", "ffill"]);
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_size_longer_than_metrics",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`max_a1,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),max(a1)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=["null", "ffill",0.0]);
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_none",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`max_a1,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),max(a1)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=["null", "none"]);
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_ffill_none",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`max_a1,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),max(a1)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=["ffill", "none"]);
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_constant_none",exception=1
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`max_a1,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),max(a1)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=[0.0, "none"]);
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_vector"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn=`symbol, fill=["ffill", "ffill"]);
+dropAggregator("tsAggr5")
+
+/*------------fill=null--------------*/
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_false"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`local_timestamp,[TIMESTAMP,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="null");
+
+timestampv = temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")
+symbolv = take(`A`B`C, 10)
+a1v = double(1..10)
+local_timestampv = 1970.01.01T00:00:00.000+0..9
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t1 = table(temporalAdd(2012.01.01T00:00:00.000, 0..19, "s") as timestamp)
+expected = select timestamp+1000, a1, local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp) group by bar(timestamp, 1000) as timestamp)
+assert 1, each(eqObj, depth_resample_1s.values(), expected.values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`local_timestamp,[TIMESTAMP,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="null");
+
+timestampv = temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")
+symbolv = take(`A`B`C, 10)
+a1v = take(double(), 10)
+local_timestampv = 1970.01.01T00:00:00.000+0..9
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t1 = table(temporalAdd(2012.01.01T00:00:00.000, 0..19, "s") as timestamp)
+expected = select timestamp+1000, a1, local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp) group by bar(timestamp, 1000) as timestamp)
+assert 2, each(eqObj, depth_resample_1s.values(), expected.values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2`a3,[TIMESTAMP,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(price),max(price),sum(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="null");
+
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=createRandomTime(time1)
+symbolv=rand("A"+string(1..10), size(timestampv))
+pricev=double(rand(100, size(timestampv)))
+tmp=table(timestampv as timestamp, symbolv as symbol, pricev as price)
+aggr_depth_1s.append!(tmp)
+
+t1=table(timestamp(min(datetime(timestampv))..max(datetime(timestampv))) as timestamp)
+t2=select last(price) as a1, max(price) as a2, sum(price) as a3 from tmp group by timestamp(datetime(timestamp)) as timestamp
+expected=select timestamp+1000 as timestamp, a1, a2, a3 from lj(t1, t2, `timestamp)
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, a1, a2, a3).values(), (select * from expected where rowNo(timestamp)<size(expected)-1 order by timestamp, a1, a2, a3).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2`a3,[TIMESTAMP,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(price),max(price),sum(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="null");
+
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+timestampv=createRandomTime(time1)
+symbolv=rand("A"+string(1..10), size(timestampv))
+pricev=double(rand(100, size(timestampv)))
+tmp=table(timestampv as timestamp, symbolv as symbol, pricev as price)
+aggr_depth_1s.append!(tmp)
+
+t2=select last(price) as a1, max(price) as a2, sum(price) as a3 from tmp group by bar(timestamp, 5000) as timestamp
+num=exec (max(timestamp)-min(timestamp))/5000 from t2
+t1=table(first(t2[`timestamp])+0..(num-1)*5000 as timestamp)
+expected=select timestamp+5000 as timestamp, a1, a2, a3 from lj(t1, t2, `timestamp)
+assert 4, each(eqObj, (select * from depth_resample_1s order by timestamp, a1, a2, a3).values(), (select * from expected order by timestamp, a1, a2, a3 ).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_false_timeColumn_datetime"
+depth_stream = streamTable(1000000:0, `datetime`symbol`price,[DATETIME,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`datetime`a1`a2`a3,[DATETIME,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=60,step=60,metrics=<[last(price),max(price),sum(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`datetime,fill="null");
+
+time1=temporalAdd(2012.01.01T00:00:00, iterate(1 1, 1 1, 10), "m")
+def createRandomDateTime(input){
+	res = array(DATETIME, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "m")-1), 60).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+datetimev=createRandomDateTime(time1)
+symbolv=rand("A"+string(1..10), size(datetimev))
+pricev=double(rand(100, size(datetimev)))
+tmp=table(datetimev as datetime, symbolv as symbol, pricev as price)
+aggr_depth_1s.append!(tmp)
+
+
+t2=select last(price) as a1, max(price) as a2, sum(price) as a3 from tmp group by bar(datetime, 60) as datetime
+num=exec (max(datetime)-min(datetime))/60 from t2
+t1=table(first(t2[`datetime])+0..(num-1)*60 as datetime)
+expected=select datetime+60 as datetime, a1, a2, a3 from lj(t1, t2, `datetime)
+assert 3, each(eqObj, (select * from depth_resample_1s order by datetime, a1, a2, a3).values(), (select * from expected order by datetime, a1, a2, a3).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_writeData_order by timeColumn"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", fill="null");
+
+symNum=10
+timestampv = loop(take{, symNum}, temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+tt=loop(take{, symNum}, temporalAdd(2012.01.01T00:00:00.000, 0..20, "s")).flatten()
+t1 = table(tt as timestamp, take("A"+string(1..symNum), size(tt)) as symbol)
+expected = select timestamp+1000 as timestamp, symbol,  a1, local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp`symbol) group by timestamp(datetime(timestamp)) as timestamp, symbol) context by symbol
+delete from expected where timestamp=2012.01.01T00:00:21.000
+assert 1, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_writeData_order by keyColumn"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", fill="null");
+
+symNum=10
+timestampv = loop(take{, symNum}, temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+tmp.sortBy!(`symbol`timestamp)
+aggr_depth_1s.append!(tmp)
+
+tt=loop(take{, symNum}, temporalAdd(2012.01.01T00:00:00.000, 0..20, "s")).flatten()
+t1 = table(tt as timestamp, take("A"+string(1..symNum), size(tt)) as symbol)
+expected = select timestamp+1000 as timestamp, symbol,  a1, local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp`symbol) group by timestamp(datetime(timestamp)) as timestamp, symbol) context by symbol
+delete from expected where timestamp=2012.01.01T00:00:21.000
+assert 2, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_writeData_order by_timeColumn_windowSize_larger_than_1s"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t2=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp group by bar(timestamp, 5000) as timestamp, symbol order by symbol, timestamp
+numTable=select (max(timestamp)-min(timestamp))/5000 as num from t2 group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(i in numTable){
+	v1=exec first(timestamp)+0..(i[`num]-1)*5000 from t2
+	v2=take(i[`symbol], i[`num])
+	t1.tableInsert([v1, v2])
+}
+
+expected=select timestamp+5000 as timestamp, symbol, a1, local_timestamp from lj(t1, t2, `timestamp`symbol) context by symbol
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_garbageSize_smaller_than_actual"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", garbageSize=10, fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t2=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp group by bar(timestamp, 5000) as timestamp, symbol order by symbol, timestamp
+numTable=select (max(timestamp)-min(timestamp))/5000 as num from t2 group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(i in numTable){
+	v1=exec first(timestamp)+0..(i[`num]-1)*5000 from t2
+	v2=take(i[`symbol], i[`num])
+	t1.tableInsert([v1, v2])
+}
+
+expected=select timestamp+5000 as timestamp, symbol, a1, local_timestamp from lj(t1, t2, `timestamp`symbol) context by symbol
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_writeData_order by_keyColumn_windowSize_larger_than_1s"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+tmp.sortBy!(`symbol`timestamp)
+aggr_depth_1s.append!(tmp)
+
+t2=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp group by bar(timestamp, 5000) as timestamp, symbol order by symbol, timestamp
+numTable=select (max(timestamp)-min(timestamp))/5000 as num from t2 group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(i in numTable){
+	v1=exec first(timestamp)+0..(i[`num]-1)*5000 from t2
+	v2=take(i[`symbol], i[`num])
+	t1.tableInsert([v1, v2])
+}
+
+expected=select timestamp+5000 as timestamp, symbol, a1, local_timestamp from lj(t1, t2, `timestamp`symbol) context by symbol
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_keyColumn_true_timeColumn_datetime"
+depth_stream = streamTable(1000000:0, `datetime`symbol`a1`local_timestamp,[DATETIME,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`datetime`symbol`a1`local_timestamp,[DATETIME,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=60,step=60,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`datetime,keyColumn="symbol", fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00, iterate(1 1, 1 1, 10), "m")
+def createRandomDateTime(input){
+	res = array(DATETIME, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "m")-1), 60).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+datetimev=loop(take{, symNum}, createRandomDateTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(datetimev))
+a1v = double(1..size(datetimev))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(datetimev))
+tmp = table(datetimev as datetime, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t2=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp group by bar(datetime, 60) as datetime, symbol order by symbol, datetime
+numTable=select (max(datetime)-min(datetime))/60 as num from t2 group by symbol
+t1=table(100000:0, `datetime`symbol, [DATETIME, SYMBOL])
+for(i in numTable){
+	v1=exec first(datetime)+0..(i[`num]-1)*60 from t2
+	v2=take(i[`symbol], i[`num])
+	t1.tableInsert([v1, v2])
+}
+
+expected=select datetime+60 as datetime, symbol, a1, local_timestamp from lj(t1, t2, `datetime`symbol) context by symbol
+assert 3, each(eqObj, (select * from depth_resample_1s order by datetime, symbol).values(), (select * from expected order by datetime, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_useSystemTime_true"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2,[TIMESTAMP,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(price),max(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,useSystemTime=true, fill="null");
+
+insert into aggr_depth_1s values(now(), `A1, 1.0)
+insert into aggr_depth_1s values(now(), `A1, 2.0)
+insert into aggr_depth_1s values(now(), `A1, 3.0)
+sleep(5000)
+insert into aggr_depth_1s values(now(), `A1, 4.0)
+insert into aggr_depth_1s values(now(), `A1, 5.0)
+sleep(2000)
+print select * from depth_resample_1s
+
+assert 1, deltas(depth_resample_1s[`timestamp])==[int()].join(take(1000, size(depth_resample_1s)-1))
+assert 2, depth_resample_1s[`a1].hasNull()==true
+assert 3, depth_resample_1s[`a2].hasNull()==true
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_useSystemTime_true_windowSize_larger_than_1s"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2,[TIMESTAMP,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=3000,step=3000,metrics=<[last(price),max(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,useSystemTime=true, fill="null");
+
+insert into aggr_depth_1s values(now(), `A1, 1.0)
+insert into aggr_depth_1s values(now(), `A1, 2.0)
+insert into aggr_depth_1s values(now(), `A1, 3.0)
+sleep(7000)
+insert into aggr_depth_1s values(now(), `A1, 4.0)
+insert into aggr_depth_1s values(now(), `A1, 5.0)
+sleep(3000)
+print select * from depth_resample_1s
+
+assert 1, deltas(depth_resample_1s[`timestamp])==[int()].join(take(3000, size(depth_resample_1s)-1))
+assert 2, depth_resample_1s[`a1].hasNull()==true
+assert 3, depth_resample_1s[`a2].hasNull()==true
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_useSystemTime_true_windowSize_not_equal_to_step"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2,[TIMESTAMP,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=4000,step=2000,metrics=<[last(price),max(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,useSystemTime=true, fill="null");
+
+insert into aggr_depth_1s values(now(), `A1, 1.0)
+insert into aggr_depth_1s values(now(), `A1, 2.0)
+sleep(3000)
+insert into aggr_depth_1s values(now(), `A1, 3.0)
+sleep(4000)
+insert into aggr_depth_1s values(now(), `A1, 4.0)
+insert into aggr_depth_1s values(now(), `A1, 5.0)
+sleep(6000)
+print select * from depth_resample_1s
+
+assert 1, deltas(depth_resample_1s[`timestamp])==[int()].join(take(2000, size(depth_resample_1s)-1))
+assert 2, depth_resample_1s[`a1].hasNull()==true
+assert 3, depth_resample_1s[`a2].hasNull()==true
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_useSystemTime_true_specify_keyColumn"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`a2,[TIMESTAMP,SYMBOL,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(price),max(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,useSystemTime=true, keyColumn=`symbol, fill="null");
+
+insert into aggr_depth_1s values(now(), "A1", 1.0)
+insert into aggr_depth_1s values(now(), "A1", 2.0)
+insert into aggr_depth_1s values(now(), "A2", 1.0)
+insert into aggr_depth_1s values(now(), "A2", 2.0)
+insert into aggr_depth_1s values(now(), "A3", 1.0)
+insert into aggr_depth_1s values(now(), "A3", 2.0)
+sleep(5000)
+insert into aggr_depth_1s values(now(), "A1", 3.0)
+insert into aggr_depth_1s values(now(), "A2", 3.0)
+insert into aggr_depth_1s values(now(), "A3", 3.0)
+sleep(2000)
+
+re=select * from depth_resample_1s
+re1=select * from re where symbol="A1"
+re2=select * from re where symbol="A2"
+re3=select * from re where symbol="A3"
+assert 1, (exec deltas(timestamp) from re1)==[int()].join(take(1000, size(re1)-1))
+assert 2, (exec deltas(timestamp) from re2)==[int()].join(take(1000, size(re2)-1))
+assert 3, (exec deltas(timestamp) from re3)==[int()].join(take(1000, size(re3)-1))
+assert 4, re[`a1].hasNull()==true
+assert 5, re[`a2].hasNull()==true
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_specify_keyColumn_updateTime"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=keyedTable(`timestamp`symbol, 100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, updateTime=1000, fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+sleep(2000)
+
+t2=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp group by bar(timestamp, 5000) as timestamp, symbol order by symbol, timestamp
+numTable=select (max(timestamp)-min(timestamp))/5000 as num from t2 group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(i in numTable){
+	v1=exec first(timestamp)+0..(i[`num]-1)*5000 from t2
+	v2=take(i[`symbol], i[`num])
+	t1.tableInsert([v1, v2])
+}
+
+expected=select timestamp+5000 as timestamp, symbol, a1, local_timestamp from lj(t1, t2, `timestamp`symbol) context by symbol
+lastWindow=select last(a1) as a1, last(local_timestamp) as local_timestamp from tmp where timestamp>=2012.01.01T00:01:25.000 group by bar(timestamp, 5000)+5000 as timestamp, symbol
+expected.append!(lastWindow)
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from expected order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_specify_keyColumn_useSystemTime_false_windowSize_not_equal_to_step1"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="null");
+
+expected=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+checkAgg=createDailyTimeSeriesEngine(name="checkAgg",windowSize=5000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=expected,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="none");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+checkAgg.append!(tmp)
+
+numTable=select bar(first(timestamp), 1000) as min, bar(last(timestamp), 1000) as max from tmp group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(s in numTable[`symbol]){
+	m1=(exec min from numTable where symbol=s)[0]
+	m2=(exec max from numTable where symbol=s)[0]
+	v1=bar(m1..m2, 1000).distinct().sort()
+	v2=take(s, size(v1))
+	t1.tableInsert([v1, v2])
+}
+
+update t1 set timestamp=timestamp+1000
+
+re=select timestamp as timestamp, symbol, a1, local_timestamp from lj(t1, expected, `timestamp`symbol)
+delete from re where timestamp=2012.01.01T00:01:30.000
+assert 1, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from re order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+dropAggregator("checkAgg")
+checkAgg=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_specify_keyColumn_useSystemTime_false_windowSize_not_equal_to_step2"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=4000,step=2000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="null");
+
+expected=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+checkAgg=createDailyTimeSeriesEngine(name="checkAgg",windowSize=4000,step=2000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=expected,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="none");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+checkAgg.append!(tmp)
+
+numTable=select bar(first(timestamp), 2000) as min, bar(last(timestamp), 2000) as max from tmp group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(s in numTable[`symbol]){
+	m1=(exec min from numTable where symbol=s)[0]
+	m2=(exec max from numTable where symbol=s)[0]
+	n=(m2-m1)/2000
+	v1=temporalAdd(m1, 0..(n-1)*2000, "ms")
+	v2=take(s, size(v1))
+	t1.tableInsert([v1, v2])
+}
+update t1 set timestamp=timestamp+2000
+
+re=select timestamp as timestamp, symbol, a1, local_timestamp from lj(t1, expected, `timestamp`symbol)
+assert 1, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from re order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+dropAggregator("checkAgg")
+checkAgg=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_specify_keyColumn_useSystemTime_false_windowSize_not_equal_to_step2_useWindowStartTime_true"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=4000,step=2000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="null", useWindowStartTime=true);
+
+expected=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+checkAgg=createDailyTimeSeriesEngine(name="checkAgg",windowSize=4000,step=2000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=expected,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="none", useWindowStartTime=true);
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=loop(take{, symNum}, createRandomTime(time1)).flatten()
+symbolv = take("A"+string(1..symNum), size(timestampv))
+a1v = double(1..size(timestampv))
+local_timestampv = rand(1970.01.01T00:00:00.000..1970.01.01T00:09:59.999, size(timestampv))
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+checkAgg.append!(tmp)
+
+numTable=select bar(first(timestamp), 2000) as min, bar(last(timestamp), 2000) as max from tmp group by symbol
+t1=table(100000:0, `timestamp`symbol, [TIMESTAMP, SYMBOL])
+for(s in numTable[`symbol]){
+	m1=(exec min from numTable where symbol=s)[0]
+	m2=(exec max from numTable where symbol=s)[0]
+	n=(m2-m1)/2000
+	v1=temporalAdd(m1, 0..(n-1)*2000, "ms")
+	v2=take(s, size(v1))
+	t1.tableInsert([v1, v2])
+}
+update t1 set timestamp=timestamp-2000
+
+re=select timestamp as timestamp, symbol, a1, local_timestamp from lj(t1, expected, `timestamp`symbol)
+assert 1, each(eqObj, (select * from depth_resample_1s order by timestamp, symbol).values(), (select * from re order by timestamp, symbol).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+dropAggregator("checkAgg")
+checkAgg=NULL
+
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_null_append_multiple_times"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=2000,step=2000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,keyColumn="symbol", useSystemTime=false, fill="null");
+
+symNum=100
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+i=1
+for(ts in time1){
+	timestampv=take(ts, symNum)
+	symbolv=shuffle("A"+string(1..symNum))
+	a1v=double(take(i, symNum))
+	local_timestampv=take(timestamp(), symNum)
+	tmp=table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+	aggr_depth_1s.append!(tmp)
+}
+
+num=(max(time1)-min(time1))/2000
+re=select count(*) as num from depth_resample_1s group by symbol
+assert 1, re[`num]==num
+for(s in "A"+string(1..symNum)){
+re=select * from depth_resample_1s where symbol=s order by symbol, timestamp
+assert 2, deltas(re[`timestamp])==[int()].append!(take(2000, num-1))
+}
+assert 3, depth_resample_1s[`a1].hasNull()==true
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+/*------------fill=ffill------------------*/
+@testing:case="test_function_createDailyTimeSeriesEngine_fill_ffill_keyColumn_false"
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`local_timestamp,[TIMESTAMP,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="ffill");
+
+timestampv = temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")
+symbolv = take(`A`B`C, 10)
+a1v = double(1..10)
+local_timestampv = 1970.01.01T00:00:00.000+0..9
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t1 = table(temporalAdd(2012.01.01T00:00:00.000, 0..19, "s") as timestamp)
+expected = select timestamp+1000, ffill(a1) as a1, ffill(local_timestamp) as local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp) group by bar(timestamp, 1000) as timestamp)
+assert 1, each(eqObj, depth_resample_1s.values(), expected.values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`a1`local_timestamp,[TIMESTAMP,SYMBOL,DOUBLE,TIMESTAMP])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`local_timestamp,[TIMESTAMP,DOUBLE,TIMESTAMP]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(a1),last(local_timestamp)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="ffill");
+
+timestampv = temporalAdd(2012.01.01T00:00:00.000, [0, 1, 2, 4, 8, 9, 10, 11, 15, 20], "s")
+symbolv = take(`A`B`C, 10)
+a1v = take(double(), 10)
+local_timestampv = 1970.01.01T00:00:00.000+0..9
+tmp = table(timestampv as timestamp, symbolv as symbol, a1v as a1, local_timestampv as local_timestamp)
+aggr_depth_1s.append!(tmp)
+
+t1 = table(temporalAdd(2012.01.01T00:00:00.000, 0..19, "s") as timestamp)
+expected = select timestamp+1000, ffill(a1) as a1, ffill(local_timestamp) as local_timestamp from (select last(a1) as a1, last(local_timestamp) as local_timestamp from lj(t1, tmp, `timestamp) group by bar(timestamp, 1000) as timestamp)
+assert 2, each(eqObj, depth_resample_1s.values(), expected.values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2`a3,[TIMESTAMP,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=1000,step=1000,metrics=<[last(price),max(price),sum(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="ffill");
+
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+def createRandomTime(input){
+	res = array(TIMESTAMP, 0, 100000)
+	for(i in 0..(size(input)-2)){
+		tmp = rand(input[i]..(temporalAdd(input[i], 1, "s")-1), 1000).distinct().sort()
+		res.append!(tmp)
+	}
+	return res
+}
+timestampv=createRandomTime(time1)
+symbolv=rand("A"+string(1..10), size(timestampv))
+pricev=double(rand(100, size(timestampv)))
+tmp=table(timestampv as timestamp, symbolv as symbol, pricev as price)
+aggr_depth_1s.append!(tmp)
+
+t1=table(timestamp(min(datetime(timestampv))..max(datetime(timestampv))) as timestamp)
+t2=select last(price) as a1, max(price) as a2, sum(price) as a3 from tmp group by timestamp(datetime(timestamp)) as timestamp
+expected=select timestamp+1000 as timestamp, ffill(a1) as a1, ffill(a2) as a2, ffill(a3) as a3 from lj(t1, t2, `timestamp)
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, a1, a2, a3).values(), (select * from depth_resample_1s order by timestamp, a1, a2, a3).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL
+
+depth_stream = streamTable(1000000:0, `timestamp`symbol`price,[TIMESTAMP,SYMBOL,DOUBLE])
+depth_resample_1s=streamTable(100:0,`timestamp`a1`a2`a3,[TIMESTAMP,DOUBLE,DOUBLE,DOUBLE]);
+aggr_depth_1s=createDailyTimeSeriesEngine(name="tsAggr5",windowSize=5000,step=5000,metrics=<[last(price),max(price),sum(price)]>,dummyTable=depth_stream,outputTable=depth_resample_1s,timeColumn=`timestamp,fill="ffill");
+
+time1=temporalAdd(2012.01.01T00:00:00.000, iterate(1 1, 1 1, 10), "s")
+timestampv=createRandomTime(time1)
+symbolv=rand("A"+string(1..10), size(timestampv))
+pricev=double(rand(100, size(timestampv)))
+tmp=table(timestampv as timestamp, symbolv as symbol, pricev as price)
+aggr_depth_1s.append!(tmp)
+
+
+t2=select last(price) as a1, max(price) as a2, sum(price) as a3 from tmp group by bar(timestamp, 5000) as timestamp
+num=exec (max(timestamp)-min(timestamp))/5000 from t2
+t1=table(first(t2[`timestamp])+0..(num-1)*5000 as timestamp)
+expected=select timestamp+5000 as timestamp, ffill(a1) as a1, ffill(a2) as a2, ffill(a3) as a3 from lj(t1, t2, `timestamp)
+assert 3, each(eqObj, (select * from depth_resample_1s order by timestamp, a1, a2, a3).values(), (select * from depth_resample_1s order by timestamp, a1, a2, a3).values())
+
+dropAggregator("tsAggr5")
+aggr_depth_1s=NULL

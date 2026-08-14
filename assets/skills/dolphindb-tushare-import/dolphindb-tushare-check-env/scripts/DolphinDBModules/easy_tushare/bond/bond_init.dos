@@ -1,0 +1,79 @@
+module easy_tushare::bond_init
+
+/* 
+*  @Brief: 债券历史数据导入函数模块
+*  @Author: DolphinDB
+*  @Last modification time: 2026.03.31
+*  @DolphinDB server version: 3.00.5 2026.02.06 LINUX x86_64
+*/
+
+use easy_tushare::bond_create_table
+
+/*
+*  @FunctionName: module_info
+*  @Brief: 模块信息,一个相同模块dir下的每个dos都需要有module_info函数,且是相同的
+*  @Param: None
+*  @Return: dict
+*  @SampleUsage: module_info()
+*/
+def module_info(){
+    res = dict(STRING,ANY)
+    res["moduleName"] = "easy_tushare"
+    res["moduleVersion"] = "1.0.0"
+    res["isFree"] = true
+    return res
+}
+
+/*
+*  @FunctionName: llm_init
+*  @Brief: 初始化数据库表
+*  @Param: None
+*  @Return: None
+*  @SampleUsage: bond_init_tables()
+*/
+def bond_init_tables(table_names = []){
+    if (size(table_names) == 0){
+       ts_create_tables = exec name from defs() where name like "easy_tushare::bond_create_table%"
+        for(table in ts_create_tables){
+            funcByName(table)()
+        }
+    } else {
+        for (table_name in table_names){ 
+            funcByName("easy_tushare::bond_create_table::create_" + table_name)()
+        }   
+    }
+}
+
+use easy_tushare::bond_load_data
+
+/**
+*  @FunctionName: get_bond_table_names
+*  @Brief: 获取债券数据导入函数表名
+*  @Param: None
+*  @Return: list
+*  @SampleUsage: get_bond_table_names()
+ */
+def bond_get_all_table_names(){
+    ts_create_tables = exec name from defs() where name like "easy_tushare::bond_load_data::append_%"
+    return ts_create_tables.split("::")[2].substr(7)
+}
+/*
+*  @FunctionName: bond_history_data_load
+*  @Brief: 债券历史数据导入函数
+*  @Param: token, start_date, end_date
+*  @Return: None
+*  @SampleUsage: bond_history_data_load(token,start_date,end_date)
+*/
+def bond_history_data_load(token,start_date,end_date,table_names = []) {
+    // 本次需要导入的所有表名
+    all_table_names = []
+    if (size(table_names) == 0){
+        all_table_names = bond_get_all_table_names()        
+    } else {
+        all_table_names = table_names
+    }
+    for (table_name in all_table_names){
+        submitJob("append_" + table_name, "append_" + table_name,  funcByName("easy_tushare::bond_load_data::append_" + table_name), token, start_date, end_date)
+    }
+}
+    

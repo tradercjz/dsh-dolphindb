@@ -1,0 +1,25 @@
+// Example: Import CSV with data preprocessing
+
+// Scenario: CSV has NULL values in volume column
+// Need to fill NULLs with 0 before writing to database
+
+db = database("dfs://salesDB", VALUE, 2024.01M..2024.12M)
+
+// Option 1: Using transform with nullFill! partial application
+// nullFill!{, 0.0} creates a unary function that fills NULLs with 0.0
+loadTextEx(db, "sales", `month, "/data/sales_with_nulls.csv",
+           transform = nullFill!{, 0.0})
+
+// Option 2: Custom transform function
+// ⚠️ When transform uses nullFill! (mutable function), the parameter
+// MUST be declared as `mutable t`
+def cleanData(mutable t) {
+    t.nullFill!(0.0)
+    // Add additional preprocessing here
+    return t
+}
+
+// ⚠️ When using transform, the partitioned table MUST be pre-created via
+// createPartitionedTable BEFORE calling loadTextEx
+loadTextEx(db, "sales", `month, "/data/sales_dirty.csv",
+           transform = cleanData)

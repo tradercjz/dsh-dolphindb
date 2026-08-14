@@ -1,0 +1,81 @@
+// ============================================================
+// fxForwardPricer (NDF) — 完整定价示例
+// USDCNY 无本金交割远期 NPV 计算
+// ============================================================
+// 定价方法：
+//   NDF 与 FxForward 定价逻辑一致（都用 fxForwardPricer）。
+//   区别在于 instrument 构造：
+//   - forwardType = "FxNonDeliverableForward"（而非 "FxForward"）
+//   - 额外字段 settlementCurrency 指定结算货币（如 "USD"）
+//   到期时不交割本金，只轧差结算 (S_T − K) × notional。
+//   常用于无法自由兑换的货币（离岸 CNY NDF）。
+// ============================================================
+
+// --- Step 1: 构造 instrument（见 instruments/10_fx_ndf/demo.dos）---
+instDict = dict(STRING, ANY)
+instDict["productType"]          = "Forward"
+instDict["forwardType"]          = "FxNonDeliverableForward"
+instDict["expiry"]               = 2026.09.20
+instDict["delivery"]             = 2026.09.22
+instDict["currencyPair"]         = "USDCNY"
+instDict["direction"]            = "Buy"
+instDict["notionalCurrency"]     = "USD"
+instDict["notionalAmount"]       = 1000000.0
+instDict["strike"]               = 7.30
+instDict["domesticCurve"]        = "CNY"
+instDict["foreignCurve"]         = "USD"
+instDict["settlementCurrency"]   = "USD"            // NDF 独有：结算货币
+inst = parseInstrument(instDict)
+
+// --- Step 2: CNY 贴现曲线 ---
+pricingDate = 2026.03.20
+domDict = dict(STRING, ANY)
+domDict["mktDataType"]         = "Curve"
+domDict["curveType"]           = "IrYieldCurve"
+domDict["referenceDate"]       = pricingDate
+domDict["currency"]            = "CNY"
+domDict["curveName"]           = "CNY"
+domDict["dayCountConvention"]  = "Actual365"
+domDict["compounding"]         = "Continuous"
+domDict["interpMethod"]        = "CubicSpline"
+domDict["extrapMethod"]        = "Flat"
+domDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+domDict["values"]  = [0.0170, 0.0178, 0.0188]
+domCurve = parseMktData(domDict)
+
+// --- Step 3: USD 贴现曲线 ---
+forDict = dict(STRING, ANY)
+forDict["mktDataType"]         = "Curve"
+forDict["curveType"]           = "IrYieldCurve"
+forDict["referenceDate"]       = pricingDate
+forDict["currency"]            = "USD"
+forDict["curveName"]           = "USD"
+forDict["dayCountConvention"]  = "Actual365"
+forDict["compounding"]         = "Continuous"
+forDict["interpMethod"]        = "CubicSpline"
+forDict["extrapMethod"]        = "Flat"
+forDict["dates"]   = [2026.06.20, 2026.09.20, 2027.03.20]
+forDict["values"]  = [0.0420, 0.0430, 0.0440]
+forCurve = parseMktData(forDict)
+
+// --- Step 4: 定价（与 FxForward 使用同一个 pricer）---
+spot = 7.25
+npv = fxForwardPricer(inst, pricingDate, spot, domCurve, forCurve)
+// npv < 0 → strike 7.30 > IRP远期 → Buy方亏损（同 FxForward）
+// 结算时按 settlementCurrency 轧差交割
+
+// ============================================================
+// 运行结果与金融解释（DolphinDB 3.00.5 实测）
+// ============================================================
+// [结果]
+//   npv = -141,229.04              — NDF NPV（CNY 计价）
+//
+// [金融解释]
+//   NDF 与 FxForward 定参相同（K=7.30, spot=7.25, 同曲线）→ NPV 完全一致。
+//   两者共用 fxForwardPricer 函数，仅 instrument 构造不同：
+//   - FxForward：全额本金交割
+//   - NDF：轧差结算（settlementCurrency=USD）
+//   NPV 一致是正确行为：中期估值不受结算方式影响。
+//
+// [合理性] ✓ 与 FxForward (demo 05) 结果一致，符合预期。
+// ============================================================
