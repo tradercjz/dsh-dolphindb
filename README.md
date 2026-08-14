@@ -49,11 +49,15 @@ pnpm run typecheck   # against ../deepseek-harness
 pnpm run build       # tsc -b + tsdown → lib/
 ```
 
-`dsh plugin add github:…` installs source, so pnpm runs `prepare` (a self-contained `tsdown` transpile with no harness checkout and no type check). First install needs build authorization in the profile's `pnpm-workspace.yaml`:
+`dsh plugin add github:…` installs source, so pnpm runs `prepare` (a self-contained `tsdown` transpile with no harness checkout and no type check). The first install fails until the profile's `pnpm-workspace.yaml` authorizes the build scripts (the `dsh` error prints the exact commit-pinned key — prefer that over the loose form below):
 
 ```yaml
 allowBuilds:
-  "@tradercjz/dsh-dolphindb": true
+  "@tradercjz/dsh-dolphindb@https://codeload.github.com/tradercjz/dsh-dolphindb/tar.gz/<commit-sha>": true
+  # Native file-watcher pulled transitively by the `dolphindb` client
+  # (dolphindb → xshell → sass → @parcel/watcher); set `false` to skip the
+  # native build and keep the JS fallback.
+  "@parcel/watcher": true
 ```
 
 ## Skills provenance
