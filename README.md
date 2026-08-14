@@ -31,6 +31,14 @@ The executor's only required field is `passwordRef` (default `DOLPHINDB_PASSWORD
 
 Set the password in the process environment or the repo `.env`; never commit it.
 
+### Verify the layer
+
+```sh
+dsh --profile <name> --dump-config
+```
+
+The output shows a `# == @tradercjz/dsh-dolphindb` layer mounting three rows — `dolphindb` (executor), `tool-dolphindb` (tools), `dolphin-skills` (skills). Starting the profile registers `dolphindb_query` / `dolphindb_execute` and exposes the 23 `dolphindb-*` skills through the `skill` tool.
+
 ## Development
 
 The repo type-checks and builds against a sibling `deepseek-harness` checkout (see `tsconfig.json`):
