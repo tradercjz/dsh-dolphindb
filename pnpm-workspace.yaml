@@ -1,14 +1,19 @@
 # Local dev workspace: pins this directory as a single-package workspace so
 # `pnpm install` here installs its own deps instead of falling through to the
 # home-level `allowBuilds` workspace file. `dsh plugin add` uses the profile's
-# own workspace, so this file only affects local dev/typecheck.
+# own workspace, so this file only affects local dev/typecheck — EXCEPT the
+# `allowBuilds` entries below, which the git-install `prepare` build also reads
+# (pnpm runs `pnpm install` inside the clone, which inherits this file).
 packages:
   - .
-
-allowBuilds:
-  '@parcel/watcher': set this to true or false
 
 # The `@deepseek-ai/dsh-*` peer deps are placeholders resolved at runtime by the
 # dsh installation fallback (and at dev time by the sibling harness checkout's
 # tsconfig references), not from npm — never auto-install them.
 autoInstallPeers: false
+
+# Native/build-script dependencies the `prepare` transpile needs on a consumer
+# machine (pnpm blocks their build scripts unless listed).
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
