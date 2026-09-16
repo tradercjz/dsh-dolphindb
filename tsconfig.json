@@ -15,6 +15,7 @@
     { "path": "../deepseek-harness/packages/interaction/user-approval" },
     { "path": "../deepseek-harness/packages/skill/skill" },
     { "path": "../deepseek-harness/packages/credentials/credentials" },
-    { "path": "../deepseek-harness/packages/runtime-diagnostics/invariants" }
+    { "path": "../deepseek-harness/packages/settings/settings" },
+    { "path": "packages/client-dolphindb" }
   ]
 }

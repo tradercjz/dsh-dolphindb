@@ -41,7 +41,8 @@ describe('dsh-dolphindb bundle patch', () => {
 
   it('references the password by credential name, never a literal', () => {
     const executor = rowsOf().find(row => row.id === 'dolphindb')
-    expect(executor?.config?.passwordRef).toBe('DOLPHINDB_PASSWORD')
-    expect(Object.keys(executor?.config ?? {})).toEqual(['passwordRef'])
+    const servers = executor?.config?.servers as Record<string, Record<string, unknown>> | undefined
+    expect(servers?.local?.passwordRef).toBe('DOLPHINDB_PASSWORD')
+    expect(servers?.local !== undefined && Object.keys(servers.local)).toEqual(['passwordRef'])
   })
 })

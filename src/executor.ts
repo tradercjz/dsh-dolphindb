@@ -11,6 +11,8 @@ import z from '@deepseek-ai/schemastery'
 import { DolphinDbExecutor } from './service.ts'
 import type { DolphinDbQueryRequest, DolphinDbQuerySpec, DolphinDbResult, JsonValue } from './types.ts'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
+// Brings the `ctx.settings` declaration merge into scope.
+import type {} from '@deepseek-ai/dsh-settings'
 import { DDB } from 'dolphindb'
 
 const DEFAULT_HOST = '127.0.0.1'
@@ -20,16 +22,28 @@ const DEFAULT_TIMEOUT_MS = 30_000
 const DEFAULT_MAX_ROWS = 1_000
 const DEFAULT_MAX_BYTES = 512 * 1024
 
-/** Plugin config (all fields defaulted except `passwordRef`, which is required). */
-export interface Config {
+/** One named DolphinDB server in the registry. */
+export interface ServerProfile {
   /** DolphinDB host. */
   host?: string
   /** DolphinDB port (default 8848). */
   port?: number
   /** DolphinDB login username (default `admin`). */
   username?: string
-  /** Environment-variable name holding the login password; resolved per execution. */
+  /** Credential reference (an environment-variable name or a managed credential) holding the login password; resolved per connection. */
   passwordRef: string
+}
+
+/**
+ * Plugin config: a named server registry, the active selection, and executor
+ * caps. The same schema resolves the `dolphindb` settings section, whose user
+ * layer merges over this composition entry per key.
+ */
+export interface Config {
+  /** Named servers the executor may connect to. */
+  servers?: Record<string, ServerProfile>
+  /** Name of the server used when a request carries no explicit `server`. */
+  active?: string
   /** Wall-clock query deadline in milliseconds. */
   timeoutMs?: number
   /** Upper bound on returned rows. */
@@ -37,6 +51,9 @@ export interface Config {
   /** Upper bound on the serialized result in bytes. */
   maxBytes?: number
 }
+
+/** A server profile after schemastery applies every field default. */
+export type ResolvedServerProfile = Required<ServerProfile>
 
 /** Config after schemastery applies every field default. */
 type ResolvedConfig = Required<Config>
@@ -49,19 +66,25 @@ function assertPositiveFinite(name: string, value: number): void {
 
 /**
  * Reject a resolved config this executor could not run with. The schema does not
- * express positivity, so a stored value is refused where it is written instead
- * of failing at the next query.
+ * express positivity or registry membership, so a stored value is refused where
+ * it is written instead of failing at the next query.
  * @param config - the resolved config, schema-valid by construction.
  * @throws Error naming the field that cannot be used.
  */
 export function assertServiceableConfig(config: Config): void {
   const resolved = config as ResolvedConfig
-  assertPositiveFinite('port', resolved.port)
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
   assertPositiveFinite('maxRows', resolved.maxRows)
   assertPositiveFinite('maxBytes', resolved.maxBytes)
-  if (resolved.passwordRef === '') {
-    throw new Error('dolphindb: passwordRef is required')
+  for (const [name, profile] of Object.entries(resolved.servers)) {
+    assertPositiveFinite(`servers.${name}.port`, (profile as ResolvedServerProfile).port)
+    if (profile.passwordRef === '') {
+      throw new Error(`dolphindb: servers.${name}.passwordRef is required`)
+    }
+  }
+  const names = Object.keys(resolved.servers)
+  if (names.length > 0 && resolved.servers[resolved.active] === undefined) {
+    throw new Error(`dolphindb: active server "${resolved.active}" is not in servers [${names.join(', ')}]`)
   }
 }
 
@@ -126,11 +149,12 @@ function isRecord(value: JsonValue | undefined): value is Record<string, JsonVal
  * @param maxRows - the row cap.
  * @param maxBytes - the serialized-byte cap.
  * @param elapsedMs - measured execution time.
+ * @param server - the server the query ran on.
  * @returns the bounded result.
  */
-export function normalizeResult(raw: unknown, maxRows: number, maxBytes: number, elapsedMs: number): DolphinDbResult {
+export function normalizeResult(raw: unknown, maxRows: number, maxBytes: number, elapsedMs: number, server: string): DolphinDbResult {
   if (raw === undefined) {
-    return { columns: [], rows: [], rowCount: 0, truncated: false, elapsedMs, executed: true }
+    return { columns: [], rows: [], rowCount: 0, truncated: false, elapsedMs, executed: true, server }
   }
   const snapshot = snapshotJson(raw)
   let columns: string[] = ['value']
@@ -165,7 +189,7 @@ export function normalizeResult(raw: unknown, maxRows: number, maxBytes: number,
     truncated = true
   }
 
-  return { columns, rows, rowCount, truncated, elapsedMs, executed: false }
+  return { columns, rows, rowCount, truncated, elapsedMs, executed: false, server }
 }
 
 class DolphinDbTimeoutError extends Error {
@@ -212,78 +236,136 @@ async function withTimeout<T>(run: () => Promise<T>, timeoutMs: number, signal?:
  * Local DolphinDB executor over the official `dolphindb` WebSocket client. The
  * connection is established lazily and torn down on composition disposal; a
  * timed-out or failed call drops the connection so a busy socket never poisons
- * the next query.
+ * the next query. The server registry and `active` selection live in the
+ * `dolphindb` settings section when a settings provider is present (hot-applied,
+ * user-editable); the composition entry is the fallback. Connections re-key on
+ * the active profile, so a committed settings change takes effect on the next
+ * execution without any listener.
  */
 export class DolphinDbLocalExecutor extends DolphinDbExecutor {
   static inject = ['credentials']
 
   static Config: z<Config> = z.object({
-    host: z.string().default(DEFAULT_HOST),
-    port: z.number().default(DEFAULT_PORT),
-    username: z.string().default(DEFAULT_USERNAME),
-    passwordRef: z.string(),
+    servers: z.dict(z.object({
+      host: z.string().default(DEFAULT_HOST),
+      port: z.number().default(DEFAULT_PORT),
+      username: z.string().default(DEFAULT_USERNAME),
+      passwordRef: z.string().role('credential-ref'),
+    })).default({}),
+    active: z.string().default('local'),
     timeoutMs: z.number().default(DEFAULT_TIMEOUT_MS),
     maxRows: z.number().default(DEFAULT_MAX_ROWS),
     maxBytes: z.number().default(DEFAULT_MAX_BYTES),
   })
 
-  /** The authoritative validated config (schemastery applied the defaults before construction). */
-  private readonly config: ResolvedConfig
+  /** The validated composition entry (schemastery applied the defaults before construction). */
+  private readonly fallback: ResolvedConfig
+  /** The live config source: the settings projection when a provider is present, else the composition entry. */
+  private current: () => ResolvedConfig
 
   private conn: DDB | undefined
+  /** The registry name + connection parameters `conn` was opened for; any change reopens it. */
+  private connKey: string | undefined
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
     const entry = config as ResolvedConfig
     assertServiceableConfig(entry)
-    this.config = entry
+    this.fallback = entry
+    this.current = () => this.fallback
+    // Deferred inject, not ctx.get: loader entries activate concurrently, so a
+    // construct-time read races the settings service and can silently skip the
+    // section (which is exactly what the web settings card enumerates).
+    ctx.inject(['settings'], (settingsCtx) => {
+      settingsCtx.settings.installSection(ctx, 'dolphindb', DolphinDbLocalExecutor.Config, config, {
+        setSource: (source) => {
+          this.current = source as () => ResolvedConfig
+        },
+        // Connections re-key lazily in connect(), so a committed change needs no work here.
+        onChange: () => {},
+        validate: (value) => {
+          assertServiceableConfig(value)
+        },
+      })
+    })
     ctx.effect(() => () => {
-      this.conn?.disconnect()
-      this.conn = undefined
+      this.dropConnection()
     })
   }
 
+  activeServer(): string {
+    return this.current().active
+  }
+
   resolve(request: DolphinDbQueryRequest): DolphinDbQuerySpec {
+    const config = this.current()
+    const server = request.server ?? config.active
+    // Fail an unknown name here, where the caller can fix it, not mid-execution.
+    this.profile(server)
     return {
       script: request.script,
-      maxRows: clampRows(request.limit, this.config.maxRows),
-      maxBytes: this.config.maxBytes,
+      maxRows: clampRows(request.limit, config.maxRows),
+      maxBytes: config.maxBytes,
       readOnly: request.readOnly ?? true,
-      timeoutMs: this.config.timeoutMs,
+      timeoutMs: config.timeoutMs,
+      server,
     }
   }
 
   async execute(spec: DolphinDbQuerySpec, signal?: AbortSignal): Promise<DolphinDbResult> {
     const startedAt = Date.now()
     try {
-      const conn = await this.connect(signal)
+      const conn = await this.connect(spec.server, signal)
       const raw = await withTimeout(() => conn.execute<unknown>(spec.script), spec.timeoutMs, signal)
-      return normalizeResult(raw, spec.maxRows, spec.maxBytes, Date.now() - startedAt)
+      return normalizeResult(raw, spec.maxRows, spec.maxBytes, Date.now() - startedAt, spec.server)
     } catch (error) {
       // A timed-out or failed in-flight message can leave the socket busy; drop it.
-      this.conn?.disconnect()
-      this.conn = undefined
+      this.dropConnection()
       throw error
     }
   }
 
-  private async connect(signal?: AbortSignal): Promise<DDB> {
-    if (this.conn !== undefined) return this.conn
-    const password = await this.resolvePassword()
-    const ddb = new DDB(`ws://${this.config.host}:${this.config.port}`, {
+  /** Resolve a server's profile, failing loud on an unknown name or an empty registry. */
+  private profile(server: string): ResolvedServerProfile {
+    const servers = this.current().servers
+    const profile = servers[server]
+    if (profile === undefined) {
+      const names = Object.keys(servers)
+      if (names.length === 0) {
+        throw new Error('dolphindb: no servers configured; add one to the "dolphindb" settings section or the executor cordis config')
+      }
+      throw new Error(`dolphindb: unknown server "${server}" (configured: [${names.join(', ')}])`)
+    }
+    return profile as ResolvedServerProfile
+  }
+
+  private async connect(server: string, signal?: AbortSignal): Promise<DDB> {
+    const profile = this.profile(server)
+    const key = JSON.stringify({ server, ...profile })
+    if (this.conn !== undefined && this.connKey === key) return this.conn
+    this.dropConnection()
+    const password = await this.resolvePassword(profile)
+    const ddb = new DDB(`ws://${profile.host}:${profile.port}`, {
       autologin: true,
-      username: this.config.username,
+      username: profile.username,
       password,
     })
-    await withTimeout(() => ddb.connect(), this.config.timeoutMs, signal)
+    await withTimeout(() => ddb.connect(), this.current().timeoutMs, signal)
     this.conn = ddb
+    this.connKey = key
     return ddb
   }
 
-  private async resolvePassword(): Promise<string> {
-    const resolved = await this.ctx.credentials.resolve(credentialRef(this.config.passwordRef))
+  private dropConnection(): void {
+    this.conn?.disconnect()
+    this.conn = undefined
+    this.connKey = undefined
+  }
+
+  private async resolvePassword(profile: ResolvedServerProfile): Promise<string> {
+    const resolved = await this.ctx.credentials.resolve(credentialRef(profile.passwordRef))
     if (resolved === undefined) {
-      throw new Error(`dolphindb: credential "${this.config.passwordRef}" is not configured`)
+      throw new Error(`dolphindb: credential "${profile.passwordRef}" is not configured`)
     }
     return resolved.value
   }

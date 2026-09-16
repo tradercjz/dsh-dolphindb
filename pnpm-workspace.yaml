@@ -6,6 +6,7 @@
 # (pnpm runs `pnpm install` inside the clone, which inherits this file).
 packages:
   - .
+  - packages/*
 
 # The `@deepseek-ai/dsh-*` peer deps are placeholders resolved at runtime by the
 # dsh installation fallback (and at dev time by the sibling harness checkout's

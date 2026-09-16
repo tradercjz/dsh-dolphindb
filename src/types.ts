@@ -11,6 +11,8 @@ export interface DolphinDbQueryRequest {
   limit?: number
   /** Read-only marker consumed by approval policy; defaults to `true` in providers. */
   readOnly?: boolean
+  /** Target server name from the configured registry; defaults to the active server. */
+  server?: string
 }
 
 /** A fully-resolved, execution-ready query SPEC (never a raw request). */
@@ -25,6 +27,8 @@ export interface DolphinDbQuerySpec {
   readOnly: boolean
   /** Wall-clock deadline in milliseconds. */
   timeoutMs: number
+  /** The server this spec targets (request override or the active server at resolve time). */
+  server: string
 }
 
 /** A lossless JSON value; mirrors the session vocabulary without importing it. */
@@ -44,4 +48,6 @@ export interface DolphinDbResult {
   elapsedMs: number
   /** True when the script ran successfully but returned no value (statement/DDL/write). */
   executed: boolean
+  /** The server the query ran on (from the spec), so results and logs name their target. */
+  server: string
 }

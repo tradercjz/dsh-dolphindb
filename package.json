@@ -8,7 +8,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "build": "tsc -b && tsdown",
+    "build": "tsc -b && tsdown && pnpm --filter @tradercjz/dsh-client-dolphindb run build",
     "prepare": "tsdown --config tsdown.prepare.config.ts",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run"
@@ -28,10 +28,6 @@
       "types": "./lib/types/tool.d.ts",
       "default": "./lib/tool.js"
     },
-    "./invariant": {
-      "types": "./lib/types/invariant.d.ts",
-      "default": "./lib/invariant.js"
-    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
@@ -40,7 +36,6 @@
     "lib/index.js",
     "lib/executor.js",
     "lib/tool.js",
-    "lib/invariant.js",
     "cordis.patch.yml",
     "lib/types/**/*.d.ts",
     "assets/skills/**/*"
@@ -54,21 +49,22 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.0-rc.7",
     "@deepseek-ai/schemastery": "^3.18.0",
-    "@deepseek-ai/dsh-credentials": "^0.0.1",
-    "@deepseek-ai/dsh-fs": "^0.0.1",
-    "@deepseek-ai/dsh-invariants": "^0.0.1",
-    "@deepseek-ai/dsh-skill": "^0.0.1",
-    "@deepseek-ai/dsh-tools": "^0.0.1",
-    "@deepseek-ai/dsh-user-approval": "^0.0.1"
+    "@deepseek-ai/dsh-credentials": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-fs": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-settings": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-skill": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-tools": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-user-approval": "^0.1.6-alpha.1"
   },
   "dependencies": {
+    "@tradercjz/dsh-client-dolphindb": "workspace:*",
     "dolphindb": "^3.1.54",
     "yaml": "^2.4.2"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
     "tsdown": "^0.22.2",
-    "typescript": "^5.8.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }
 }

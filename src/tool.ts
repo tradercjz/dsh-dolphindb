@@ -10,16 +10,18 @@
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import type { ChartResultView, ChartSpec, TableResultView, ToolCallView } from '@deepseek-ai/dsh-tools'
+import type { ToolCallView } from '@deepseek-ai/dsh-tools'
 import type { DolphinDbResult, JsonValue } from './types.ts'
 // Brings the `ctx.dolphindb` declaration merge into scope.
 import type {} from './service.ts'
 // Brings the `ctx.fs` and `ctx.approval` declaration merges into scope for `ctx.get`.
 import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-user-approval'
+// Brings the `ctx.settings` declaration merge into scope.
+import type {} from '@deepseek-ai/dsh-settings'
 
 export const name = 'tool-dolphindb'
-export const inject = ['tools', 'dolphindb']
+export const inject = ['tools', 'dolphindb', 'settings']
 
 /** Model-facing DolphinDB tool configuration. */
 export interface Config {
@@ -32,10 +34,11 @@ export const Config: z<Config> = z.object({
   maxRows: z.number().default(1_000),
 })
 
-/** The shared script-source arguments: exactly one of `script` or `file`. */
+/** The shared script-source arguments: exactly one of `script` or `file`, plus an optional target server. */
 interface ScriptArgs {
   script?: string
   file?: string
+  server?: string
 }
 
 /**
@@ -94,10 +97,11 @@ function formatDolphinDbScript(script: string): string {
  * @returns the pending-call render intent.
  */
 function presentScriptCall(title: string, args: ScriptArgs): ToolCallView {
+  const titled = args.server === undefined ? title : `${title} @ ${args.server}`
   if (args.script !== undefined) {
     return {
       card: 'generic',
-      title,
+      title: titled,
       kind: 'execute',
       rawInput: args.script,
       content: [{ type: 'text', text: '```dolphindb\n' + formatDolphinDbScript(args.script) + '\n```' }],
@@ -105,10 +109,20 @@ function presentScriptCall(title: string, args: ScriptArgs): ToolCallView {
   }
   return {
     card: 'generic',
-    title: `${title}: ${args.file ?? ''}`,
+    title: `${titled}: ${args.file ?? ''}`,
     kind: 'execute',
     rawInput: args.file,
   }
+}
+
+/**
+ * Provider-neutral chart request projected from a bounded result, persisted in
+ * `presentationMeta.chartSpec` for a chart-capable UI to pick up.
+ */
+interface ChartSpec {
+  type: 'line' | 'bar' | 'scatter' | 'area'
+  x: Array<string | number>
+  series: Array<{ name: string; values: number[] }>
 }
 
 /**
@@ -153,12 +167,12 @@ function formatCell(cell: JsonValue): string {
   return JSON.stringify(cell)
 }
 
-/** Project a bounded result into model-facing text: a table, or an executed notice. */
+/** Project a bounded result into model-facing text: the target server, then a table or an executed notice. */
 function renderResult(result: DolphinDbResult): string {
   if (result.executed) {
-    return `Executed in ${result.elapsedMs}ms.`
+    return `Executed on ${result.server} in ${result.elapsedMs}ms.`
   }
-  const lines = [result.columns.join('\t')]
+  const lines = [`server: ${result.server}`, result.columns.join('\t')]
   for (const row of result.rows) {
     lines.push(row.map(formatCell).join('\t'))
   }
@@ -189,7 +203,7 @@ async function resolveScript(ctx: Context, args: ScriptArgs, signal: AbortSignal
   return await fs.readText(target, signal)
 }
 
-/** The canonical output schema shared by both tools. */
+/** The canonical output schema shared by both execution tools. */
 const OUTPUT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -200,6 +214,7 @@ const OUTPUT_SCHEMA = {
     truncated: { type: 'boolean' },
     elapsedMs: { type: 'number' },
     executed: { type: 'boolean' },
+    server: { type: 'string' },
   },
 } as const
 
@@ -215,11 +230,12 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.tools.register(defineTool({
     name: 'dolphindb_query',
-    description: 'Run a read-only DolphinDB script or SQL query and return tabular results. Use for time-series and analytics data. Provide exactly one of script (inline) or file (a .dos script path). To render the result as a chart, pass chart with a type (line, bar, scatter, area), the x column name, and the series column names.',
+    description: 'Run a read-only DolphinDB script or SQL query and return tabular results. Use for time-series and analytics data. Provide exactly one of script (inline) or file (a .dos script path). Runs on the active server unless server names another configured server. To render the result as a chart, pass chart with a type (line, bar, scatter, area), the x column name, and the series column names.',
     parameters: {
       script: { type: 'string', description: 'DolphinDB script or SQL to execute (read-only)' },
       file: { type: 'string', description: 'Path to a .dos script file to run' },
       limit: { type: 'number', description: 'Maximum rows to return (default from configuration)' },
+      server: { type: 'string', description: 'Target server name from the dolphindb settings registry (default: the active server)' },
       chart: {
         type: 'object',
         additionalProperties: false,
@@ -246,16 +262,6 @@ export function apply(ctx: Context, config: Config): void {
         return meta as unknown as JsonValue
       },
     },
-    presentResult: (_args, result) => {
-      const meta = result.meta as { chartSpec?: ChartSpec; table?: { columns: string[]; rows: string[][] } } | undefined
-      if (meta?.chartSpec !== undefined) {
-        return { card: 'chart', spec: meta.chartSpec, content: result.content } satisfies ChartResultView
-      }
-      if (meta?.table !== undefined) {
-        return { card: 'table', columns: meta.table.columns, rows: meta.table.rows, content: result.content } satisfies TableResultView
-      }
-      return undefined
-    },
     presentCall: args => presentScriptCall('DolphinDB query', args),
     async execute(args, exec) {
       const script = await resolveScript(ctx, args, exec.signal)
@@ -263,6 +269,7 @@ export function apply(ctx: Context, config: Config): void {
         script,
         limit: args.limit ?? maxRows,
         readOnly: true,
+        ...args.server === undefined ? {} : { server: args.server },
       })
       return ctx.dolphindb.execute(spec, exec.signal)
     },
@@ -270,10 +277,11 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.tools.register(defineTool({
     name: 'dolphindb_execute',
-    description: 'Run a DolphinDB script that may create, mutate, or drop data (DDL/DML, function definitions, writes). Requires user approval. Provide exactly one of script (inline) or file (a .dos script path).',
+    description: 'Run a DolphinDB script that may create, mutate, or drop data (DDL/DML, function definitions, writes). Requires user approval. Provide exactly one of script (inline) or file (a .dos script path). Runs on the active server unless server names another configured server.',
     parameters: {
       script: { type: 'string', description: 'DolphinDB script to execute (may write)' },
       file: { type: 'string', description: 'Path to a .dos script file to run' },
+      server: { type: 'string', description: 'Target server name from the dolphindb settings registry (default: the active server)' },
     },
     output: {
       schema: OUTPUT_SCHEMA,
@@ -281,8 +289,9 @@ export function apply(ctx: Context, config: Config): void {
     },
     presentCall: args => presentScriptCall('DolphinDB write script', args),
     async execute(args, exec) {
-      // Resolve the script BEFORE asking, so the approval preview can show the
-      // actual script even when the model passed a file.
+      // Resolve the script BEFORE asking so a missing/unreadable file fails
+      // before the user is prompted; the approval UI sees the script through
+      // the pending-call card attached by callId.
       const script = await resolveScript(ctx, args, exec.signal)
       const approval = ctx.get('approval')
       if (approval === undefined) {
@@ -291,19 +300,41 @@ export function apply(ctx: Context, config: Config): void {
       if (exec.agent === undefined) {
         throw new Error('dolphindb_execute requires an agent to route the approval through')
       }
+      const spec = ctx.dolphindb.resolve({
+        script,
+        readOnly: false,
+        ...args.server === undefined ? {} : { server: args.server },
+      })
       const outcome = await approval.request({
         agent: exec.agent,
         toolName: 'dolphindb_execute',
         callId: exec.callId,
-        reason: 'Run a DolphinDB script that may create, mutate, or drop data.',
-        preview: { code: formatDolphinDbScript(script), language: 'sql' },
+        reason: `Run a DolphinDB script that may create, mutate, or drop data on "${spec.server}".`,
         signal: exec.signal,
       })
       if (outcome !== 'allowed-once') {
         throw new Error(`dolphindb_execute: not approved (${outcome})`)
       }
-      const spec = ctx.dolphindb.resolve({ script, readOnly: false })
       return ctx.dolphindb.execute(spec, exec.signal)
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'dolphindb_switch',
+    description: 'Switch the active DolphinDB server environment. The active server is the default target of dolphindb_query and dolphindb_execute when they receive no explicit server argument. The selection persists in user settings and applies from the next call. For a one-off query on another server, prefer their server argument instead of switching.',
+    parameters: {
+      server: { type: 'string', required: true, description: 'Server name from the dolphindb settings registry to make active' },
+    },
+    output: {
+      schema: { type: 'string' },
+      render: (_args, value) => [{ type: 'text', text: value as string }],
+    },
+    async execute(args) {
+      const previous = ctx.dolphindb.activeServer()
+      // The section's validate hook rejects an unknown server name; the write
+      // persists to the user settings document and hot-applies.
+      await ctx.settings.update('dolphindb', { active: args.server })
+      return `Switched DolphinDB server: ${previous} → ${args.server}`
     },
   }))
 }

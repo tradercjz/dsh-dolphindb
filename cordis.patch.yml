@@ -7,18 +7,28 @@
 # server overrides them in the profile's own cordis.patch.yml (see README).
 
 - insert:
-    # The local WebSocket executor (defaults 127.0.0.1:8848 / admin). Override
-    # host/port in a later patch layer and set DOLPHINDB_PASSWORD (or the ref
-    # you override to) in the environment or the repo `.env`.
+    # The local WebSocket executor. Ships a single `local` server
+    # (127.0.0.1:8848, credential ref DOLPHINDB_PASSWORD) as the deployment
+    # default. Add servers and switch `active` in the `dolphindb` settings
+    # section (web Settings → Plugins, or $DSH_HOME/settings.yaml); a profile
+    # patch may also override this row's whole config.
     - id: dolphindb
       name: '@tradercjz/dsh-dolphindb/executor'
       config:
-        passwordRef: DOLPHINDB_PASSWORD
+        active: local
+        servers:
+          local:
+            passwordRef: DOLPHINDB_PASSWORD
 
     # The model-facing query (read-only) and execute (write, approval-gated)
-    # tools, registering `dolphindb_query` / `dolphindb_execute`.
+    # tools, plus dolphindb_switch for changing the active server.
     - id: tool-dolphindb
       name: '@tradercjz/dsh-dolphindb/tool'
+
+    # The web settings card (server registry + active switching + per-server
+    # credentials) under Settings → Plugins → Plugin configuration.
+    - id: ui-dolphindb
+      name: '@tradercjz/dsh-client-dolphindb'
 
     # This bundle's runtime glue: registers the bundled DolphinDB skill
     # provider (the shipped SKILL.md tree) on the host `skills` registry.

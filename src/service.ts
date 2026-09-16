@@ -50,6 +50,12 @@ export abstract class DolphinDbExecutor extends Service {
    * @returns the bounded result.
    */
   abstract execute(spec: DolphinDbQuerySpec, signal?: AbortSignal): Promise<DolphinDbResult>
+
+  /**
+   * The name of the server that requests without an explicit `server` run on.
+   * @returns the active server name from the provider's registry.
+   */
+  abstract activeServer(): string
 }
 
 export default DolphinDbExecutor
