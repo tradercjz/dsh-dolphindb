@@ -1,0 +1,263 @@
+/* Cluster console panel: a full-page surface — header, banners, toolbar, perf table. */
+
+.root {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px 32px;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+.headText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--dsw-alias-label-primary);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.headActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.updated {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.errorText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-error);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.banner {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-error);
+}
+
+.bannerOk {
+  composes: banner;
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.bannerFailed {
+  composes: banner;
+  color: var(--dsw-alias-label-error);
+}
+
+.hint {
+  flex: none;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.clearSelection {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.clearSelection:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+}
+
+.clearSelection:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.clearSelection:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.operating {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.tableWrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--dsw-alias-bg-layer-3);
+  text-align: left;
+  font-weight: 500;
+  color: var(--dsw-alias-label-tertiary);
+  padding: 10px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 9px 12px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.checkCol {
+  width: 32px;
+  text-align: center;
+}
+
+.check {
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.nameCol {
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.stateCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyRow {
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  padding: 24px 12px;
+}
+
+.confirmText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}
+
+.confirmList {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--dsw-alias-label-secondary);
+  list-style: none;
+}

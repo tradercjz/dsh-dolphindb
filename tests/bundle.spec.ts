@@ -35,6 +35,7 @@ describe('dsh-dolphindb bundle patch', () => {
     expect(rows).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'dolphindb', name: '@tradercjz/dsh-dolphindb/executor' }),
       expect.objectContaining({ id: 'tool-dolphindb', name: '@tradercjz/dsh-dolphindb/tool' }),
+      expect.objectContaining({ id: 'dolphindb-console', name: '@tradercjz/dsh-dolphindb/console' }),
       expect.objectContaining({ id: 'dolphin-skills', name: '@tradercjz/dsh-dolphindb' }),
     ]))
   })

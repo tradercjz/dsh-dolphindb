@@ -1,0 +1,39 @@
+{
+  "extends": "../../../deepseek-harness/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../deepseek-harness/vendor/cordis"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/client/store"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/client/ui-slots"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/client/ui-primitives"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/client/locale"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/client/ui-renderer"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/typert/protocol"
+    },
+    {
+      "path": "../../../deepseek-harness/packages/api/remotes/tsconfig.client.json"
+    }
+  ]
+}

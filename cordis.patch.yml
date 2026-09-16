@@ -21,14 +21,28 @@
             passwordRef: DOLPHINDB_PASSWORD
 
     # The model-facing query (read-only) and execute (write, approval-gated)
-    # tools, plus dolphindb_switch for changing the active server.
+    # tools, plus dolphindb_switch for changing the active server and
+    # dolphindb_cluster for approval-gated node start/stop.
     - id: tool-dolphindb
       name: '@tradercjz/dsh-dolphindb/tool'
+
+    # The cluster console Remote service: environment probe, getClusterPerf
+    # overview, and controller-directed node start/stop, exported to the web
+    # client as the `dolphindbConsole` Remote namespace and consumed in-process
+    # by the dolphindb_cluster tool.
+    - id: dolphindb-console
+      name: '@tradercjz/dsh-dolphindb/console'
 
     # The web settings card (server registry + active switching + per-server
     # credentials) under Settings → Plugins → Plugin configuration.
     - id: ui-dolphindb
       name: '@tradercjz/dsh-client-dolphindb'
+
+    # The web cluster console panel (sidebar "集群/Cluster" entry + full-page
+    # getClusterPerf overview with controller-directed node start/stop),
+    # consuming the dolphindbConsole Remote namespace.
+    - id: ui-console
+      name: '@tradercjz/dsh-client-console'
 
     # This bundle's runtime glue: registers the bundled DolphinDB skill
     # provider (the shipped SKILL.md tree) on the host `skills` registry.

@@ -8,7 +8,7 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "build": "tsc -b && tsdown && pnpm --filter @tradercjz/dsh-client-dolphindb run build",
+    "build": "tsc -b && tsdown && pnpm --filter @tradercjz/dsh-client-dolphindb run build && pnpm --filter @tradercjz/dsh-client-console run build",
     "prepare": "tsdown --config tsdown.prepare.config.ts",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run"
@@ -28,6 +28,10 @@
       "types": "./lib/types/tool.d.ts",
       "default": "./lib/tool.js"
     },
+    "./console": {
+      "types": "./lib/types/console.d.ts",
+      "default": "./lib/console.js"
+    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
@@ -36,6 +40,7 @@
     "lib/index.js",
     "lib/executor.js",
     "lib/tool.js",
+    "lib/console.js",
     "cordis.patch.yml",
     "lib/types/**/*.d.ts",
     "assets/skills/**/*"
@@ -54,9 +59,11 @@
     "@deepseek-ai/dsh-settings": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-skill": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-tools": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-typert-protocol": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-user-approval": "^0.1.6-alpha.1"
   },
   "dependencies": {
+    "@tradercjz/dsh-client-console": "workspace:*",
     "@tradercjz/dsh-client-dolphindb": "workspace:*",
     "dolphindb": "^3.1.54",
     "yaml": "^2.4.2"

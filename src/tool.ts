@@ -19,9 +19,11 @@ import type {} from '@deepseek-ai/dsh-fs'
 import type {} from '@deepseek-ai/dsh-user-approval'
 // Brings the `ctx.settings` declaration merge into scope.
 import type {} from '@deepseek-ai/dsh-settings'
+// Brings the `ctx.dolphindbConsole` declaration merge into scope.
+import type {} from './console.ts'
 
 export const name = 'tool-dolphindb'
-export const inject = ['tools', 'dolphindb', 'settings']
+export const inject = ['tools', 'dolphindb', 'dolphindbConsole', 'settings']
 
 /** Model-facing DolphinDB tool configuration. */
 export interface Config {
@@ -335,6 +337,62 @@ export function apply(ctx: Context, config: Config): void {
       // persists to the user settings document and hot-applies.
       await ctx.settings.update('dolphindb', { active: args.server })
       return `Switched DolphinDB server: ${previous} → ${args.server}`
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'dolphindb_cluster',
+    description: 'Start or stop DolphinDB data/compute nodes in the cluster of the active server, through its controller. Requires user approval. Use dolphindb_query with getClusterPerf(true) to list node names, states, and modes first. Single-node deployments have no controller and reject this operation.',
+    parameters: {
+      action: { type: 'string', required: true, description: 'Node lifecycle action: "start" or "stop"' },
+      nodes: {
+        type: 'array',
+        items: { type: 'string' },
+        required: true,
+        description: 'Node aliases from getClusterPerf to start or stop (data/compute nodes only)',
+      },
+    },
+    output: {
+      schema: { type: 'string' },
+      render: (_args, value) => [{ type: 'text', text: value as string }],
+    },
+    presentCall: args => ({
+      card: 'generic',
+      title: `DolphinDB ${args.action === 'start' ? 'start' : 'stop'} nodes`,
+      kind: 'execute',
+      rawInput: (args.nodes as string[] | undefined)?.join(', '),
+      content: [{ type: 'text', text: (args.nodes as string[] | undefined)?.map(name => `- ${name}`).join('\n') ?? '' }],
+    }),
+    async execute(args, exec) {
+      if (args.action !== 'start' && args.action !== 'stop') {
+        throw new Error(`dolphindb_cluster: action must be "start" or "stop" (got "${args.action}")`)
+      }
+      const nodes = args.nodes
+      if (!Array.isArray(nodes) || nodes.length === 0) {
+        throw new Error('dolphindb_cluster: nodes must be a nonempty array of node aliases')
+      }
+      const approval = ctx.get('approval')
+      if (approval === undefined) {
+        throw new Error('dolphindb_cluster requires an approval channel (ctx.approval) to change node state')
+      }
+      if (exec.agent === undefined) {
+        throw new Error('dolphindb_cluster requires an agent to route the approval through')
+      }
+      const outcome = await approval.request({
+        agent: exec.agent,
+        toolName: 'dolphindb_cluster',
+        callId: exec.callId,
+        reason: `${args.action === 'start' ? 'Start' : 'Stop'} ${nodes.length} DolphinDB node(s) on "${ctx.dolphindb.activeServer()}": ${nodes.join(', ')}`,
+        signal: exec.signal,
+      })
+      if (outcome !== 'allowed-once') {
+        throw new Error(`dolphindb_cluster: not approved (${outcome})`)
+      }
+      const request = { nodes: nodes as string[] }
+      const result = args.action === 'start'
+        ? await ctx.dolphindbConsole.startNodes(request, exec.signal)
+        : await ctx.dolphindbConsole.stopNodes(request, exec.signal)
+      return `${args.action === 'start' ? 'Started' : 'Stopped'} ${result.nodes.length} node(s) on ${result.server}: ${result.nodes.join(', ')} (${result.elapsedMs}ms)`
     },
   }))
 }
