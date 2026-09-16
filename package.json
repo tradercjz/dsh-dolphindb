@@ -60,13 +60,15 @@
     "@deepseek-ai/dsh-skill": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-tools": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-typert-protocol": "^0.1.6-alpha.1",
+    "@deepseek-ai/dsh-typert-registry": "^0.1.6-alpha.1",
     "@deepseek-ai/dsh-user-approval": "^0.1.6-alpha.1"
   },
   "dependencies": {
     "@tradercjz/dsh-client-console": "workspace:*",
     "@tradercjz/dsh-client-dolphindb": "workspace:*",
     "dolphindb": "^3.1.54",
-    "yaml": "^2.4.2"
+    "yaml": "^2.4.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

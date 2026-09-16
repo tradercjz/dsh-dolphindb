@@ -194,7 +194,20 @@ export class ClusterConsoleController {
     if (this.disposed) return
     const generation = ++this.generation
     this.inFlight = true
-    const result = await this.ctx.remote.dolphindbConsole.overview()
+    let result: Awaited<ReturnType<typeof this.ctx.remote.dolphindbConsole.overview>>
+    try {
+      result = await this.ctx.remote.dolphindbConsole.overview()
+    } catch (error) {
+      // A local throw (transport down, namespace withdrawn) is a poll failure
+      // too; without this branch the loop would wedge with inFlight stuck set.
+      this.inFlight = false
+      if (this.disposed || generation !== this.generation) return
+      this.store.update((draft) => {
+        draft.status = draft.overview === undefined ? 'error' : 'ready'
+        draft.errorMessage = error instanceof Error ? error.message : String(error)
+      })
+      return
+    }
     this.inFlight = false
     if (this.disposed || generation !== this.generation) return
     if (result.ok) {
@@ -254,9 +267,19 @@ export class ClusterConsoleController {
       draft.receipt = undefined
     })
     const remote = this.ctx.remote.dolphindbConsole
-    const result = kind === 'start'
-      ? await remote.startNodes({ nodes })
-      : await remote.stopNodes({ nodes })
+    let result: Awaited<ReturnType<typeof remote.startNodes>>
+    try {
+      result = kind === 'start'
+        ? await remote.startNodes({ nodes })
+        : await remote.stopNodes({ nodes })
+    } catch (error) {
+      if (this.disposed) return
+      this.store.update((draft) => {
+        draft.operating = false
+        draft.receipt = { kind, ok: false, message: error instanceof Error ? error.message : String(error) }
+      })
+      return
+    }
     if (this.disposed) return
     this.store.update((draft) => {
       draft.operating = false

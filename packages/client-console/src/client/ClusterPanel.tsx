@@ -76,6 +76,12 @@ function bytesText(cell: ClusterPerfCell | undefined): string {
   return Number.isFinite(value) ? fileSizeText(value) : EMPTY_CELL
 }
 
+/** getClusterPerf's maxMemSize is a GB count, not a byte count. */
+function gbText(cell: ClusterPerfCell | undefined): string {
+  const value = Number(cell)
+  return Number.isFinite(value) ? `${value}GB` : EMPTY_CELL
+}
+
 /** Project one raw perf row into its display shape. */
 function projectRow(overview: ClusterOverview, row: ClusterPerfRow, index: number): NodeRowView {
   const name = nodeName(overview, row)
@@ -98,7 +104,7 @@ function projectRow(overview: ClusterOverview, row: ClusterPerfRow, index: numbe
     site: cellText(perfCell(overview, row, 'site')),
     cpu: cpu === EMPTY_CELL ? EMPTY_CELL : `${cpu}%`,
     load: numberText(perfCell(overview, row, 'avgLoad')),
-    memory: `${bytesText(used)} / ${bytesText(max)}`,
+    memory: `${bytesText(used)} / ${gbText(max)}`,
     jobs: `${runningJobs} / ${queuedJobs}`,
     tasks: `${runningTasks} / ${queuedTasks}`,
   }

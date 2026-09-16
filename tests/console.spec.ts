@@ -49,6 +49,20 @@ class FakeExecutor extends Service {
   }
 }
 
+/** Stub typert registry: records host contributions handed to register(). */
+class StubTypertRegistry extends Service {
+  readonly contributions: { package: string, invocations: readonly { id: string }[] }[] = []
+
+  constructor(ctx: Context) {
+    super(ctx, 'typert')
+  }
+
+  register(contribution: { package: string, invocations: readonly { id: string }[] }): () => Promise<void> {
+    this.contributions.push(contribution)
+    return async () => {}
+  }
+}
+
 function envResult(nodeType: number, controllerAlias: string): DolphinDbResult {
   return {
     columns: ['value'],
@@ -77,13 +91,15 @@ function executedResult(): DolphinDbResult {
   return { columns: [], rows: [], rowCount: 0, truncated: false, elapsedMs: 5, executed: true, server: 'main' }
 }
 
-async function setup(): Promise<{ ctx: Context, executor: FakeExecutor, service: DolphinDbConsoleService }> {
+async function setup(): Promise<{ ctx: Context, executor: FakeExecutor, registry: StubTypertRegistry, service: DolphinDbConsoleService }> {
   const ctx = new Context()
   await ctx.plugin(FakeExecutor)
+  await ctx.plugin(StubTypertRegistry)
   await ctx.plugin(DolphinDbConsoleService)
   const executor = ctx.get('dolphindb') as unknown as FakeExecutor
+  const registry = ctx.get('typert') as unknown as StubTypertRegistry
   const service = ctx.get('dolphindbConsole')
-  return { ctx, executor, service }
+  return { ctx, executor, registry, service }
 }
 
 describe('DolphinDbConsoleService', () => {
@@ -91,6 +107,19 @@ describe('DolphinDbConsoleService', () => {
     const { service } = await setup()
     const exports = remoteMethods(service).map(marker => marker.exportName ?? marker.method)
     expect(exports).toEqual(['environment', 'overview', 'startNodes', 'stopNodes'])
+  })
+
+  it('registers the host contribution with strict descriptors at construction', async () => {
+    const { registry } = await setup()
+    expect(registry.contributions).toHaveLength(1)
+    const contribution = registry.contributions[0]!
+    expect(contribution.package).toBe('@tradercjz/dsh-dolphindb')
+    expect(contribution.invocations.map(invocation => invocation.id)).toEqual([
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/environment',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/overview',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/startNodes',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/stopNodes',
+    ])
   })
 
   it('parses a clustered environment from the probe dictionary', async () => {

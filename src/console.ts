@@ -3,14 +3,20 @@
  * console. Runs cluster introspection and node lifecycle operations as scripts
  * through the `ctx.dolphindb` executor seam on the active server, and exports
  * them to the web client as Typert Remote methods. The web client mounts a
- * hand-written strict contribution for this namespace; the Host side resolves
- * through the gateway's SRC fallback (no generated artifacts), so this build
- * must not mangle method parameter names (tsdown default: no minify).
+ * hand-written strict contribution for this namespace; the Host side registers
+ * the same descriptors into the typert registry's local store at construction
+ * (the gateway's SRC claim scan does not observe Loader-fiber services in
+ * time), so the endpoint claims resolve strictly and no generated artifacts
+ * are required.
  * @module @tradercjz/dsh-dolphindb
  */
 
 import { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol'
+import type { TypertRegistry } from '@deepseek-ai/dsh-typert-registry'
+import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry/types'
+import { z } from 'zod'
 import type { JsonValue } from './types.ts'
 // Brings the `ctx.dolphindb` declaration merge into scope.
 import type {} from './service.ts'
@@ -113,16 +119,63 @@ function assertNodeOperation(request: NodeOperationRequest): string[] {
   return [...nodes]
 }
 
+/** Wire schema of the one business parameter the mutation methods share. */
+const nodeOperationRequest$schema = z.object({ nodes: z.array(z.string()) })
+
+/** One console descriptor in the registry-local shape, mirroring the web client's mounted contribution. */
+function consoleDescriptor(method: string, mutating: boolean): InvocationDescriptor {
+  return {
+    id: `@tradercjz/dsh-dolphindb#dolphindbConsole/${method}`,
+    service: 'dolphindbConsole',
+    namespace: 'dolphindbConsole',
+    method,
+    invocation: { kind: 'direct' },
+    parameters: mutating
+      ? [{
+        name: 'request',
+        wire: 'request',
+        source: 'json',
+        codec: {
+          mode: 'strict',
+          typeSymbol: '@tradercjz/dsh-dolphindb/console#NodeOperationRequest',
+          schema: nodeOperationRequest$schema,
+        },
+      }]
+      : [],
+    cancellation: { parameter: 'signal' },
+    result: { mode: 'src-json' },
+  }
+}
+
+/** Host contribution registered into the typert local store when the service starts. */
+const CONSOLE_CONTRIBUTION: TypertContribution = {
+  package: '@tradercjz/dsh-dolphindb',
+  face: 'host',
+  schemas: [],
+  invocations: [
+    consoleDescriptor('environment', false),
+    consoleDescriptor('overview', false),
+    consoleDescriptor('startNodes', true),
+    consoleDescriptor('stopNodes', true),
+  ],
+  model: { services: [], events: [], objects: [] },
+}
+
 /**
  * Cluster introspection and node lifecycle for the operations console. All
  * methods target the executor's active server at call time, so a settings
  * switch moves the console with the next call.
  */
 export class DolphinDbConsoleService extends TypertRemoteService {
-  static inject = ['dolphindb']
+  static inject = ['dolphindb', 'typert']
 
   constructor(ctx: Context) {
     super(ctx, 'dolphindbConsole')
+    // The protocol face of ctx.typert omits register(); the concrete registry
+    // service provides it, like the typert-loader consumes it.
+    const registry = ctx.get('typert') as unknown as TypertRegistry
+    const dispose = registry.register(CONSOLE_CONTRIBUTION)
+    ctx.effect(() => dispose, 'dolphindb: console typert contribution')
   }
 
   /**

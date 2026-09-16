@@ -39,36 +39,50 @@ const PANEL_ID = 'dolphindb-cluster'
 export const inject = ['slots', 'locale', 'remote']
 
 /**
- * Mount the console's Remote contribution, controller, dictionaries, and the
- * main/sidebar slot pair.
+ * Mount the console's Remote contribution, then activate the UI once the
+ * mounted namespace service exists. The static inject cannot name
+ * `remote.dolphindbConsole` — it only exists after the $mount below — so the
+ * UI half runs in a dynamic inject fiber, the same arrangement the shipped
+ * out-of-assembly Remote packages use.
  * @param ctx - the browser plugin context.
- * @returns disposer withdrawing the Remote namespace (slot registrations and
- * effects unwind with the fiber).
+ * @returns disposer withdrawing the UI fiber and the Remote namespace.
  */
 export async function apply(ctx: ClientContext): Promise<() => Promise<void>> {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'console: dictionaries')
-
   const disposeRemote = await ctx.remote.$mount(TYPERT_REMOTE)
+  const ui = ctx.inject(['slots', 'locale', 'remote.dolphindbConsole'], registerUi)
   try {
-    const t = ctx.locale.bind(NS)
-    const controller = new ClusterConsoleController(ctx)
-    ctx.effect(() => () => { controller.dispose() }, 'console: polling')
-
-    ctx.slots.register({
-      name: 'main',
-      key: PANEL_ID,
-      locale: NS,
-      inject: () => controller.inject(),
-    }, ClusterPanel)
-    ctx.slots.register({
-      name: 'sidebar.panellist',
-      id: PANEL_ID,
-      order: 20,
-      label: () => t('panelLabel'),
-    }, SidebarIcon)
+    await ui
   } catch (error) {
+    await ui.dispose()
     await disposeRemote()
     throw error
   }
-  return async () => { await disposeRemote() }
+  return async () => {
+    await ui.dispose()
+    await disposeRemote()
+  }
+}
+
+/** Register dictionaries, the polling controller, and the main/sidebar slot pair. */
+function registerUi(ctx: ClientContext): void {
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'console: dictionaries')
+
+  const t = ctx.locale.bind(NS)
+  const controller = new ClusterConsoleController(ctx)
+  ctx.effect(() => () => { controller.dispose() }, 'console: polling')
+
+  // The shell declares both seats from its own activation path; inject waits
+  // for each declaration instead of racing the boot order.
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: PANEL_ID,
+    locale: NS,
+    inject: () => controller.inject(),
+  }, ClusterPanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: PANEL_ID,
+    order: 20,
+    label: () => t('panelLabel'),
+  }, SidebarIcon))
 }
