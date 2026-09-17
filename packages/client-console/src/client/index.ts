@@ -18,7 +18,11 @@ import TYPERT_REMOTE from './contribution.ts'
 import { ClusterConsoleController } from './controller.ts'
 import { ClusterPanel } from './ClusterPanel.tsx'
 import { SidebarIcon } from './SidebarIcon.tsx'
+import { DataBrowserController } from './data-controller.ts'
+import { DataPanel } from './DataPanel.tsx'
+import { DataIcon } from './DataIcon.tsx'
 import { en, zh } from './locales.ts'
+import { en as dataEn, zh as dataZh } from './data-locales.ts'
 import type {} from './slot-contract.ts'
 
 export { TYPERT_REMOTE } from './contribution.ts'
@@ -28,12 +32,24 @@ export type {
   ClusterActionReceipt, ClusterConsoleFace, ClusterConsoleState, ClusterPerfCell, ClusterPerfRow,
 } from './controller.ts'
 export type { ClusterConsoleLocaleKey } from './locales.ts'
+export type { DataPanelProps } from './DataPanel.tsx'
+export type {
+  CatalogState, DataBrowserFace, DataBrowserState, DataCell, DataRow, PageState, SchemaState, TableSelection,
+} from './data-controller.ts'
+export { PAGE_SIZES } from './data-controller.ts'
+export type { DataBrowserLocaleKey } from './data-locales.ts'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'dolphindb.console'
 
 /** Main panel key and sidebar panellist id of the cluster console. */
 const PANEL_ID = 'dolphindb-cluster'
+
+/** Dictionary namespace of the data browser panel. */
+const DATA_NS = 'dolphindb.data'
+
+/** Main panel key and sidebar panellist id of the data browser. */
+const DATA_PANEL_ID = 'dolphindb-data'
 
 /** Required services (cordis fiber inject). */
 export const inject = ['slots', 'locale', 'remote']
@@ -63,13 +79,17 @@ export async function apply(ctx: ClientContext): Promise<() => Promise<void>> {
   }
 }
 
-/** Register dictionaries, the polling controller, and the main/sidebar slot pair. */
+/** Register dictionaries, the panel controllers, and the main/sidebar slot pairs. */
 function registerUi(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'console: dictionaries')
+  ctx.effect(() => ctx.locale.register(DATA_NS, { zh: dataZh, en: dataEn }), 'data: dictionaries')
 
   const t = ctx.locale.bind(NS)
   const controller = new ClusterConsoleController(ctx)
   ctx.effect(() => () => { controller.dispose() }, 'console: polling')
+  const dataT = ctx.locale.bind(DATA_NS)
+  const dataController = new DataBrowserController(ctx)
+  ctx.effect(() => () => { dataController.dispose() }, 'data: loading')
 
   // The shell declares both seats from its own activation path; inject waits
   // for each declaration instead of racing the boot order.
@@ -85,4 +105,16 @@ function registerUi(ctx: ClientContext): void {
     order: 20,
     label: () => t('panelLabel'),
   }, SidebarIcon))
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: DATA_PANEL_ID,
+    locale: DATA_NS,
+    inject: () => dataController.inject(),
+  }, DataPanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: DATA_PANEL_ID,
+    order: 21,
+    label: () => dataT('panelLabel'),
+  }, DataIcon))
 }

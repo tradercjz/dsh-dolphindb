@@ -103,10 +103,13 @@ async function setup(): Promise<{ ctx: Context, executor: FakeExecutor, registry
 }
 
 describe('DolphinDbConsoleService', () => {
-  it('marks the four console methods for Remote serving', async () => {
+  it('marks the console methods for Remote serving', async () => {
     const { service } = await setup()
     const exports = remoteMethods(service).map(marker => marker.exportName ?? marker.method)
-    expect(exports).toEqual(['environment', 'overview', 'startNodes', 'stopNodes'])
+    expect(exports).toEqual([
+      'environment', 'overview', 'startNodes', 'stopNodes',
+      'dfsCatalog', 'dfsTableSchema', 'dfsTableData',
+    ])
   })
 
   it('registers the host contribution with strict descriptors at construction', async () => {
@@ -119,6 +122,9 @@ describe('DolphinDbConsoleService', () => {
       '@tradercjz/dsh-dolphindb#dolphindbConsole/overview',
       '@tradercjz/dsh-dolphindb#dolphindbConsole/startNodes',
       '@tradercjz/dsh-dolphindb#dolphindbConsole/stopNodes',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsCatalog',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsTableSchema',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsTableData',
     ])
   })
 
@@ -185,6 +191,157 @@ describe('DolphinDbConsoleService', () => {
     await expect(service.startNodes({ nodes: [''] })).rejects.toThrow(/nonempty strings/)
     await expect(service.startNodes({ nodes: ['x'.repeat(0)].filter(Boolean) })).rejects.toThrow(/nonempty/)
     await expect(service.startNodes({ nodes: Array.from({ length: 129 }, (_, i) => `n${i}`) })).rejects.toThrow(/128/)
+    expect(executor.calls).toHaveLength(0)
+  })
+})
+
+function catalogResult(databases: string[], tables: string[]): DolphinDbResult {
+  return {
+    columns: ['value'],
+    rows: [[{ databases, tables }]],
+    rowCount: 1,
+    truncated: false,
+    elapsedMs: 7,
+    executed: false,
+    server: 'main',
+  }
+}
+
+function colDefsResult(): DolphinDbResult {
+  return {
+    columns: ['name', 'typeString'],
+    rows: [['id', 'INT'], ['ts', 'TIMESTAMP']],
+    rowCount: 2,
+    truncated: false,
+    elapsedMs: 3,
+    executed: false,
+    server: 'main',
+  }
+}
+
+function countResult(count: string): DolphinDbResult {
+  return {
+    columns: ['count'],
+    rows: [[count]],
+    rowCount: 1,
+    truncated: false,
+    elapsedMs: 2,
+    executed: false,
+    server: 'main',
+  }
+}
+
+function pageResult(truncated: boolean): DolphinDbResult {
+  return {
+    columns: ['id', 'ts'],
+    rows: [[1, '2024.01.01T00:00:00'], [2, '2024.01.01T00:00:01']],
+    rowCount: 2,
+    truncated,
+    elapsedMs: 11,
+    executed: false,
+    server: 'main',
+  }
+}
+
+describe('DolphinDbConsoleService DFS browsing', () => {
+  it('reads the catalog dictionary and reports both path lists', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push(catalogResult(['dfs://db1'], ['dfs://db1/t1', 'dfs://db1/t2']))
+    const catalog = await service.dfsCatalog()
+    expect(catalog).toEqual({
+      server: 'main',
+      databases: ['dfs://db1'],
+      tables: ['dfs://db1/t1', 'dfs://db1/t2'],
+      truncated: false,
+      elapsedMs: 7,
+    })
+    expect(executor.calls[0]?.spec.script).toContain('getClusterDFSDatabases')
+    expect(executor.calls[0]?.spec.script).toContain('getClusterDFSTables')
+    expect(executor.calls[0]?.spec.readOnly).toBe(true)
+  })
+
+  it('drops non-string cells and cuts overlong catalogs with the flag set', async () => {
+    const { executor, service } = await setup()
+    const tables = Array.from({ length: 50_001 }, (_, index) => `dfs://db/t${index}`)
+    executor.answers.push(catalogResult([], [...tables, 42 as unknown as string]))
+    const catalog = await service.dfsCatalog()
+    expect(catalog.truncated).toBe(true)
+    expect(catalog.tables).toHaveLength(50_000)
+    expect(catalog.databases).toEqual([])
+  })
+
+  it('tolerates a malformed catalog cell', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push({
+      columns: ['value'], rows: [[null]], rowCount: 1, truncated: false, elapsedMs: 1, executed: false, server: 'main',
+    })
+    const catalog = await service.dfsCatalog()
+    expect(catalog.databases).toEqual([])
+    expect(catalog.tables).toEqual([])
+    expect(catalog.truncated).toBe(false)
+  })
+
+  it('runs schema and count as two read-only round trips and parses the count string', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push(colDefsResult(), countResult('1000000'))
+    const schema = await service.dfsTableSchema({ db: 'dfs://db1', table: 't1' })
+    expect(schema).toEqual({
+      server: 'main',
+      db: 'dfs://db1',
+      table: 't1',
+      columns: ['name', 'typeString'],
+      rows: [['id', 'INT'], ['ts', 'TIMESTAMP']],
+      rowCount: 1_000_000,
+      elapsedMs: 5,
+    })
+    expect(executor.calls).toHaveLength(2)
+    expect(executor.calls[0]?.spec.script).toBe('schema(loadTable("dfs://db1", "t1")).colDefs')
+    expect(executor.calls[1]?.spec.script).toBe('select count(*) from loadTable("dfs://db1", "t1")')
+    expect(executor.calls.every(call => call.spec.readOnly)).toBe(true)
+  })
+
+  it('rejects malformed table references before touching the server', async () => {
+    const { executor, service } = await setup()
+    await expect(service.dfsTableSchema({ db: '', table: 't' })).rejects.toThrow(/nonempty/)
+    await expect(service.dfsTableSchema({ db: 'dfs://db', table: 'a\nb' })).rejects.toThrow(/control/)
+    await expect(service.dfsTableSchema({ db: 'x'.repeat(513), table: 't' })).rejects.toThrow(/nonempty|control/)
+    expect(executor.calls).toHaveLength(0)
+  })
+
+  it('pages table data with the window in the script and the truncation flag read back', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push(pageResult(true))
+    const page = await service.dfsTableData({ db: 'dfs://db1', table: 't1', offset: 200, limit: 100 })
+    expect(page).toEqual({
+      server: 'main',
+      db: 'dfs://db1',
+      table: 't1',
+      columns: ['id', 'ts'],
+      rows: [[1, '2024.01.01T00:00:00'], [2, '2024.01.01T00:00:01']],
+      offset: 200,
+      truncated: true,
+      elapsedMs: 11,
+    })
+    expect(executor.calls[0]?.spec.script).toBe('select * from loadTable("dfs://db1", "t1") limit 200, 100')
+    expect(executor.calls[0]?.spec.readOnly).toBe(true)
+  })
+
+  it('quotes names carrying quotes or spaces as string literals', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push(pageResult(false))
+    await service.dfsTableData({ db: 'dfs:// dayFactorDB ', table: 'weird"tbl', offset: 0, limit: 10 })
+    expect(executor.calls[0]?.spec.script).toBe(
+      'select * from loadTable("dfs:// dayFactorDB ", "weird\\"tbl") limit 0, 10',
+    )
+  })
+
+  it('validates the page window before touching the server', async () => {
+    const { executor, service } = await setup()
+    const ref = { db: 'dfs://db', table: 't' }
+    await expect(service.dfsTableData({ ...ref, offset: -1, limit: 10 })).rejects.toThrow(/offset/)
+    await expect(service.dfsTableData({ ...ref, offset: 0.5, limit: 10 })).rejects.toThrow(/offset/)
+    await expect(service.dfsTableData({ ...ref, offset: 0, limit: 0 })).rejects.toThrow(/limit/)
+    await expect(service.dfsTableData({ ...ref, offset: 0, limit: 1001 })).rejects.toThrow(/1000/)
     expect(executor.calls).toHaveLength(0)
   })
 })

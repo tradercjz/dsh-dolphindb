@@ -14,7 +14,8 @@
 import { z } from 'zod'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type {
-  ClusterOverview, ConsoleEnvironment, NodeOperationRequest, NodeOperationResult,
+  ClusterOverview, ConsoleEnvironment, DfsCatalog, DfsTablePage, DfsTablePageRequest, DfsTableRef,
+  DfsTableSchema, NodeOperationRequest, NodeOperationResult,
 } from '@tradercjz/dsh-dolphindb/console'
 
 /** The `dolphindbConsole` Remote namespace as this client calls it. */
@@ -27,6 +28,12 @@ export interface DolphinDbConsoleRemote {
   startNodes: (request: NodeOperationRequest) => Promise<RemoteResult<NodeOperationResult>>
   /** Stop data/compute nodes through the controller. */
   stopNodes: (request: NodeOperationRequest) => Promise<RemoteResult<NodeOperationResult>>
+  /** List every visible DFS database and table path, sorted. */
+  dfsCatalog: () => Promise<RemoteResult<DfsCatalog>>
+  /** Read one DFS table's colDefs projection and row count. */
+  dfsTableSchema: (request: DfsTableRef) => Promise<RemoteResult<DfsTableSchema>>
+  /** Read one page of a DFS table's rows. */
+  dfsTableData: (request: DfsTablePageRequest) => Promise<RemoteResult<DfsTablePage>>
 }
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -46,6 +53,33 @@ const nodeOperationParameter = {
     mode: 'strict',
     typeSymbol: '@tradercjz/dsh-client-console#NodeOperationRequest',
     schema: nodeOperationRequest$schema,
+  },
+} as const
+
+const dfsTableRefParameter = {
+  name: 'request',
+  wire: 'request',
+  source: 'json',
+  codec: {
+    mode: 'strict',
+    typeSymbol: '@tradercjz/dsh-client-console#DfsTableRef',
+    schema: z.object({ db: z.string(), table: z.string() }),
+  },
+} as const
+
+const dfsTablePageParameter = {
+  name: 'request',
+  wire: 'request',
+  source: 'json',
+  codec: {
+    mode: 'strict',
+    typeSymbol: '@tradercjz/dsh-client-console#DfsTablePageRequest',
+    schema: z.object({
+      db: z.string(),
+      table: z.string(),
+      offset: z.number().int().nonnegative(),
+      limit: z.number().int().positive(),
+    }),
   },
 } as const
 
@@ -87,6 +121,33 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       method: 'stopNodes',
       invocation: { kind: 'direct' },
       parameters: [nodeOperationParameter],
+      result: { mode: 'src-json' },
+    },
+    {
+      id: '@tradercjz/dsh-client-console#dolphindbConsole/dfsCatalog',
+      service: 'dolphindbConsole',
+      namespace: 'dolphindbConsole',
+      method: 'dfsCatalog',
+      invocation: { kind: 'direct' },
+      parameters: [],
+      result: { mode: 'src-json' },
+    },
+    {
+      id: '@tradercjz/dsh-client-console#dolphindbConsole/dfsTableSchema',
+      service: 'dolphindbConsole',
+      namespace: 'dolphindbConsole',
+      method: 'dfsTableSchema',
+      invocation: { kind: 'direct' },
+      parameters: [dfsTableRefParameter],
+      result: { mode: 'src-json' },
+    },
+    {
+      id: '@tradercjz/dsh-client-console#dolphindbConsole/dfsTableData',
+      service: 'dolphindbConsole',
+      namespace: 'dolphindbConsole',
+      method: 'dfsTableData',
+      invocation: { kind: 'direct' },
+      parameters: [dfsTablePageParameter],
       result: { mode: 'src-json' },
     },
   ],
