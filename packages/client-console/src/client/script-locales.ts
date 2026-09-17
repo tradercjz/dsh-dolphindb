@@ -3,7 +3,7 @@
 /** Locale keys the panel renders. */
 export type ScriptConsoleLocaleKey =
   | 'panelLabel' | 'title'
-  | 'run' | 'running' | 'runHint' | 'editorPlaceholder'
+  | 'run' | 'running' | 'runHint' | 'editorLoading'
   | 'resultIdle' | 'executed' | 'failed' | 'truncatedResult'
   | 'rowCount' | 'elapsed' | 'server'
 
@@ -21,7 +21,7 @@ export const en: Record<ScriptConsoleLocaleKey, string> = {
   run: 'Run',
   running: 'Running…',
   runHint: '⌘/Ctrl + Enter',
-  editorPlaceholder: 'Write a DolphinDB script or SQL here…',
+  editorLoading: 'Loading the DolphinDB editor…',
   resultIdle: 'Run a script and the result lands here.',
   executed: 'Done — the script returned no value ({ms} ms).',
   failed: 'The run failed:',
@@ -38,7 +38,7 @@ export const zh: Record<ScriptConsoleLocaleKey, string> = {
   run: '执行',
   running: '正在执行…',
   runHint: '⌘/Ctrl + Enter',
-  editorPlaceholder: '在此输入 DolphinDB 脚本或 SQL…',
+  editorLoading: '正在加载 DolphinDB 编辑器…',
   resultIdle: '执行脚本后，结果显示在这里。',
   executed: '执行完成——脚本没有返回值（{ms} ms）。',
   failed: '执行失败：',

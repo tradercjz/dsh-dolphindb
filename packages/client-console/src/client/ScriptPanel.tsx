@@ -1,19 +1,20 @@
 /**
- * The DolphinDB script console: a full-page main panel pairing a CodeMirror
- * editor with a bounded result pane. CodeMirror is bundled directly (no
- * workers, no loader) with SQL highlighting and keyword completion as the
- * DolphinDB-adjacent grammar; ⌘/Ctrl+Enter or the Run button sends the
- * buffer through the dolphindbConsole.runScript Remote method, and the
- * executor's row/byte budgets bound what renders. The editor owns the text;
- * the controller owns only the last run's outcome.
+ * The DolphinDB script console: a full-page main panel pairing a Monaco
+ * editor with a bounded result pane. Monaco is bundled directly from the ESM
+ * sources (the /plugins channel serves no static files) with donaco's
+ * DolphinDB language — TextMate highlighting through the inlined onig.wasm,
+ * function completion and signature help from the signature-slimmed docs.
+ * ⌘/Ctrl+Enter or the Run button sends the buffer through the
+ * dolphindbConsole.runScript Remote method, and the executor's row/byte
+ * budgets bound what renders. The editor owns the text; the controller owns
+ * only the last run's outcome.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { Compartment, EditorState } from '@codemirror/state'
-import { EditorView, keymap, placeholder } from '@codemirror/view'
-import { sql } from '@codemirror/lang-sql'
-import { basicSetup } from 'codemirror'
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
+import { loadWASM } from 'vscode-oniguruma'
+import { register_dolphindb_language } from 'donaco'
 import { Button, IconPlayOutline16, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ScriptCell, ScriptConsoleFace, ScriptConsoleState } from './script-controller.ts'
@@ -29,42 +30,39 @@ export type ScriptPanelProps =
 /** Locale reader for this panel's copy. */
 type ScriptTranslate = TranslateNS<'dolphindb.script'>
 
-/** Editor colors track the app's own design tokens, so theme switches come along for free. */
-const consoleTheme = EditorView.theme({
-  '&': {
-    backgroundColor: 'var(--dsw-alias-bg-layer-3)',
-    color: 'var(--dsw-alias-label-primary)',
-    fontSize: '13px',
-    height: '100%',
-  },
-  '.cm-content': {
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-    caretColor: 'var(--dsw-alias-label-primary)',
-    padding: '10px 0',
-  },
-  '.cm-line': { padding: '0 12px' },
-  '.cm-gutters': {
-    backgroundColor: 'var(--dsw-alias-bg-layer-3)',
-    color: 'var(--dsw-alias-label-quaternary)',
-    border: 'none',
-    paddingLeft: '6px',
-  },
-  '.cm-activeLine': { backgroundColor: 'var(--dsw-alias-bg-layer-2)' },
-  '.cm-activeLineGutter': { backgroundColor: 'var(--dsw-alias-bg-layer-2)' },
-  '&.cm-focused': { outline: 'none' },
-  '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
-    backgroundColor: 'var(--dsw-alias-brand-primary-dim, rgba(88, 128, 255, 0.28))',
-  },
-  '.cm-tooltip': {
-    backgroundColor: 'var(--dsw-alias-bg-layer-2)',
-    color: 'var(--dsw-alias-label-primary)',
-    border: '0.5px solid var(--dsw-alias-border-l2)',
-  },
-  '.cm-tooltip-autocomplete ul li[aria-selected]': {
-    backgroundColor: 'var(--dsw-alias-brand-primary)',
-    color: 'var(--dsw-alias-label-on-brand, #fff)',
-  },
-})
+/** donaco's language id for DolphinDB. */
+const LANGUAGE_ID = 'dolphindb'
+
+/** Read the app surface's brightness once so the editor theme matches it. */
+function detectTheme(el: HTMLElement): 'light' | 'dark' {
+  const match = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(el).backgroundColor)
+  if (match === null) return 'light'
+  const luminance = (0.2126 * Number(match[1]) + 0.7152 * Number(match[2]) + 0.0722 * Number(match[3])) / 255
+  return luminance < 0.5 ? 'dark' : 'light'
+}
+
+/** Decode the inlined onig.wasm base64 for loadWASM. */
+function onigBuffer(): ArrayBuffer {
+  const binary = atob(__DONACO_ONIG_WASM_BASE64__)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
+  return bytes.buffer
+}
+
+/**
+ * The one-time language setup shared by every editor mount: oniguruma first
+ * (the TextMate registry tokenizes through it), then donaco's providers. The
+ * color map is fixed with the first mount's theme — donaco's registry holds
+ * it globally, so a later theme switch does not re-tint the grammar.
+ */
+let languageReady: Promise<void> | undefined
+function ensureDolphinDbLanguage(theme: 'light' | 'dark'): Promise<void> {
+  languageReady ??= (async () => {
+    await loadWASM(onigBuffer())
+    await register_dolphindb_language(monaco, { docs: __DONACO_DOCS_SLIM__, theme })
+  })()
+  return languageReady
+}
 
 /** What the panel asks of the editor instance. */
 interface EditorApi {
@@ -72,58 +70,58 @@ interface EditorApi {
   getDoc: () => string
 }
 
-/** The CodeMirror editing surface; mounts once, placeholder reconfigures on locale change. */
-function ScriptEditor({ placeholderText, apiRef, onRun }: {
-  placeholderText: string
+/** The Monaco editing surface; mounts once, runs the buffer on Mod-Enter. */
+function ScriptEditor({ apiRef, onRun, onReady }: {
   apiRef: { current: EditorApi | undefined }
   onRun: (script: string) => void
+  onReady: (ready: boolean) => void
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const viewRef = useRef<EditorView | undefined>(undefined)
-  const placeholderCompartment = useRef(new Compartment())
   const runRef = useRef(onRun)
   runRef.current = onRun
+  const readyRef = useRef(onReady)
+  readyRef.current = onReady
 
   useEffect(() => {
     const host = hostRef.current
     if (host === null) return
-    const view = new EditorView({
-      state: EditorState.create({
-        doc: '',
-        extensions: [
-          basicSetup,
-          sql(),
-          consoleTheme,
-          placeholderCompartment.current.of(placeholder(placeholderText)),
-          // Mod-Enter runs the buffer; scoped to the editor's focus, never a
-          // window-level shortcut that would hijack other inputs.
-          keymap.of([{
-            key: 'Mod-Enter',
-            run: (target) => {
-              runRef.current(target.state.doc.toString())
-              return true
-            },
-          }]),
-        ],
-      }),
-      parent: host,
+    let editor: monaco.editor.IStandaloneCodeEditor | undefined
+    let cancelled = false
+    const theme = detectTheme(host)
+    void ensureDolphinDbLanguage(theme).then(() => {
+      if (cancelled) return
+      editor = monaco.editor.create(host, {
+        value: '',
+        language: LANGUAGE_ID,
+        theme: theme === 'dark' ? 'vs-dark' : 'vs',
+        fontSize: 13,
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fixedOverflowWidgets: true,
+        scrollBeyondLastLine: false,
+        tabSize: 4,
+      })
+      // Mod-Enter runs the buffer; scoped to the editor's focus, never a
+      // window-level shortcut that would hijack other inputs.
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+        runRef.current(editor?.getValue() ?? '')
+      })
+      apiRef.current = { getDoc: () => editor?.getValue() ?? '' }
+      readyRef.current(true)
+    }, (error: unknown) => {
+      // A failed language setup surfaces through the console; the editor area
+      // keeps its loading line rather than mounting a half-wired instance.
+      console.error('dolphindb: monaco language setup failed', error)
     })
-    viewRef.current = view
-    apiRef.current = { getDoc: () => view.state.doc.toString() }
     return () => {
+      cancelled = true
       apiRef.current = undefined
-      viewRef.current = undefined
-      view.destroy()
+      editor?.dispose()
     }
-    // Mount once per host; the placeholder reconfigures through the effect below.
+    // Mount once per host.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  useEffect(() => {
-    viewRef.current?.dispatch({
-      effects: placeholderCompartment.current.reconfigure(placeholder(placeholderText)),
-    })
-  }, [placeholderText])
 
   return <div className={css.editor} ref={hostRef} />
 }
@@ -203,6 +201,7 @@ function ResultPane({ t, state }: { t: ScriptTranslate, state: ScriptConsoleStat
 export function ScriptPanel(props: ScriptPanelProps) {
   const { t } = props
   const state = props.useScriptConsole(snapshot => snapshot)
+  const [editorReady, setEditorReady] = useState(false)
   const editorApi = useRef<EditorApi | undefined>(undefined)
   const runBuffer = (): void => {
     const doc = editorApi.current?.getDoc()
@@ -218,14 +217,17 @@ export function ScriptPanel(props: ScriptPanelProps) {
         </div>
       </header>
       <div className={css.editorCard}>
-        <ScriptEditor placeholderText={t('editorPlaceholder')} apiRef={editorApi} onRun={props.runScript} />
+        <div className={css.editorWrap}>
+          <ScriptEditor apiRef={editorApi} onRun={props.runScript} onReady={setEditorReady} />
+          {!editorReady && <p className={css.editorLoading} role="status">{t('editorLoading')}</p>}
+        </div>
         <div className={css.editorBar}>
           <span className={css.hint}>{t('runHint')}</span>
           <Button
             variant="primary"
             size="sm"
             icon={<IconPlayOutline16 size={13} />}
-            disabled={state.run.status === 'running'}
+            disabled={!editorReady || state.run.status === 'running'}
             onClick={runBuffer}
           >
             {state.run.status === 'running' ? t('running') : t('run')}

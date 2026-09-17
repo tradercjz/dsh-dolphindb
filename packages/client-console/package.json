@@ -67,9 +67,10 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
-    "@codemirror/lang-sql": "^6.10.0",
-    "@codemirror/state": "^6.7.5",
-    "@codemirror/view": "^6.43.12",
-    "codemirror": "^6.0.2"
+    "dolphindb": "^3.1.54",
+    "donaco": "1.0.9",
+    "monaco-editor": "0.52.2",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
   }
 }
