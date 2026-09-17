@@ -21,8 +21,12 @@ import { SidebarIcon } from './SidebarIcon.tsx'
 import { DataBrowserController } from './data-controller.ts'
 import { DataPanel } from './DataPanel.tsx'
 import { DataIcon } from './DataIcon.tsx'
+import { ScriptConsoleController } from './script-controller.ts'
+import { ScriptPanel } from './ScriptPanel.tsx'
+import { ScriptIcon } from './ScriptIcon.tsx'
 import { en, zh } from './locales.ts'
 import { en as dataEn, zh as dataZh } from './data-locales.ts'
+import { en as scriptEn, zh as scriptZh } from './script-locales.ts'
 import type {} from './slot-contract.ts'
 
 export { TYPERT_REMOTE } from './contribution.ts'
@@ -38,6 +42,9 @@ export type {
 } from './data-controller.ts'
 export { PAGE_SIZES } from './data-controller.ts'
 export type { DataBrowserLocaleKey } from './data-locales.ts'
+export type { ScriptPanelProps } from './ScriptPanel.tsx'
+export type { ScriptCell, ScriptConsoleFace, ScriptConsoleState, ScriptRow, ScriptRunState } from './script-controller.ts'
+export type { ScriptConsoleLocaleKey } from './script-locales.ts'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'dolphindb.console'
@@ -50,6 +57,12 @@ const DATA_NS = 'dolphindb.data'
 
 /** Main panel key and sidebar panellist id of the data browser. */
 const DATA_PANEL_ID = 'dolphindb-data'
+
+/** Dictionary namespace of the script console panel. */
+const SCRIPT_NS = 'dolphindb.script'
+
+/** Main panel key and sidebar panellist id of the script console. */
+const SCRIPT_PANEL_ID = 'dolphindb-script'
 
 /** Required services (cordis fiber inject). */
 export const inject = ['slots', 'locale', 'remote']
@@ -83,6 +96,7 @@ export async function apply(ctx: ClientContext): Promise<() => Promise<void>> {
 function registerUi(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'console: dictionaries')
   ctx.effect(() => ctx.locale.register(DATA_NS, { zh: dataZh, en: dataEn }), 'data: dictionaries')
+  ctx.effect(() => ctx.locale.register(SCRIPT_NS, { zh: scriptZh, en: scriptEn }), 'script: dictionaries')
 
   const t = ctx.locale.bind(NS)
   const controller = new ClusterConsoleController(ctx)
@@ -90,6 +104,9 @@ function registerUi(ctx: ClientContext): void {
   const dataT = ctx.locale.bind(DATA_NS)
   const dataController = new DataBrowserController(ctx)
   ctx.effect(() => () => { dataController.dispose() }, 'data: loading')
+  const scriptT = ctx.locale.bind(SCRIPT_NS)
+  const scriptController = new ScriptConsoleController(ctx)
+  ctx.effect(() => () => { scriptController.dispose() }, 'script: runs')
 
   // The shell declares both seats from its own activation path; inject waits
   // for each declaration instead of racing the boot order.
@@ -117,4 +134,16 @@ function registerUi(ctx: ClientContext): void {
     order: 21,
     label: () => dataT('panelLabel'),
   }, DataIcon))
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: SCRIPT_PANEL_ID,
+    locale: SCRIPT_NS,
+    inject: () => scriptController.inject(),
+  }, ScriptPanel))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: SCRIPT_PANEL_ID,
+    order: 22,
+    label: () => scriptT('panelLabel'),
+  }, ScriptIcon))
 }

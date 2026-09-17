@@ -18,9 +18,22 @@ import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol'
 import type { TypertRegistry } from '@deepseek-ai/dsh-typert-registry'
 import type { TypertContribution } from '@deepseek-ai/dsh-typert-registry/types'
 import { z } from 'zod'
-import type { JsonValue } from './types.ts'
+import type { DolphinDbResult, JsonValue } from './types.ts'
 // Brings the `ctx.dolphindb` declaration merge into scope.
 import type {} from './service.ts'
+
+/** One interactive script execution: the script text plus nothing else. */
+export interface ScriptRunRequest {
+  /** DolphinDB script or SQL; executed as-is on the active server. */
+  readonly script: string
+}
+
+/**
+ * The bounded result projection of one script run — identical in shape to the
+ * executor's {@link DolphinDbResult}; aliased here so the console's wire
+ * vocabulary names its own contract.
+ */
+export type ScriptRunResult = DolphinDbResult
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -137,6 +150,21 @@ const MAX_PAGE_ROWS = 1_000
 
 /** Upper bound on a wire-supplied database path or table name. */
 const MAX_NAME_LENGTH = 512
+
+/** Upper bound on one interactive script; the wire is an untrusted boundary. */
+const MAX_SCRIPT_LENGTH = 65_536
+
+/** Validate a wire-supplied script run request. */
+function assertScriptRun(request: ScriptRunRequest): string {
+  const script = request?.script
+  if (typeof script !== 'string' || script.trim() === '') {
+    throw new Error('dolphindb: script must be a nonempty string')
+  }
+  if (script.length > MAX_SCRIPT_LENGTH) {
+    throw new Error(`dolphindb: one script is limited to ${MAX_SCRIPT_LENGTH} characters`)
+  }
+  return script
+}
 
 /**
  * Catalog probe executed as one round trip. getClusterDFSDatabases throws for
@@ -284,6 +312,9 @@ const dfsTablePageRequest$schema = z.object({
   limit: z.number().int().positive(),
 })
 
+/** Wire schema of the interactive script parameter. */
+const scriptRunRequest$schema = z.object({ script: z.string() })
+
 /** One console descriptor in the registry-local shape, mirroring the web client's mounted contribution. */
 function consoleDescriptor(method: string, request$schema?: z.ZodType): InvocationDescriptor {
   return {
@@ -322,6 +353,7 @@ const CONSOLE_CONTRIBUTION: TypertContribution = {
     consoleDescriptor('dfsCatalog'),
     consoleDescriptor('dfsTableSchema', dfsTableRefRequest$schema),
     consoleDescriptor('dfsTableData', dfsTablePageRequest$schema),
+    consoleDescriptor('runScript', scriptRunRequest$schema),
   ],
   model: { services: [], events: [], objects: [] },
 }
@@ -443,6 +475,23 @@ export class DolphinDbConsoleService extends TypertRemoteService {
     }
   }
 
+  /**
+   * Run one interactive script through the Remote API — the script page's
+   * console semantics: the operator's text executes as-is (readOnly false,
+   * like the official web's editor), and the executor's row/byte budgets
+   * bound what comes back. Model-driven writes stay behind the tool policy;
+   * this path serves the human at the keyboard.
+   * @param request - the script text.
+   * @param signal - transport cancellation.
+   * @returns the bounded result projection; `executed` marks DDL/write runs.
+   */
+  async runScript(request: ScriptRunRequest, signal?: AbortSignal): Promise<ScriptRunResult> {
+    const script = assertScriptRun(request)
+    const spec = this.ctx.dolphindb.resolve({ script, readOnly: false })
+    const result = await this.ctx.dolphindb.execute(spec, signal)
+    return result
+  }
+
   private async nodeOperation(
     func: 'startDataNode' | 'stopDataNode',
     request: NodeOperationRequest,
@@ -461,7 +510,10 @@ export class DolphinDbConsoleService extends TypertRemoteService {
 }
 
 /** Remote-exported method names of {@link DolphinDbConsoleService}. */
-const REMOTE_METHODS = ['environment', 'overview', 'startNodes', 'stopNodes', 'dfsCatalog', 'dfsTableSchema', 'dfsTableData'] as const
+const REMOTE_METHODS = [
+  'environment', 'overview', 'startNodes', 'stopNodes',
+  'dfsCatalog', 'dfsTableSchema', 'dfsTableData', 'runScript',
+] as const
 
 /**
  * Apply the protocol's `@Remote` markers without decorator syntax: the repo's

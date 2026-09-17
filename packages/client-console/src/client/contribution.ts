@@ -15,7 +15,7 @@ import { z } from 'zod'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   ClusterOverview, ConsoleEnvironment, DfsCatalog, DfsTablePage, DfsTablePageRequest, DfsTableRef,
-  DfsTableSchema, NodeOperationRequest, NodeOperationResult,
+  DfsTableSchema, NodeOperationRequest, NodeOperationResult, ScriptRunRequest, ScriptRunResult,
 } from '@tradercjz/dsh-dolphindb/console'
 
 /** The `dolphindbConsole` Remote namespace as this client calls it. */
@@ -34,6 +34,8 @@ export interface DolphinDbConsoleRemote {
   dfsTableSchema: (request: DfsTableRef) => Promise<RemoteResult<DfsTableSchema>>
   /** Read one page of a DFS table's rows. */
   dfsTableData: (request: DfsTablePageRequest) => Promise<RemoteResult<DfsTablePage>>
+  /** Run one interactive script on the active server. */
+  runScript: (request: ScriptRunRequest) => Promise<RemoteResult<ScriptRunResult>>
 }
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -80,6 +82,17 @@ const dfsTablePageParameter = {
       offset: z.number().int().nonnegative(),
       limit: z.number().int().positive(),
     }),
+  },
+} as const
+
+const scriptRunParameter = {
+  name: 'request',
+  wire: 'request',
+  source: 'json',
+  codec: {
+    mode: 'strict',
+    typeSymbol: '@tradercjz/dsh-client-console#ScriptRunRequest',
+    schema: z.object({ script: z.string() }),
   },
 } as const
 
@@ -148,6 +161,15 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       method: 'dfsTableData',
       invocation: { kind: 'direct' },
       parameters: [dfsTablePageParameter],
+      result: { mode: 'src-json' },
+    },
+    {
+      id: '@tradercjz/dsh-client-console#dolphindbConsole/runScript',
+      service: 'dolphindbConsole',
+      namespace: 'dolphindbConsole',
+      method: 'runScript',
+      invocation: { kind: 'direct' },
+      parameters: [scriptRunParameter],
       result: { mode: 'src-json' },
     },
   ],

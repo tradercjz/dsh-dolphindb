@@ -108,7 +108,7 @@ describe('DolphinDbConsoleService', () => {
     const exports = remoteMethods(service).map(marker => marker.exportName ?? marker.method)
     expect(exports).toEqual([
       'environment', 'overview', 'startNodes', 'stopNodes',
-      'dfsCatalog', 'dfsTableSchema', 'dfsTableData',
+      'dfsCatalog', 'dfsTableSchema', 'dfsTableData', 'runScript',
     ])
   })
 
@@ -125,6 +125,7 @@ describe('DolphinDbConsoleService', () => {
       '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsCatalog',
       '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsTableSchema',
       '@tradercjz/dsh-dolphindb#dolphindbConsole/dfsTableData',
+      '@tradercjz/dsh-dolphindb#dolphindbConsole/runScript',
     ])
   })
 
@@ -342,6 +343,37 @@ describe('DolphinDbConsoleService DFS browsing', () => {
     await expect(service.dfsTableData({ ...ref, offset: 0.5, limit: 10 })).rejects.toThrow(/offset/)
     await expect(service.dfsTableData({ ...ref, offset: 0, limit: 0 })).rejects.toThrow(/limit/)
     await expect(service.dfsTableData({ ...ref, offset: 0, limit: 1001 })).rejects.toThrow(/1000/)
+    expect(executor.calls).toHaveLength(0)
+  })
+})
+
+describe('DolphinDbConsoleService script runs', () => {
+  it('executes the script as-is with write semantics and returns the bounded projection', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push({
+      columns: ['value'], rows: [[42]], rowCount: 1, truncated: false, elapsedMs: 9, executed: false, server: 'main',
+    })
+    const result = await service.runScript({ script: '1 + 41' })
+    expect(result).toEqual({
+      columns: ['value'], rows: [[42]], rowCount: 1, truncated: false, elapsedMs: 9, executed: false, server: 'main',
+    })
+    expect(executor.calls[0]?.spec.script).toBe('1 + 41')
+    expect(executor.calls[0]?.spec.readOnly).toBe(false)
+  })
+
+  it('carries the executed marker for DDL and writes', async () => {
+    const { executor, service } = await setup()
+    executor.answers.push(executedResult())
+    const result = await service.runScript({ script: 'share table(1..3 as id) as st' })
+    expect(result.executed).toBe(true)
+    expect(result.rows).toEqual([])
+  })
+
+  it('rejects empty and oversized scripts before touching the server', async () => {
+    const { executor, service } = await setup()
+    await expect(service.runScript({ script: '' })).rejects.toThrow(/nonempty/)
+    await expect(service.runScript({ script: '   \n  ' })).rejects.toThrow(/nonempty/)
+    await expect(service.runScript({ script: 'x'.repeat(65_537) })).rejects.toThrow(/65536/)
     expect(executor.calls).toHaveLength(0)
   })
 })
